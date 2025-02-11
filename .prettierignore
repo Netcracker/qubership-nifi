@@ -1,0 +1,5 @@
+# ignore invalid test inputs
+**/test/**/*invalid*.json
+
+# ignore config template, since it's intended to be post-processed and doesn't meet specification
+nifi-config/config-client-template.json
