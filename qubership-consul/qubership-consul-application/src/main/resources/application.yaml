@@ -22,14 +22,14 @@ spring:
     allow-bean-definition-overriding: true
     web-application-type: none
   application:
-    name:  ${MICROSERVICE_NAME:qubership-nifi}
+    name: ${MICROSERVICE_NAME:qubership-nifi}
     cloud_service_name: ${CLOUD_SERVICE_NAME:qubership-nifi}
     namespace: ${NAMESPACE:local}
     cloud_namespace: ${CLOUD_NAMESPACE:local}
   cloud:
     mvc:
       token-relay:
-        enabled: false  # WA for spring boot starting
+        enabled: false # WA for spring boot starting
     consul:
       config:
         prefix: config/${NAMESPACE:local}
@@ -45,7 +45,6 @@ info:
     description: qubership-consul-app
 
 policy.update.enabled: false
-
 
 logging:
   level:
