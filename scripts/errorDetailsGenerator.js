@@ -15,37 +15,34 @@
  */
 
 var flowFile = session.get();
-if (flowFile !== null) 
-{
-    var fullUrl = flowFile.getAttribute('invokehttp.request.url');
-	var httpCode = flowFile.getAttribute('invokehttp.status.code');
-	var responceBody = flowFile.getAttribute('invokehttp.response.body');
-	var detailMessage = 'Error ' + httpCode + ' during invoke "' + fullUrl + '". ';
+if (flowFile !== null) {
+  var fullUrl = flowFile.getAttribute("invokehttp.request.url");
+  var httpCode = flowFile.getAttribute("invokehttp.status.code");
+  var responceBody = flowFile.getAttribute("invokehttp.response.body");
+  var detailMessage =
+    "Error " + httpCode + ' during invoke "' + fullUrl + '". ';
 
-	if(responceBody != null && responceBody !=''){
-		detailMessage = detailMessage + 'Request return: ' + responceBody;
-	}
-		
-	flowFile = session.putAttribute(flowFile, 'title', getMessage(httpCode));
-	flowFile = session.putAttribute(flowFile, 'error.details', detailMessage);
-	
-		
-    session.transfer(flowFile, REL_SUCCESS);
+  if (responceBody != null && responceBody != "") {
+    detailMessage = detailMessage + "Request return: " + responceBody;
+  }
+
+  flowFile = session.putAttribute(flowFile, "title", getMessage(httpCode));
+  flowFile = session.putAttribute(flowFile, "error.details", detailMessage);
+
+  session.transfer(flowFile, REL_SUCCESS);
 }
 
-
-function getMessage(code){
-switch(code){
-	case '400':
-		return 'HTTP status code 400: Bad Request';
-	case '401':
-		return 'HTTP status code 401: Unauthorized';
-	case '404':
-		return 'HTTP status code 404: Not Found';
-	case '408':
-		return 'HTTP status code 408: Request Timeout';
-	default: 
-		return 'HTTP status code ' + code;
-	
-}
+function getMessage(code) {
+  switch (code) {
+    case "400":
+      return "HTTP status code 400: Bad Request";
+    case "401":
+      return "HTTP status code 401: Unauthorized";
+    case "404":
+      return "HTTP status code 404: Not Found";
+    case "408":
+      return "HTTP status code 408: Request Timeout";
+    default:
+      return "HTTP status code " + code;
+  }
 }
