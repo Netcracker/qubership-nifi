@@ -15,50 +15,107 @@
  */
 
 var flowFile = session.get();
-if (flowFile !== null) 
-{
-    var fullUrl = flowFile.getAttribute('invokehttp.request.url');
-	var key = flowFile.getAttribute('invokehttp.java.exception.class').replace(/.*\./g,"");
-	var errorPrefix = key + ' during invoke "' + fullUrl + '". '; 
-	var exceptionMessage  = flowFile.getAttribute('invokehttp.java.exception.message');
-	session.putAttribute(flowFile, 'error.code', 'CIM-IE-0000');
-	
-	if(exceptionMessage != null && exceptionMessage != '') {
-		exceptionMessage = 'Exception message: ' + exceptionMessage;
-	}
+if (flowFile !== null) {
+  var fullUrl = flowFile.getAttribute("invokehttp.request.url");
+  var key = flowFile
+    .getAttribute("invokehttp.java.exception.class")
+    .replace(/.*\./g, "");
+  var errorPrefix = key + ' during invoke "' + fullUrl + '". ';
+  var exceptionMessage = flowFile.getAttribute(
+    "invokehttp.java.exception.message",
+  );
+  session.putAttribute(flowFile, "error.code", "CIM-IE-0000");
 
-	putExceptionAttributes(key);
-	
-    session.transfer(flowFile, REL_SUCCESS);
+  if (exceptionMessage != null && exceptionMessage != "") {
+    exceptionMessage = "Exception message: " + exceptionMessage;
+  }
+
+  putExceptionAttributes(key);
+
+  session.transfer(flowFile, REL_SUCCESS);
 }
 
-function putExceptionAttributes(key){
-	var title = 'title';
-	var details = 'error.details';
-	switch(key) {
-		case 'SocketTimeoutException':
-			session.putAttribute(flowFile, title, 'Socket timeout during HTTP invoke.');
-			session.putAttribute(flowFile, details, errorPrefix + 'Timeout has occurred on a socket read or accept. ' + exceptionMessage);
-			break;
-		case 'UnknownHostException':
-			session.putAttribute(flowFile, title, 'Unknown host in HTTP invoke process.');
-			session.putAttribute(flowFile, details, errorPrefix + 'IP address of a host could not be determined. ' + exceptionMessage);
-			break;
-		case 'ConnectException':
-			session.putAttribute(flowFile, title, 'Connection error during HTTP invoke.');
-			session.putAttribute(flowFile, details, errorPrefix + 'Error occurred while attempting to connect a socket to a remote address and port. ' + exceptionMessage);
-			break;
-		case 'SocketException': 
-			 session.putAttribute(flowFile, title, 'Socket error in HTTP invoke process.');
-			 session.putAttribute(flowFile, details, errorPrefix + 'Error creating or accessing a Socket. ' + exceptionMessage);
-			break;
-		case 'NoRouteToHostException':
-			session.putAttribute(flowFile, title, 'Remote host cannot be reached.');
-			session.putAttribute(flowFile, details, errorPrefix + 'Error occurred while attempting to connect a socket to a remote address and port. ' + exceptionMessage);
-			break;
-			
-		default:
-			session.putAttribute(flowFile, 'title', key+' in HTTP  invoke process.');
-			session.putAttribute(flowFile, 'error.details', errorPrefix + exceptionMessage);
-	}
+function putExceptionAttributes(key) {
+  var title = "title";
+  var details = "error.details";
+  switch (key) {
+    case "SocketTimeoutException":
+      session.putAttribute(
+        flowFile,
+        title,
+        "Socket timeout during HTTP invoke.",
+      );
+      session.putAttribute(
+        flowFile,
+        details,
+        errorPrefix +
+          "Timeout has occurred on a socket read or accept. " +
+          exceptionMessage,
+      );
+      break;
+    case "UnknownHostException":
+      session.putAttribute(
+        flowFile,
+        title,
+        "Unknown host in HTTP invoke process.",
+      );
+      session.putAttribute(
+        flowFile,
+        details,
+        errorPrefix +
+          "IP address of a host could not be determined. " +
+          exceptionMessage,
+      );
+      break;
+    case "ConnectException":
+      session.putAttribute(
+        flowFile,
+        title,
+        "Connection error during HTTP invoke.",
+      );
+      session.putAttribute(
+        flowFile,
+        details,
+        errorPrefix +
+          "Error occurred while attempting to connect a socket to a remote address and port. " +
+          exceptionMessage,
+      );
+      break;
+    case "SocketException":
+      session.putAttribute(
+        flowFile,
+        title,
+        "Socket error in HTTP invoke process.",
+      );
+      session.putAttribute(
+        flowFile,
+        details,
+        errorPrefix +
+          "Error creating or accessing a Socket. " +
+          exceptionMessage,
+      );
+      break;
+    case "NoRouteToHostException":
+      session.putAttribute(flowFile, title, "Remote host cannot be reached.");
+      session.putAttribute(
+        flowFile,
+        details,
+        errorPrefix +
+          "Error occurred while attempting to connect a socket to a remote address and port. " +
+          exceptionMessage,
+      );
+      break;
+
+    default:
+      session.putAttribute(
+        flowFile,
+        "title",
+        key + " in HTTP  invoke process.",
+      );
+      session.putAttribute(
+        flowFile,
+        "error.details",
+        errorPrefix + exceptionMessage,
+      );
+  }
 }
