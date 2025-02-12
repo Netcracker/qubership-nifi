@@ -65,6 +65,7 @@
         <module>qubership-nifi-lookup-services</module>
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
+        <module>qubership-assembly</module>
     </modules>
 
     <reporting>
