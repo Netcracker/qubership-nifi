@@ -20,7 +20,7 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.11.1-r0
+    curl=8.11.1-r1
 
 #add /home/nifi symlink
 RUN mkdir -p /opt/nifi/nifi-home-dir \
