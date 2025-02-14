@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 info "re_encrypt_sensitive_keys.sh start"
 if [ -z "${NIFI_NEW_SENSITIVE_KEY}" -o "${NIFI_NEW_SENSITIVE_KEY}" = '<empty>' -o "${NIFI_NEW_SENSITIVE_KEY}" = "" ]

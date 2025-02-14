@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 state_providers_file=${NIFI_HOME}/conf/state-management.xml
 

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 mkdir -p /tmp/tmp-nifi
 
 scripts_dir='/opt/nifi/scripts'
@@ -50,7 +50,7 @@ fi
 
 info "Start process of restore NiFi configuration."
 
-[ -f "${scripts_dir}/restoreNiFiConfigurations_add_funct.sh" ] && . "${scripts_dir}/restoreNiFiConfigurations_add_funct.sh"
+[ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
 
 info "Getting nifi-restore-version from Consul"
 res=$(curl -sS --write-out %{http_code} -o /tmp/tmp-nifi/consulValue.json --header "X-Consul-Token: $secretId" "$CONSUL_URL/v1/kv/config/$NAMESPACE/cloud-data-migration-nifi/nifi-restore-version") || handle_error 'Cannot get nifi-restore-version from Consul'

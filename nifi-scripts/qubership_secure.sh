@@ -14,13 +14,13 @@
 # limitations under the License.
 
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 scripts_dir='/opt/nifi/scripts'
 
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
-[ -f "${scripts_dir}/qubership-secure_add_funct.sh" ] && . "${scripts_dir}/qubership-secure_add_funct.sh"
+[ -f "${scripts_dir}/qubership_secure_add_funct.sh" ] && . "${scripts_dir}/qubership_secure_add_funct.sh"
 
 # escaping & in url
 esc_OIDC_DISCOVERY_URL_NEW=$(echo "$OIDC_DISCOVERY_URL_NEW" | sed -e "s|&|\\\\&|g")

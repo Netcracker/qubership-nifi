@@ -15,7 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 #create temp directory
 mkdir -p /tmp/tmp-nifi
@@ -28,7 +28,7 @@ scripts_dir='/opt/nifi/scripts'
 
 h2_versions=('2.2.220' '2.1.214' '2.1.210')
 
-[ -f "${scripts_dir}/startAdditionalFunc.sh" ] && . "${scripts_dir}/startAdditionalFunc.sh"
+[ -f "${scripts_dir}/start_additional_func.sh" ] && . "${scripts_dir}/start_additional_func.sh"
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
 cp ${NIFI_HOME}/nifi-config-template/* ${NIFI_HOME}/conf/
@@ -254,7 +254,7 @@ mkdir -p "${NIFI_HOME}/persistent_conf/conf-restore"
 mkdir -p "${NIFI_HOME}/provenance_repository/provenance_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/database_repository"
 
-bash "${scripts_dir}/restoreNiFiConfigurations.sh"
+bash "${scripts_dir}/restore_nifi_configurations.sh"
 
 # Set nifi-toolkit properties files and baseUrl
 export HOME="/opt/nifi/nifi-current/conf/"
@@ -515,7 +515,7 @@ set_bored_yield_duration
 case ${AUTH} in
     oidc)
         info 'Enabling Two-Way SSL and OIDC user authentication'
-        . "${scripts_dir}/qubership-secure.sh"
+        . "${scripts_dir}/qubership_secure.sh"
         . "${scripts_dir}/secure.sh"
         ;;
     tls)
@@ -542,7 +542,7 @@ fi
 
 load_ext_resources
 
-. "${scripts_dir}/clearSensitiveEnvVars.sh"
+. "${scripts_dir}/clear_sensitive_env_vars.sh"
 
 # Add gcompat lib to avoid compatibility issues between netty and Alpine Linux:
 export LD_PRELOAD=/lib/libgcompat.so.0:$LD_PRELOAD

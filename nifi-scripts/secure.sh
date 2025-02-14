@@ -17,7 +17,7 @@
 
 scripts_dir='/opt/nifi/scripts'
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 

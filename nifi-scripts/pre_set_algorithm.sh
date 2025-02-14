@@ -17,7 +17,7 @@
 scripts_dir='/opt/nifi/scripts'
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 handle_error(){
     error "$1" >&2
