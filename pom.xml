@@ -64,7 +64,6 @@
         <module>qubership-nifi-lookup-services</module>
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
-        <module>qubership-assembly</module>
     </modules>
 
     <reporting>
@@ -228,6 +227,14 @@
                         <version>6.37.0</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.3</version>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
         <pluginManagement>
