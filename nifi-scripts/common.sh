@@ -18,7 +18,7 @@
 # 2 - value to replace
 # 3 - file to perform replacement inline
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 prop_replace () {
   target_file=${3:-${nifi_props_file}}

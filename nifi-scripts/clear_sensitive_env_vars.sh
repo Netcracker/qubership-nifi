@@ -14,9 +14,9 @@
 # limitations under the License.
 
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
-info "clearSensitiveEnvVars.sh start"
+info "clear_sensitive_env_vars.sh start"
 
 unset OIDC_CLIENT_SECRET
 unset KEYSTORE_PASSWORD
@@ -25,4 +25,4 @@ unset TRUSTSTORE_PASSWORD
 unset SENSITIVE_KEY
 unset NIFI_NEW_SENSITIVE_KEY
 
-info "clearSensitiveEnvVars.sh end"
+info "clear_sensitive_env_vars.sh end"

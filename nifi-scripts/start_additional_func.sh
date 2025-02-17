@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-. /opt/nifi/scripts/loggingApi.sh
+. /opt/nifi/scripts/logging_api.sh
 
 set_extensions_retry(){
     :;

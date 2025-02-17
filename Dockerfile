@@ -115,7 +115,7 @@ COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-te
 ARG NIFI_VERSION='1.28.1'
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/start.sh \
-    && chmod 774 $NIFI_BASE_DIR/scripts/qubership-secure.sh \
+    && chmod 774 $NIFI_BASE_DIR/scripts/qubership_secure.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
     && mkdir -p $NIFI_HOME/auxiliary-cp \
     && ln -s $NIFI_HOME/work/nar/extensions/nifi-poi-nar-$NIFI_VERSION.nar-unpacked/NAR-INF/bundled-dependencies $NIFI_HOME/auxiliary-cp/nifi-poi-nar-cp
