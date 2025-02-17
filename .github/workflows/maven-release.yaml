@@ -14,7 +14,7 @@ on:
         required: true
         default: '1.0.0'
         type: string
-        description: 'Release version (e.g., 2025.1-1.0.0)'
+        description: 'Release version (e.g., 1.0.0)'
       java_version:
         required: false
         type: string
@@ -119,7 +119,7 @@ jobs:
     needs: [update-pom-version, tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven_command: "--batch-mode package"
+      maven_command: ${{ (github.event.inputs.dry-run == 'true' && '--batch-mode package') || '--batch-mode deploy' }}
       java_version: ${{ github.event.inputs.java_version }}
       version: ${{ github.event.inputs.version }}
       upload-artifact: false
@@ -136,7 +136,7 @@ jobs:
     with:
       ref: ${{ github.event.inputs.version }}
       artifact-id: ${{ needs.update-pom-version.outputs.artifact_id }}
-      dry-run: true
+      dry-run: ${{ github.event.inputs.dry-run }}
 
   github-release:
     needs: [tag]
