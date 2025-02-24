@@ -18,7 +18,7 @@
 # 2 - value to replace
 # 3 - file to perform replacement inline
 
-# shellcheck source=/dev/null
+# shellcheck source=./logging_api.sh
 . /opt/nifi/scripts/logging_api.sh
 
 prop_replace () {

@@ -16,7 +16,7 @@
 # shellcheck source=/dev/null
 . /opt/nifi/scripts/logging_api.sh
 
-"$JAVA_HOME"/bin/java ${CONSUL_CONFIG_JAVA_OPTIONS} -jar "$NIFI_HOME"/utility-lib/qubership-consul-application.jar org.qubership.cloud.nifi.config.NifiPropertiesLookup &
+"$JAVA_HOME"/bin/java ${CONSUL_CONFIG_JAVA_OPTIONS} \
+    -jar "$NIFI_HOME"/utility-lib/qubership-consul-application.jar org.qubership.cloud.nifi.config.NifiPropertiesLookup &
 
 consul_pid=$!
-#info "consul_pid=$consul_pid"
