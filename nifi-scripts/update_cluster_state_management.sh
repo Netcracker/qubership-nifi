@@ -13,16 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# shellcheck source=./logging_api.sh
 . /opt/nifi/scripts/logging_api.sh
 
 state_providers_file=${NIFI_HOME}/conf/state-management.xml
 
 info "Setting cluster configuration: Connect String = ${ZOOKEEPER_ADDRESS}"
-sed -i -E "s|^(.*)<property name=\"Connect String\">(.*)</property>(.*)|\1<property name=\"Connect String\">${ZOOKEEPER_ADDRESS}</property>\3|" ${state_providers_file}
+sed -i -E "s|^(.*)<property name=\"Connect String\">(.*)</property>(.*)|\1<property name=\"Connect String\">${ZOOKEEPER_ADDRESS}</property>\3|" "${state_providers_file}"
 
 info "Setting cluster configuration: Root Node = ${NIFI_ZK_ROOT_NODE}"
-sed -i -E "s|^(.*)<property name=\"Root Node\">(.*)</property>(.*)|\1<property name=\"Root Node\">${NIFI_ZK_ROOT_NODE}</property>\3|" ${state_providers_file}
+sed -i -E "s|^(.*)<property name=\"Root Node\">(.*)</property>(.*)|\1<property name=\"Root Node\">${NIFI_ZK_ROOT_NODE}</property>\3|" "${state_providers_file}"
 
 info "Setting local state provider configuration: Directory = ${NIFI_LOCAL_PROVIDER_DIR:-./persistent_data/state/local}"
-sed -i -E "s|^(.*)<property name=\"Directory\">(.*)</property>(.*)|\1<property name=\"Directory\">${NIFI_LOCAL_PROVIDER_DIR:-./persistent_data/state/local}</property>\3|" ${state_providers_file}
+sed -i -E "s|^(.*)<property name=\"Directory\">(.*)</property>(.*)|\1<property name=\"Directory\">${NIFI_LOCAL_PROVIDER_DIR:-./persistent_data/state/local}</property>\3|" "${state_providers_file}"

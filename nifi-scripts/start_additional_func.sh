@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# shellcheck source=./logging_api.sh
+
 . /opt/nifi/scripts/logging_api.sh
 
 set_additional_properties(){
