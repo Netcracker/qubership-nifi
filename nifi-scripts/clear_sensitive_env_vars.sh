@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# shellcheck source=./logging_api.sh
 . /opt/nifi/scripts/logging_api.sh
 
 info "clear_sensitive_env_vars.sh start"

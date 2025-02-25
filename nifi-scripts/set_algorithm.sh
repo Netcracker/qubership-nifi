@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# shellcheck source=./logging_api.sh
 
 . /opt/nifi/scripts/logging_api.sh
 
@@ -36,14 +37,14 @@ fi
 # flow.json.gz missing. Skip.
 if [ ! -f "$flow_conf_path/flow.json.gz" ]; then
     info "$flow_conf_path/flow.json.gz not found. The algorithm will be installed - NIFI_PBKDF2_AES_GCM_256."
-    ${NIFI_HOME}/bin/nifi.sh set-sensitive-properties-algorithm NIFI_PBKDF2_AES_GCM_256 || handle_error "Cannot set algorithm NIFI_PBKDF2_AES_GCM_256"
+    "${NIFI_HOME}"/bin/nifi.sh set-sensitive-properties-algorithm NIFI_PBKDF2_AES_GCM_256 || handle_error "Cannot set algorithm NIFI_PBKDF2_AES_GCM_256"
     create_bugfix_marker "flow.json.gz not found"
     exit 0
 fi
 
 info "Installation of the Algorithm - NIFI_PBKDF2_AES_GCM_256"
 
-${NIFI_HOME}/bin/nifi.sh set-sensitive-properties-algorithm NIFI_PBKDF2_AES_GCM_256 || handle_error "Cannot set algorithm NIFI_PBKDF2_AES_GCM_256"
+"${NIFI_HOME}"/bin/nifi.sh set-sensitive-properties-algorithm NIFI_PBKDF2_AES_GCM_256 || handle_error "Cannot set algorithm NIFI_PBKDF2_AES_GCM_256"
 info "Saving marker for setting algorithm..."
 create_bugfix_marker "Set algorithm NIFI_PBKDF2_AES_GCM_256"
 
