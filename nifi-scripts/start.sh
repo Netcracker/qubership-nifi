@@ -114,7 +114,7 @@ if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
     done < ${NIFI_HOME}/conf/custom.properties
     unset IFS
     
-    set_extensions_retry
+    set_additional_properties
 fi
 
 # Override JVM memory settings
@@ -167,7 +167,7 @@ if [ ! -z "${NIFI_ADDITIONAL_JVM_ARGS}" -a "${NIFI_ADDITIONAL_JVM_ARGS}" != '${E
     done
 fi
 
-call_additional_lib
+call_additional_libs
 
 if [ ! -z "${X_JAVA_ARGS}" ]; then
     if [ -z "$i" ]; then
@@ -508,8 +508,7 @@ if [ ! -z "${NIFI_CONTENT_ARCHIVE_MAX_USAGE}" ]; then
     prop_replace 'nifi.content.repository.archive.max.usage.percentage'                  "${NIFI_CONTENT_ARCHIVE_MAX_USAGE}"
 fi
 
-
-set_bored_yield_duration
+set_additional_properties2
 
 # Check if we are secured or unsecured
 case ${AUTH} in
@@ -540,7 +539,7 @@ if [ ! -z "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
     /opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n ${NIFI_HOME}/conf/nifi.properties -b ${NIFI_HOME}/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
 fi
 
-load_ext_resources
+load_additional_resources
 
 . "${scripts_dir}/clear_sensitive_env_vars.sh"
 
@@ -551,7 +550,7 @@ export LD_PRELOAD=/lib/libgcompat.so.0:$LD_PRELOAD
 "${NIFI_HOME}/bin/nifi.sh" run &
 nifi_pid="$!"
 
-suppress_message
+redirect_logs
 
 trap 'echo Received trapped signal, beginning shutdown...;./bin/nifi.sh stop;kill -9 "$tail_pid";exit 0;' TERM HUP INT;
 trap ":" EXIT
