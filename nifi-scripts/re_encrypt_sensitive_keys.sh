@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# shellcheck source=./logging_api.sh
-
+# shellcheck source=/dev/null
 . /opt/nifi/scripts/logging_api.sh
 
 info "re_encrypt_sensitive_keys.sh start"

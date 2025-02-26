@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+# shellcheck source=/dev/null
 . /opt/nifi/scripts/logging_api.sh
 mkdir -p /tmp/tmp-nifi
 
@@ -34,7 +34,7 @@ handle_error(){
 info "List of available archived configuration versions:"
 if [[ -d "${NIFI_HOME}"/persistent_conf/conf/archive ]]
 then
-    if [[ -z "$(find ${NIFI_HOME}/persistent_conf/conf/archive -name '*.json.gz' | head -1)" ]]
+    if [[ -z "$(find "${NIFI_HOME}"/persistent_conf/conf/archive -name '*.json.gz' | head -1)" ]]
     then
         info "Configuration files are missing from the directory..."
     else
@@ -50,10 +50,12 @@ fi
 
 info "Start process of restore NiFi configuration."
 
+secretId=""
+
 [ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
 
 info "Getting nifi-restore-version from Consul"
-res=$(curl -sS --write-out %{http_code} -o /tmp/tmp-nifi/consulValue.json --header "X-Consul-Token: $secretId" "$CONSUL_URL/v1/kv/config/$NAMESPACE/cloud-data-migration-nifi/nifi-restore-version") || handle_error 'Cannot get nifi-restore-version from Consul'
+res=$(curl -sS --write-out "%{http_code}" -o /tmp/tmp-nifi/consulValue.json --header "X-Consul-Token: ${secretId}" "$CONSUL_URL/v1/kv/config/$NAMESPACE/cloud-data-migration-nifi/nifi-restore-version") || handle_error 'Cannot get nifi-restore-version from Consul'
 if [ "$res" != "200" ]; then
     if [ "$res" == "404" ]; then
         info "Property 'nifi-restore-version' is not set, configuration restoration is not required. NiFi will start with the current flow.json.gz configuration."
@@ -88,7 +90,7 @@ mv "${NIFI_HOME}/persistent_conf/conf/flow.json.gz" "${NIFI_HOME}/persistent_con
 cp "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" "${NIFI_HOME}/persistent_conf/conf/flow.json.gz"
 
 info "Deleting nifi-restore-version from Consul"
-res=$(curl -sS --write-out %{http_code} --request DELETE -o /tmp/tmp-nifi/deleteValue.json  $CONSUL_URL/v1/kv/config/$NAMESPACE/cloud-data-migration-nifi/nifi-restore-version?token=$secretId)
+res=$(curl -sS --write-out "%{http_code}" --request DELETE -o /tmp/tmp-nifi/deleteValue.json  "$CONSUL_URL"/v1/kv/config/"$NAMESPACE"/cloud-data-migration-nifi/nifi-restore-version?token="$secretId")
 if [ "$res" != "200" ]; then
     warn "Removing the property 'nifi-restore-version' from the consul was not completed. You must manually remove the properties. Error message = $(cat /tmp/tmp-nifi/deleteValue.json)"
 fi

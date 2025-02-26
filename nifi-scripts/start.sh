@@ -15,6 +15,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 
+# shellcheck source=/dev/null
 . /opt/nifi/scripts/logging_api.sh
 
 #create temp directory
@@ -31,13 +32,13 @@ h2_versions=('2.2.220' '2.1.214' '2.1.210')
 [ -f "${scripts_dir}/start_additional_func.sh" ] && . "${scripts_dir}/start_additional_func.sh"
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
-cp ${NIFI_HOME}/nifi-config-template/* ${NIFI_HOME}/conf/
-cp ${NIFI_HOME}/nifi-config-template-custom/bootstrap.conf ${NIFI_HOME}/conf/
-cp ${NIFI_HOME}/nifi-config-template-custom/config-client-template.json ${NIFI_HOME}/conf/
+cp "${NIFI_HOME}"/nifi-config-template/* "${NIFI_HOME}"/conf/
+cp "${NIFI_HOME}"/nifi-config-template-custom/bootstrap.conf "${NIFI_HOME}"/conf/
+cp "${NIFI_HOME}"/nifi-config-template-custom/config-client-template.json "${NIFI_HOME}"/conf/
 
 generate_random_hex_password(){
     #args -- letters, numbers
-    echo $(tr -dc A-F < /dev/urandom | head -c $1)$(tr -dc 0-9 < /dev/urandom | head -c $2) | fold -w 1 | shuf | tr -d '\n'
+    echo $(tr -dc A-F < /dev/urandom | head -c "$1")$(tr -dc 0-9 < /dev/urandom | head -c "$2") | fold -w 1 | shuf | tr -d '\n'
 }
 
 rm -rf /tmp/initial-config-completed.txt
@@ -47,7 +48,7 @@ rm -rf /tmp/initial-config-completed.txt
 . "${scripts_dir}/start_consul_app.sh"
 
 while true; do
-    if ! test -d /proc/$consul_pid; then
+    if ! test -d /proc/"$consul_pid"; then
         error "ERROR: Consul app java process has terminated prematurely. See logs for details..."
         exit 1
     fi
@@ -111,74 +112,74 @@ if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
           info "START_MODE_CLUSTER = $value"
           START_MODE_CLUSTER="$value"
         fi
-    done < ${NIFI_HOME}/conf/custom.properties
+    done < "${NIFI_HOME}"/conf/custom.properties
     unset IFS
     
     set_additional_properties
 fi
 
 # Override JVM memory settings
-if [ ! -z "${NIFI_JVM_HEAP_INIT}" ]; then
-    prop_replace 'java.arg.2'       "-Xms${NIFI_JVM_HEAP_INIT}" ${nifi_bootstrap_file}
+if [ -n "${NIFI_JVM_HEAP_INIT}" ]; then
+    prop_replace 'java.arg.2'       "-Xms${NIFI_JVM_HEAP_INIT}" "${nifi_bootstrap_file}"
 fi
 
-if [ ! -z "${NIFI_JVM_HEAP_MAX}" ]; then
-    prop_replace 'java.arg.3'       "-Xmx${NIFI_JVM_HEAP_MAX}" ${nifi_bootstrap_file}
+if [ -n "${NIFI_JVM_HEAP_MAX}" ]; then
+    prop_replace 'java.arg.3'       "-Xmx${NIFI_JVM_HEAP_MAX}" "${nifi_bootstrap_file}"
 fi
 
-if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
-    uncomment "java.arg.debug" ${nifi_bootstrap_file}
+if [ -n "${NIFI_JVM_DEBUGGER}" ]; then
+    uncomment "java.arg.debug" "${nifi_bootstrap_file}"
 fi
 
-if [ ! -z "${NIFI_TLS_DEBUG}" ]; then
-    sed -i -e "s|^\#java\.arg\.20|java\.arg\.20|" ${NIFI_HOME}/conf/bootstrap.conf
+if [ -n "${NIFI_TLS_DEBUG}" ]; then
+    sed -i -e "s|^\#java\.arg\.20|java\.arg\.20|" "${NIFI_HOME}"/conf/bootstrap.conf
 fi
 
-if [ ! -z "${NIFI_DEBUG_NATIVE_MEMORY}" ]; then
-    sed -i -e "s|^\#java\.arg\.21|java\.arg\.21|" ${NIFI_HOME}/conf/bootstrap.conf
+if [ -n "${NIFI_DEBUG_NATIVE_MEMORY}" ]; then
+    sed -i -e "s|^\#java\.arg\.21|java\.arg\.21|" "${NIFI_HOME}"/conf/bootstrap.conf
 fi
 
-if [ ! -z "${NIFI_DEBUG_JIT_LOGGING}" ]; then
-    sed -i -e "s|^\#java\.arg\.22|java\.arg\.22|" ${NIFI_HOME}/conf/bootstrap.conf
+if [ -n "${NIFI_DEBUG_JIT_LOGGING}" ]; then
+    sed -i -e "s|^\#java\.arg\.22|java\.arg\.22|" "${NIFI_HOME}"/conf/bootstrap.conf
 fi
 
-if [ ! -z "${NIFI_ENABLE_NASHORN_JIT}" ]; then
-    sed -i -e "s|^java\.arg\.23|\#java\.arg\.23|" ${NIFI_HOME}/conf/bootstrap.conf
+if [ -n "${NIFI_ENABLE_NASHORN_JIT}" ]; then
+    sed -i -e "s|^java\.arg\.23|\#java\.arg\.23|" "${NIFI_HOME}"/conf/bootstrap.conf
 fi
 
-if [ ! -z "${HTTP_AUTH_PROXYING_DISABLED_SCHEMES+x}" ]; then
-    sed -i -e "s|^\#java\.arg\.24|java\.arg\.24|" ${nifi_bootstrap_file}
-    prop_replace 'java.arg.24' "-Djdk.http.auth.proxying.disabledSchemes=${HTTP_AUTH_PROXYING_DISABLED_SCHEMES}" ${nifi_bootstrap_file}
+if [ -n "${HTTP_AUTH_PROXYING_DISABLED_SCHEMES+x}" ]; then
+    sed -i -e "s|^\#java\.arg\.24|java\.arg\.24|" "${nifi_bootstrap_file}"
+    prop_replace 'java.arg.24' "-Djdk.http.auth.proxying.disabledSchemes=${HTTP_AUTH_PROXYING_DISABLED_SCHEMES}" "${nifi_bootstrap_file}"
 fi
 
-if [ ! -z "${HTTP_AUTH_TUNNELING_DISABLED_SCHEMES+x}" ]; then
-    sed -i -e "s|^\#java\.arg\.25|java\.arg\.25|" ${nifi_bootstrap_file}
-    prop_replace 'java.arg.25' "-Djdk.http.auth.tunneling.disabledSchemes=${HTTP_AUTH_TUNNELING_DISABLED_SCHEMES}" ${nifi_bootstrap_file}
+if [ -n "${HTTP_AUTH_TUNNELING_DISABLED_SCHEMES+x}" ]; then
+    sed -i -e "s|^\#java\.arg\.25|java\.arg\.25|" "${nifi_bootstrap_file}"
+    prop_replace 'java.arg.25' "-Djdk.http.auth.tunneling.disabledSchemes=${HTTP_AUTH_TUNNELING_DISABLED_SCHEMES}" "${nifi_bootstrap_file}"
 fi
 
-if [ ! -z "${NIFI_ADDITIONAL_JVM_ARGS}" -a "${NIFI_ADDITIONAL_JVM_ARGS}" != '${ENV_NIFI_ADDITIONAL_JVM_ARGS}' ]; then
+if [ -n "${NIFI_ADDITIONAL_JVM_ARGS}" ] && [ "${NIFI_ADDITIONAL_JVM_ARGS}" != "${ENV_NIFI_ADDITIONAL_JVM_ARGS}" ]; then
     i=27
-    read -a addJvmArgArr <<< "$NIFI_ADDITIONAL_JVM_ARGS"
+    read -r -a addJvmArgArr <<< "$NIFI_ADDITIONAL_JVM_ARGS"
     for addJvmArg in "${addJvmArgArr[@]}"; do
         info "Add $addJvmArg in bootstrap.conf"
-        echo "java.arg.$i=$addJvmArg" >> ${NIFI_HOME}/conf/bootstrap.conf
-        echo "" >> ${NIFI_HOME}/conf/bootstrap.conf
-        i=$(($i+1))
+        echo "java.arg.$i=$addJvmArg" >> "${NIFI_HOME}"/conf/bootstrap.conf
+        echo "" >> "${NIFI_HOME}"/conf/bootstrap.conf
+        i=$((i+1))
     done
 fi
 
 call_additional_libs
 
-if [ ! -z "${X_JAVA_ARGS}" ]; then
+if [ -n "${X_JAVA_ARGS}" ]; then
     if [ -z "$i" ]; then
         i=26
     fi
-    read -a addJvmArgArr2 <<< "$X_JAVA_ARGS"
+    read -r -a addJvmArgArr2 <<< "$X_JAVA_ARGS"
     for addJvmArg in "${addJvmArgArr2[@]}"; do
         info "Add $addJvmArg in bootstrap.conf"
-        echo "java.arg.$i=$addJvmArg" >> ${NIFI_HOME}/conf/bootstrap.conf
-        echo "" >> ${NIFI_HOME}/conf/bootstrap.conf
-        i=$(($i+1))
+        echo "java.arg.$i=$addJvmArg" >> "${NIFI_HOME}"/conf/bootstrap.conf
+        echo "" >> "${NIFI_HOME}"/conf/bootstrap.conf
+        i=$((i+1))
     done
 fi
 
@@ -195,12 +196,12 @@ prop_replace 'nifi.cluster.protocol.is.secure'  'true'
 # Set nifi-toolkit properties files and baseUrl
 export HOME="/opt/nifi/nifi-current/conf/"
 "${scripts_dir}/toolkit.sh"
-prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" ${nifi_toolkit_props_file}
+prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" "${nifi_toolkit_props_file}"
 
-prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      ${nifi_toolkit_props_file}
-prop_replace 'keystoreType'       "PKCS12"                              ${nifi_toolkit_props_file}
-prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
-prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
+prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      "${nifi_toolkit_props_file}"
+prop_replace 'keystoreType'       "PKCS12"                              "${nifi_toolkit_props_file}"
+prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    "${nifi_toolkit_props_file}"
+prop_replace 'truststoreType'     "PKCS12"                              "${nifi_toolkit_props_file}"
 
 if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
     prop_replace 'nifi.web.https.port'                        ''
@@ -214,11 +215,11 @@ if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
     prop_replace 'nifi.security.truststore'                   ''
     prop_replace 'nifi.security.truststoreType'               ''
     prop_replace 'nifi.security.user.login.identity.provider' ''
-    prop_replace 'keystore'                                   '' ${nifi_toolkit_props_file}
-    prop_replace 'keystoreType'                               '' ${nifi_toolkit_props_file}
-    prop_replace 'truststore'                                 '' ${nifi_toolkit_props_file}
-    prop_replace 'truststoreType'                             '' ${nifi_toolkit_props_file}
-    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" ${nifi_toolkit_props_file}
+    prop_replace 'keystore'                                   '' "${nifi_toolkit_props_file}"
+    prop_replace 'keystoreType'                               '' "${nifi_toolkit_props_file}"
+    prop_replace 'truststore'                                 '' "${nifi_toolkit_props_file}"
+    prop_replace 'truststoreType'                             '' "${nifi_toolkit_props_file}"
+    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" "${nifi_toolkit_props_file}"
 
     if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
         info 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
@@ -244,7 +245,7 @@ prop_replace 'nifi.provenance.repository.directory.default' "${NIFI_PROVENANCE_R
 
 # Migration to new directories:
 # If persistent_conf/conf doesn't exist, but persistent_data/conf exists:
-if [ ! -d "${NIFI_HOME}/persistent_conf/conf" -a -d "${NIFI_HOME}/persistent_data/conf" ];
+if [ ! -d "${NIFI_HOME}/persistent_conf/conf" ] && [ -d "${NIFI_HOME}/persistent_data/conf" ];
 then
     mv "${NIFI_HOME}/persistent_data/conf" "${NIFI_HOME}/persistent_conf/" || { error "ERROR: failed to move configuration data"; sleep 15; exit 1; }
 fi
@@ -259,7 +260,7 @@ bash "${scripts_dir}/restore_nifi_configurations.sh"
 # Set nifi-toolkit properties files and baseUrl
 export HOME="/opt/nifi/nifi-current/conf/"
 "${scripts_dir}/toolkit.sh"
-prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT:-8080}" ${nifi_toolkit_props_file}
+prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT:-8080}" "${nifi_toolkit_props_file}"
 
 export HOME="/opt/nifi/nifi-current/"
 
@@ -291,11 +292,11 @@ prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
 if [ "${NIFI_REG_NAR_PROVIDER_ENABLED}" == "true" ]; then
-    echo "" >> ${NIFI_HOME}/conf/nifi.properties
-    echo "#default nifi registry nar provider" >> ${NIFI_HOME}/conf/nifi.properties
-    echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider' >> ${NIFI_HOME}/conf/nifi.properties
-    echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080' >> ${NIFI_HOME}/conf/nifi.properties
-    echo "" >> ${NIFI_HOME}/conf/nifi.properties
+    echo "" >> "${NIFI_HOME}"/conf/nifi.properties
+    echo "#default nifi registry nar provider" >> "${NIFI_HOME}"/conf/nifi.properties
+    echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider' >> "${NIFI_HOME}"/conf/nifi.properties
+    echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080' >> "${NIFI_HOME}"/conf/nifi.properties
+    echo "" >> "${NIFI_HOME}"/conf/nifi.properties
 fi
 
 if [ "${NIFI_CONF_PV_CLEAN_CONF}" == "true" ]; then
@@ -310,22 +311,22 @@ if [ "${NIFI_CONF_PV_CLEAN_CONF}" == "true" ]; then
     #
     info "Removing ./persistent_conf/conf/flow.xml.gz..."
     numDeleted=$(rm -rfv ./persistent_conf/conf/flow.xml.gz | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/conf/flow.json.gz..."
     numDeleted=$(rm -rfv ./persistent_conf/conf/flow.json.gz | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/conf/authorizations.xml..."
     numDeleted=$(rm -rfv ./persistent_conf/conf/authorizations.xml | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/conf/users.xml..."
     numDeleted=$(rm -rfv ./persistent_conf/conf/users.xml | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/conf-restore/authorizations.xml..."
     numDeleted=$(rm -rfv ./persistent_conf/conf-restore/authorizations.xml | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/conf-restore/users.xml..."
     numDeleted=$(rm -rfv ./persistent_conf/conf-restore/users.xml | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     #
     endCleanTime=$(date +%Y-%m-%dT%H:%M:%S)
     info "$endCleanTime Finished configuration clean. Removed files: $numFiles"
@@ -344,10 +345,10 @@ if [ "${NIFI_CONF_PV_CLEAN_DB_REPO}" == "true" ]; then
     #
     info "Removing ./persistent_conf/database_repository/nifi-flow-audit.mv.db..."
     numDeleted=$(rm -rfv ./persistent_conf/database_repository/nifi-flow-audit.mv.db | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     info "Removing ./persistent_conf/database_repository/nifi-identity-providers.mv.db..."
     numDeleted=$(rm -rfv ./persistent_conf/database_repository/nifi-identity-providers.mv.db | wc -l)
-    numFiles=$(($numFiles+$numDeleted))
+    numFiles=$((numFiles+numDeleted))
     #
     endCleanTime=$(date +%Y-%m-%dT%H:%M:%S)
     info "$endCleanTime Finished db repository clean. Removed files: $numFiles"
@@ -359,11 +360,11 @@ else
   if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$newDbFile" == "0" ]]; then
    info "Checking if nifi-flow-audit h2 db is corrupt..."
    count=$verscount
-   for version in ${h2_versions[@]}
+   for version in "${h2_versions[@]}"
    do
        h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
        info "h2 jar path: $h2jar"
-       errormessage=$($JAVA_HOME/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-flow-audit -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-flow-audit-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-flow-audit.mv.db')
+       errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-flow-audit -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-flow-audit-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-flow-audit.mv.db')
        if [ -n "$errormessage" ]
        then
               info "$errormessage"
@@ -394,11 +395,11 @@ else
   if [ -f "./persistent_conf/database_repository/nifi-identity-providers.mv.db" ]; then
     info "Checking if nifi-identity-providers h2 db is corrupt..."
     count=$verscount
-    for version in ${h2_versions[@]}
+    for version in "${h2_versions[@]}"
     do
         h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
         info "h2 jar path: $h2jar"
-        errormessage=$($JAVA_HOME/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-identity-providers -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-identity-providers-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-identity-providers.mv.db')
+        errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-identity-providers -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-identity-providers-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-identity-providers.mv.db')
         if [ -n "$errormessage" ]
         then
                info "$errormessage"
@@ -450,16 +451,16 @@ if [ -n "${NIFI_SENSITIVE_PROPS_KEY}" ]; then
 fi
 
 if [ -n "${SINGLE_USER_CREDENTIALS_USERNAME}" ] && [ -n "${SINGLE_USER_CREDENTIALS_PASSWORD}" ]; then
-    ${NIFI_HOME}/bin/nifi.sh set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
+    "${NIFI_HOME}"/bin/nifi.sh set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
 fi
 
 if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     startMode="$START_MODE_CLUSTER"
     
-    numberNode=${HOSTNAME##$MICROSERVICE_NAME-}
+    numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
     baseNode="$BASE_NODE_COUNT"
     
-    if [ "$numberNode" -gt "$(($baseNode-1))" ]; then
+    if [ "$numberNode" -gt "$((baseNode-1))" ]; then
         if [ "$startMode" == "delete" ]; then
             rm -f "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz"
             rm -f "${NIFI_HOME}/persistent_conf/conf/flow.json.gz"
@@ -498,12 +499,12 @@ bash "${scripts_dir}/set_algorithm.sh"
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
-if [ ! -z "${NIFI_CONTENT_ARCHIVE_DISABLED}" ]; then
+if [ -n "${NIFI_CONTENT_ARCHIVE_DISABLED}" ]; then
     # disable content repository archive
     prop_replace 'nifi.content.repository.archive.enabled'                  "false"
 fi
 
-if [ ! -z "${NIFI_CONTENT_ARCHIVE_MAX_USAGE}" ]; then
+if [ -n "${NIFI_CONTENT_ARCHIVE_MAX_USAGE}" ]; then
     # set max usage for Content Archive
     prop_replace 'nifi.content.repository.archive.max.usage.percentage'                  "${NIFI_CONTENT_ARCHIVE_MAX_USAGE}"
 fi
@@ -534,7 +535,7 @@ esac
 #Set up bootstrap sensitive key: letters=11, numbers=21
 NIFI_BOOTSTRAP_SENSITIVE_KEY=$(generate_random_hex_password 11 21)
 
-if [ ! -z "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
+if [ -n "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
     info "Setting bootstrap sensitive key..."
     /opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n ${NIFI_HOME}/conf/nifi.properties -b ${NIFI_HOME}/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
 fi

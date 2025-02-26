@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
-# shellcheck source=./logging_api.sh
-
+# shellcheck source=/dev/null
 . /opt/nifi/scripts/logging_api.sh
 
 set_additional_properties(){

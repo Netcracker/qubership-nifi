@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# shellcheck source=./common.sh
-# shellcheck source=./logging_api.sh
+# shellcheck source=/dev/null
 scripts_dir='/opt/nifi/scripts'
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
