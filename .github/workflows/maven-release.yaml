@@ -134,10 +134,10 @@ jobs:
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: false
       artifact-id: ${{ needs.update-pom-version.outputs.artifact_id }}
-      server-id: "github"
+      server-id: "central"
     secrets:
-      maven-username: ${{ github.actor }}
-      maven-token: ${{ secrets.GITHUB_TOKEN }}
+      maven-username: ${{ secrets.MAVEN_USER }}
+      maven-token: ${{ secrets.MAVEN_PASSWORD }}
       gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
 
