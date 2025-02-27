@@ -48,7 +48,7 @@ rm -rf /tmp/initial-config-completed.txt
 . "${scripts_dir}/start_consul_app.sh"
 
 while true; do
-    if ! test -d /proc/"$consul_pid"; then
+    if ! test -d /proc/"$(consul_pid)"; then
         error "ERROR: Consul app java process has terminated prematurely. See logs for details..."
         exit 1
     fi
