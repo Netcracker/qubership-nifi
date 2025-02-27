@@ -66,6 +66,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 
+/**
+ * Controller Services which allows to expose metrics to Prometheus.
+ */
 @Tags({"record", "send", "write", "prometheus"})
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService{
 
@@ -79,7 +82,6 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private String instance;
 
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();
-
 
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("prometheus-sink-metrics-endpoint-port")

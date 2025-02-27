@@ -21,15 +21,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
+
+/**
+ * Component validator for properties containing JSON that uses type references to parse JSON.
+ * @param <T> defines type of output value, e.g. JsonNode.
+ */
 public class JsonTypeReferenceValidator<T> extends AbstractJsonValidator<T> {
 
     private final TypeReference<T> typeRef;
 
+    /**
+     * Create instance of JsonTypeReferenceValidator
+     * @param mapper ObjectMapper to use
+     * @param typeRef type reference for JSON parsing
+     */
     public JsonTypeReferenceValidator(ObjectMapper mapper, TypeReference<T> typeRef) {
         super(mapper, false);
         this.typeRef = typeRef;
     }
-    
+
+    /**
+     * Create instance of JsonTypeReferenceValidator
+     * @param mapper ObjectMapper to use
+     * @param allowEmpty if true, treats empty values as valid
+     * @param typeRef type reference for JSON parsing
+     */
     public JsonTypeReferenceValidator(ObjectMapper mapper, boolean allowEmpty, TypeReference<T> typeRef) {
         super(mapper, allowEmpty);
         this.typeRef = typeRef;

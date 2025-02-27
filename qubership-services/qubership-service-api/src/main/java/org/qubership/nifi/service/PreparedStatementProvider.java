@@ -24,8 +24,20 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 
+/**
+ * Controller service providing PreparedStatement and setting parameters in it.
+ */
 public interface PreparedStatementProvider extends ControllerService {
-    
+
+    /**
+     * Creates PreparedStatement with specified query and sets ids as string array parameter
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     PreparedStatement createPreparedStatement(
             String query,
             ProcessContext context,
@@ -33,6 +45,16 @@ public interface PreparedStatementProvider extends ControllerService {
             Connection con
     ) throws SQLException;
 
+    /**
+     * Creates PreparedStatement with specified query and sets ids as array parameter with specified element type.
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @param type type of array element to convert to
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     PreparedStatement createPreparedStatement(
             String query,
             ProcessContext context,
@@ -40,7 +62,19 @@ public interface PreparedStatementProvider extends ControllerService {
             Connection con,
             DBElementType type
     ) throws SQLException;
-    
+
+
+    /**
+     * Creates PreparedStatement with specified query and sets ids as string array parameter specified number of times
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @param numberOfBinds number of binds to add
+     * @param bindsOffset offset for binds indexes
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     PreparedStatement createPreparedStatement(
             String query,
             ProcessContext context,
@@ -49,7 +83,19 @@ public interface PreparedStatementProvider extends ControllerService {
             int numberOfBinds,
             int bindsOffset
     ) throws SQLException;
-    
+
+    /**
+     * Creates PreparedStatement with specified query and sets ids as array parameter with specified element type specified number of times.
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @param type type of array element to convert to
+     * @param numberOfBinds number of binds to add
+     * @param bindsOffset offset for binds indexes
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     PreparedStatement createPreparedStatement(
             String query,
             ProcessContext context,

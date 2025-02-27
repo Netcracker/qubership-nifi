@@ -20,10 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
+/**
+ * Abstract NiFi component validator for properties containing JSON.
+ * @param <T> defines type of output value, e.g. JsonNode.
+ */
 public class JsonClassValidator<T> extends AbstractJsonValidator<T> {
 
     private final Class<T> clazz;
 
+    /**
+     * Create new instance of JsonClassValidator
+     * @param mapper ObjectMapper to use
+     * @param clazz JSON object class type
+     */
     public JsonClassValidator(ObjectMapper mapper, Class<T> clazz) {
         super(mapper, false);
         this.clazz = clazz;

@@ -21,12 +21,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 
+/**
+ * Json Tree component validator for properties containing JSON. Uses JsonTree to parse JSON.
+ */
 public class JsonTreeValidator extends AbstractJsonValidator<JsonNode> {
 
+    /**
+     * Create instance of JsonTreeValidator
+     * @param mapper ObjectMapper to use
+     */
     public JsonTreeValidator(ObjectMapper mapper) {
         super(mapper, false);
     }
 
+    /**
+     * Create instance of JsonTreeValidator
+     * @param mapper ObjectMapper to use
+     * @param allowEmpty if true, treats empty values as valid
+     */
     public JsonTreeValidator(ObjectMapper mapper, boolean allowEmpty) {
         super(mapper, allowEmpty);
     }

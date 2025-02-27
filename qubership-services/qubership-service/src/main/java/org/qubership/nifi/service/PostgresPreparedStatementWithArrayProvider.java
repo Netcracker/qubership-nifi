@@ -32,6 +32,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+
+/**
+ * Controller service providing PreparedStatement and setting parameters in it for PostgreSQL DB.
+ */
 @Tags({"properties"})
 @CapabilityDescription("Provides a prepared statement service.")
 public class PostgresPreparedStatementWithArrayProvider 

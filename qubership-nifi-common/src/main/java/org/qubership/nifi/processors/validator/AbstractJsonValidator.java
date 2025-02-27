@@ -28,6 +28,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Abstract NiFi component validator for properties containing JSON.
+ * @param <T> defines type of output value, e.g. JsonNode.
+ */
 @AllArgsConstructor
 public abstract class AbstractJsonValidator<T> implements Validator {
 
@@ -36,7 +40,7 @@ public abstract class AbstractJsonValidator<T> implements Validator {
 
     @Getter
     private final boolean allowEmpty;
-    
+
     @Override
     public ValidationResult validate(String subject, String input, ValidationContext context) {
         Builder builder = new Builder().subject(subject);
@@ -73,8 +77,19 @@ public abstract class AbstractJsonValidator<T> implements Validator {
         return builder.valid(true).explanation("JSON is valid.").build();
     }
 
+    /**
+     * Converts JSON string into JSON object.
+     * @param json JSON string from property
+     * @return parsed JSON object
+     * @throws IOException
+     */
     protected abstract T convert(String json) throws IOException;
 
+    /**
+     * Validates JSON object and returns a list of errors
+     * @param obj input JSON object
+     * @return list of errors
+     */
     protected List<String> validate(T obj) {
         return Collections.emptyList();
     }

@@ -16,6 +16,11 @@
 
 package org.qubership.nifi.service.dbjson;
 
+/**
+ * Interface for transforming JSON coordinates (JSON path or JSON attribute) to DB coordinates (column and table name) and back
+ * @param <SourceType> source type
+ * @param <TargetType> target type
+ */
 public interface Transform<SourceType, TargetType> {
 
     /**
@@ -27,9 +32,9 @@ public interface Transform<SourceType, TargetType> {
     TargetType transform(SourceType sourceObject) throws Exception;
 
     /**
-     * From attribute_name to attributeName and back
+     * Conversion from attributeName to columnName and back
      * @param value attribute (or column) name
-     * @return  column (or attribute) name
+     * @return column (or attribute) name
      */
     String convertColumn(String value);
 }

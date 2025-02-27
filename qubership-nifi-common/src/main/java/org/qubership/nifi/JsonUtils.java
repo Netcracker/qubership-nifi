@@ -18,8 +18,14 @@ package org.qubership.nifi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Utility class providing commonly used object mapper.
+ */
 public final class JsonUtils {
 
+    /**
+     * Object mapper to reuse
+     */
     public static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonUtils() {

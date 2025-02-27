@@ -28,13 +28,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processor.ProcessContext;
 
+/**
+ * Abstract controller service providing PreparedStatement and setting parameters in it.
+ */
 public abstract class AbstractPreparedStatementProvider 
         extends AbstractControllerService 
         implements PreparedStatementProvider {
     
     protected String charArrayType;
     protected String numArrayType;
-    
+
+    /**
+     * Create instance of PreparedStatementProvider
+     */
     public AbstractPreparedStatementProvider() {
     }
 

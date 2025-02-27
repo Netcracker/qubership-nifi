@@ -22,6 +22,30 @@
     <artifactId>qubership-consul</artifactId>
     <packaging>pom</packaging>
     <version>${revision}</version>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
+    <url>https://github.com/Netcracker/qubership-nifi</url>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <name>Netcracker</name>
+            <email>opensourcegroup@netcracker.com</email>
+            <organization>Netcracker Technology</organization>
+            <organizationUrl>https://www.netcracker.com</organizationUrl>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:git://github.com/Netcracker/qubership-nifi.git</connection>
+        <developerConnection>scm:git:ssh://github.com:Netcracker/qubership-nifi.git</developerConnection>
+        <url>https://github.com/Netcracker/qubership-nifi/tree/main</url>
+    </scm>
+
     <modules>
         <module>qubership-consul-util</module>
         <module>qubership-consul-application</module>
@@ -46,12 +70,11 @@
         <spring-cloud-consul.version>4.1.3</spring-cloud-consul.version>
         <spring-cloud-context.version>4.1.4</spring-cloud-context.version>
     </properties>
-
+    
     <distributionManagement>
         <repository>
-            <id>github</id>
-            <name>GitHub OWNER Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/netcracker/qubership-nifi</url>
+            <id>central</id>
+            <name>Central Maven Repository</name>
         </repository>
     </distributionManagement>
 
@@ -180,6 +203,46 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.7</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

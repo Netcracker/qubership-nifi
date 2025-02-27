@@ -38,6 +38,9 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
+/**
+ * Controller service providing PreparedStatement and setting parameters in it for Oracle DB.
+ */
 @Tags({"properties"})
 @CapabilityDescription("Provides a prepared statement service.")
 public class OraclePreparedStatementWithArrayProvider 

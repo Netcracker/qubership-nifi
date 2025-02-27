@@ -44,24 +44,41 @@ public interface DbJsonMappingService extends ControllerService {
             .addValidator(Validator.VALID)
             .build();
 
+
+    /**
+     * Gets DB to JSON mapping table based on controller service parameters.
+     */
     DBToJsonMappingTable db2Json();
     /**
-     * For lookup
-     * attributes be.type = <real be type>
+     * Looks up DB to JSON mapping table based on FlowFile attributes. Attributes must contain be.type = Business Entity (BE) type.
      */
     DBToJsonMappingTable db2Json(Map<String, String> attributes);
 
-    JsonToDBGraph json2DB();
+
     /**
-     * For lookup
-     * attributes be.type = <real be type>
+     * Gets JSON to DB mapping based on controller service parameters.
+     */
+    JsonToDBGraph json2DB();
+
+    /**
+     * Looks up JSON to DB mapping based on FlowFile attributes. Attributes must contain be.type = Business Entity (BE) type.
      */
     JsonToDBGraph json2DB(Map<String, String> attributes);
 
+    /**
+     * Gets Business Entity (BE) type associated with this controller service.
+     */
     String getBeType();
 
+    /**
+     * Gets Source System associated with this controller service.
+     */
     String getSourceSystem();
 
+    /**
+     * Used to check if controller service is lookup controller service or not.
+     * @return true, if this controller service is lookup controller service.
+     */
     boolean isLookup();
 
 }
