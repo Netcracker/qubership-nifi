@@ -65,7 +65,7 @@ if [ "$res" != "200" ]; then
     error "Failed to get nifi-restore-version value from Consul. Error message = $(cat /tmp/tmp-nifi/consulValue.json)"
     handle_error "Failed to get nifi-restore-version value from Consul. Response status code = $res"
 fi
-fileName=$(cat /tmp/tmp-nifi/consulValue.json | jq -r '.[].Value | @base64d')
+fileName=$(< /tmp/tmp-nifi/consulValue.json jq -r '.[].Value | @base64d')
 
 info "nifi-restore-version - ${fileName}"
 
@@ -77,7 +77,7 @@ fi
 
 
 gzip -dc "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" | jq -r '.rootGroup | .. | .connections? | .[]? | .destination.instanceIdentifier' > listInstanceIdentifier.txt
-if cat ./listInstanceIdentifier.txt | grep -q -F -e 'temp-funnel'; then
+if < ./listInstanceIdentifier.txt grep -q -F -e 'temp-funnel'; then
     warn "The selected flow.json.gz - ${fileName} contains temporary funnels, its use can lead to incorrect behavior of NiFi. Select a different version and restart the configuration recovery process."
     delete_temp_files
     exit 0

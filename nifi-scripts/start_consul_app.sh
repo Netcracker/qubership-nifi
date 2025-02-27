@@ -14,6 +14,8 @@
 # limitations under the License.
 
 # shellcheck source=/dev/null
+# shellcheck disable=SC2034
+# shellcheck disable=SC2086
 . /opt/nifi/scripts/logging_api.sh
 
 "$JAVA_HOME"/bin/java ${CONSUL_CONFIG_JAVA_OPTIONS} \

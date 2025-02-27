@@ -23,7 +23,7 @@ scripts_dir='/opt/nifi/scripts'
 [ -f "${scripts_dir}/qubership_secure_add_funct.sh" ] && . "${scripts_dir}/qubership_secure_add_funct.sh"
 
 # escaping & in url
-esc_OIDC_DISCOVERY_URL_NEW=$(echo "$OIDC_DISCOVERY_URL_NEW" | sed -e "s|&|\\\\&|g")
+esc_OIDC_DISCOVERY_URL_NEW="${OIDC_DISCOVERY_URL_NEW//&/\\&}"
 
 # Setup OpenId Connect SSO Properties
 prop_replace 'nifi.security.user.oidc.discovery.url'  "${esc_OIDC_DISCOVERY_URL_NEW}"
@@ -37,9 +37,11 @@ sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.transform\.dn=|nifi\.secur
 prop_replace 'nifi.security.identity.mapping.pattern.dn'  '\^\.\*EMAILADDRESS=\(\[\^,\]\*\)\.\*\$'
 prop_replace 'nifi.security.identity.mapping.value.dn'  "\$1"
 
-echo " " >> "${NIFI_HOME}"/conf/nifi.properties
-echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$" >> "${NIFI_HOME}"/conf/nifi.properties
-echo "nifi.security.identity.mapping.value.dn2=\$1" >> "${NIFI_HOME}"/conf/nifi.properties
+{
+  echo " "
+  echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
+  echo "nifi.security.identity.mapping.value.dn2=\$1"
+} >> "${NIFI_HOME}"/conf/nifi.properties
 
 # Establish initial user and an associated admin identity
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
@@ -71,14 +73,14 @@ if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
     
     sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${MICROSERVICE_NAME}-0.${NAMESPACE}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
     
-    for (( i=1; i <= $maxNode-1; i++ ))
+    for (( i=1; i <= maxNode-1; i++ ))
     do
-        sed -i -e '/"Node Identity 1">'".*"'/a <property name="Node Identity '"$(($i+1))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml 
+        sed -i -e '/"Node Identity 1">'".*"'/a <property name="Node Identity '"$((i+1))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml 
     done 
     
-    for (( i=0; i <= $maxNode-1; i++ ))
+    for (( i=0; i <= maxNode-1; i++ ))
     do
-        sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity '"$(($i+3))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml   
+        sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity '"$((i+3))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml   
     done
 fi
      
@@ -133,11 +135,11 @@ fi
 
 export TRUSTSTORE_TYPE="PKCS12"
 export KEYSTORE_TYPE="PKCS12"
-TRUSTSTORE_PASSWORD="$(echo "$TRUSTSTORE_PASSWORD" | sed -e "s|&|\\\\&|g")"
+TRUSTSTORE_PASSWORD="${TRUSTSTORE_PASSWORD//&/\\&}"
 export TRUSTSTORE_PASSWORD
-KEYSTORE_PASSWORD="$(echo "$KEYSTORE_PASSWORD" | sed -e "s|&|\\\\&|g")"
+KEYSTORE_PASSWORD="${KEYSTORE_PASSWORD//&/\\&}"
 export KEYSTORE_PASSWORD
-KEY_PASSWORD="$(echo "$KEY_PASSWORD" | sed -e "s|&|\\\\&|g")"
+KEY_PASSWORD="${KEY_PASSWORD//&/\\&}"
 export KEY_PASSWORD
 
 if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then

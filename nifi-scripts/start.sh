@@ -16,6 +16,7 @@
 #    limitations under the License.
 
 # shellcheck source=/dev/null
+# shellcheck disable=SC2154
 . /opt/nifi/scripts/logging_api.sh
 
 #create temp directory
@@ -38,7 +39,7 @@ cp "${NIFI_HOME}"/nifi-config-template-custom/config-client-template.json "${NIF
 
 generate_random_hex_password(){
     #args -- letters, numbers
-    echo $(tr -dc A-F < /dev/urandom | head -c "$1")$(tr -dc 0-9 < /dev/urandom | head -c "$2") | fold -w 1 | shuf | tr -d '\n'
+    echo "$(tr -dc A-F < /dev/urandom | head -c "$1")""$(tr -dc 0-9 < /dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
 }
 
 rm -rf /tmp/initial-config-completed.txt
@@ -292,11 +293,13 @@ prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
 if [ "${NIFI_REG_NAR_PROVIDER_ENABLED}" == "true" ]; then
-    echo "" >> "${NIFI_HOME}"/conf/nifi.properties
-    echo "#default nifi registry nar provider" >> "${NIFI_HOME}"/conf/nifi.properties
-    echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider' >> "${NIFI_HOME}"/conf/nifi.properties
-    echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080' >> "${NIFI_HOME}"/conf/nifi.properties
-    echo "" >> "${NIFI_HOME}"/conf/nifi.properties
+	{
+	  echo ""
+	  echo "#default nifi registry nar provider"
+	  echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider'
+	  echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080'
+	  echo ""
+	} >> "${NIFI_HOME}"/conf/nifi.properties
 fi
 
 if [ "${NIFI_CONF_PV_CLEAN_CONF}" == "true" ]; then
@@ -356,8 +359,9 @@ if [ "${NIFI_CONF_PV_CLEAN_DB_REPO}" == "true" ]; then
 else
    info "Checking if any h2 db is corrupt..."
    verscount=${#h2_versions[@]}
-   newDbFile=$(ls ./persistent_conf/database_repository/*.xd 2> /dev/null | wc -l)
-  if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$newDbFile" == "0" ]]; then
+   newDbFile=(./persistent_conf/database_repository/*.sh)
+   numDbFiles=${#newDbFile[@]}   
+  if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$numDbFiles" == "0" ]]; then
    info "Checking if nifi-flow-audit h2 db is corrupt..."
    count=$verscount
    for version in "${h2_versions[@]}"
