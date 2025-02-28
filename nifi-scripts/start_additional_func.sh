@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# shellcheck source=/dev/null
+# shellcheck disable=SC2034
 . /opt/nifi/scripts/logging_api.sh
 
 set_additional_properties(){
