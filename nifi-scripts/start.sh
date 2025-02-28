@@ -474,7 +474,7 @@ if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
             rm -f "${NIFI_HOME}/persistent_conf/conf-restore/users.xml"
         fi
         if [ "$startMode" == "backup" ]; then
-            now=$(date +”%d-%b-%Y”)
+            now=$(date +'"%d-%b-%Y"')
             if [ -f "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz" ]; then
                 mv "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz" "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz_bk_$now"
             fi
@@ -541,7 +541,7 @@ NIFI_BOOTSTRAP_SENSITIVE_KEY=$(generate_random_hex_password 11 21)
 
 if [ -n "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
     info "Setting bootstrap sensitive key..."
-    /opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n ${NIFI_HOME}/conf/nifi.properties -b ${NIFI_HOME}/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
+    /opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n "${NIFI_HOME}"/conf/nifi.properties -b "${NIFI_HOME}"/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
 fi
 
 load_additional_resources
