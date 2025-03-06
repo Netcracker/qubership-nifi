@@ -178,14 +178,7 @@ public class FetchTableToJson extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-
-        staticQuery = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
-        if (staticQuery == null) {
-            staticQuery = "select " +
-                    context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue() +
-                    " from " +
-                    context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
-        }
+        staticQuery = formationQuery(context);
 
         isWriteByBatch = context.getProperty(WRITE_BY_BATCH).asBoolean();
         batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -205,8 +198,7 @@ public class FetchTableToJson extends AbstractProcessor {
         if (context.hasIncomingConnection() && invocationFile != null) {
             attributes = invocationFile.getAttributes();
             fetchId = invocationFile.getAttribute(ATTR_FETCH_ID);
-            query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue();
-            if (isWriteByBatch) session.remove(invocationFile);
+            query = formationQuery(context);
         }
 
         if (fetchId == null) fetchId = UUID.randomUUID().toString();
@@ -235,6 +227,7 @@ public class FetchTableToJson extends AbstractProcessor {
                         } else if (isFirst) {
                             //report for invocationFile:
                             session.getProvenanceReporter().fork(invocationFile, Collections.singletonList(flowFile));
+                            session.remove(invocationFile);
                             isFirst = false;
                         }
                     }
@@ -315,6 +308,18 @@ public class FetchTableToJson extends AbstractProcessor {
 
     private void removeInvocationFlowFile(FlowFile invocationFile, ProcessSession session) {
         if (invocationFile != null && !isWriteByBatch) session.remove(invocationFile);
+    }
+
+    private String formationQuery(ProcessContext context){
+        String query = null;
+        query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
+        if (query == null) {
+            query = "select " +
+                    context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue() +
+                    " from " +
+                    context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+        }
+        return query;
     }
 
     @Override
