@@ -45,13 +45,13 @@ import java.util.*;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"JSON", "DB"})
-@CapabilityDescription("Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and list of columns (Columns To Return).\n" +
-        "\n" +
-        "This processor works in batched mode: it collects FlowFiles until batch size limit is reached and then processes batch.\n" +
-        "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided: \n" +
-        "-If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule.\n" +
-        "-If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.\n" +
-        "-If incoming connection(s) are specified and a FlowFile is available to a processor task, query will be executed when processing the next FlowFile.")
+@CapabilityDescription("Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and list of columns (Columns To Return).\n"
+        + "\n"
+        + "This processor works in batched mode: it collects FlowFiles until batch size limit is reached and then processes batch.\n"
+        + "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided: \n"
+        + "-If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule.\n"
+        + "-If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.\n"
+        + "-If incoming connection(s) are specified and a FlowFile is available to a processor task, query will be executed when processing the next FlowFile.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets mime.type = application/json"),
         @WritesAttribute(attribute = "fetch.id", description = "Sets to UUID"),
@@ -156,6 +156,9 @@ public class FetchTableToJson extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propDescriptors;
 
+    /**
+     * Constructor
+     */
     public FetchTableToJson() {
         final Set<Relationship> rel = new HashSet<>();
         rel.add(REL_SUCCESS);
@@ -176,6 +179,10 @@ public class FetchTableToJson extends AbstractProcessor {
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
+    /**
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         staticQuery = formationQuery(context);
@@ -191,7 +198,7 @@ public class FetchTableToJson extends AbstractProcessor {
         String fetchId = null;
         Map<String, String> attributes = Collections.emptyMap();
 
-        if (isRequestInvalid(invocationFile, context)) return;
+        if (isRequestInvalid(invocationFile, context)) {return;}
 
         String query = staticQuery;
 
@@ -201,7 +208,7 @@ public class FetchTableToJson extends AbstractProcessor {
             query = formationQuery(context);
         }
 
-        if (fetchId == null) fetchId = UUID.randomUUID().toString();
+        if (fetchId == null) {fetchId = UUID.randomUUID().toString();}
 
         try (
                 Connection con = createConnection(context);
@@ -307,17 +314,17 @@ public class FetchTableToJson extends AbstractProcessor {
     }
 
     private void removeInvocationFlowFile(FlowFile invocationFile, ProcessSession session) {
-        if (invocationFile != null && !isWriteByBatch) session.remove(invocationFile);
+        if (invocationFile != null && !isWriteByBatch) {session.remove(invocationFile);}
     }
 
-    private String formationQuery(ProcessContext context){
+    private String formationQuery(ProcessContext context) {
         String query = null;
         query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
         if (query == null) {
-            query = "select " +
-                    context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue() +
-                    " from " +
-                    context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+            query = "select "
+                    + context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue()
+                    + " from "
+                    + context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
         }
         return query;
     }

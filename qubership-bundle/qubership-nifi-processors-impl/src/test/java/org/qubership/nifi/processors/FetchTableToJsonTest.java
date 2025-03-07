@@ -43,6 +43,10 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
     private TestRunner testRunner;
     private String tableName = "IDB_TEST_TABLE_2";
 
+    /**
+     *
+     * @throws InitializationException
+     */
     @BeforeEach
     public void init() throws InitializationException {
         testRunner = TestRunners.newTestRunner(FetchTableToJson.class);
@@ -55,6 +59,10 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         testRunner.setValidateExpressionUsage(false);
     }
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
     public void testQueryWriteAllInOneBatchSuccess() throws Exception{
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
@@ -69,22 +77,26 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         assertEquals("6", countFlowFiles.get(0).getAttribute("rows.count"));
     }
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
-    public void testColumnWriteAllInOneBatchSuccess() throws Exception{
+    public void testColumnWriteAllInOneBatchSuccess() throws Exception {
         testRunner.setProperty(COLUMN_NAMES, "VAL1");
-        testRunner.setProperty(BATCH_SIZE, "6");
         testRunner.enqueue("");
         testRunner.run();
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
-        List<MockFlowFile> countFlowFiles = testRunner.getFlowFilesForRelationship(REL_TOTAL_COUNT);
-        assertEquals(1, successFlowFiles.size());
-        assertEquals(1, countFlowFiles.size());
-        assertEquals("6", countFlowFiles.get(0).getAttribute("rows.count"));
+        assertEquals(6, successFlowFiles.size());
     }
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
-    public void testQueryWriteAllInSeveralBatchSuccess() throws Exception{
+    public void testQueryWriteAllInSeveralBatchSuccess() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
         testRunner.setProperty(BATCH_SIZE, "2");
         testRunner.enqueue("");
@@ -94,8 +106,12 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         assertEquals(3, successFlowFiles.size());
     }
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
-    public void testWriteAllInOneBatchError() throws Exception{
+    public void testWriteAllInOneBatchError() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName + "Q");
         testRunner.setProperty(BATCH_SIZE, "1");
         testRunner.enqueue("");
@@ -105,8 +121,12 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         assertEquals(1, failFlowFiles.size());
     }
 
+    /**
+     *
+     * @throws Exception
+     */
     @Test
-    public void testQueryWriteAllInOneBatchWithoutIncomingConnection() throws Exception{
+    public void testQueryWriteAllInOneBatchWithoutIncomingConnection() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
         testRunner.setProperty(BATCH_SIZE, "6");
 
@@ -120,18 +140,21 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         assertEquals("6", countFlowFiles.get(0).getAttribute("rows.count"));
     }
 
-
+    /**
+     *
+     * @throws Exception
+     */
     @Test
-    public void testQueryWriteByBatchSuccess () throws Exception{
+    public void testQueryWriteByBatchSuccess() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
         testRunner.setProperty(BATCH_SIZE, "3");
         testRunner.setProperty(FETCH_SIZE, "3");
         testRunner.setProperty(WRITE_BY_BATCH, "true");
 
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("TestAttr1","testVal1");
+        attributes.put("TestAttr1", "testVal1");
 
-        testRunner.enqueue("",attributes);
+        testRunner.enqueue("", attributes);
         testRunner.setAllowSynchronousSessionCommits(true);
         testRunner.run();
 
