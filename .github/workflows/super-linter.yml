@@ -35,3 +35,4 @@ jobs:
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JAVA_FILE_NAME: "./.github/conf/sun_checks_mode.xml"
+          JAVA_LINTER_RULES: "./.github/conf/sun_checks_mode.xml"
