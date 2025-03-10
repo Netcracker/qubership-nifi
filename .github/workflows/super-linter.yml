@@ -34,4 +34,4 @@ jobs:
           VALIDATE_ALL_CODEBASE: ${{ inputs.full_scan || false }}
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          JAVA_FILE_NAME: ".github/conf/sun_checks_mode.xml"
+          JAVA_FILE_NAME: "/github/workspace/.github/conf/sun_checks_mode.xml"
