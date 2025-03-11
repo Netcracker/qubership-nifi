@@ -12,37 +12,37 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-SET TIME ZONE 'UTC';
+set time zone 'UTC';
 
 create table IDB_TEST_TABLE
 (
-    SOURCE_ID VARCHAR(255) not null constraint PK_TEST_TABLE primary key,
-    CODE VARCHAR(255) not null,
-    VAL VARCHAR(255) not null
+    SOURCE_ID varchar(255) not null constraint PK_TEST_TABLE primary key,
+    CODE varchar(255) not null,
+    VAL varchar(255) not null
 );
 
 create table IDB_TEST_TABLE_2
 (
-    SOURCE_ID VARCHAR(255) not null constraint PK_TEST_TABLE_2 primary key,
-    VAL1 VARCHAR(255) not null,
-    VAL2 VARCHAR(255) not null
+    SOURCE_ID varchar(255) not null constraint PK_TEST_TABLE_2 primary key,
+    VAL1 varchar(255) not null,
+    VAL2 varchar(255) not null
 );
 
 
-INSERT INTO IDB_TEST_TABLE (SOURCE_ID, CODE, VAL)
-VALUES ('TEST_ID#000001', 'TEST-CODE-0001', 'VAL1'),
-       ('TEST_ID#000002', 'TEST-CODE-0001', 'VAL2'),
-       ('TEST_ID#000003', 'TEST-CODE-0001', 'VAL3'),
-       ('TEST_ID#000004', 'TEST-CODE-0002', 'VAL4'),
-       ('TEST_ID#000005', 'TEST-CODE-0002', 'VAL5'),
-       ('TEST_ID#000006', 'TEST-CODE-0002', 'VAL6');
+insert into IDB_TEST_TABLE (SOURCE_ID, CODE, VAL)
+values ('TEST_ID#000001', 'TEST-CODE-0001', 'VAL1'),
+('TEST_ID#000002', 'TEST-CODE-0001', 'VAL2'),
+('TEST_ID#000003', 'TEST-CODE-0001', 'VAL3'),
+('TEST_ID#000004', 'TEST-CODE-0002', 'VAL4'),
+('TEST_ID#000005', 'TEST-CODE-0002', 'VAL5'),
+('TEST_ID#000006', 'TEST-CODE-0002', 'VAL6');
 
-INSERT INTO IDB_TEST_TABLE_2 (SOURCE_ID, VAL1, VAL2)
-VALUES ('TEST_ID#000001', 'VAL1', 'VAL11'),
-       ('TEST_ID#000002', 'VAL2', 'VAL22'),
-       ('TEST_ID#000003', 'VAL3', 'VAL33'),
-       ('TEST_ID#000004', 'VAL4', 'VAL44'),
-       ('TEST_ID#000005', 'VAL5', 'VAL55'),
-       ('TEST_ID#000006', 'VAL6', 'VAL66');
+insert into IDB_TEST_TABLE_2 (SOURCE_ID, VAL1, VAL2)
+values ('TEST_ID#000001', 'VAL1', 'VAL11'),
+('TEST_ID#000002', 'VAL2', 'VAL22'),
+('TEST_ID#000003', 'VAL3', 'VAL33'),
+('TEST_ID#000004', 'VAL4', 'VAL44'),
+('TEST_ID#000005', 'VAL5', 'VAL55'),
+('TEST_ID#000006', 'VAL6', 'VAL66');
 
 commit;

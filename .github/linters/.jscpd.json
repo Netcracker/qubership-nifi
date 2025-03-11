@@ -1,0 +1,12 @@
+{
+    "minLines": 5,
+    "maxLines": 500,
+    "maxSize": "30kb",
+    "minTokens": 50,
+    "ignore": [
+        "**/test/java/**"
+    ],
+    "mode": "mild",
+    "ignoreCase": false,
+    "gitignore": false
+}

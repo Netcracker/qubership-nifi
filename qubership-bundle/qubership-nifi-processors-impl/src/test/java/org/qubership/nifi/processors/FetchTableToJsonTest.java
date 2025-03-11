@@ -88,7 +88,7 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
      */
     @Test
     public void testColumnWriteAllInOneBatchSuccess() throws Exception {
-        int expectedResult = 6;
+        final int expectedResult = 6;
         testRunner.setProperty(COLUMN_NAMES, "VAL1");
         testRunner.enqueue("");
         testRunner.run();
@@ -104,7 +104,7 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
      */
     @Test
     public void testQueryWriteAllInSeveralBatchSuccess() throws Exception {
-        int expectedResult = 3;
+        final int expectedResult = 3;
 
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
         testRunner.setProperty(BATCH_SIZE, "2");

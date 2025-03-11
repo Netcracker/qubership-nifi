@@ -16,3 +16,6 @@
 
 [sqlfluff]
 dialect = postgres
+
+[sqlfluff:rules:L010]
+capitalisation_policy = consistent
