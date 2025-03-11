@@ -43,6 +43,11 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
     private TestRunner testRunner;
     private String tableName = "IDB_TEST_TABLE_2";
 
+    /**
+     * Method for initializing the FetchTableToJson test processor.
+     *
+     * @throws InitializationException
+     */
     @BeforeEach
     public void init() throws InitializationException {
         testRunner = TestRunners.newTestRunner(FetchTableToJson.class);
@@ -55,7 +60,11 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
         testRunner.setValidateExpressionUsage(false);
     }
 
-
+    /**
+     * Getting data from table IDB_TEST_TABLE_2 in 1 batch using query.
+     *
+     * @throws Exception
+     */
     @Test
     public void testQueryWriteAllInOneBatchSuccess() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
@@ -65,35 +74,53 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         List<MockFlowFile> countFlowFiles = testRunner.getFlowFilesForRelationship(REL_TOTAL_COUNT);
-        assertEquals(1, successFlowFiles.size());
-        assertEquals(1, countFlowFiles.size());
-        assertEquals("6", countFlowFiles.get(0).getAttribute("rows.count"));
+        checkSuccessResult(
+                successFlowFiles.size(),
+                countFlowFiles.size(),
+                countFlowFiles.get(0).getAttribute("rows.count")
+        );
     }
 
-
+    /**
+     * Getting data from table IDB_TEST_TABLE_2 into 6 batches using column name.
+     *
+     * @throws Exception
+     */
     @Test
     public void testColumnWriteAllInOneBatchSuccess() throws Exception {
+        int expectedResult = 6;
         testRunner.setProperty(COLUMN_NAMES, "VAL1");
         testRunner.enqueue("");
         testRunner.run();
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
-        assertEquals(6, successFlowFiles.size());
+        assertEquals(expectedResult, successFlowFiles.size());
     }
 
-
+    /**
+     * Getting data from table IDB_TEST_TABLE_2 in 3 batches using query.
+     *
+     * @throws Exception
+     */
     @Test
     public void testQueryWriteAllInSeveralBatchSuccess() throws Exception {
+        int expectedResult = 3;
+
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
         testRunner.setProperty(BATCH_SIZE, "2");
         testRunner.enqueue("");
         testRunner.run();
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
-        assertEquals(3, successFlowFiles.size());
+        assertEquals(expectedResult, successFlowFiles.size());
+
     }
 
-
+    /**
+     * Getting data from non-existent table in 3 batches using query.
+     *
+     * @throws Exception
+     */
     @Test
     public void testWriteAllInOneBatchError() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName + "Q");
@@ -106,6 +133,11 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
     }
 
 
+    /**
+     * Getting data from table IDB_TEST_TABLE_2 in 1 batch using query without incoming connection.
+     *
+     * @throws Exception
+     */
     @Test
     public void testQueryWriteAllInOneBatchWithoutIncomingConnection() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
@@ -116,12 +148,32 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
 
         List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(REL_SUCCESS);
         List<MockFlowFile> countFlowFiles = testRunner.getFlowFilesForRelationship(REL_TOTAL_COUNT);
-        assertEquals(1, successFlowFiles.size());
-        assertEquals(1, countFlowFiles.size());
-        assertEquals("6", countFlowFiles.get(0).getAttribute("rows.count"));
+        checkSuccessResult(
+                successFlowFiles.size(),
+                countFlowFiles.size(),
+                countFlowFiles.get(0).getAttribute("rows.count")
+        );
     }
 
+    /**
+     * @param successFlowFilesSize
+     * @param countFlowFilesSize
+     * @param attrValue
+     */
+    public void checkSuccessResult(int successFlowFilesSize, int countFlowFilesSize, String attrValue) {
+        int expectSize = 1;
+        String expectAttrValue = "6";
 
+        assertEquals(expectSize, successFlowFilesSize);
+        assertEquals(expectSize, countFlowFilesSize);
+        assertEquals(expectAttrValue, attrValue);
+    }
+
+    /**
+     * Getting data from table IDB_TEST_TABLE_2 in 1 batch using query in WRITE_BY_BATCH mode.
+     *
+     * @throws Exception
+     */
     @Test
     public void testQueryWriteByBatchSuccess() throws Exception {
         testRunner.setProperty(CUSTOM_QUERY, "select VAL1 from " + tableName);
