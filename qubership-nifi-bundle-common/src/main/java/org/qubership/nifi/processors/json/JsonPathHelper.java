@@ -183,7 +183,7 @@ public class JsonPathHelper {
 
         //remove duplicates:
         //if we merge the same value to multiple locations it will be represented by single JsonNode
-        //so we need to add children to it only once and they will be added in all places
+        //so we need to add children to it only once, and they will be added in all places
         List<JsonNode> newResult = new ArrayList<JsonNode>();
         for ( JsonNode res : result){
             if (newResult.isEmpty()){

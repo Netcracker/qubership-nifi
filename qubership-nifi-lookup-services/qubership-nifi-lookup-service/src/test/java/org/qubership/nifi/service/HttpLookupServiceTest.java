@@ -81,7 +81,7 @@ public class HttpLookupServiceTest {
         assertTrue(result.isPresent());
         List<org.apache.nifi.serialization.record.Record> record = result.get();
         assertEquals("Test 1", record.get(0).getAsString("1"));
-        assertEquals(new Integer(1), record.get(0).getAsInt("2"));
+        assertEquals(Integer.valueOf(1), record.get(0).getAsInt("2"));
         assertEquals("Test 21", record.get(0).getAsString("3"));
     }
 

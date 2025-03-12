@@ -62,7 +62,7 @@ To change NiFi properties:
 1. Change the NiFi properties in Consul as per your requirements.
 2. Restart qubership-nifi.
 
-The detailed description of all supported NiFi properties is available in the Apache's NiFi System [Administrator's Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
+The detailed description of all supported NiFi properties is available in the Apache NiFi System [Administrator's Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
 
 ### Configuration restore
 

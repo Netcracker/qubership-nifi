@@ -391,7 +391,7 @@ public class FetchTableToJson extends AbstractProcessor {
      * Returns:
      * Set of all relationships this processor expects to transfer a flow file to.
      * An empty set indicates this processor does not have any destination relationships.
-     * Guaranteed non null.
+     * Guaranteed non-null.
      *
      */
     @Override
