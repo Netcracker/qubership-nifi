@@ -209,8 +209,8 @@ public class FetchTableToJson extends AbstractProcessor {
      */
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        staticQuery = formationQuery(context);
 
+        staticQuery = getQuery(context, null);
         isWriteByBatch = context.getProperty(WRITE_BY_BATCH).asBoolean();
         batchSize = context.getProperty(BATCH_SIZE).asInteger();
         fetchSize = Integer.parseInt(context.getProperty(FETCH_SIZE).getValue());
@@ -240,7 +240,7 @@ public class FetchTableToJson extends AbstractProcessor {
         if (context.hasIncomingConnection() && invocationFile != null) {
             attributes = invocationFile.getAttributes();
             fetchId = invocationFile.getAttribute(ATTR_FETCH_ID);
-            query = formationQuery(context);
+            query = getQuery(context, invocationFile);
         }
 
         if (fetchId == null) {
@@ -364,9 +364,13 @@ public class FetchTableToJson extends AbstractProcessor {
         }
     }
 
-    private String formationQuery(final ProcessContext context) {
+    private String getQuery(ProcessContext context, FlowFile invocationFile) {
         String query = null;
-        query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
+        if (context.hasIncomingConnection() && invocationFile != null) {
+            query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue();
+        } else {
+            query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
+        }
         if (query == null) {
             query = "select "
                     + context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue()
