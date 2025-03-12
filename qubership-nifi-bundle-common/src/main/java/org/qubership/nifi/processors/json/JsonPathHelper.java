@@ -61,11 +61,19 @@ public class JsonPathHelper {
 
     private final DocumentContext json;
 
-    public DocumentContext getJson(){
+    /**
+     * Gets JSON document.
+     * @return JSON document
+     */
+    public DocumentContext getJson() {
         return json;
     }
 
-    public JsonPathHelper(JsonNode input) {
+    /**
+     * Create instance of JsonPathHelper.
+     * @param input input JSON
+     */
+    public JsonPathHelper(final JsonNode input) {
         this.json =
                 JsonPath.parse(
                         input,
@@ -73,7 +81,12 @@ public class JsonPathHelper {
                 );
     }
 
-    public JsonPathHelper(JsonNode input, Configuration configuration) {
+    /**
+     * Creates instance of JsonPathHelper.
+     * @param input input JSON
+     * @param configuration parser configuration
+     */
+    public JsonPathHelper(final JsonNode input, final Configuration configuration) {
         this.json =
                 JsonPath.parse(
                         input,
@@ -81,6 +94,12 @@ public class JsonPathHelper {
                 );
     }
 
+    /**
+     * Extracts values from input JSON using specified JSON path and key.
+     * @param path JSON path
+     * @param key key to use in addition to path to find values
+     * @return a list of values
+     */
     public List<String> extractValuesByKey(String path, String key) {
         ArrayNode resultNodes = json.read(path + JSON_PATH_DELIMITER + key);
         List<String> result = new ArrayList<>(resultNodes.size());
@@ -92,6 +111,11 @@ public class JsonPathHelper {
         return result;
     }
 
+    /**
+     * Extracts values from input JSON using specified JSON path.
+     * @param path JSON path
+     * @return a list of values
+     */
     public List<String> extractValuesByKey(String path) {
         ArrayNode resultNodes = json.read(path);
         List<String> result = new ArrayList<>(resultNodes.size());
@@ -103,8 +127,16 @@ public class JsonPathHelper {
         return result;
     }
 
+    /**
+     * Merges JSONs in accordance with supplied context.
+     * @param context JSON merge context that defines how and what to merge
+     * @throws NodeToInsertNotFoundException
+     * @throws KeyNodeNotExistsException
+     */
     public void merge(JsonMergeContext context) throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
-        if (isValuesPresent(context.getNodes())) return;
+        if (isValuesPresent(context.getNodes())) {
+            return;
+        }
 
         if (StringUtils.isBlank(context.getPathToInsert())) {
             Multimap<String, JsonNode> source =
@@ -123,6 +155,13 @@ public class JsonPathHelper {
         return array == null || array.size() == 0;
     }
 
+    /**
+     * Converts array node to map of JSON nodes with key from specified attribute.
+     * @param key attribute to use as Map key
+     * @param nodes input array node
+     * @return map of keys and JSON nodes
+     * @throws KeyNodeNotExistsException
+     */
     public Multimap<String, JsonNode> convertObjectNodesToMap(
             String key,
             ArrayNode nodes
@@ -139,22 +178,31 @@ public class JsonPathHelper {
     private JsonNode extractNodeByKey(String key, JsonNode node) throws KeyNodeNotExistsException {
         JsonNode result = node.get(key);
 
-        if (result == null)
+        if (result == null) {
             throw new KeyNodeNotExistsException("A key was not found: " + key);
+        }
 
         return result;
     }
 
+    /**
+     * Reads array node by JSON path.
+     * @param path JSON path
+     * @return array node
+     * @throws NodeToInsertNotFoundException
+     */
     public ArrayNode readNodesByPath(String path) throws NodeToInsertNotFoundException {
         ArrayNode result = json.read(path);
 
-        if (result.size() == 0)
+        if (result.size() == 0) {
             throw new NodeToInsertNotFoundException("The path to objects is wrong: + " + path);
+        }
 
         return result;
     }
 
-    private void mergeValues(JsonMergeContext context, Multimap<String, JsonNode> source) throws KeyNodeNotExistsException {
+    private void mergeValues(JsonMergeContext context, Multimap<String, JsonNode> source)
+            throws KeyNodeNotExistsException {
         for (JsonNode value : context.getNodes()) {
             validateValue(value);
 
@@ -163,13 +211,16 @@ public class JsonPathHelper {
 
             mergeSingleValueToSource(context, value, sourceNodes);
 
-            if (context.isNeedToCleanTarget() && value.isObject())
+            if (context.isNeedToCleanTarget() && value.isObject()) {
                 ((ObjectNode) value).remove(context.getKeyFromTargetToSource());
+            }
         }
     }
 
     private void validateValue(JsonNode value) {
-        if (!value.isObject()) throw new IllegalArgumentException("A value must be a json object.");
+        if (!value.isObject()) {
+            throw new IllegalArgumentException("A value must be a json object.");
+        }
     }
 
     private Collection<JsonNode> extractNodeByKey(
@@ -178,25 +229,26 @@ public class JsonPathHelper {
     ) throws KeyNodeNotExistsException {
         Collection<JsonNode> result = source.get(key);
 
-        if (result == null || result.isEmpty())
+        if (result == null || result.isEmpty()) {
             throw new KeyNodeNotExistsException("A parent node by key was not found: " + key);
+        }
 
         //remove duplicates:
         //if we merge the same value to multiple locations it will be represented by single JsonNode
         //so we need to add children to it only once, and they will be added in all places
         List<JsonNode> newResult = new ArrayList<JsonNode>();
-        for ( JsonNode res : result){
-            if (newResult.isEmpty()){
+        for (JsonNode res : result) {
+            if (newResult.isEmpty()) {
                 newResult.add(res);
             } else {
                 boolean addItem = true;
-                for (JsonNode newRes : newResult){
-                    if (newRes == res){
+                for (JsonNode newRes : newResult) {
+                    if (newRes == res) {
                         addItem = false;
                         break;
                     }
                 }
-                if (addItem){
+                if (addItem) {
                     newResult.add(res);
                 }
             }
@@ -207,11 +259,13 @@ public class JsonPathHelper {
 
     private void mergeSingleValueToSource(JsonMergeContext context, JsonNode value, Collection<JsonNode> sourceNodes) {
         for (JsonNode node : sourceNodes) {
-            if (node.isObject())
-                if (context.isArray())
+            if (node.isObject()) {
+                if (context.isArray()) {
                     ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
-                else
+                } else {
                     ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
+                }
+            }
         }
     }
 
@@ -223,22 +277,33 @@ public class JsonPathHelper {
                 .forEach(
                         value -> nodesInWhichInsert.forEach(
                                 node -> {
-                                    if (node.isObject())
-                                        if (context.isArray())
+                                    if (node.isObject()) {
+                                        if (context.isArray()) {
                                             ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
-                                        else
+                                        } else {
                                             ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
-                                    else if (node.isArray())
+                                        }
+                                    } else if (node.isArray()) {
                                         ((ArrayNode) node).add(value);
+                                    }
                                 }
                         )
                 );
     }
 
+    /**
+     * Removes JSON node under specified path.
+     * @param path JSON path
+     * @param key key within JSON path to remove
+     */
     public void cleanUp(String path, String key) {
         json.delete(path + JSON_PATH_DELIMITER + key);
     }
 
+    /**
+     * Get JSON as JsonNode.
+     * @return JsonNode
+     */
     public JsonNode getJsonNode() {
         return json.json();
     }
