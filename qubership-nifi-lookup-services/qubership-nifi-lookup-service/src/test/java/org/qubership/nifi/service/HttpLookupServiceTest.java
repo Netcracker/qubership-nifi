@@ -67,7 +67,6 @@ public class HttpLookupServiceTest {
      * @throws LookupFailureException
      * @throws InitializationException
      */
-    @SuppressWarnings("checkstyle:MagicNumber")
     @Test
     public void testSimpleLookup() throws LookupFailureException, InitializationException {
 
@@ -82,7 +81,7 @@ public class HttpLookupServiceTest {
 
         recordReader.addRecord("Test 1", 1, "Test 21");
         recordReader.addRecord("Test 2", 2, "Test 22");
-        recordReader.addRecord("Test 3", 3, "Test 23");
+        recordReader.addRecord("Test 3", 1 + 2, "Test 23");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("test.url.port", "1234");
@@ -91,7 +90,8 @@ public class HttpLookupServiceTest {
         coordinates.put("host", "localhost");
         coordinates.put("value", "1234");
 
-        lookupService.response = buildResponse(200);
+        final int successHttpCode = 200;
+        lookupService.response = buildResponse(successHttpCode);
         Optional<List<Record>> result = lookupService.lookup(coordinates, attributes);
 
         assertEquals("http://localhost:1234/", lookupService.getUrl());
@@ -108,7 +108,6 @@ public class HttpLookupServiceTest {
      * Tests for invalid response.
      * @throws LookupFailureException
      */
-    @SuppressWarnings("checkstyle:MagicNumber")
     @Test
     public void testInvalidResponse() throws LookupFailureException {
 
@@ -116,8 +115,8 @@ public class HttpLookupServiceTest {
         runner.enableControllerService(lookupService);
         runner.enableControllerService(recordReader);
 
-
-        lookupService.response = buildResponse(404);
+        final int notFoundHttpCode = 404;
+        lookupService.response = buildResponse(notFoundHttpCode);
 
         Map<String, Object> coordinates = new HashMap<>();
         coordinates.put("host", "localhost");
