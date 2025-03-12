@@ -366,17 +366,24 @@ public class FetchTableToJson extends AbstractProcessor {
 
     private String getQuery(ProcessContext context, FlowFile invocationFile) {
         String query = null;
-        if (context.hasIncomingConnection() && invocationFile != null) {
+        if (invocationFile != null) {
             query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue();
+            if (query == null) {
+                query = "select "
+                        + context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions(invocationFile).getValue()
+                        + " from "
+                        + context.getProperty(TABLE).evaluateAttributeExpressions(invocationFile).getValue();
+            }
         } else {
             query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
+            if (query == null) {
+                query = "select "
+                        + context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue()
+                        + " from "
+                        + context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+            }
         }
-        if (query == null) {
-            query = "select "
-                    + context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue()
-                    + " from "
-                    + context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
-        }
+
         return query;
     }
 
