@@ -1,0 +1,40 @@
+name: NiFi Docker Autotests
+
+on:
+  workflow_dispatch:
+jobs:
+  nifi-autotests:
+    runs-on: ubuntu-latest
+    services:
+      consul:
+        image: hashicorp/consul:1.20
+        ports:
+          - 8500:8500
+      nifi:
+        image: ghcr.io/netcracker/nifi:latest
+        env:
+          - NAMESPACE=local
+          - CONSUL_ENABLED=true
+          - CONSUL_URL=consul:8500
+          - AUTH=none
+          - NIFI_NEW_SENSITIVE_KEY=Abcdefghjkl12
+          - NIFI_WEB_HTTP_PORT=8080
+          - NIFI_WEB_HTTPS_PORT=
+        ports:
+          - 8080:8080
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+      - name: Display all files
+        shell: bash
+        run: ls -al
+      - name: Display running containers
+        shell: bash
+        run: docker ps
+      - name: Check availability of nifi
+        shell: bash
+        run: curl http://127.0.0.1:8080/nifi/
+      
