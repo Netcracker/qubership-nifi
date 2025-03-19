@@ -19,7 +19,11 @@ package org.qubership.nifi.service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -44,7 +48,8 @@ import static org.springframework.data.redis.connection.ReturnType.MULTI;
 
 @Tags({"redis", "distributed", "cache", "map"})
 @CapabilityDescription("")
-public class RedisBulkDistributedMapCacheClientService extends AbstractControllerService implements BulkDistributedMapCacheClient {
+public class RedisBulkDistributedMapCacheClientService
+        extends AbstractControllerService implements BulkDistributedMapCacheClient {
 
     public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("redis-connection-pool")
@@ -56,7 +61,8 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
     public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
             .name("redis-cache-ttl")
             .displayName("TTL")
-            .description("Indicates how long the data should exist in Redis. Setting '0 secs' would mean the data would exist forever")
+            .description("Indicates how long the data should exist in Redis."
+                    + "Setting '0 secs' would mean the data would exist forever")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .defaultValue("0 secs")
@@ -73,13 +79,18 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
         PROPERTY_DESCRIPTORS = Collections.unmodifiableList(props);
     }
 
+    /**
+     * Allows subclasses to register which property descriptor objects are supported. Default return is an empty set.
+     * @return PropertyDescriptor objects this processor currently supports
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
     }
 
-    private static final Serializer<String> stringSerializer = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
-    private static final Deserializer<String> valueDeserializer = String::new;
+    private static final Serializer<String> STRING_SERIALIZER = (value, output)
+            -> output.write(value.getBytes(StandardCharsets.UTF_8));
+    private static final Deserializer<String> VALUE_DESERIALIZER = String::new;
 
     /**
      * @param context
@@ -89,7 +100,8 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
      */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL).asControllerService(RedisConnectionPool.class);
+        this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL)
+                .asControllerService(RedisConnectionPool.class);
         this.ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS);
 
         if (ttl == 0) {
@@ -97,24 +109,51 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
         }
     }
 
+    /**
+     * This method is called during disable controller services.
+     */
     @OnDisabled
     public void shutdown() {
         this.redisConnectionPool = null;
     }
 
+    /**
+     * Adds the specified key and value to the cache, if they are not already
+     * present, serializing the key and value with the given
+     * {@link Serializer}s. If a value already exists in the cache for the given
+     * key, the value associated with the key is returned, after being
+     * deserialized with the given valueDeserializer.
+     *
+     * @param <K> type of key
+     * @param <V> type of value
+     * @param map pair key and value
+     * @param keySerializer key serializer
+     * @param valueSerializer key serializer
+     * @param valueDeserializer value deserializer
+     * @return If a value already exists in the cache for the given
+     * key, the value associated with the key is returned, after being
+     * deserialized with the given {@code valueDeserializer}. If the key does not
+     * exist, the key and its value will be added to the cache.
+     * @throws IOException ex
+     */
     @Override
-    public <K, V> Map<K, V> getAndPutIfAbsent(Map<K, V> map, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> Map<K, V> getAndPutIfAbsent(
+            Map<K, V> map,
+            final Serializer<K> keySerializer,
+            final Serializer<V> valueSerializer,
+            final Deserializer<V> valueDeserializer
+    ) throws IOException {
         return withConnection(redisConnection -> {
             do {
-                String luaScript = "local result = {}\n" +
-                        "for i in ipairs(KEYS) do\n" +
-                        "  local currentValue = redis.call(\"GET\", KEYS[i])\n" +
-                        "  if (not currentValue) then \n" +
-                        "    redis.call(\"SET\", KEYS[i], ARGV[i])\n" +
-                        "  end\n" +
-                        "  result[i] = currentValue \n" +
-                        "end \n" +
-                        " return result";
+                String luaScript = "local result = {}\n"
+                        + "for i in ipairs(KEYS) do\n"
+                        + "  local currentValue = redis.call(\"GET\", KEYS[i])\n"
+                        + "  if (not currentValue) then \n"
+                        + "    redis.call(\"SET\", KEYS[i], ARGV[i])\n"
+                        + "  end\n"
+                        + "  result[i] = currentValue \n"
+                        + "end \n"
+                        + " return result";
                 List<K> keys = new ArrayList<>();
                 List<V> values = new ArrayList<>();
                 map.forEach((key, value) -> {
@@ -130,14 +169,16 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
                     V value = values.get(i);
                     serialisedParams[i + keys.size()] = serialize(value, valueSerializer);
                 }
-                String luaScriptName = redisConnection.scriptingCommands().scriptLoad(serialize(luaScript, stringSerializer));
-                List<Object> oldValues = redisConnection.scriptingCommands().evalSha(luaScriptName, MULTI, keys.size(), serialisedParams);
+                String luaScriptName = redisConnection.scriptingCommands()
+                        .scriptLoad(serialize(luaScript, STRING_SERIALIZER));
+                List<Object> oldValues = redisConnection.scriptingCommands()
+                        .evalSha(luaScriptName, MULTI, keys.size(), serialisedParams);
 
                 // execute the transaction
                 Map<K, V> res = new HashMap<>();
                 for (int i = 0; i < oldValues.size(); i++) {
                     Object oldValue = oldValues.get(i);
-                    res.put(keys.get(i), oldValue == null ? null :valueDeserializer.deserialize((byte[]) oldValue));
+                    res.put(keys.get(i), oldValue == null ? null : valueDeserializer.deserialize((byte[]) oldValue));
                 }
 
                 return res;
@@ -145,10 +186,21 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
         });
     }
 
-
+    /**
+     * Removes the entry with the given key from the cache, if it is present.
+     *
+     * @param <K> type of key
+     * @param keys list of key to remove
+     * @param keySerializer serializer
+     * @return <code>true</code> if the entry is removed, <code>false</code> if
+     * the key did not exist in the cache
+     * @throws IOException ex
+     */
     @Override
     public <K> long remove(List<K> keys, Serializer<K> keySerializer) throws IOException {
-        if (keys.isEmpty()) return 0;
+        if (keys.isEmpty()) {
+            return 0;
+        }
         return withConnection(redisConnection -> {
             byte[][] serialisedKeys = new byte[keys.size()][];
             for (int i = 0; i < keys.size(); i++) {
@@ -159,8 +211,30 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
             return numRemoved;
         });
     }
+
+    /**
+     * Adds the specified key and value to the cache, if they are not already
+     * present, serializing the key and value with the given
+     * {@link Serializer}s.
+     *
+     * @param <K> type of key
+     * @param <V> type of value
+     * @param key the key for into the map
+     * @param value the value to add to the map if and only if the key is absent
+     * @param keySerializer key serializer
+     * @param valueSerializer value serializer
+     * @return true if the value was added to the cache, false if the value
+     * already existed in the cache
+     *
+     * @throws IOException if unable to communicate with the remote instance
+     */
     @Override
-    public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean putIfAbsent(
+            final K key,
+            final V value,
+            final Serializer<K> keySerializer,
+            final Serializer<V> valueSerializer
+    ) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
@@ -172,25 +246,83 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
             return set;
         });
     }
+
+    /**
+     * Determines if the given value is present in the cache and if so returns
+     * <code>true</code>, else returns <code>false</code>.
+     *
+     * @param <K> type of key
+     * @param key key
+     * @param keySerializer key serializer
+     * @return Determines if the given value is present in the cache and if so returns
+     * <code>true</code>, else returns <code>false</code>
+     *
+     * @throws IOException if unable to communicate with the remote instance
+     */
     @Override
-    public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
+    public <K> boolean containsKey(
+            final K key,
+            final Serializer<K> keySerializer
+    ) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
             return redisConnection.exists(k);
         });
     }
 
+    /**
+     * Adds the specified key and value to the cache, overwriting any value that is
+     * currently set.
+     *
+     * @param <K> the key type
+     * @param <V> the value type
+     * @param key The key to set
+     * @param value The value to associate with the given Key
+     * @param keySerializer the Serializer that will be used to serialize the key into bytes
+     * @param valueSerializer the Serializer that will be used to serialize the value into bytes
+     *
+     * @throws IOException if unable to communicate with the remote instance
+     * @throws NullPointerException if the key or either serializer is null
+     */
     @Override
-    public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+    public <K, V> void put(
+            final K key,
+            final V value,
+            final Serializer<K> keySerializer,
+            final Serializer<V> valueSerializer
+    ) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            redisConnection.set(kv.getKey(), kv.getValue(), Expiration.seconds(ttl), RedisStringCommands.SetOption.upsert());
+            redisConnection.set(
+                    kv.getKey(),
+                    kv.getValue(),
+                    Expiration.seconds(ttl),
+                    RedisStringCommands.SetOption.upsert()
+            );
             return null;
         });
     }
 
+    /**
+     * Returns the value in the cache for the given key, if one exists;
+     * otherwise returns <code>null</code>.
+     *
+     * @param <K> the key type
+     * @param <V> the value type
+     * @param key the key to lookup in the map
+     * @param keySerializer key serializer
+     * @param valueDeserializer value serializer
+     *
+     * @return the value in the cache for the given key, if one exists;
+     * otherwise returns <code>null</code>
+     * @throws IOException ex
+     */
     @Override
-    public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
+    public <K, V> V get(
+            final K key,
+            final Serializer<K> keySerializer,
+            final Deserializer<V> valueDeserializer
+    ) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
             final byte[] v = redisConnection.get(k);
@@ -215,7 +347,12 @@ public class RedisBulkDistributedMapCacheClientService extends AbstractControlle
         }
     }
 
-    private <K, V> Tuple<byte[], byte[]> serialize(K key, V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+    private <K, V> Tuple<byte[], byte[]> serialize(
+            K key,
+            V value,
+            final Serializer<K> keySerializer,
+            final Serializer<V> valueSerializer
+    ) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
 
