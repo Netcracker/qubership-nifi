@@ -47,9 +47,14 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      * key, the value associated with the key is returned, after being
      * deserialized with the given {@code valueDeserializer}. If the key does not
      * exist, the key and its value will be added to the cache.
-     * @throws IOException ex
+     * @throws IOException if unable to communicate with the remote instance
      */
-    <K, V> Map<K, V> getAndPutIfAbsent(Map<K, V> values, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException;
+    <K, V> Map<K, V> getAndPutIfAbsent(
+            Map<K, V> values,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer,
+            Deserializer<V> valueDeserializer
+    ) throws IOException;
 
     /**
      * Removes the entry with the given key from the cache, if it is present.
@@ -59,9 +64,12 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      * @param keySerializer serializer
      * @return <code>true</code> if the entry is removed, <code>false</code> if
      * the key did not exist in the cache
-     * @throws IOException ex
+     * @throws IOException if unable to communicate with the remote instance
      */
-    <K> long remove(final List<K> keys, final Serializer<K> keySerializer) throws IOException ;
+    <K> long remove(
+            List<K> keys,
+            Serializer<K> keySerializer
+    ) throws IOException;
 
     /**
      * Adds the specified key and value to the cache, if they are not already
@@ -79,7 +87,12 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      *
      * @throws IOException if unable to communicate with the remote instance
      */
-    <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
+    <K, V> boolean putIfAbsent(
+            K key,
+            V value,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer
+    ) throws IOException;
 
     /**
      * Determines if the given value is present in the cache and if so returns
@@ -93,7 +106,10 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      *
      * @throws IOException if unable to communicate with the remote instance
      */
-    <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException;
+    <K> boolean containsKey(
+            K key,
+            Serializer<K> keySerializer
+    ) throws IOException;
 
     /**
      * Adds the specified key and value to the cache, overwriting any value that is
@@ -109,7 +125,12 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      * @throws IOException if unable to communicate with the remote instance
      * @throws NullPointerException if the key or either serializer is null
      */
-    <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
+    <K, V> void put(
+            K key,
+            V value,
+            Serializer<K> keySerializer,
+            Serializer<V> valueSerializer
+    ) throws IOException;
 
     /**
      * Returns the value in the cache for the given key, if one exists;
@@ -125,5 +146,9 @@ public interface BulkDistributedMapCacheClient extends ControllerService {
      * otherwise returns <code>null</code>
      * @throws IOException ex
      */
-    <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
+    <K, V> V get(
+            K key,
+            Serializer<K> keySerializer,
+            Deserializer<V> valueDeserializer
+    ) throws IOException;
 }
