@@ -27,7 +27,6 @@ import java.util.Map;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.qubership.nifi.service.RedisTestProcessor.REDIS_MAP_CACHE_SERVICE;
 
 public class RedisBulkDistributedMapCacheClientServiceTest {
     protected static final String REDIS_IMAGE = "redis:7.0.12-alpine";
@@ -164,7 +163,8 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
         Map<String, String> resultNotExist = redisBulkDistributedMapCacheClientService
                 .getAndPutIfAbsent(keyNoExist, stringSerializer, stringSerializer, stringDeserializer);
         assertEquals(null, resultNotExist.get(keyNotExist));
-        assertEquals(value3, redisBulkDistributedMapCacheClientService.get(keyNotExist, stringSerializer, stringDeserializer));
+        assertEquals(value3, redisBulkDistributedMapCacheClientService.get(keyNotExist, stringSerializer,
+                stringDeserializer));
     }
 
     @Test
