@@ -75,7 +75,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     public void testPutAndGet() throws IOException {
         //prepare data for test
         long timestamp = System.currentTimeMillis();
-        String key = "testPutAndGet-redis-processor-" + timestamp;
+        String prop = "testPutAndGet-redis-processor-" + timestamp;
         String value = "the time is " + timestamp;
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
@@ -86,12 +86,12 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
         //verify the key doesn't exists, put the key/value, then verify it exists
-        assertFalse(mapCacheClientService.containsKey(key, stringSerializer));
-        mapCacheClientService.put(key, value, stringSerializer, stringSerializer);
-        assertTrue(mapCacheClientService.containsKey(key, stringSerializer));
+        assertFalse(mapCacheClientService.containsKey(prop, stringSerializer));
+        mapCacheClientService.put(prop, value, stringSerializer, stringSerializer);
+        assertTrue(mapCacheClientService.containsKey(prop, stringSerializer));
 
         //verify get returns the expected value we set above
-        String retrievedValue = mapCacheClientService.get(key, stringSerializer, stringDeserializer);
+        String retrievedValue = mapCacheClientService.get(prop, stringSerializer, stringDeserializer);
         assertEquals(value, retrievedValue);
     }
 
@@ -99,9 +99,9 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     public void testRemove() throws IOException {
         Serializer<String> stringSerializer = new StringSerializer();
 
-        String key1 = "testRemove-key-1";
+        String prop1 = "testRemove-1";
         String value1 = "value-1";
-        String key2 = "testRemove-key-2";
+        String prop2 = "testRemove-2";
         String value2 = "value-2";
 
         RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
@@ -109,30 +109,30 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
                 .getProperty(REDIS_MAP_CACHE_SERVICE)
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
-        assertFalse(mapCacheClientService.containsKey(key1, stringSerializer));
-        assertFalse(mapCacheClientService.containsKey(key2, stringSerializer));
-        mapCacheClientService.put(key1, value1, stringSerializer, stringSerializer);
-        mapCacheClientService.put(key2, value2, stringSerializer, stringSerializer);
-        assertTrue(mapCacheClientService.containsKey(key1, stringSerializer));
-        assertTrue(mapCacheClientService.containsKey(key2, stringSerializer));
+        assertFalse(mapCacheClientService.containsKey(prop1, stringSerializer));
+        assertFalse(mapCacheClientService.containsKey(prop2, stringSerializer));
+        mapCacheClientService.put(prop1, value1, stringSerializer, stringSerializer);
+        mapCacheClientService.put(prop2, value2, stringSerializer, stringSerializer);
+        assertTrue(mapCacheClientService.containsKey(prop1, stringSerializer));
+        assertTrue(mapCacheClientService.containsKey(prop2, stringSerializer));
 
         List<String> listKeysForRemove = new ArrayList<>();
 
         mapCacheClientService.remove(listKeysForRemove, stringSerializer);
 
-        listKeysForRemove.add(key1);
-        listKeysForRemove.add(key2);
+        listKeysForRemove.add(prop1);
+        listKeysForRemove.add(prop2);
 
         mapCacheClientService.remove(listKeysForRemove, stringSerializer);
-        assertFalse(mapCacheClientService.containsKey(key1, stringSerializer));
-        assertFalse(mapCacheClientService.containsKey(key2, stringSerializer));
+        assertFalse(mapCacheClientService.containsKey(prop1, stringSerializer));
+        assertFalse(mapCacheClientService.containsKey(prop2, stringSerializer));
     }
 
     @Test
     public void testPutIfAbsent() throws IOException {
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
-        String key = "testPutIfAbsent-key";
+        String prop = "testPutIfAbsent";
         String value = "value";
 
         RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
@@ -140,11 +140,11 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
                 .getProperty(REDIS_MAP_CACHE_SERVICE)
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
-        assertFalse(mapCacheClientService.containsKey(key, stringSerializer));
-        assertTrue(mapCacheClientService.putIfAbsent(key, value, stringSerializer, stringSerializer));
-        assertFalse(mapCacheClientService.putIfAbsent(key, "some other value", stringSerializer,
+        assertFalse(mapCacheClientService.containsKey(prop, stringSerializer));
+        assertTrue(mapCacheClientService.putIfAbsent(prop, value, stringSerializer, stringSerializer));
+        assertFalse(mapCacheClientService.putIfAbsent(prop, "some other value", stringSerializer,
                 stringSerializer));
-        assertEquals(value, mapCacheClientService.get(key, stringSerializer, stringDeserializer));
+        assertEquals(value, mapCacheClientService.get(prop, stringSerializer, stringDeserializer));
     }
 
     @Test
@@ -153,7 +153,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
 
-        String key = "testGetAndPutIfAbsent-key-" + timestamp;
+        String prop = "testGetAndPutIfAbsent-prop-" + timestamp;
         String value1 = "value-1-" + timestamp;
 
         RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
@@ -162,22 +162,22 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
         Map<String, String> stringMap1 = new HashMap<>();
-        stringMap1.put(key, value1);
+        stringMap1.put(prop, value1);
 
         Map<String, String> getAndPutIfAbsentResult1 = mapCacheClientService
                 .getAndPutIfAbsent(stringMap1, stringSerializer, stringSerializer, stringDeserializer);
-        assertEquals(null, getAndPutIfAbsentResult1.get(key));
-        assertEquals(value1, mapCacheClientService.get(key, stringSerializer, stringDeserializer));
+        assertEquals(null, getAndPutIfAbsentResult1.get(prop));
+        assertEquals(value1, mapCacheClientService.get(prop, stringSerializer, stringDeserializer));
 
         String value2 = "value-2-" + timestamp;
         Map<String, String> stringMap2 = new HashMap<>();
-        stringMap2.put(key, value2);
+        stringMap2.put(prop, value2);
 
         Map<String, String> getAndPutIfAbsentResult2 = mapCacheClientService
                 .getAndPutIfAbsent(stringMap2, stringSerializer, stringSerializer, stringDeserializer);
-        assertEquals(value1, getAndPutIfAbsentResult2.get(key));
+        assertEquals(value1, getAndPutIfAbsentResult2.get(prop));
 
-        String keyNotExist = key + "_DOES_NOT_EXIST";
+        String keyNotExist = prop + "_DOES_NOT_EXIST";
         String value3 = "value-3";
         assertFalse(mapCacheClientService.containsKey(keyNotExist, stringSerializer));
 
@@ -193,12 +193,12 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     @Test
     public void testBulkGetAndPutIfAbsent() throws IOException {
         long timestamp = System.currentTimeMillis();
-        String key1 = "testBulkGetAndPutIfAbsent-key1-" + timestamp;
-        String key2 = "testBulkGetAndPutIfAbsent-key2-" + timestamp;
-        String key3 = "testBulkGetAndPutIfAbsent-key3-" + timestamp;
+        String prop1 = "testBulkGetAndPutIfAbsent-1" + timestamp;
+        String prop2 = "testBulkGetAndPutIfAbsent-2" + timestamp;
+        String prop3 = "testBulkGetAndPutIfAbsent-3" + timestamp;
         String value1 = "value-1-" + timestamp;
         String value2 = "value-2-" + timestamp;
-        String value3 = "value-2-" + timestamp;
+        String value3 = "value-3-" + timestamp;
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
 
@@ -208,18 +208,18 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
         Map<String, String> keyAndValue = new HashMap<>();
-        keyAndValue.put(key1, value1);
-        keyAndValue.put(key2, value2);
-        keyAndValue.put(key3, value3);
+        keyAndValue.put(prop1, value1);
+        keyAndValue.put(prop2, value2);
+        keyAndValue.put(prop3, value3);
 
-        mapCacheClientService.put(key1, value1, stringSerializer, stringSerializer);
-        mapCacheClientService.put(key3, value3, stringSerializer, stringSerializer);
+        mapCacheClientService.put(prop1, value1, stringSerializer, stringSerializer);
+        mapCacheClientService.put(prop3, value3, stringSerializer, stringSerializer);
 
         Map<String, String> getAndPutIfAbsentBulk = mapCacheClientService
                 .getAndPutIfAbsent(keyAndValue, stringSerializer, stringSerializer, stringDeserializer);
-        assertEquals(value1, getAndPutIfAbsentBulk.get(key1));
-        assertEquals(null, getAndPutIfAbsentBulk.get(key2));
-        assertEquals(value3, getAndPutIfAbsentBulk.get(key3));
+        assertEquals(value1, getAndPutIfAbsentBulk.get(prop1));
+        assertEquals(null, getAndPutIfAbsentBulk.get(prop2));
+        assertEquals(value3, getAndPutIfAbsentBulk.get(prop3));
     }
 
     private static final class StringSerializer implements Serializer<String> {
