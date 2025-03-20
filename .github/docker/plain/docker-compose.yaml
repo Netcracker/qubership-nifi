@@ -1,0 +1,20 @@
+---
+services:
+  nifi:
+    image: local-nifi:test
+    ports:
+      - 127.0.0.1:8080:8080
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - AUTH=none
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_WEB_HTTPS_PORT=
+    container_name: local-nifi-plain
+  consul:
+    image: hashicorp/consul:1.20
+    ports:
+      - 127.0.0.1:8500:8500
+    hostname: consul

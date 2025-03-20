@@ -1,0 +1,79 @@
+---
+name: Maven build and test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/maven-build-and-test.yml'
+      - 'qubership-bundle/**'
+      - 'qubership-consul/**'
+      - 'qubership-nifi-bulk-redis-service/**'
+      - 'qubership-nifi-bundle-common/**'
+      - 'qubership-nifi-common/**'
+      - 'qubership-nifi-db-bundle/**'
+      - 'qubership-nifi-lookup-services/**'
+      - 'qubership-services/**'
+      - 'pom.xml'
+  pull_request:
+    paths:
+      - '.github/workflows/maven-build-and-test.yml'
+      - 'qubership-bundle/**'
+      - 'qubership-consul/**'
+      - 'qubership-nifi-bulk-redis-service/**'
+      - 'qubership-nifi-bundle-common/**'
+      - 'qubership-nifi-common/**'
+      - 'qubership-nifi-db-bundle/**'
+      - 'qubership-nifi-lookup-services/**'
+      - 'qubership-services/**'
+      - 'pom.xml'
+  workflow_dispatch:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: "21"
+        description: 'Java version (e.g., 21)'
+jobs:
+  maven-build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Input parameters
+        run: |
+          echo "Java version: ${{ github.event.inputs.java-version || '21' }}" >> $GITHUB_STEP_SUMMARY
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ inputs.java-version || '21' }}
+          distribution: 'temurin'
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.gpg-private-key }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Run local maven build
+        run: mvn --batch-mode package
+        env:
+          MAVEN_USERNAME: ${{ secrets.maven-username }}
+          MAVEN_PASSWORD: ${{ secrets.maven-token }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
+          SONAR_TOKEN: ${{ secrets.sonar-token }}
+      - name: Upload test results
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-unit-test-logs
+          path: |
+            **/target/surefire-reports/**/*.xml
+          retention-days: 2
+      
