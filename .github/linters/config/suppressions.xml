@@ -5,16 +5,8 @@
   "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-  <suppress 
-  checks="MissingJavadocMethod"
-  files="[/\\]test[/\\]java[/\\]"/>
-  
-  <suppress 
-  checks="DesignForExtension"
-  files="[/\\]test[/\\]java[/\\]"/>
-  
-  <suppress 
-  checks="MagicNumber"
-  files="[/\\]test[/\\]java[/\\]"/>
-
+  <suppress checks="MissingJavadocMethod" files="[/\\]test[/\\]java[/\\]"/>
+  <suppress checks="DesignForExtension" files="[/\\]test[/\\]java[/\\]"/>
+  <suppress checks="DesignForExtension" files="RedisBulkDistributedMapCacheClientService.java"/>
+  <suppress checks="MagicNumber" files="[/\\]test[/\\]java[/\\]"/>
 </suppressions>

@@ -74,7 +74,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     @Test
     public void testPutAndGet() throws IOException {
         //prepare data for test
-        final long timestamp = System.currentTimeMillis();
+        long timestamp = System.currentTimeMillis();
         String key = "testPutAndGet-redis-processor-" + timestamp;
         String value = "the time is " + timestamp;
         Serializer<String> stringSerializer = new StringSerializer();
@@ -116,7 +116,6 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
         assertTrue(mapCacheClientService.containsKey(key1, stringSerializer));
         assertTrue(mapCacheClientService.containsKey(key2, stringSerializer));
 
-
         List<String> listKeysForRemove = new ArrayList<>();
 
         mapCacheClientService.remove(listKeysForRemove, stringSerializer);
@@ -133,8 +132,8 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     public void testPutIfAbsent() throws IOException {
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
-        String key = "testPutIfAbsent-key-1";
-        String value = "value-1";
+        String key = "testPutIfAbsent-key";
+        String value = "value";
 
         RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
                 .getProcessContext()
@@ -150,36 +149,77 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
 
     @Test
     public void testGetAndPutIfAbsent() throws IOException {
-        final long timestamp = System.currentTimeMillis();
+        long timestamp = System.currentTimeMillis();
         Serializer<String> stringSerializer = new StringSerializer();
         Deserializer<String> stringDeserializer = new StringDeserializer();
+
         String key = "testGetAndPutIfAbsent-key-" + timestamp;
-        String value = "value-" + timestamp;
+        String value1 = "value-1-" + timestamp;
 
         RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
                 .getProcessContext()
                 .getProperty(REDIS_MAP_CACHE_SERVICE)
                 .asControllerService(RedisBulkDistributedMapCacheClientService.class);
 
-        Map<String, String> stringMap = new HashMap<>();
-        stringMap.put(key, value);
+        Map<String, String> stringMap1 = new HashMap<>();
+        stringMap1.put(key, value1);
 
-        Map<String, String> getAndPutIfAbsentResult = mapCacheClientService
-                .getAndPutIfAbsent(stringMap, stringSerializer, stringSerializer, stringDeserializer);
-        //assertEquals(value, getAndPutIfAbsentResult.get(key));
-        assertEquals(value, mapCacheClientService.get(key, stringSerializer, stringDeserializer));
+        Map<String, String> getAndPutIfAbsentResult1 = mapCacheClientService
+                .getAndPutIfAbsent(stringMap1, stringSerializer, stringSerializer, stringDeserializer);
+        assertEquals(null, getAndPutIfAbsentResult1.get(key));
+        assertEquals(value1, mapCacheClientService.get(key, stringSerializer, stringDeserializer));
+
+        String value2 = "value-2-" + timestamp;
+        Map<String, String> stringMap2 = new HashMap<>();
+        stringMap2.put(key, value2);
+
+        Map<String, String> getAndPutIfAbsentResult2 = mapCacheClientService
+                .getAndPutIfAbsent(stringMap2, stringSerializer, stringSerializer, stringDeserializer);
+        assertEquals(value1, getAndPutIfAbsentResult2.get(key));
 
         String keyNotExist = key + "_DOES_NOT_EXIST";
-        String value2 = "value-2";
+        String value3 = "value-3";
         assertFalse(mapCacheClientService.containsKey(keyNotExist, stringSerializer));
 
         Map<String, String> keyNoExist = new HashMap<>();
-        keyNoExist.put(keyNotExist, value2);
+        keyNoExist.put(keyNotExist, value3);
 
         Map<String, String> getAndPutIfAbsentResultWhenDoesntExist = mapCacheClientService
                 .getAndPutIfAbsent(keyNoExist, stringSerializer, stringSerializer, stringDeserializer);
         assertEquals(null, getAndPutIfAbsentResultWhenDoesntExist.get(keyNotExist));
-        assertEquals(value2, mapCacheClientService.get(keyNotExist, stringSerializer, stringDeserializer));
+        assertEquals(value3, mapCacheClientService.get(keyNotExist, stringSerializer, stringDeserializer));
+    }
+
+    @Test
+    public void testBulkGetAndPutIfAbsent() throws IOException {
+        long timestamp = System.currentTimeMillis();
+        String key1 = "testBulkGetAndPutIfAbsent-key1-" + timestamp;
+        String key2 = "testBulkGetAndPutIfAbsent-key2-" + timestamp;
+        String key3 = "testBulkGetAndPutIfAbsent-key3-" + timestamp;
+        String value1 = "value-1-" + timestamp;
+        String value2 = "value-2-" + timestamp;
+        String value3 = "value-2-" + timestamp;
+        Serializer<String> stringSerializer = new StringSerializer();
+        Deserializer<String> stringDeserializer = new StringDeserializer();
+
+        RedisBulkDistributedMapCacheClientService mapCacheClientService = testRunner
+                .getProcessContext()
+                .getProperty(REDIS_MAP_CACHE_SERVICE)
+                .asControllerService(RedisBulkDistributedMapCacheClientService.class);
+
+        Map<String, String> keyAndValue = new HashMap<>();
+        keyAndValue.put(key1, value1);
+        keyAndValue.put(key2, value2);
+        keyAndValue.put(key3, value3);
+
+        mapCacheClientService.put(key1, value1, stringSerializer, stringSerializer);
+        mapCacheClientService.put(key3, value3, stringSerializer, stringSerializer);
+
+        Map<String, String> getAndPutIfAbsentBulk = mapCacheClientService
+                .getAndPutIfAbsent(keyAndValue, stringSerializer, stringSerializer, stringDeserializer);
+        assertEquals(value1, getAndPutIfAbsentBulk.get(key1));
+        assertEquals(null, getAndPutIfAbsentBulk.get(key2));
+        assertEquals(value3, getAndPutIfAbsentBulk.get(key3));
     }
 
     private static final class StringSerializer implements Serializer<String> {

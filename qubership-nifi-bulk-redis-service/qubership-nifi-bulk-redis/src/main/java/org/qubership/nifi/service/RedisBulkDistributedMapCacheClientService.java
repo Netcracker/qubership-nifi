@@ -117,25 +117,6 @@ public class RedisBulkDistributedMapCacheClientService
         this.redisConnectionPool = null;
     }
 
-    /**
-     * Adds the specified key and value to the cache, if they are not already
-     * present, serializing the key and value with the given
-     * {@link Serializer}s. If a value already exists in the cache for the given
-     * key, the value associated with the key is returned, after being
-     * deserialized with the given valueDeserializer.
-     *
-     * @param <K> type of key
-     * @param <V> type of value
-     * @param map pair key and value
-     * @param keySerializer key serializer
-     * @param valueSerializer key serializer
-     * @param valueDeserializer value deserializer
-     * @return If a value already exists in the cache for the given
-     * key, the value associated with the key is returned, after being
-     * deserialized with the given {@code valueDeserializer}. If the key does not
-     * exist, the key and its value will be added to the cache.
-     * @throws IOException ex
-     */
     @Override
     public <K, V> Map<K, V> getAndPutIfAbsent(
             Map<K, V> map,
@@ -186,16 +167,6 @@ public class RedisBulkDistributedMapCacheClientService
         });
     }
 
-    /**
-     * Removes the entry with the given key from the cache, if it is present.
-     *
-     * @param <K> type of key
-     * @param keys list of key to remove
-     * @param keySerializer serializer
-     * @return <code>true</code> if the entry is removed, <code>false</code> if
-     * the key did not exist in the cache
-     * @throws IOException ex
-     */
     @Override
     public <K> long remove(List<K> keys, Serializer<K> keySerializer) throws IOException {
         if (keys.isEmpty()) {
@@ -212,22 +183,7 @@ public class RedisBulkDistributedMapCacheClientService
         });
     }
 
-    /**
-     * Adds the specified key and value to the cache, if they are not already
-     * present, serializing the key and value with the given
-     * {@link Serializer}s.
-     *
-     * @param <K> type of key
-     * @param <V> type of value
-     * @param key the key for into the map
-     * @param value the value to add to the map if and only if the key is absent
-     * @param keySerializer key serializer
-     * @param valueSerializer value serializer
-     * @return true if the value was added to the cache, false if the value
-     * already existed in the cache
-     *
-     * @throws IOException if unable to communicate with the remote instance
-     */
+
     @Override
     public <K, V> boolean putIfAbsent(
             final K key,
@@ -247,18 +203,7 @@ public class RedisBulkDistributedMapCacheClientService
         });
     }
 
-    /**
-     * Determines if the given value is present in the cache and if so returns
-     * <code>true</code>, else returns <code>false</code>.
-     *
-     * @param <K> type of key
-     * @param key key
-     * @param keySerializer key serializer
-     * @return Determines if the given value is present in the cache and if so returns
-     * <code>true</code>, else returns <code>false</code>
-     *
-     * @throws IOException if unable to communicate with the remote instance
-     */
+
     @Override
     public <K> boolean containsKey(
             final K key,
@@ -270,20 +215,6 @@ public class RedisBulkDistributedMapCacheClientService
         });
     }
 
-    /**
-     * Adds the specified key and value to the cache, overwriting any value that is
-     * currently set.
-     *
-     * @param <K> the key type
-     * @param <V> the value type
-     * @param key The key to set
-     * @param value The value to associate with the given Key
-     * @param keySerializer the Serializer that will be used to serialize the key into bytes
-     * @param valueSerializer the Serializer that will be used to serialize the value into bytes
-     *
-     * @throws IOException if unable to communicate with the remote instance
-     * @throws NullPointerException if the key or either serializer is null
-     */
     @Override
     public <K, V> void put(
             final K key,
@@ -303,20 +234,7 @@ public class RedisBulkDistributedMapCacheClientService
         });
     }
 
-    /**
-     * Returns the value in the cache for the given key, if one exists;
-     * otherwise returns <code>null</code>.
-     *
-     * @param <K> the key type
-     * @param <V> the value type
-     * @param key the key to lookup in the map
-     * @param keySerializer key serializer
-     * @param valueDeserializer value serializer
-     *
-     * @return the value in the cache for the given key, if one exists;
-     * otherwise returns <code>null</code>
-     * @throws IOException ex
-     */
+
     @Override
     public <K, V> V get(
             final K key,
