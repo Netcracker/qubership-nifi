@@ -51,7 +51,7 @@ wait_for_nifi(){
         remainingTime=$((endTime-currentTime))
         if ((currentTime > endTime)); then
             echo "ERROR: timeout reached; failed to wait"
-            exit 1;
+            return 1;
         fi
         sleep 2
     done
@@ -61,4 +61,33 @@ wait_for_nifi(){
 generate_random_hex_password(){
     #args -- letters, numbers
     echo "$(tr -dc A-F < /dev/urandom | head -c "$1")""$(tr -dc 0-9 < /dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
+}
+
+
+configure_log_level(){
+  local targetPkg="$1"
+  local targetLevel="$2"
+  local consulUrl="$3"
+  local ns="$4"
+  if [ -z "$consulUrl" ]; then
+    consulUrl='http://localhost:8500'
+  fi
+  if [ -z "$ns" ]; then
+    ns='local'
+  fi
+  echo "Configuring log level = $targetLevel for $targetPkg..."
+  targetPath=$(echo "logger.$targetPkg" | sed 's|\.|/|g')
+  echo "Consul URL = $consulUrl, namespace = $ns, targetPath = $targetPath"
+  rm -rf ./consul-put-resp.txt
+  respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-resp.txt \
+    "$consulUrl/v1/kv/config/$ns/application/$targetPath")
+  echo "Response code = $respCode"
+  if [ "$respCode" == "200" ]; then
+    echo "Successfully set log level in consul"
+    rm -rf ./consul-put-resp.txt
+  else
+    echo "Failed to set log level in Consul. Response code = $respCode. Error message:"
+    cat ./consul-put-resp.txt
+    return 1;
+  fi
 }

@@ -48,8 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Input parameters
+        shell: bash
         run: |
           echo "Java version: ${{ github.event.inputs.java-version || '21' }}" >> $GITHUB_STEP_SUMMARY
+          mkdir -p ./test-results/
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -82,6 +84,11 @@ jobs:
         run: docker build -t local-nifi:test .
       - name: Run tests for nifi in plain (non-TLS mode)
         uses: ./.github/actions/run-nifi-tests-plain
+      - name: Collect results for plain (non-TLS mode)
+        shell: bash
+        run: |
+          echo "Collecting collection results for plain mode..."
+          find .github/workflows/collections -name \*.xml -exec cp {} ./test-results/plain/ \;
       - name: Run tests for nifi in TLS mode
         shell: bash
         run: |
@@ -90,12 +97,24 @@ jobs:
         shell: bash
         run: |
           echo "TBD: tests for NiFi in TLS+OIDC mode..."
+      - name: Verify test results
+        shell: bash
+        run: |
+          echo "Checking test results for failures..."
+          failed_cnt=$(find ./test-results -name "failed_*.lst" | wc -l)
+          echo "Found failed steps = $failed_cnt"
+          if [ "$failed_cnt" == "0" ]; then 
+            echo "All tests were successful!"
+          else
+            echo "Some tests ($failed_cnt) failed. Marking as failure."
+            exit 1;
+          fi
       - name: Upload test results
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: nifi-autotests-logs
           path: |
-            .github/workflows/collections/*.xml
+            ./test-results
           retention-days: 2
       
