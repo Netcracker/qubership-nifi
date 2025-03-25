@@ -1,0 +1,39 @@
+---
+name: 'Run newman tests'
+description: 'Runs newman tests'
+inputs:
+  collection-name:
+    description: 'Name of collection to run'
+    required: false
+    default: 'NiFi Basic API Tests.postman_collection.json'
+  short-name:
+    description: 'Short name of collection to run'
+    required: false
+    default: 'basic'
+  env-name:
+    description: 'Environment name for newman run'
+    required: false
+    default: 'NiFi_AT.json.postman_environment'
+  results-dir:
+    description: 'Directory to store results'
+    required: false
+    default: 'plain'
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare output directory
+      shell: bash
+      run: |
+        echo "Preparing output directory ${{ inputs.results-dir }}"
+        mkdir -p "./test-results/${{ inputs.results-dir }}/"
+    - name: Run newman tests
+      shell: bash
+      continue-on-error: true
+      run: |
+        gitDir="$(pwd)"
+        collectionsDir="${gitDir}/.github/workflows/collections"
+        echo "Running newman using collection ${{ inputs.collection-name }} with env ${{ inputs.env-name }} from $collectionsDir"
+        docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
+          postman/newman:alpine run "${{ inputs.collection-name }}" \
+          --environment="${{ inputs.env-name }}" -r cli,junit || \
+          echo "Collection ${{ inputs.short-name }} failed to run" > "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"

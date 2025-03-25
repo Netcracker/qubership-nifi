@@ -44,7 +44,17 @@ on:
         default: "21"
         description: 'Java version (e.g., 21)'
 jobs:
+  mvn:
+    uses: ./.github/workflows/maven-build-and-test.yml
+    with:
+      java-version: ${{ github.event.inputs.java-version || '21' }}
+      artifact-id: 'qubership-nifi-local-build'
+      upload-artifact: true
+    secrets:
+      maven-token: ${{ secrets.GITHUB_TOKEN }}
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
   docker-build-and-test:
+    needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
       - name: Input parameters
@@ -57,29 +67,10 @@ jobs:
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ inputs.java-version || '21' }}
-          distribution: 'temurin'
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.gpg-private-key }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
-      - name: Run local maven build
-        run: mvn --batch-mode package
-        env:
-          MAVEN_USERNAME: ${{ secrets.maven-username }}
-          MAVEN_PASSWORD: ${{ secrets.maven-token }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          SONAR_TOKEN: ${{ secrets.sonar-token }}
+          name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
       - name: Run tests for nifi in plain (non-TLS mode)

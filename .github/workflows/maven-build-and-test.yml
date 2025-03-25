@@ -33,6 +33,26 @@ on:
         type: string
         default: "21"
         description: 'Java version (e.g., 21)'
+      upload-artifact:
+        required: false
+        type: boolean
+        default: false
+        description: 'If true, then uploads build results to action run'
+      artifact-id:
+        default: artifact
+        required: false
+        type: string
+        description: 'Artifact name to use for uploading artifacts'
+  workflow_call:
+    inputs:
+      upload-artifact:
+        required: false
+        type: boolean
+        default: false
+      artifact-id:
+        default: artifact
+        required: false
+        type: string
 jobs:
   maven-build-and-test:
     runs-on: ubuntu-latest
@@ -62,7 +82,11 @@ jobs:
           gpg-private-key: ${{ secrets.gpg-private-key }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Run local maven build
-        run: mvn --batch-mode package
+        run: >
+          mvn --batch-mode package -Dgpg.skip=true
+          org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
+          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+          -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
         env:
           MAVEN_USERNAME: ${{ secrets.maven-username }}
           MAVEN_PASSWORD: ${{ secrets.maven-token }}
@@ -76,4 +100,9 @@ jobs:
           path: |
             **/target/surefire-reports/**/*.xml
           retention-days: 2
-      
+      - name: Upload all Maven target directories
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-id }}
+          path: '**/target'
