@@ -50,9 +50,6 @@ jobs:
       java-version: ${{ github.event.inputs.java-version || '21' }}
       artifact-id: 'qubership-nifi-local-build'
       upload-artifact: true
-    secrets:
-      maven-token: ${{ secrets.GITHUB_TOKEN }}
-      sonar-token: ${{ secrets.SONAR_TOKEN }}
   docker-build-and-test:
     needs: [ mvn ]
     runs-on: ubuntu-latest

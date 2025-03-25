@@ -45,6 +45,10 @@ on:
         description: 'Artifact name to use for uploading artifacts'
   workflow_call:
     inputs:
+      java-version:
+        required: false
+        type: string
+        default: "21"
       upload-artifact:
         required: false
         type: boolean
@@ -83,10 +87,7 @@ jobs:
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Run local maven build
         run: >
-          mvn --batch-mode package -Dgpg.skip=true
-          org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
-          -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-          -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
+          mvn --batch-mode package
         env:
           MAVEN_USERNAME: ${{ secrets.maven-username }}
           MAVEN_PASSWORD: ${{ secrets.maven-token }}
