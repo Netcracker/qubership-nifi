@@ -31,7 +31,7 @@ runs:
       continue-on-error: true
       run: |
         gitDir="$(pwd)"
-        collectionsDir="${gitDir}/.github/workflows/collections"
+        collectionsDir="${gitDir}/.github/collections"
         echo "Running newman using collection ${{ inputs.collection-name }} with env ${{ inputs.env-name }} from $collectionsDir"
         docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
           postman/newman:alpine run "${{ inputs.collection-name }}" \

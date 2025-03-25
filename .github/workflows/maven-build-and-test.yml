@@ -86,6 +86,11 @@ jobs:
           gpg-private-key: ${{ secrets.gpg-private-key }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Run local maven build
+        #TODO: support sonar:
+        #  -Dgpg.skip=true
+        #  org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
+        #  -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+        #  -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
         run: >
           mvn --batch-mode package
         env:
@@ -107,3 +112,4 @@ jobs:
         with:
           name: ${{ inputs.artifact-id }}
           path: '**/target'
+          retention-days: 1
