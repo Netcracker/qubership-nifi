@@ -91,3 +91,61 @@ configure_log_level(){
     return 1;
   fi
 }
+
+test_log_level(){
+    local targetPkg='$1'
+    local targetLevel='$2'
+    local resultsDir='$3'
+    resultsPath="./test-results/$resultsDir"
+    echo "Testing Consul logging parameters configuration for package = $targetPkg, level = $targetLevel"
+    echo "Results path = $resultsPath"
+    configure_log_level "$targetPkg" "$targetLevel" || \
+       echo "Consul config failed" > "$resultsPath/failed_consul_config.lst"
+    echo "Waiting 20 seconds..."
+    sleep 20
+    echo "Copying logback.xml..."
+    docker cp local-nifi-plain:/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
+    res="0"
+    grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
+    if [ "$res" == "0" ]; then
+        echo "Logback configuration successfully applied"
+    else
+        echo "Logback configuration failed to apply"
+        echo "NiFi logger config update failed" > "$resultsPath/failed_log_config.lst"
+    fi
+}
+
+prepare_sens_key(){
+    echo "Generating temporary sensitive key..."
+    export NIFI_SENSITIVE_KEY=$(generate_random_hex_password 14)
+    echo "$NIFI_SENSITIVE_KEY" > ./nifi-sens-key.tmp
+}
+
+prepare_results_dir(){
+    local resultsDir="$1"
+    echo "Preparing output directory $resultsDir"
+    mkdir -p "./test-results/$resultsDir/"
+}
+
+wait_nifi_container(){
+    local initialWait="$1"
+    local waitTimeout="$2"
+    local hostName="$3"
+    local portNum="$4"
+    local useTls="$5"
+    local containerName="$6"
+    local resultsDir="$7"
+    echo "Sleep for $initialWait seconds..."
+    sleep $initialWait
+    echo "Waiting for nifi container on $hostName:$portNum (TLS = $useTls, containerName = $containerName) to start..."
+    wait_success="1"
+    wait_for_nifi "$useTls" "$waitTimeout" "$hostName" "$portNum" || wait_success="0"
+    if [ "$wait_success" == '0' ]; then
+        echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
+        echo "resultsDir=$resultsDir"
+        docker logs -n 500 "$containerName" > ./nifi_log_tmp.lst
+        cat ./nifi_log_tmp.lst
+        echo "Wait failed, nifi not available" > "./test-results/$resultsDir/failed_nifi_wait.lst"
+        mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
+    fi
+}

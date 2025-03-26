@@ -37,3 +37,9 @@ runs:
           postman/newman:alpine run "${{ inputs.collection-name }}" \
           --environment="${{ inputs.env-name }}" -r cli,junit || \
           echo "Collection ${{ inputs.short-name }} failed to run" > "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"
+    - name: Collect test results
+      shell: bash
+      continue-on-error: true
+      run: |
+        echo "Collecting collection results into ./test-results/${{ inputs.results-dir }}..."
+        find .github/collections -name \*.xml -exec cp {} ./test-results/${{ inputs.results-dir }}/ \;

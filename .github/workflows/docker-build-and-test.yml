@@ -72,11 +72,6 @@ jobs:
         run: docker build -t local-nifi:test .
       - name: Run tests for nifi in plain (non-TLS mode)
         uses: ./.github/actions/run-nifi-tests-plain
-      - name: Collect results for plain (non-TLS mode)
-        shell: bash
-        run: |
-          echo "Collecting collection results for plain mode..."
-          find .github/collections -name \*.xml -exec cp {} ./test-results/plain/ \;
       - name: Run tests for nifi in TLS mode
         shell: bash
         run: |
