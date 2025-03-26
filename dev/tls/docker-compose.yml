@@ -50,7 +50,6 @@ services:
     ports:
       - "28443:18443"
     volumes:
-      - nifi-registry-conf:/opt/nifi-registry/nifi-registry-current/conf
       - nifi-registry-database:/opt/nifi-registry/nifi-registry-current/database
       - nifi-registry-flow:/opt/nifi-registry/nifi-registry-current/flow_storage
       - tls-certificate:/tmp/tls-certs
@@ -86,13 +85,6 @@ volumes:
       o: bind
       type: none
       device: ${PATH_TO_NIFI_CONF:-./nifi_conf}
-
-  nifi-registry-conf:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ${PATH_TO_NIFI_REGISTRY_CONF:-./nifi_registry_conf}
 
   nifi-registry-database:
     driver: local
