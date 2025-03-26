@@ -19,7 +19,7 @@ services:
     ports:
       - "18443:8443"
     volumes:
-      - nifi-conf:/opt/nifi/nifi-current/conf
+      - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-certificate:/tmp/tls-certs
     environment:
       - AUTH=tls
