@@ -93,9 +93,9 @@ configure_log_level(){
 }
 
 test_log_level(){
-    local targetPkg='$1'
-    local targetLevel='$2'
-    local resultsDir='$3'
+    local targetPkg="$1"
+    local targetLevel="$2"
+    local resultsDir="$3"
     resultsPath="./test-results/$resultsDir"
     echo "Testing Consul logging parameters configuration for package = $targetPkg, level = $targetLevel"
     echo "Results path = $resultsPath"
