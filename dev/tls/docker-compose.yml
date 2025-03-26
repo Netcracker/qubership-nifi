@@ -3,14 +3,13 @@ services:
     image: apache/nifi-toolkit:1.28.1
     container_name: qubership-nifi-toolkit
     entrypoint: /bin/sh
-    command: -c "if [ ! -d /tmp/tls-certs/nifi ]; then /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi\" -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD_NIFI} -S ${KEYSTORE_PASSWORD_NIFI} -o /tmp/tls-certs/nifi && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI} && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD_NIFI} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD_NIFI}; else return 0; fi && cp /tmp/tls-certs/nifi/nifi-cert.pem /tmp/tls-certs && cp /tmp/tls-certs/nifi/nifi-key.key /tmp/tls-certs && /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi-registry\" -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD_NIFI_REG} -S ${KEYSTORE_PASSWORD_NIFI_REG} -o /tmp/tls-certs && cp /tmp/tls-certs/localhost/keystore.jks /tmp/tls-certs/keystore.jks && keytool -importkeystore -srckeystore /tmp/tls-certs/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI_REG} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI_REG} && cp /tmp/tls-certs/localhost/truststore.jks /tmp/tls-certs/truststore.jks && keytool -importkeystore -srckeystore /tmp/tls-certs/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD_NIFI_REG} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD_NIFI_REG}"
+    command: -c "if [ ! -d /tmp/tls-certs/nifi ]; then /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi\" -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD} -S ${KEYSTORE_PASSWORD_NIFI} -o /tmp/tls-certs/nifi && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI} && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD}; else return 0; fi && cp /tmp/tls-certs/nifi/nifi-cert.pem /tmp/tls-certs && cp /tmp/tls-certs/nifi/nifi-key.key /tmp/tls-certs && /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi-registry\" -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD} -S ${KEYSTORE_PASSWORD_NIFI_REG} -o /tmp/tls-certs && cp /tmp/tls-certs/localhost/keystore.jks /tmp/tls-certs/keystore.jks && keytool -importkeystore -srckeystore /tmp/tls-certs/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI_REG} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI_REG} && cp /tmp/tls-certs/localhost/truststore.jks /tmp/tls-certs/truststore.jks && keytool -importkeystore -srckeystore /tmp/tls-certs/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD} -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD}"
     volumes:
       - tls-certificate:/tmp/tls-certs
     environment:
       - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
-      - TRUSTSTORE_PASSWORD_NIFI=${TRUSTSTORE_PASSWORD_NIFI}
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
-      - TRUSTSTORE_PASSWORD_NIFI_REG=${TRUSTSTORE_PASSWORD_NIFI_REG}
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
   qubership-nifi:
     image: ghcr.io/netcracker/nifi:latest
     container_name: qubership-nifi
@@ -77,25 +76,25 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: ${PATH_TO_TLS_CERTIFICATE:-./tls_certificate}
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/tls-certificate/
 
   nifi-conf:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: ${PATH_TO_NIFI_CONF:-./nifi_conf}
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi/conf/
 
   nifi-registry-database:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: ${PATH_TO_NIFI_REGISTRY_DATABASE:-./nifi_registry_database}
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi-registry/database/
 
   nifi-registry-flow:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: ${PATH_TO_NIFI_REGISTRY_FLOW:-./nifi_registry_flow}
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi-registry/flow-storage/
