@@ -37,9 +37,9 @@ services:
 
 ### Run in qubership-nifi in tls mode
 
-1. Copy the [`docker-compose.yaml`](https://github.com/Netcracker/qubership-nifi/blob/feature/add-docker-compose-for-tls/dev/tls/docker-compose.yml) file to your local directory.  
-2. Copy the [`.env`](https://github.com/Netcracker/qubership-nifi/blob/feature/add-docker-compose-for-tls/dev/tls/.env) file to the directory with `docker-compose.yaml`. In the `.env` file you need to set your values for the listed variables before startup.
-3. Run `docker compse -f docker-compose.yaml up`
+1. Copy the [`docker-compose.yaml`](dev/tls/docker-compose.yml) file to your local directory.
+2. Copy the [`.env`](dev/tls/.env) file to the directory with `docker-compose.yaml`. In the `.env` file you need to set your values for the listed variables before startup.
+3. Run `docker compose -f docker-compose.yaml up`
 
 ## User Guide
 
