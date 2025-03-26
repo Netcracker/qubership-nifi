@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-db-bundle</artifactId>
-        <version>${revision}</version>
+        <version>1.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>qubership-nifi-db-processors-nar</artifactId>
-    <version>${revision}</version>
+    <version>1.0.1</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-db-processors-impl</artifactId>
-            <version>${revision}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-bulk-redis-service</artifactId>
-        <version>${revision}</version>
+        <version>1.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

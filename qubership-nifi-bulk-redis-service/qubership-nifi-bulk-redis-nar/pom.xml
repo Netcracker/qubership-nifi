@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-bulk-redis-service</artifactId>
-        <version>${revision}</version>
+        <version>1.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>qubership-nifi-bulk-redis-nar</artifactId>
-    <version>${revision}</version>
+    <version>1.0.1</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -35,13 +35,13 @@
         <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-bulk-redis-api-nar</artifactId>
-            <version>${revision}</version>
+            <version>${project.version}</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-bulk-redis</artifactId>
-            <version>${revision}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

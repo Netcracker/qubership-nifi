@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-services</artifactId>
-        <version>${revision}</version>
+        <version>1.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -33,13 +33,13 @@
         <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-service-api</artifactId>
-            <version>${revision}</version>
+            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-common</artifactId>
-            <version>${revision}</version>
+            <version>${project.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
