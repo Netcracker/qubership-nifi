@@ -117,7 +117,8 @@ test_log_level(){
 
 prepare_sens_key(){
     echo "Generating temporary sensitive key..."
-    export NIFI_SENSITIVE_KEY=$(generate_random_hex_password 14)
+    NIFI_SENSITIVE_KEY=$(generate_random_hex_password 14)
+    export NIFI_SENSITIVE_KEY
     echo "$NIFI_SENSITIVE_KEY" > ./nifi-sens-key.tmp
 }
 
@@ -136,7 +137,7 @@ wait_nifi_container(){
     local containerName="$6"
     local resultsDir="$7"
     echo "Sleep for $initialWait seconds..."
-    sleep $initialWait
+    sleep "$initialWait"
     echo "Waiting for nifi container on $hostName:$portNum (TLS = $useTls, containerName = $containerName) to start..."
     wait_success="1"
     wait_for_nifi "$useTls" "$waitTimeout" "$hostName" "$portNum" || wait_success="0"
