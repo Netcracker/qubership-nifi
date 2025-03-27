@@ -28,7 +28,6 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        #TODO: add parameters for wait
         wait_nifi_container "15" "60" "127.0.0.1" "8080" "false" "local-nifi-plain" "${{ inputs.results-dir }}"
     - name: Test log level configuration
       shell: bash
@@ -36,7 +35,6 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}'
-        targetPkg='org.qubership.test.pkg2'
     - name: Run basic nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
