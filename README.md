@@ -32,13 +32,12 @@ services:
       - 127.0.0.1:18500:8500
     container_name: consul
 ```
-2. Run `docker compose -f docker-compose.yaml create`
-3. Run `docker compose -f docker-compose.yaml start`
+2. Run `docker compose -f docker-compose.yaml up`
 
 ### Run in qubership-nifi in tls mode
 
-1. Copy the [`docker-compose.yaml`](dev/tls/docker-compose.yml) file to your local directory.
-2. Copy the [`.env`](dev/tls/.env) file to the directory with `docker-compose.yaml`. In the `.env` file you need to set your values for the listed variables before startup.
+1. Copy the [`docker-compose.yaml`](dev/tls/docker-compose.yml) and [`.env`](dev/tls/.env) files to a local directory
+2. In the `.env` file set up values for all variables
 3. Run `docker compose -f docker-compose.yaml up`
 
 ## User Guide
