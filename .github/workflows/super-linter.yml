@@ -34,6 +34,4 @@ jobs:
           VALIDATE_ALL_CODEBASE: ${{ inputs.full_scan || false }}
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTIONS_COMMAND_ARGS: >-
-            -shellcheck=
-            -ignore 'undefined variable "vars".+'
+          GITHUB_ACTIONS_COMMAND_ARGS: "-shellcheck= -ignore 'undefined variable \"vars\".+'"
