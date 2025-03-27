@@ -19,6 +19,9 @@ on:
       - 'nifi-scripts/**'
       - 'qubership-nifi-deps/**'
       - 'scripts/**'
+      - '.github/actions/**'
+      - '.github/collections/**'
+      - '.github/workflows/sh/**'
   pull_request:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
@@ -36,6 +39,9 @@ on:
       - 'nifi-scripts/**'
       - 'qubership-nifi-deps/**'
       - 'scripts/**'
+      - '.github/actions/**'
+      - '.github/collections/**'
+      - '.github/workflows/sh/**'
   workflow_dispatch:
     inputs:
       java-version:
