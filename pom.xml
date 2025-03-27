@@ -52,8 +52,8 @@
         <maven.compiler.target>15</maven.compiler.target>
         <nifi.version>1.28.1</nifi.version>
         <nifi.nar.plugin.version>1.5.1</nifi.nar.plugin.version>
-        <pmd.version>3.10.0</pmd.version>
-        <jacoco.version>0.8.8</jacoco.version>
+        <pmd.version>3.26.0</pmd.version>
+        <jacoco.version>0.8.12</jacoco.version>
         <lombok.version>1.18.30</lombok.version>
         <resources.version>3.1.0</resources.version>
         <testcontainers.version>1.20.4</testcontainers.version>
@@ -266,12 +266,12 @@
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-java</artifactId>
-                        <version>6.37.0</version>
+                        <version>7.10.0</version>
                     </dependency>
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-core</artifactId>
-                        <version>6.37.0</version>
+                        <version>7.10.0</version>
                     </dependency>
                 </dependencies>
             </plugin>
