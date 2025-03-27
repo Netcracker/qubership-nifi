@@ -18,6 +18,18 @@ inputs:
     description: 'Directory to store results'
     required: false
     default: 'plain'
+  tls-ca-certs:
+    description: |
+      Path to file with additional TLS CA certificates in PEM format. 
+      Corresponds to newman option ssl-extra-ca-certs.
+    required: false
+    default: ''
+  tls-client-certs-config:
+    description: |
+      Path to JSON file with TLS client certificates configuration. 
+      Corresponds to newman option ssl-client-cert-list.
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -33,9 +45,25 @@ runs:
         gitDir="$(pwd)"
         collectionsDir="${gitDir}/.github/collections"
         echo "Running newman using collection ${{ inputs.collection-name }} with env ${{ inputs.env-name }} from $collectionsDir"
+        caCertsFile="${{ inputs.tls-ca-certs }}"
+        caCertsOption=''
+        clientCertConfigFile="${{ inputs.tls-client-certs-config }}"
+        clientCertConfigOption=''
+        echo "Additional TLS options: caCertsFile = $caCertsFile, clientCertConfigFile = $clientCertConfigFile"
+        if [ -n "$caCertsFile" ]; then
+          caCertsOption="--ssl-extra-ca-certs \"$caCertsFile\""
+        else
+          caCertsOption=''
+        fi
+        if [ -n "$clientCertConfigFile" ]; then
+          clientCertConfigOption="--ssl-client-cert-list \"$clientCertConfigFile\""
+        else
+          clientCertConfigFile=''
+        fi
         docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
           postman/newman:alpine run "${{ inputs.collection-name }}" \
-          --environment="${{ inputs.env-name }}" -r cli,junit || \
+          --environment="${{ inputs.env-name }}" -r cli,junit \
+          $caCertsOption $clientCertConfigOption || \
           echo "Collection ${{ inputs.short-name }} failed to run" > \
             "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"
     - name: Collect test results
