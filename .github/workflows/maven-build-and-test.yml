@@ -93,10 +93,8 @@ jobs:
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
         env:
-          MAVEN_USERNAME: ${{ secrets.maven-username }}
-          MAVEN_PASSWORD: ${{ secrets.maven-token }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.gpg-passphrase }}
-          SONAR_TOKEN: ${{ secrets.sonar-token }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       - name: Upload test results
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
