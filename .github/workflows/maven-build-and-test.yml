@@ -37,12 +37,17 @@ on:
         required: false
         type: boolean
         default: false
-        description: 'If true, then uploads build results to action run'
+        description: 'If set, uploads build results to action run'
       artifact-id:
         default: artifact
         required: false
         type: string
-        description: 'Artifact name to use for uploading artifacts'
+        description: 'Artifact name to use for artifact upload'
+      skip-sonar:
+        default: false
+        required: false
+        type: boolean
+        description: 'If set, skips sonar cloud analysis'
   workflow_call:
     inputs:
       java-version:
@@ -57,6 +62,10 @@ on:
         default: artifact
         required: false
         type: string
+      skip-sonar:
+        default: false
+        required: false
+        type: boolean
 jobs:
   maven-build-and-test:
     runs-on: ubuntu-latest
@@ -85,13 +94,21 @@ jobs:
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.gpg-private-key }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-      - name: Run local maven build
+      - name: Run local maven build with sonar
+        if: ${{ !inputs.skip-sonar }}
         run: >
           mvn --batch-mode package
           -Dgpg.skip=true
           org.sonarsource.scanner.maven:sonar-maven-plugin:${{ vars.SONAR_PLUGIN_VERSION }}:sonar
           -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
           -Dsonar.host.url=${{ vars.SONAR_HOST_URL }}
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Run local maven build w/o sonar
+        if: ${{ inputs.skip-sonar }}
+        run: >
+          mvn --batch-mode package
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

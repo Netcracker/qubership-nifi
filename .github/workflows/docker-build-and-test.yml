@@ -56,6 +56,7 @@ jobs:
       java-version: ${{ github.event.inputs.java-version || '21' }}
       artifact-id: 'qubership-nifi-local-build'
       upload-artifact: true
+      skip-sonar: true
   docker-build-and-test:
     needs: [ mvn ]
     runs-on: ubuntu-latest
