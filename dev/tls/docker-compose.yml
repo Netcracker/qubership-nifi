@@ -6,8 +6,7 @@ services:
     command: >
         -c "if [ ! -f /tmp/tls-certs/nifi/keystore.p12 ];
         then
-        mkdir -m 755 -p /tmp/tls-certs/nifi
-        && echo 'Generating nifi certs...'
+        echo 'Generating nifi certs...'
         && /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi\"
         -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD} -S ${KEYSTORE_PASSWORD_NIFI} -o /tmp/tls-certs/nifi
         && echo 'Converting nifi certs to PKCS12...'
@@ -19,18 +18,18 @@ services:
         -deststorepass ${TRUSTSTORE_PASSWORD};
         else return 0;
         fi
-        && cp /tmp/tls-certs/nifi/nifi-cert.pem /tmp/tls-certs
-        && cp /tmp/tls-certs/nifi/nifi-key.key /tmp/tls-certs
+        && cp /tmp/tls-certs/nifi/nifi-cert.pem /tmp/tls-certs/nifi-registry
+        && cp /tmp/tls-certs/nifi/nifi-key.key /tmp/tls-certs/nifi-registry
         && echo 'Generating nifi-registry certs...'
         && /opt/nifi-toolkit/nifi-toolkit-1.28.1/bin/tls-toolkit.sh standalone -n \"localhost\" --subjectAlternativeNames \"nifi-registry\"
-        -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD} -S ${KEYSTORE_PASSWORD_NIFI_REG} -o /tmp/tls-certs
-        && cp /tmp/tls-certs/localhost/keystore.jks /tmp/tls-certs/keystore.jks
+        -C \"CN=admin, OU=NIFI\" -P ${TRUSTSTORE_PASSWORD} -S ${KEYSTORE_PASSWORD_NIFI_REG} -o /tmp/tls-certs/nifi-registry
+        && cp /tmp/tls-certs/nifi-registry/localhost/keystore.jks /tmp/tls-certs/nifi-registry/keystore.jks
         && echo 'Converting nifi-registry certs to PKCS12...'
-        && keytool -importkeystore -srckeystore /tmp/tls-certs/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI_REG} -srcstoretype JKS
-        -deststoretype PKCS12 -destkeystore /tmp/tls-certs/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI_REG}
-        && cp /tmp/tls-certs/localhost/truststore.jks /tmp/tls-certs/truststore.jks
-        && keytool -importkeystore -srckeystore /tmp/tls-certs/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD}
-        -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD}"
+        && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi-registry/keystore.jks -srcstorepass ${KEYSTORE_PASSWORD_NIFI_REG} -srcstoretype JKS
+        -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi-registry/keystore.p12 -deststorepass ${KEYSTORE_PASSWORD_NIFI_REG}
+        && cp /tmp/tls-certs/nifi-registry/localhost/truststore.jks /tmp/tls-certs/truststore.jks
+        && keytool -importkeystore -srckeystore /tmp/tls-certs/nifi-registry/truststore.jks -srcstorepass ${TRUSTSTORE_PASSWORD}
+        -srcstoretype JKS -deststoretype PKCS12 -destkeystore /tmp/tls-certs/nifi-registry/truststore.p12 -deststorepass ${TRUSTSTORE_PASSWORD}"
     volumes:
       - tls-certificate:/tmp/tls-certs
     environment:
@@ -47,7 +46,7 @@ services:
       - "127.0.0.1:8443:8443"
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
-      - tls-certificate:/tmp/tls-certs
+      - tls-certificate-nifi:/tmp/tls-certs
     environment:
       - AUTH=tls
       - NIFI_WEB_HTTPS_PORT=8443
@@ -78,7 +77,7 @@ services:
     volumes:
       - nifi-registry-database:/opt/nifi-registry/nifi-registry-current/database
       - nifi-registry-flow:/opt/nifi-registry/nifi-registry-current/flow_storage
-      - tls-certificate:/tmp/tls-certs
+      - tls-certificate-nifi-registry:/tmp/tls-certs
     environment:
       - AUTH=tls
       - NIFI_REGISTRY_WEB_HTTPS_PORT=18443
@@ -104,6 +103,20 @@ volumes:
       o: bind
       type: none
       device: ${PATH_TO_LOCAL_VOLUME:-.}/tls-certificate/
+
+  tls-certificate-nifi:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/tls-certificate/nifi
+
+  tls-certificate-nifi-registry:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/tls-certificate/nifi-registry
 
   nifi-conf:
     driver: local
