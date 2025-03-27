@@ -26,8 +26,12 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.*;
-import org.qubership.nifi.processors.PostgreSQLBulkLoader;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.AfterAll;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -46,32 +50,32 @@ import java.util.List;
 @Slf4j
 @Tag("DockerBased")
 @Testcontainers
-public class PostgreSQLBulkLoaderTest{
+public class PostgreSQLBulkLoaderTest {
     private static final String POSTGRES_IMAGE = "postgres:16.8";
     private static final String DB_NAME = "test123";
     private static final String USER = "postgres";
     private static final String PWD = "password";
 
-    private static String DB_URL;
-    protected static DBCPService dbcp;
+    private static String dbUrl;
+    private static DBCPService dbcp;
     @Container
-    private static JdbcDatabaseContainer POSTGRES_CONTAINER;
+    private static JdbcDatabaseContainer postgresContainer;
 
     static {
-        POSTGRES_CONTAINER = new PostgreSQLContainer(POSTGRES_IMAGE)
+        postgresContainer = new PostgreSQLContainer(POSTGRES_IMAGE)
                 .withDatabaseName(DB_NAME)
                 .withUsername(USER)
                 .withPassword(PWD);
-        POSTGRES_CONTAINER.start();
-        DB_URL = "jdbc:postgresql://" + POSTGRES_CONTAINER.getContainerIpAddress()
-                + ":" + POSTGRES_CONTAINER.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
+        postgresContainer.start();
+        dbUrl = "jdbc:postgresql://" + postgresContainer.getContainerIpAddress()
+                + ":" + postgresContainer.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
                 + "/" + DB_NAME;
     }
 
     @BeforeAll
-    public static void setUp() throws SQLException{
+    public static void setUp() throws SQLException {
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(DB_URL);
+        hikariConfig.setJdbcUrl(dbUrl);
         hikariConfig.setUsername(USER);
         hikariConfig.setPassword(PWD);
         hikariConfig.setMinimumIdle(50);
@@ -81,7 +85,8 @@ public class PostgreSQLBulkLoaderTest{
         dbcp = new MockDBCPService(hikariDataSource);
 
         try (Connection con = dbcp.getConnection();
-             PreparedStatement prSt = con.prepareStatement("create table NC_PARAMS (col1 varchar(255), col2 varchar(255))");
+             PreparedStatement prSt = con.prepareStatement("create table NC_PARAMS "
+                     + "(col1 varchar(255), col2 varchar(255))");
         ) {
             prSt.executeUpdate();
         }
@@ -121,7 +126,8 @@ public class PostgreSQLBulkLoaderTest{
             Assertions.assertEquals(2, rs.getInt(1));
         }
 
-        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(PostgreSQLBulkLoader.REL_SUCCESS.getName());
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(
+                PostgreSQLBulkLoader.REL_SUCCESS.getName());
         Assertions.assertEquals(1, results.size());
     }
 
@@ -138,8 +144,8 @@ public class PostgreSQLBulkLoaderTest{
         runner.setProperty(PostgreSQLBulkLoader.SQL_QUERY, "COPY NC_PARAMS FROM STDIN WITH CSV");
         runner.setProperty(PostgreSQLBulkLoader.BUFFER_SIZE, "65536");
 
-        runner.enqueue("\"1\",\"Test value 1\"\n" +
-                "\"2\",\"Test value 2\"");
+        runner.enqueue("\"1\",\"Test value 1\"\n"
+                + "\"2\",\"Test value 2\"");
         runner.run();
 
         try (Connection con = dbcp.getConnection();
@@ -150,7 +156,8 @@ public class PostgreSQLBulkLoaderTest{
             Assertions.assertEquals(2, rs.getInt(1));
         }
 
-        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(PostgreSQLBulkLoader.REL_SUCCESS.getName());
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(
+                PostgreSQLBulkLoader.REL_SUCCESS.getName());
         Assertions.assertEquals(1, results.size());
     }
 
@@ -175,7 +182,8 @@ public class PostgreSQLBulkLoaderTest{
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PostgreSQLBulkLoader.REL_SUCCESS, 1);
-        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(PostgreSQLBulkLoader.REL_SUCCESS.getName());
+        final List<MockFlowFile> results = runner.getFlowFilesForRelationship(
+                PostgreSQLBulkLoader.REL_SUCCESS.getName());
         Assertions.assertEquals(1, results.size());
         results.get(0).assertContentEquals("1,Test Value 1\n");
     }
@@ -228,7 +236,7 @@ public class PostgreSQLBulkLoaderTest{
 
     @AfterAll
     public static void tearDown() {
-        POSTGRES_CONTAINER.stop();
+        postgresContainer.stop();
     }
 
     public String getFilePath(String fileName) {
@@ -242,10 +250,10 @@ public class PostgreSQLBulkLoaderTest{
     }
 
     public static class MockDBCPService extends AbstractControllerService implements DBCPService {
-        final DataSource ds;
+        private final DataSource ds;
 
-        public MockDBCPService(DataSource ds) {
-            this.ds = ds;
+        public MockDBCPService(final DataSource newDs) {
+            this.ds = newDs;
         }
 
         @Override

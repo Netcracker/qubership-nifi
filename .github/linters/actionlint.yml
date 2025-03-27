@@ -7,3 +7,5 @@ paths:
     ignore:
       # Ignore SC2086 from shellcheck (usually for run attribute in workflows):
       - 'shellcheck reported issue in this script: SC2086:.+'
+      # Ignore error for undefined vars variable:
+      - 'undefined variable "vars".+'

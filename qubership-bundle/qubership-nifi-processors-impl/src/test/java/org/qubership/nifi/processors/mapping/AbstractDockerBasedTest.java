@@ -39,12 +39,14 @@ import java.util.List;
 import java.util.Map;
 
 import static org.qubership.nifi.NiFiUtils.MAPPER;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public abstract class AbstractDockerBasedTest {
     protected static final String POSTGRES_IMAGE = "postgres:16.8";
-    protected TestRunner testRunner;
+    private TestRunner testRunner;
 
     protected void testJsonContentFromRelationship(String[] idealFiles, Relationship relationship) {
         List<MockFlowFile> outs = testRunner.getFlowFilesForRelationship(relationship);
@@ -124,10 +126,10 @@ public abstract class AbstractDockerBasedTest {
     }
 
     public static class MockDBCPService extends AbstractControllerService implements DBCPService {
-        final DataSource ds;
+        private final DataSource ds;
 
-        public MockDBCPService(DataSource ds) {
-            this.ds = ds;
+        public MockDBCPService(final DataSource newDs) {
+            this.ds = newDs;
         }
 
         @Override
