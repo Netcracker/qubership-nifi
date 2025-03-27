@@ -47,7 +47,7 @@ import java.util.List;
 @Tag("DockerBased")
 @Testcontainers
 public class PostgreSQLBulkLoaderTest{
-    private static final String POSTGRES_IMAGE = "postgres:10.4";
+    private static final String POSTGRES_IMAGE = "postgres:16.8";
     private static final String DB_NAME = "test123";
     private static final String USER = "postgres";
     private static final String PWD = "password";

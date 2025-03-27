@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public abstract class AbstractDockerBasedTest {
-    protected static final String POSTGRES_IMAGE = "postgres:14.3";
+    protected static final String POSTGRES_IMAGE = "postgres:16.8";
     protected TestRunner testRunner;
 
     protected void testJsonContentFromRelationship(String[] idealFiles, Relationship relationship) {
