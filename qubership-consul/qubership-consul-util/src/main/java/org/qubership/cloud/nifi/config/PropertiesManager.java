@@ -37,6 +37,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -182,9 +183,8 @@ public class PropertiesManager {
     private void writeXml(Document doc, OutputStream output) throws TransformerException {
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
         //configure to avoid XXE attacks:
-        transformerFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-        transformerFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-        transformerFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
         Transformer transformer = transformerFactory.newTransformer();
 
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
