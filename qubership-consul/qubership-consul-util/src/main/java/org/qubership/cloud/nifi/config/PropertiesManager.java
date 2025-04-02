@@ -24,10 +24,17 @@ import org.springframework.cloud.consul.config.ConsulPropertySource;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.env.*;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -39,14 +46,28 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 
 @Component
 @RefreshScope
 public class PropertiesManager {
-    private static final Logger log = LoggerFactory.getLogger(PropertiesManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PropertiesManager.class);
     @Value("classpath:logback-template.xml")
     private Resource sourceXmlFile;
     @Value("classpath:nifi_default.properties")
@@ -67,6 +88,7 @@ public class PropertiesManager {
     private Environment appEnv;
 
     private static final Set<String> SKIPPED_CUSTOM_PROPERTIES = new HashSet<>();
+
     static {
         SKIPPED_CUSTOM_PROPERTIES.add("nifi.http-auth-proxying-disabled-schemes");
         SKIPPED_CUSTOM_PROPERTIES.add("nifi.http-auth-tunneling-disabled-schemes");
@@ -80,24 +102,41 @@ public class PropertiesManager {
 
     }
 
-    public void generateNifiProperties() throws IOException, ParserConfigurationException, TransformerException, SAXException {
+    /**
+     * Generates nifi.properties file.
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws TransformerException
+     * @throws SAXException
+     */
+    public void generateNifiProperties() throws IOException, ParserConfigurationException,
+            TransformerException, SAXException {
         readConsulProperties();
         buildPropertiesFile();
         buildCustomPropertiesFile();
         buildLogbackXMLFile();
-        log.info("nifi properties files generated");
+        LOG.info("nifi properties files generated");
     }
 
-    private void buildLogbackXMLFile() throws ParserConfigurationException, IOException, SAXException, TransformerException {
+    private static final int LOGGER_PREFIX_LENGTH = "logger.".length();
+
+    private void buildLogbackXMLFile()
+            throws ParserConfigurationException, IOException, SAXException, TransformerException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+        //configure to avoid XXE attacks:
+        dbFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        dbFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        dbFactory.setXIncludeAware(false);
+        dbFactory.setExpandEntityReferences(false);
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = null;
         try (InputStream is = new BufferedInputStream(sourceXmlFile.getInputStream())) {
             doc = dBuilder.parse(is);
         }
         doc.getDocumentElement().normalize();
-        if (log.isDebugEnabled()) {
-            log.debug("Root element: {}", doc.getDocumentElement().getNodeName());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Root element: {}", doc.getDocumentElement().getNodeName());
         }
         NodeList nodeList = doc.getElementsByTagName("logger");
 
@@ -105,9 +144,9 @@ public class PropertiesManager {
             boolean loggerElementFound = false;
             // if it starts with "logger.*" then, check element in logback.xml
             if (consulKey.toLowerCase().startsWith("logger.")) {
-                String xmlKey = consulKey.substring(7);
-                if (log.isDebugEnabled()) {
-                    log.debug("current xmlKey: {}", xmlKey);
+                String xmlKey = consulKey.substring(LOGGER_PREFIX_LENGTH);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("current xmlKey: {}", xmlKey);
                 }
                 for (int i = 0; i < nodeList.getLength(); i++) {
                     Node prop = nodeList.item(i);
@@ -129,7 +168,7 @@ public class PropertiesManager {
                     newLogger.setAttribute("level", consulPropertiesMap.get(consulKey));
                     Node firstLogNode = doc.getElementsByTagName("logger").item(0);
                     //insert before first node with tag=logger
-                    doc.getDocumentElement().insertBefore(newLogger,firstLogNode);
+                    doc.getDocumentElement().insertBefore(newLogger, firstLogNode);
                 }
             }
         }
@@ -137,11 +176,15 @@ public class PropertiesManager {
             //write to new file:
             writeXml(doc, output);
         }
-        log.info("logback.xml file created at path: {}", path);
+        LOG.info("logback.xml file created at path: {}", path);
     }
 
     private void writeXml(Document doc, OutputStream output) throws TransformerException {
         TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        //configure to avoid XXE attacks:
+        transformerFactory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        transformerFactory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        transformerFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
         Transformer transformer = transformerFactory.newTransformer();
 
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -161,8 +204,8 @@ public class PropertiesManager {
             if (ConsulPropertySource.class.isAssignableFrom(src1.getClass())) {
                 String[] allNames = ((ConsulPropertySource) src1).getPropertyNames();
                 if (allNames != null) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("allNames array: {}", List.of(allNames));
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("allNames array: {}", List.of(allNames));
                     }
                     //fetch only properties starting with logger.* and nifi.*
                     for (String name : allNames) {
@@ -175,13 +218,17 @@ public class PropertiesManager {
             }
 
         }
-        log.debug("All property names = {}", allPropertyNames);
+        LOG.debug("All property names = {}", allPropertyNames);
         for (String property : allPropertyNames) {
             consulPropertiesMap.put(property, appEnv.getProperty(property));
         }
-        log.debug("consulPropertiesMap map: {}", consulPropertiesMap);
+        LOG.debug("consulPropertiesMap map: {}", consulPropertiesMap);
     }
 
+    /**
+     * Builds custom.properties file.
+     * @throws IOException
+     */
     public void buildCustomPropertiesFile() throws IOException {
         String fileName = path + "custom.properties";
 
@@ -202,9 +249,13 @@ public class PropertiesManager {
                 pw.println(combinedNifiProperties.get(s));
             }
         }
-        log.info("Custom Properties file created : {}", fileName);
+        LOG.info("Custom Properties file created : {}", fileName);
     }
 
+    /**
+     * Builds nifi.properties file.
+     * @throws IOException
+     */
     public void buildPropertiesFile() throws IOException {
         String fileName = path + "nifi.properties";
 
@@ -225,8 +276,8 @@ public class PropertiesManager {
         for (String s : nifiInternalProps.keySet()) {
             combinedNifiProperties.put(s, nifiInternalProps.get(s));
         }
-        if (log.isDebugEnabled()) {
-            log.debug("combined nifi Properties: {}", combinedNifiProperties);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("combined nifi Properties: {}", combinedNifiProperties);
         }
 
         // remove properties from combinedNifiProperties map that are present on nifi_internal_comments.properties
@@ -239,7 +290,8 @@ public class PropertiesManager {
         }
 
         //write nifiProperties to properties file
-        try (PrintWriter pw = new PrintWriter(new FileOutputStream(fileName)); BufferedReader reader = new BufferedReader(new InputStreamReader(internalPropertiesCommentsFile.getInputStream()))) {
+        try (PrintWriter pw = new PrintWriter(new FileOutputStream(fileName)); BufferedReader reader =
+                new BufferedReader(new InputStreamReader(internalPropertiesCommentsFile.getInputStream()))) {
             //Storing the map in properties file in order
             for (String s : combinedNifiProperties.keySet()) {
                 pw.print(s);
@@ -255,9 +307,15 @@ public class PropertiesManager {
                 line = reader.readLine();
             }
         }
-        log.info("Nifi Properties file created : {}", fileName);
+        LOG.info("Nifi Properties file created : {}", fileName);
     }
 
+    /**
+     * Gets ordered properties map.
+     * @param rs consul data
+     * @return ordered properties map
+     * @throws IOException
+     */
     public Map<String, String> getOrderedProperties(Resource rs) throws IOException {
         Map<String, String> mp = new LinkedHashMap<>();
         try (InputStream in = rs.getInputStream()) {
@@ -269,14 +327,19 @@ public class PropertiesManager {
         }
         return mp;
     }
+
+    /**
+     * Handles environment change event: generates updated logback.xml to support dynamic logging level changes.
+     * @param event environment change event
+     */
     @EventListener
     public void handleChangeEvent(EnvironmentChangeEvent event) {
-        log.debug("Change event received for keys: {}", event.getKeys());
+        LOG.debug("Change event received for keys: {}", event.getKeys());
         readConsulProperties();
         try {
             buildLogbackXMLFile();
         } catch (Exception e) {
-            log.error("Exception while processing change event from consul",e);
+            LOG.error("Exception while processing change event from consul", e);
         }
     }
 }

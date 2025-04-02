@@ -33,35 +33,34 @@ import java.io.File;
 
 @Tag("DockerBased")
 @Testcontainers
-public class IDBDockerBasedTest extends AbstractDockerBasedTest{
+public class IDBDockerBase extends AbstractDockerBasedTest {
 
     protected static final String DB_NAME = "idb";
     protected static final String USER = "postgres";
     protected static final String PWD = "password";
 
-    protected static DBCPService dbcp;
-    protected static String INIT_SCRIPT_PATH;
+    private static DBCPService dbcp;
     @Container
-    protected static JdbcDatabaseContainer POSTGRES_CONTAINER;
+    private static JdbcDatabaseContainer postgresContainer;
 
     static {
-        INIT_SCRIPT_PATH = StringUtils.replaceChars(
-                IDBDockerBasedTest.class.getPackage().getName(),
+        String initScriptPath = StringUtils.replaceChars(
+                IDBDockerBase.class.getPackage().getName(),
                 ".",
                 File.separator) + File.separator + "db_for_test.sql";
-        POSTGRES_CONTAINER = new PostgreSQLContainer(POSTGRES_IMAGE)
+        postgresContainer = new PostgreSQLContainer(POSTGRES_IMAGE)
                 .withDatabaseName(DB_NAME)
-                .withInitScript(INIT_SCRIPT_PATH)
+                .withInitScript(initScriptPath)
                 .withUsername(USER)
                 .withPassword(PWD);
-        POSTGRES_CONTAINER.start();
+        postgresContainer.start();
     }
 
     @BeforeAll
     public static void setUp() {
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:postgresql://" + POSTGRES_CONTAINER.getContainerIpAddress()
-                + ":" + POSTGRES_CONTAINER.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
+        hikariConfig.setJdbcUrl("jdbc:postgresql://" + postgresContainer.getContainerIpAddress()
+                + ":" + postgresContainer.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
                 + "/" + DB_NAME);
         hikariConfig.setUsername(USER);
         hikariConfig.setPassword(PWD);
@@ -73,6 +72,10 @@ public class IDBDockerBasedTest extends AbstractDockerBasedTest{
     }
     @AfterAll
     public static void tearDown() {
-        POSTGRES_CONTAINER.stop();
+        postgresContainer.stop();
+    }
+
+    public static DBCPService getDbcp() {
+        return dbcp;
     }
 }

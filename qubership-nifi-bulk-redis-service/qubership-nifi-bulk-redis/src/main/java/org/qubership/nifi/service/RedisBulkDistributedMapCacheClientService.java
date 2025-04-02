@@ -70,7 +70,7 @@ public class RedisBulkDistributedMapCacheClientService
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
     private volatile RedisConnectionPool redisConnectionPool;
-    private Long ttl;
+    private Long ttlValue;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -102,10 +102,10 @@ public class RedisBulkDistributedMapCacheClientService
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
         this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL)
                 .asControllerService(RedisConnectionPool.class);
-        this.ttl = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS);
+        this.ttlValue = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS);
 
-        if (ttl == 0) {
-            this.ttl = -1L;
+        if (ttlValue == 0) {
+            this.ttlValue = -1L;
         }
     }
 
@@ -195,8 +195,8 @@ public class RedisBulkDistributedMapCacheClientService
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
             boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
 
-            if (ttl != -1L && set) {
-                redisConnection.expire(kv.getKey(), ttl);
+            if (ttlValue != -1L && set) {
+                redisConnection.expire(kv.getKey(), ttlValue);
             }
 
             return set;
@@ -227,7 +227,7 @@ public class RedisBulkDistributedMapCacheClientService
             redisConnection.set(
                     kv.getKey(),
                     kv.getValue(),
-                    Expiration.seconds(ttl),
+                    Expiration.seconds(ttlValue),
                     RedisStringCommands.SetOption.upsert()
             );
             return null;

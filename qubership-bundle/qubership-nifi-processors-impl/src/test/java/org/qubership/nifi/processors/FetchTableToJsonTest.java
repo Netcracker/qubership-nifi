@@ -39,7 +39,7 @@ import static org.qubership.nifi.processors.FetchTableToJson.REL_SUCCESS;
 import static org.qubership.nifi.processors.FetchTableToJson.REL_FAILURE;
 import static org.qubership.nifi.processors.FetchTableToJson.REL_TOTAL_COUNT;
 
-public class FetchTableToJsonTest extends IDBDockerBasedTest {
+public class FetchTableToJsonTest extends IDBDockerBase {
     private TestRunner testRunner;
     private String tableName = "IDB_TEST_TABLE_2";
 
@@ -52,11 +52,11 @@ public class FetchTableToJsonTest extends IDBDockerBasedTest {
     public void init() throws InitializationException {
         testRunner = TestRunners.newTestRunner(FetchTableToJson.class);
 
-        testRunner.addControllerService("dbcp", dbcp);
+        testRunner.addControllerService("dbcp", getDbcp());
         testRunner.setProperty(DBCP_SERVICE, "dbcp");
         testRunner.setProperty(TABLE, tableName);
 
-        testRunner.enableControllerService(dbcp);
+        testRunner.enableControllerService(getDbcp());
         testRunner.setValidateExpressionUsage(false);
     }
 

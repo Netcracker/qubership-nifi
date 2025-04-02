@@ -16,9 +16,7 @@
 
 package org.qubership.nifi.service;
 
-import org.qubership.nifi.service.QubershipPrometheusRecordSink;
-
-public class QubershipPrometheusRecordSink4Test extends QubershipPrometheusRecordSink {
+public class MockQubershipPrometheusRecordSink extends QubershipPrometheusRecordSink {
 
     @Override
     protected void startServer() {

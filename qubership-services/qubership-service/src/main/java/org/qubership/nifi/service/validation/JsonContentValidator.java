@@ -50,6 +50,10 @@ public class JsonContentValidator extends AbstractControllerService implements C
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    /**
+     * Gets a list of supported properties.
+     * @return list of supported property descriptors
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -57,18 +61,30 @@ public class JsonContentValidator extends AbstractControllerService implements C
         return properties;
     }
 
-    private JsonSchema schema;
+    private JsonSchema schemaInstance;
 
+    /**
+     * Configures controller service before use. This method is invoked when the controller service is enabled.
+     * @param context configuration context to use
+     * @throws InitializationException
+     */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         String sSchema = context.getProperty(SCHEMA).getValue();
-        schema = JsonSchemaFactory.getInstance().getSchema(sSchema);
+        schemaInstance = JsonSchemaFactory.getInstance().getSchema(sSchema);
     }
 
+    /**
+     * Validates JSON against JSON Schema.
+     * @param value input JSON
+     * @param attributes map with FlowFile attributes
+     * @return true, if valid. false, otherwise.
+     * @throws IOException
+     */
     @Override
     public boolean validate(String value, Map<String, String> attributes) throws IOException {
         JsonNode jsonValue = JsonUtils.MAPPER.readTree(value);
-        Set<ValidationMessage> errors = schema.validate(jsonValue);
+        Set<ValidationMessage> errors = schemaInstance.validate(jsonValue);
 
         return errors.isEmpty();
     }

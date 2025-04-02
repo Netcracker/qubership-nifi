@@ -16,9 +16,7 @@
 
 package org.qubership.nifi.reporting;
 
-import org.qubership.nifi.reporting.ComponentPrometheusReportingTask;
-
-public class ComponentPrometheusReportingTask4Test
+public class MockComponentPrometheusReportingTask
     extends ComponentPrometheusReportingTask {
 
     @Override

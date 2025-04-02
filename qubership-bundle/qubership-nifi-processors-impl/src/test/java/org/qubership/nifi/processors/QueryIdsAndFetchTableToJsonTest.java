@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.*;
 
 @Tag("DockerBased")
-public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBasedTest{
+public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
     private static final String ATTR_FETCH_COUNT = "fetch.count";
     private static final String ATTR_ROWS_COUNT = "rows.count";
     private TestRunner testRunner;
@@ -52,7 +52,7 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBasedTest{
     public void init() throws InitializationException, ClassNotFoundException, SQLException {
         testRunner = TestRunners.newTestRunner(QueryIdsAndFetchTableToJson.class);
 
-        testRunner.addControllerService("dbcp", dbcp);
+        testRunner.addControllerService("dbcp", getDbcp());
         testRunner.setProperty(DBCP_SERVICE, "dbcp");
         testRunner.setProperty(IDS_DBCP_SERVICE, "dbcp");
 
@@ -60,7 +60,7 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBasedTest{
         testRunner.addControllerService("PostgresPreparedStatement", preparedStatementControllerService);
         testRunner.setProperty(PS_PROVIDER_SERVICE, "PostgresPreparedStatement");
 
-        testRunner.enableControllerService(dbcp);
+        testRunner.enableControllerService(getDbcp());
         testRunner.enableControllerService(preparedStatementControllerService);
 
         testRunner.setValidateExpressionUsage(false);

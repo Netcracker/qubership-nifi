@@ -160,4 +160,36 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    public PrometheusMeterRegistry getMeterRegistry() {
+        return meterRegistry;
+    }
+
+    public void setMeterRegistry(PrometheusMeterRegistry newMeterRegistry) {
+        this.meterRegistry = newMeterRegistry;
+    }
+
+    public void setNamespace(String newNamespace) {
+        this.namespace = newNamespace;
+    }
+
+    public void setHostname(String newHostname) {
+        this.hostname = newHostname;
+    }
+
+    public String getInstance() {
+        return instance;
+    }
+
+    public void setInstance(String newInstance) {
+        this.instance = newInstance;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int newPort) {
+        this.port = newPort;
+    }
+
 }
