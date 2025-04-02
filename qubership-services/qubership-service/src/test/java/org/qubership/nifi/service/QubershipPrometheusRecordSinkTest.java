@@ -18,7 +18,6 @@ package org.qubership.nifi.service;
 
 import io.micrometer.core.instrument.Meter;
 import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.util.*;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -26,13 +25,23 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+//import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class QubershipPrometheusRecordSinkTest {
 
@@ -73,14 +82,18 @@ public class QubershipPrometheusRecordSinkTest {
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
 
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
         //check content of metrics
-        assertTrue("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
-        assertTrue("MeterId{name='field12', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));assertEquals(2, recordSink.meterRegistry.getMeters().size());
+        assertTrue(("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='field12', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
@@ -110,14 +123,18 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
         //check content of metrics
-        assertTrue("MeterId{name='field11', tags=[tag(field2=),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
-        assertTrue("MeterId{name='field12', tags=[tag(field2=),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));assertEquals(2, recordSink.meterRegistry.getMeters().size());
+        assertTrue(("MeterId{name='field11', tags=[tag(field2=),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='field12', tags=[tag(field2=),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
@@ -146,13 +163,15 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
         //check content of metrics
-        assertTrue("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));assertEquals(1, recordSink.meterRegistry.getMeters().size());
+        assertTrue(("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(1, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         runner.disableControllerService(recordSink);
@@ -180,14 +199,18 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
         //check content of metrics
-        assertTrue("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
-        assertTrue("MeterId{name='field12', tags=[tag(field2=value12),tag(field3=),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
+        assertTrue(("MeterId{name='field11', tags=[tag(field2=value12),tag(field3=),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='field12', tags=[tag(field2=value12),tag(field3=),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
@@ -221,7 +244,9 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
-        assertTrue("MeterId{name='field1', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='field1', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(1, recordSink.meterRegistry.getMeters().size());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
 
@@ -242,7 +267,9 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
 
-        assertTrue("MeterId{name='field1', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='field1', tags=[tag(field2=value12),tag(field3=value13),tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(1, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
 
@@ -299,7 +326,8 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals("Hello2", writeResult2.getAttributes().get("a2"));
 
         List<Meter> content = recordSink.meterRegistry.getMeters();
-        assertFalse(recordSink.meterRegistry.getMeters().get(0).getId().toString().equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
+        assertFalse(recordSink.meterRegistry.getMeters().get(0).getId().toString().
+                equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
         runner.disableControllerService(recordSink);
     }
 
@@ -331,7 +359,7 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(2, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
@@ -354,7 +382,8 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("namespace", RecordFieldType.STRING.getDataType()),
                 new RecordField("integration_name", RecordFieldType.STRING.getDataType()),
-                new RecordField("integration_executions_count", RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
+                new RecordField("integration_executions_count",
+                        RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
@@ -373,12 +402,15 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
         //check content of metrics
-        assertTrue("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(25.0, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         runner.disableControllerService(recordSink);
     }
@@ -396,7 +428,8 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("namespace", RecordFieldType.STRING.getDataType()),
                 new RecordField("integration_name", RecordFieldType.STRING.getDataType()),
-                new RecordField("integration_executions_count", RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
+                new RecordField("integration_executions_count",
+                        RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
@@ -415,12 +448,15 @@ public class QubershipPrometheusRecordSinkTest {
 
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
         //check content of metrics
-        assertTrue("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(25.0, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
 
         Map<String, Object> row2 = new LinkedHashMap<>();
@@ -429,9 +465,12 @@ public class QubershipPrometheusRecordSinkTest {
         RecordSet recordSet2 = new ListRecordSet(recordSchema, Arrays.asList(
                 new MapRecord(recordSchema, row2)
         ));
-        WriteResult writeResult2 = recordSink.sendData(recordSet2,attributes, true);
+        WriteResult writeResult2 = recordSink.sendData(recordSet2, attributes, true);
         assertNotNull(writeResult);
-        assertTrue("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_executions_count', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(50.0, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         runner.disableControllerService(recordSink);
     }
@@ -443,7 +482,9 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Summary"),
-                new RecordField("publishPercentiles", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType()), new Double[]{0.05, 0.95}),
+                new RecordField("publishPercentiles",
+                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType()),
+                        new Double[]{0.05, 0.95}),
                 new RecordField("statisticExpiry", RecordFieldType.STRING.getDataType(), "PT5M"),
                 new RecordField("statisticBufferLength", RecordFieldType.INT.getDataType(), 25)
         );
@@ -453,7 +494,8 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("namespace", RecordFieldType.STRING.getDataType()),
                 new RecordField("integration_name", RecordFieldType.STRING.getDataType()),
-                new RecordField("integration_execution_duration", RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
+                new RecordField("integration_execution_duration",
+                        RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
@@ -473,12 +515,15 @@ public class QubershipPrometheusRecordSinkTest {
         ));
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
         //check content of metrics
-        assertTrue("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(101.512, recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
         runner.disableControllerService(recordSink);
     }
@@ -489,7 +534,9 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Summary"),
-                new RecordField("publishPercentiles", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType()), new Double[]{0.05, 0.95}),
+                new RecordField("publishPercentiles",
+                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType()),
+                        new Double[]{0.05, 0.95}),
                 new RecordField("statisticExpiry", RecordFieldType.STRING.getDataType(), "PT5M"),
                 new RecordField("statisticBufferLength", RecordFieldType.INT.getDataType(), 25)
         );
@@ -499,7 +546,8 @@ public class QubershipPrometheusRecordSinkTest {
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("namespace", RecordFieldType.STRING.getDataType()),
                 new RecordField("integration_name", RecordFieldType.STRING.getDataType()),
-                new RecordField("integration_execution_duration", RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
+                new RecordField("integration_execution_duration",
+                        RecordFieldType.RECORD.getRecordDataType(childRecordSchema))
         );
         RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
 
@@ -519,12 +567,15 @@ public class QubershipPrometheusRecordSinkTest {
         ));
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("a", "Hello");
-        WriteResult writeResult = recordSink.sendData(recordSet,attributes, true);
+        WriteResult writeResult = recordSink.sendData(recordSet, attributes, true);
         assertNotNull(writeResult);
         assertEquals(1, writeResult.getRecordCount());
         assertEquals("Hello", writeResult.getAttributes().get("a"));
         //check content of metrics
-        assertTrue("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         //assertEquals(101.512, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
 
         Map<String, Object> row2 = new LinkedHashMap<>();
@@ -533,9 +584,12 @@ public class QubershipPrometheusRecordSinkTest {
         RecordSet recordSet2 = new ListRecordSet(recordSchema, Arrays.asList(
                 new MapRecord(recordSchema, row2)
         ));
-        WriteResult writeResult2 = recordSink.sendData(recordSet2,attributes, true);
+        WriteResult writeResult2 = recordSink.sendData(recordSet2, attributes, true);
         assertNotNull(writeResult);
-        assertTrue("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),tag(namespace=test-namespace)]}".equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
+        assertTrue(("MeterId{name='integration_execution_duration', tags=[tag(hostname=test-hostname),"
+                + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
+                + "tag(namespace=test-namespace)]}").
+                equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(203.024, recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
         runner.disableControllerService(recordSink);
     }

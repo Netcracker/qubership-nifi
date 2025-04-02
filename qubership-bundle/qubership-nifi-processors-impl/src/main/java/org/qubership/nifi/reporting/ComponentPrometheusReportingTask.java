@@ -136,6 +136,10 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     private JvmHeapPressureMetrics jvmHeapPressureMetrics;
     private JvmInfoMetrics jvmInfoMetrics;
 
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     @Override
     protected List<PropertyDescriptor> initProperties() {
         List<PropertyDescriptor> allProps = super.initProperties();
@@ -145,24 +149,36 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         return allProps;
     }
 
+    /**
+     * Initializes reporting task's property descriptors.
+     */
     @Override
     public void init(ReportingInitializationContext config) {
         super.init(config);
         logger = config.getLogger();
     }
 
+    private static final int PERCENT_MAX = 100;
+
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
         super.onScheduled(context);
 
         processorTimeThreshold = context.getProperty(PROCESSOR_TIME_THRESHOLD).asTimePeriod(TimeUnit.NANOSECONDS);
-        connectionQueueThreshold = context.getProperty(CONNECTION_QUEUE_THRESHOLD).asDouble() / 100;
+        connectionQueueThreshold = context.getProperty(CONNECTION_QUEUE_THRESHOLD).asDouble() / PERCENT_MAX;
         pgLevelThreshold = context.getProperty(PROCESS_GROUP_LEVEL_THRESHOLD).asInteger();
         //JVM Metrics should be bind only when meter registry is created/recreated:
         registerGaugesForJvmMetric();
     }
 
-
+    /**
+     * Registers metrics in meter registry and updates their values.
+     * @param context reporting context
+     */
     @Override
     public void registerMetrics(ReportingContext context) {
         try {
@@ -576,6 +592,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
     }
 
+    private static final int DEFAULT_LOOKBACK_DURATION = 5;
+
     private void registerGaugesForJvmMetric() {
         List<Tag> tagsList = List.of(Tag.of("instance", getInstance()),
                 Tag.of("hostname", getHostname()), Tag.of("namespace", getNamespace()));
@@ -596,7 +614,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             jvmCompilationMetrics = new JvmCompilationMetrics(tagsList);
         }
         if (jvmHeapPressureMetrics == null) {
-            jvmHeapPressureMetrics = new JvmHeapPressureMetrics(tagsList, Duration.ofMinutes(5), Duration.ofMinutes(1));
+            jvmHeapPressureMetrics = new JvmHeapPressureMetrics(tagsList,
+                    Duration.ofMinutes(DEFAULT_LOOKBACK_DURATION), Duration.ofMinutes(1));
         }
         if (jvmInfoMetrics == null) {
             jvmInfoMetrics = new JvmInfoMetrics();
@@ -610,6 +629,12 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         jvmInfoMetrics.bindTo(getMeterRegistry());
     }
 
+    /**
+     * Removes metric from meter registry identifier by metric name as well as tag name and value.
+     * @param metricName metric name
+     * @param tagName tag name
+     * @param tagValue tag value
+     */
     public void removeMetricFromRegistry(String metricName, String tagName, String tagValue) {
         Collection<Gauge> gauges = getMeterRegistry().find(metricName).tag(tagName, tagValue).gauges();
 
@@ -622,6 +647,13 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
     }
 
+    /**
+     * Removes metric from meter registry identified by metric name, source id, source type and level.
+     * @param metricName metric name
+     * @param sourceId source identifier
+     * @param sourceType source type
+     * @param level level
+     */
     public void removeMetricFromRegistry(String metricName, String sourceId, String sourceType, String level) {
         Collection<Gauge> gauges = getMeterRegistry().find(metricName)
                 .tag(COMPONENT_ID_TAG, sourceId)
@@ -784,14 +816,27 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
     }
 
+    /**
+     * Sets processor run time threshold.
+     * @param newProcessorTimeThreshold new processor run time threshold.
+     */
     public void setProcessorTimeThreshold(long newProcessorTimeThreshold) {
         this.processorTimeThreshold = newProcessorTimeThreshold;
     }
 
+    /**
+     * Sets connection queue size threshold.
+     * @param newConnectionQueueThreshold new processor time threshold.
+     */
     public void setConnectionQueueThreshold(double newConnectionQueueThreshold) {
         this.connectionQueueThreshold = newConnectionQueueThreshold;
     }
 
+    /**
+     * Converts Bulletin to string.
+     * @param b bulletin
+     * @return string representation of bulletin
+     */
     public String bulletinToString(Bulletin b) {
         return "Bulletin{"
                 + "timestamp=" + b.getTimestamp()

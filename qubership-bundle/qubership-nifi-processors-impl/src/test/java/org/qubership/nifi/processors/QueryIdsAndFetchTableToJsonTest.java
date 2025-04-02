@@ -27,7 +27,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Tag;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,14 @@ import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.DBCP_SER
 import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.PS_PROVIDER_SERVICE;
 import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.*;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.BATCH_SIZE;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.IDS_DBCP_SERVICE;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.IDS_BATCH_SIZE;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.IDS_CUSTOM_QUERY;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.WRITE_BY_BATCH;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.CUSTOM_QUERY;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.REL_TOTAL_COUNT;
+import static org.qubership.nifi.processors.QueryIdsAndFetchTableToJson.REL_FAILURE;
 
 @Tag("DockerBased")
 public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
@@ -68,7 +77,7 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
 
 
     @Test
-    public void testWriteAllInOneBatch() throws Exception{
+    public void testWriteAllInOneBatch() throws Exception {
         testRunner.setProperty(BATCH_SIZE, "10");
         testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName);
         testRunner.enqueue("");
@@ -84,7 +93,7 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
 
 
     @Test
-    public void testWriteInTwoBatch() throws Exception{
+    public void testWriteInTwoBatch() throws Exception {
         testRunner.setProperty(BATCH_SIZE, "3");
         testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName);
         testRunner.enqueue("");
@@ -99,11 +108,11 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
     }
 
 
-
     @Test
-    public void testWriteAllInOneBatchWithCondition() throws Exception{
+    public void testWriteAllInOneBatchWithCondition() throws Exception {
         testRunner.setProperty(BATCH_SIZE, "10");
-        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + " WHERE " + tableName + ".SOURCE_ID IN ('TEST_ID#000001','TEST_ID#000002')");
+        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName
+                + " WHERE " + tableName + ".SOURCE_ID IN ('TEST_ID#000001','TEST_ID#000002')");
         testRunner.enqueue("");
         testRunner.run();
 
@@ -117,11 +126,13 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
 
 
     @Test
-    public void testWriteAllInOneBatchWithEmptyIdsQuery() throws Exception{
+    public void testWriteAllInOneBatchWithEmptyIdsQuery() throws Exception {
         testRunner.setProperty(BATCH_SIZE, "10");
         testRunner.setProperty(IDS_BATCH_SIZE, "10");
-        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + " WHERE CODE = 'TEST-CODE-0003'");
-        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + " WHERE " + tableName + ".SOURCE_ID IN (#SOURCE_IDS#)");
+        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName
+                + " WHERE CODE = 'TEST-CODE-0003'");
+        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName
+                + " WHERE " + tableName + ".SOURCE_ID IN (#SOURCE_IDS#)");
         testRunner.enqueue("");
         testRunner.run();
 
@@ -134,11 +145,13 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
     }
 
     @Test
-    public void testWriteAllInOneBatchWithIdsQuery() throws Exception{
+    public void testWriteAllInOneBatchWithIdsQuery() throws Exception {
         testRunner.setProperty(BATCH_SIZE, "10");
         testRunner.setProperty(IDS_BATCH_SIZE, "10");
-        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + " WHERE CODE = 'TEST-CODE-0001'");
-        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + " WHERE SOURCE_ID IN (#SOURCE_IDS#)");
+        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName
+                + " WHERE CODE = 'TEST-CODE-0001'");
+        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName
+                + " WHERE SOURCE_ID IN (#SOURCE_IDS#)");
         testRunner.enqueue("");
         testRunner.run();
 
@@ -154,22 +167,24 @@ public class QueryIdsAndFetchTableToJsonTest extends IDBDockerBase {
 
     @Test
     public void testWithErroneousQuery() {
-        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + "L WHERE CODE = 'TEST-CODE-0001'");
-        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + "L WHERE SOURCE_ID IN (#SOURCE_IDS#)");
+        testRunner.setProperty(IDS_CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + "L "
+                + "WHERE CODE = 'TEST-CODE-0001'");
+        testRunner.setProperty(CUSTOM_QUERY, "SELECT SOURCE_ID FROM " + tableName + "L "
+                + "WHERE SOURCE_ID IN (#SOURCE_IDS#)");
         testRunner.setProperty(WRITE_BY_BATCH, "true");
 
         // set some test attrs on flowfile
-        Map<String, String> attributes =  new HashMap<>();
-        attributes.put("TestAttr1","testVal1");
-        attributes.put("TestAttr2","testVal2");
-        testRunner.enqueue("",attributes);
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("TestAttr1", "testVal1");
+        attributes.put("TestAttr2", "testVal2");
+        testRunner.enqueue("", attributes);
 
         testRunner.run();
 
         List<MockFlowFile> failFlowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, failFlowFiles.size());
-        failFlowFiles.get(0).assertAttributeEquals("TestAttr1","testVal1");
-        failFlowFiles.get(0).assertAttributeEquals("TestAttr2","testVal2");
+        failFlowFiles.get(0).assertAttributeEquals("TestAttr1", "testVal1");
+        failFlowFiles.get(0).assertAttributeEquals("TestAttr2", "testVal2");
     }
 
 }

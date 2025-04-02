@@ -45,6 +45,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Abstract reporting task for exposing monitoring metrics to Prometheus.
+ */
 public abstract class AbstractPrometheusReportingTask extends AbstractReportingTask implements ReportingTask {
 
     protected Server httpServer;
@@ -67,16 +70,28 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(PORT);
         return prop;
     }
 
+    /**
+     * Gets namespace used to run nifi service.
+     * @return namespace
+     */
     protected String getNamespace() {
         return System.getenv("NAMESPACE");
     }
 
+    /**
+     * Gets hostname used to run nifi service.
+     * @return hostname
+     */
     protected String getHostname() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName();
@@ -86,6 +101,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
         meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
@@ -108,6 +127,9 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    /**
+     * Initializes reporting task's property descriptors.
+     */
     @Override
     protected void init(ReportingInitializationContext config) {
         final List<PropertyDescriptor> prop = initProperties();
@@ -119,7 +141,9 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         return propertyDescriptors;
     }
 
-
+    /**
+     * Stops jetty server and releases all resources.
+     */
     @OnStopped
     public void onStopped() throws Exception {
         if (httpServer != null) {
@@ -128,6 +152,9 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    /**
+     * Stops jetty server and releases all resources.
+     */
     @OnShutdown
     public void onShutDown() throws Exception {
         if (httpServer != null) {
@@ -136,15 +163,28 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    /**
+     * This method is periodically called to update metrics in meter registry.
+     * @param context  reporting context
+     */
     @Override
     public void onTrigger(final ReportingContext context) {
         registerMetrics(context);
     }
 
+    /**
+     * Registers metrics in meter registry and updates their values.
+     * @param context reporting context
+     */
     public abstract void registerMetrics(ReportingContext context);
 
     protected class PrometheusServlet extends HttpServlet {
 
+        /**
+         * Handles get requests for the server. Gets metrics in prometheus format.
+         * @param req http request
+         * @param resp http response
+         */
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
             resp.setStatus(HttpServletResponse.SC_OK);

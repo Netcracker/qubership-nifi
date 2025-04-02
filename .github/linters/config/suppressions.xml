@@ -9,4 +9,5 @@
   <suppress checks="DesignForExtension" files="[/\\]test[/\\]java[/\\]"/>
   <suppress checks="DesignForExtension" files="RedisBulkDistributedMapCacheClientService.java"/>
   <suppress checks="MagicNumber" files="[/\\]test[/\\]java[/\\]"/>
+  <suppress checks="VisibilityModifier" files="AbstractPrometheusReportingTask.java"/>
 </suppressions>
