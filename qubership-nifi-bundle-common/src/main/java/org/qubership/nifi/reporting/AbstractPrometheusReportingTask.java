@@ -200,4 +200,27 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         }
     }
 
+    /**
+     * Gets meter registry.
+     * @return meter registry
+     */
+    public PrometheusMeterRegistry getMeterRegistry() {
+        return meterRegistry;
+    }
+
+    /**
+     * Gets instance name.
+     * @return instance name
+     */
+    public String getInstance() {
+        return instance;
+    }
+
+    /**
+     * Gets server port.
+     * @return server port number
+     */
+    public int getPort() {
+        return port;
+    }
 }
