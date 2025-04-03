@@ -36,7 +36,6 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        //попробовать увеличить время
         wait_nifi_container "15" "75" "127.0.0.1" "8080" "true" "local-nifi-tls" "${{ inputs.results-dir }}" \
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
