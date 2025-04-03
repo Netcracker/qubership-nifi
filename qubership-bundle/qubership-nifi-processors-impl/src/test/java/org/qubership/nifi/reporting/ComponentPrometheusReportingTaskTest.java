@@ -18,6 +18,7 @@ package org.qubership.nifi.reporting;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -45,6 +46,8 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.reporting.metrics.component.ConnectionMetricName;
+import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
 
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.CONNECTION_QUEUE_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESSOR_TIME_THRESHOLD;
@@ -226,6 +229,95 @@ public class ComponentPrometheusReportingTaskTest {
         return topProcessGroup;
     }
 
+    private ProcessorStatus createProcessor2(String id, String name, String groupId, RunStatus runStatus) {
+        ProcessorStatus processor = new ProcessorStatus();
+        processor.setId(id);
+        processor.setName(name);
+        processor.setRunStatus(runStatus);
+        if (runStatus == RunStatus.Running) {
+            processor.setInvocations(100);
+            processor.setProcessingNanos(200_000_000_000L); //200 seconds
+        } else {
+            processor.setInvocations(0);
+            processor.setProcessingNanos(0L); //0 seconds
+        }
+        processor.setGroupId(groupId);
+        return processor;
+    }
+
+    private ConnectionStatus createConnectionStatus(String id, String name, String groupId,
+                                                    String sourceId, String destId,
+                                                    boolean belowThreshold) {
+        ConnectionStatus con = new ConnectionStatus();
+        con.setId(id);
+        con.setName(name);
+        if (belowThreshold) {
+            con.setQueuedCount(8);
+            con.setQueuedBytes(1_000_000L);
+        } else {
+            con.setQueuedCount(8000);
+            con.setQueuedBytes(1073741824L);
+        }
+        con.setBackPressureObjectThreshold(10000);
+        con.setBackPressureDataSizeThreshold("1 GB");
+        con.setGroupId(groupId);
+        con.setSourceId(sourceId);
+        con.setSourceName("Name " + sourceId);
+        con.setDestinationId(destId);
+        con.setDestinationName("Name " + destId);
+        return con;
+    }
+
+    private List<ProcessGroupStatus> createTestPG2() {
+        List<ProcessGroupStatus> testProcessGroups = new ArrayList<>();
+        ProcessGroupStatus processGroupStatus1 = new ProcessGroupStatus();
+        processGroupStatus1.setId("TestPGId2#1");
+        processGroupStatus1.setName("TestPGName#1");
+        processGroupStatus1.setActiveThreadCount(4);
+        processGroupStatus1.setQueuedCount(40000);
+        processGroupStatus1.setQueuedContentSize(5_000_000_000L);
+        testProcessGroups.add(processGroupStatus1);
+
+        ProcessGroupStatus processGroupStatus2 = new ProcessGroupStatus();
+        processGroupStatus2.setId("TestPGId2#2");
+        processGroupStatus2.setName("TestPGName2#2");
+        processGroupStatus2.setActiveThreadCount(4);
+        processGroupStatus2.setQueuedCount(40000);
+        processGroupStatus2.setQueuedContentSize(5_000_000_000L);
+
+        processGroupStatus2.setProcessorStatus(Arrays.asList(
+                createProcessor2("12345", "processor21", "TestPGId2#2", RunStatus.Running),
+                createProcessor2("67890", "processor22", "TestPGId2#2", RunStatus.Running),
+                createProcessor2("11111", "processor23", "TestPGId2#2", RunStatus.Stopped)
+        ));
+
+        processGroupStatus2.setConnectionStatus(Arrays.asList(
+                createConnectionStatus("0-12345", "connection-in-21", "TestPGId2#2",
+                        "0", "12345", false),
+                createConnectionStatus("12345-67890", "connection-21-22", "TestPGId2#2",
+                        "12345", "67890", false),
+                createConnectionStatus("67890-1", "connection-22-out", "TestPGId2#2",
+                        "67890", "1", false),
+                createConnectionStatus("0-11111", "connection-in-23", "TestPGId2#2",
+                        "0", "11111", true),
+                createConnectionStatus("11111-1", "connection-23-out", "TestPGId2#2",
+                        "11111", "1", true)
+        ));
+
+        testProcessGroups.add(processGroupStatus2);
+
+        return testProcessGroups;
+    }
+
+    private ProcessGroupStatus createTopProcessGroup2() {
+        ProcessGroupStatus topProcessGroup = new ProcessGroupStatus();
+        topProcessGroup.setId("rootId");
+        topProcessGroup.setName("Nifi Flow");
+        List<ProcessGroupStatus> childPg = createTestPG2();
+        topProcessGroup.setProcessGroupStatus(childPg);
+        return topProcessGroup;
+    }
+
     @Test
     public void registerMetricsForProcessGroup() throws InitializationException {
         mockBulletinRepository = mock(MockBulletinRepository.class);
@@ -299,7 +391,7 @@ public class ComponentPrometheusReportingTaskTest {
         Map<PropertyDescriptor, String> properties = new HashMap<>();
 
         properties.put(PROCESSOR_TIME_THRESHOLD, "150 sec");
-        properties.put(CONNECTION_QUEUE_THRESHOLD, "100");
+        properties.put(CONNECTION_QUEUE_THRESHOLD, "70");
         properties.put(PROCESS_GROUP_LEVEL_THRESHOLD, "2");
         return properties;
     }
@@ -415,5 +507,63 @@ public class ComponentPrometheusReportingTaskTest {
         assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
+    }
+
+    @Test
+    public void registerMetricsForProcessors() {
+        mockBulletinRepository = mock(MockBulletinRepository.class);
+        reportingContext = mock(ReportingContext.class);
+        EventAccess eventAccess = mock(EventAccess.class);
+        ProcessGroupStatus topProcessGroupStatus = createTopProcessGroup2();
+        when(reportingContext.getBulletinRepository()).thenReturn(mockBulletinRepository);
+        when(eventAccess.getControllerStatus()).thenReturn(topProcessGroupStatus);
+        when(reportingContext.getEventAccess()).thenReturn(eventAccess);
+        task.registerMetrics(reportingContext);
+        assertEquals(2, task.getMeterRegistry().
+                find(ProcessorMetricName.TASKS_TIME_TOTAL_METRIC_NAME.getName()).gauges().size());
+        assertEquals(2, task.getMeterRegistry().
+                find(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName()).gauges().size());
+
+        assertEquals(200_000_000_000L, task.getMeterRegistry().
+                find(ProcessorMetricName.TASKS_TIME_TOTAL_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                     "component_id", "12345").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(100, task.getMeterRegistry().
+                find(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                    "component_id", "12345").
+                gauge().measure().iterator().next().getValue());
+
+
+        assertEquals(3, task.getMeterRegistry().
+                find(ConnectionMetricName.QUEUED_BYTES_METRIC_NAME.getName()).gauges().size());
+        assertEquals(3, task.getMeterRegistry().
+                find(ConnectionMetricName.QUEUED_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(3, task.getMeterRegistry().
+                find(ConnectionMetricName.PERCENT_USED_BYTES_METRIC_NAME.getName()).gauges().size());
+        assertEquals(3, task.getMeterRegistry().
+                find(ConnectionMetricName.PERCENT_USED_COUNT_METRIC_NAME.getName()).gauges().size());
+
+        assertEquals(1073741824L, task.getMeterRegistry().
+                find(ConnectionMetricName.QUEUED_BYTES_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                    "component_id", "12345-67890").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(8000, task.getMeterRegistry().
+                find(ConnectionMetricName.QUEUED_COUNT_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                    "component_id", "12345-67890").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(1.0, task.getMeterRegistry().
+                find(ConnectionMetricName.PERCENT_USED_BYTES_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                    "component_id", "12345-67890").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(0.8, task.getMeterRegistry().
+                find(ConnectionMetricName.PERCENT_USED_COUNT_METRIC_NAME.getName()).
+                tags("parent_id", "TestPGId2#2",
+                    "component_id", "12345-67890").
+                gauge().measure().iterator().next().getValue());
     }
 }
