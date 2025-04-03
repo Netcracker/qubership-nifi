@@ -73,6 +73,12 @@ public class PropertiesManagerTest {
             LOG.debug("Result for put config/local/application/nifi.queue.swap.threshold = {}",
                     res.getStdout());
             Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+            res = consul.execInContainer(
+                    "consul", "kv", "put",
+                    "config/local/application/test.value", "true");
+            LOG.debug("Result for put config/local/application/test.value = {}",
+                    res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
         } catch (IOException | InterruptedException e) {
             if (res != null) {
                 LOG.error("Last command stdout = {}", res.getStdout());
