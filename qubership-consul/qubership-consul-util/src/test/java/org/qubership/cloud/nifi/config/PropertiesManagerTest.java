@@ -42,6 +42,17 @@ public class PropertiesManagerTest {
         consul.setPortBindings(consulPorts);
         consul.start();
 
+        //fill initial consul data:
+        try {
+            Container.ExecResult res = consul.execInContainer(
+                    "consul", "kv", "put", "config/local/application/logger.org.qubership", "DEBUG");
+            LOG.debug("Result for put config/local/application/logger.org.qubership = {}", res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+        } catch (IOException | InterruptedException e) {
+            LOG.error("Failed to fill initial consul data", e);
+            Assertions.fail("Failed to fill initial consul data", e);
+        }
+
         //prepare test directories:
         try {
             Files.createDirectories(Paths.get(".", "conf"));
@@ -52,10 +63,6 @@ public class PropertiesManagerTest {
 
     @Test
     public void testPropertiesLoadOnStart() throws Exception {
-        Container.ExecResult res = consul.execInContainer(
-                "consul", "kv", "put", "config/local/application/logger.org.qubership", "DEBUG");
-        LOG.debug("Result for put config/local/application/logger.org.qubership = {}", res.getStdout());
-        Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
         pm.generateNifiProperties();
     }
 
