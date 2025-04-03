@@ -69,9 +69,6 @@ import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricN
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.QUEUED_COUNT_PG_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ACTIVE_THREAD_COUNT_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.BULLETIN_CNT_METRIC_NAME;
-//import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.*;
-//import static org.apache.nifi.reporting.ComponentType.*;
-
 import static org.apache.nifi.reporting.ComponentType.REPORTING_TASK;
 import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;

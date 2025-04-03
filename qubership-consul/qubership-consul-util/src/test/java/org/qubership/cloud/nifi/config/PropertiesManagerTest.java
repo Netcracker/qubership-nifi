@@ -1,13 +1,17 @@
 package org.qubership.cloud.nifi.config;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.testcontainers.consul.ConsulContainer;
+import org.testcontainers.containers.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
@@ -23,6 +27,7 @@ import java.util.List;
 public class PropertiesManagerTest {
 
     private static final String CONSUL_IMAGE = "hashicorp/consul:1.20";
+    private static final Logger LOG = LoggerFactory.getLogger(PropertiesManagerTest.class);
     private static ConsulContainer consul;
 
     @Autowired
@@ -47,6 +52,10 @@ public class PropertiesManagerTest {
 
     @Test
     public void testPropertiesLoadOnStart() throws Exception {
+        Container.ExecResult res = consul.execInContainer(
+                "consul", "kv", "put", "config/local/application/logger.org.qubership", "DEBUG");
+        LOG.debug("Result for put config/local/application/logger.org.qubership = {}", res.getStdout());
+        Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
         pm.generateNifiProperties();
     }
 
