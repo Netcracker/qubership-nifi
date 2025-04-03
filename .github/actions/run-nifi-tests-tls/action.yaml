@@ -27,6 +27,7 @@ runs:
     - name: Run local nifi
       shell: bash
       run: |
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env up -d
     - name: Wait for nifi container to start
