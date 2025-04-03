@@ -43,12 +43,41 @@ public class PropertiesManagerTest {
         consul.start();
 
         //fill initial consul data:
+        Container.ExecResult res = null;
         try {
-            Container.ExecResult res = consul.execInContainer(
+            res = consul.execInContainer(
                     "consul", "kv", "put", "config/local/application/logger.org.qubership", "DEBUG");
             LOG.debug("Result for put config/local/application/logger.org.qubership = {}", res.getStdout());
             Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+            res = consul.execInContainer(
+                    "consul", "kv", "put",
+                    "config/local/application/logger.org.apache.nifi.processors", "DEBUG");
+            LOG.debug("Result for put config/local/application/logger.org.apache.nifi.processors = {}",
+                    res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+            res = consul.execInContainer(
+                    "consul", "kv", "put",
+                    "config/local/application/nifi.cluster.base-node-count", "5");
+            LOG.debug("Result for put config/local/application/nifi.cluster.base-node-count = {}",
+                    res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+            res = consul.execInContainer(
+                    "consul", "kv", "put",
+                    "config/local/application/nifi.nifi-registry.nar-provider-enabled", "true");
+            LOG.debug("Result for put config/local/application/nifi.nifi-registry.nar-provider-enabled = {}",
+                    res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
+            res = consul.execInContainer(
+                    "consul", "kv", "put",
+                    "config/local/application/nifi.queue.swap.threshold", "25000");
+            LOG.debug("Result for put config/local/application/nifi.queue.swap.threshold = {}",
+                    res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
         } catch (IOException | InterruptedException e) {
+            if (res != null) {
+                LOG.error("Last command stdout = {}", res.getStdout());
+                LOG.error("Last command stderr = {}", res.getStderr());
+            }
             LOG.error("Failed to fill initial consul data", e);
             Assertions.fail("Failed to fill initial consul data", e);
         }
