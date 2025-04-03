@@ -15,11 +15,16 @@ import org.testcontainers.containers.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 @Testcontainers
 @SpringBootTest(classes = {PropertiesManager.class})
@@ -99,6 +104,27 @@ public class PropertiesManagerTest {
     @Test
     public void testPropertiesLoadOnStart() throws Exception {
         pm.generateNifiProperties();
+        File logbackConfig = new File("./conf/logback.xml");
+        Assertions.assertTrue(logbackConfig.exists());
+        File customPropsConfig = new File("./conf/custom.properties");
+        Assertions.assertTrue(customPropsConfig.exists());
+        File nifiPropsConfig = new File("./conf/nifi.properties");
+        Assertions.assertTrue(nifiPropsConfig.exists());
+        Properties customProps = new Properties();
+        try (InputStream in = new BufferedInputStream(new FileInputStream(customPropsConfig))) {
+            customProps.load(in);
+            Assertions.assertEquals("5", customProps.getProperty("nifi.cluster.base-node-count"));
+            Assertions.assertEquals("true", customProps.getProperty("nifi.nifi-registry.nar-provider-enabled"));
+        } catch (IOException e) {
+            Assertions.fail("Failed to read custom.properties", e);
+        }
+        Properties nifiProps = new Properties();
+        try (InputStream in = new BufferedInputStream(new FileInputStream(nifiPropsConfig))) {
+            nifiProps.load(in);
+            Assertions.assertEquals("25000", nifiProps.getProperty("nifi.queue.swap.threshold"));
+        } catch (IOException e) {
+            Assertions.fail("Failed to read nifi.properties", e);
+        }
     }
 
     @AfterAll
