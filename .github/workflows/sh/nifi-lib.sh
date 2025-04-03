@@ -106,6 +106,7 @@ test_log_level(){
     local targetPkg="$1"
     local targetLevel="$2"
     local resultsDir="$3"
+    local containerName="$4"
     resultsPath="./test-results/$resultsDir"
     echo "Testing Consul logging parameters configuration for package = $targetPkg, level = $targetLevel"
     echo "Results path = $resultsPath"
@@ -114,7 +115,7 @@ test_log_level(){
     echo "Waiting 20 seconds..."
     sleep 20
     echo "Copying logback.xml..."
-    docker cp local-nifi-plain:/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
+    docker cp "$containerName":/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
     res="0"
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
     if [ "$res" == "0" ]; then

@@ -36,15 +36,15 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "60" "127.0.0.1" "8080" "true" "local-nifi-tls" "${{ inputs.results-dir }}"
-        "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12"
+        wait_nifi_container "15" "60" "127.0.0.1" "8080" "true" "local-nifi-tls" "${{ inputs.results-dir }}" \
+        "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
     - name: Test log level configuration
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}'
+        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}' 'local-nifi-tls'
     - name: Run basic nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
