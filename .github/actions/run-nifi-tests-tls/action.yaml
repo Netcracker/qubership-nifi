@@ -62,4 +62,5 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Stopping and removing containers"
-        docker compose -f .github/docker/plain/docker-compose.yaml down
+        docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env down -v
+        sudo rm -rf ./temp-vol/
