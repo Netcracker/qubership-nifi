@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "393e50f6-d235-4a1c-8d79-0b40f8e8ed46",
-		"name": "NiFi Basic API Tests",
+		"_postman_id": "6614cc6f-745f-4a84-93f3-2fded22cfaec",
+		"name": "NiFi_Basic_API_Tests",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
