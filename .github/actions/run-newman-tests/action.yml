@@ -5,7 +5,7 @@ inputs:
   collection-name:
     description: 'Name of collection to run'
     required: false
-    default: 'NiFi Basic API Tests.postman_collection.json'
+    default: 'NiFi_Basic_API_Tests.postman_collection.json'
   short-name:
     description: 'Short name of collection to run'
     required: false

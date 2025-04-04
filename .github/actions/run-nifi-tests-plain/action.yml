@@ -39,7 +39,7 @@ runs:
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
-        collection-name: 'NiFi Basic API Tests.postman_collection.json'
+        collection-name: 'NiFi_Basic_API_Tests.postman_collection.json'
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'basic'
