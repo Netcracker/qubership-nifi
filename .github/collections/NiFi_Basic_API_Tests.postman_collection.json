@@ -265,7 +265,8 @@
 					"listen": "prerequest",
 					"script": {
 						"exec": [
-							"pm.environment.set(\"nifi.client.id\", \"{{$guid}}\");"
+							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+							"pm.environment.set(\"nifi.client.id\", uuid);"
 						],
 						"type": "text/javascript"
 					}
@@ -319,7 +320,8 @@
 					"listen": "prerequest",
 					"script": {
 						"exec": [
-							"pm.environment.set(\"nifi.client.id\", \"{{$guid}}\");"
+							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+							"pm.environment.set(\"nifi.client.id\", uuid);"
 						],
 						"type": "text/javascript"
 					}
