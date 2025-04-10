@@ -85,6 +85,8 @@ jobs:
         shell: bash
         run: |
           echo "TBD: tests for NiFi in TLS+OIDC mode..."
+      - name: Run tests for nifi for check Processors API
+        uses: ./.github/actions/run-test-processors-api
       - name: Verify test results
         shell: bash
         run: |
