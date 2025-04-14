@@ -142,6 +142,7 @@
 									"        var proc = processors[i]\r",
 									"        if (proc.component.name == \"TestProcessors\") {\r",
 									"            pm.environment.set(\"processor.id\", proc.component.id);\r",
+									"            pm.environment.set(\"processor.version\", proc.revision.version);\r",
 									"            result = true;\r",
 									"            break;\r",
 									"        }\r",
@@ -210,8 +211,18 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-									"pm.environment.set(\"nifi.client.id\", uuid);"
+									""
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -222,7 +233,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"component\": {\r\n        \"id\": \"{{processor.id}}\",\r\n        \"config\": {\r\n            \"properties\": {\r\n                \"generate-ff-custom-text\": \"test-value\"\r\n            }\r\n        }\r\n    }\r\n}",
+							"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": \"{{processor.version}}\"\r\n    },\r\n    \"component\": {\r\n        \"id\": \"{{processor.id}}\",\r\n        \"config\": {\r\n            \"properties\": {\r\n                \"generate-ff-custom-text\": \"test-value\"\r\n            }\r\n        }\r\n    }\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -250,8 +261,7 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-									"pm.environment.set(\"nifi.client.id\", uuid);"
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -273,7 +283,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",\r\n    \"version\": 1\r\n  },\r\n  \"state\": \"RUNNING\"\r\n}",
+							"raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",\r\n    \"version\": \"{{processor.version}}\"\r\n  },\r\n  \"state\": \"RUNNING\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -290,6 +300,52 @@
 								"processors",
 								"{{processor.id}}",
 								"run-status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check for processor state after start",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Check processor state = RUNNING\", function () {\r",
+									"    var processor = pm.response.json();\r",
+									"    pm.environment.set(\"processor.version\", processor.revision.version);\r",
+									"    pm.expect(processor.component.state).to.eql(\"RUNNING\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){}, 2000);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/processors/{{processor.id}}",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"processors",
+								"{{processor.id}}"
 							]
 						}
 					},
@@ -325,7 +381,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",\r\n    \"version\": 2\r\n  },\r\n  \"state\": \"STOPPED\"\r\n}",
+							"raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",\r\n    \"version\": \"{{processor.version}}\"\r\n  },\r\n  \"state\": \"STOPPED\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -348,6 +404,51 @@
 					"response": []
 				},
 				{
+					"name": "Check for processor state after stop",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Check processor state = STOPPED\", function () {\r",
+									"    var processor = pm.response.json();\r",
+									"    pm.expect(processor.component.state).to.eql(\"STOPPED\");\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"setTimeout(function(){}, 2000);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/processors/{{processor.id}}",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"processors",
+								"{{processor.id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Creating a processor",
 					"event": [
 						{
@@ -360,6 +461,7 @@
 									"pm.test(\"Getting the id of the created processor\", function () {\r",
 									"    var jsonData = pm.response.json();\r",
 									"    pm.environment.set(\"created.processor.id\", jsonData.id);\r",
+									"    pm.environment.set(\"created.processor.version\", jsonData.revision.version);\r",
 									"});"
 								],
 								"type": "text/javascript"
@@ -369,8 +471,7 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-									"pm.environment.set(\"nifi.client.id\", uuid);"
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -425,8 +526,7 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-									"pm.environment.set(\"nifi.client.id\", uuid);"
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -468,6 +568,10 @@
 								"exec": [
 									"pm.test(\"Status code is 201\", function () {\r",
 									"    pm.response.to.have.status(201);\r",
+									"});\r",
+									"pm.test(\"Get connection id\", function () {\r",
+									"    var connection = pm.response.json();\r",
+									"    pm.environment.set(\"connection.id\", connection.component.id);\r",
 									"});"
 								],
 								"type": "text/javascript"
@@ -477,8 +581,7 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-									"pm.environment.set(\"nifi.client.id\", uuid);"
+									""
 								],
 								"type": "text/javascript"
 							}
@@ -506,6 +609,52 @@
 								"process-groups",
 								"{{process.group.id}}",
 								"connections"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete processor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/processors/{{created.processor.id}}?version={{created.processor.version}}&clientId={{nifi.client.id}}&disconnectedNodeAcknowledged=false",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"processors",
+								"{{created.processor.id}}"
+							],
+							"query": [
+								{
+									"key": "version",
+									"value": "{{created.processor.version}}"
+								},
+								{
+									"key": "clientId",
+									"value": "{{nifi.client.id}}"
+								},
+								{
+									"key": "disconnectedNodeAcknowledged",
+									"value": "false"
+								}
 							]
 						}
 					},

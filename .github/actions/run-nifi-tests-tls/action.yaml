@@ -45,6 +45,17 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}' 'local-nifi-tls'
+    - name: Run collection for setup policies
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'Setup_Acces_Policies.postman_collection.json'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
+        results-dir: '${{ inputs.results-dir }}'
+        short-name: 'policies'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
     - name: Run basic nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -63,7 +74,7 @@ runs:
         collection-name: 'Check_Processor_API.postman_collection.json'
         env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
-        short-name: 'processor'
+        short-name: 'processors'
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"

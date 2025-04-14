@@ -1,0 +1,361 @@
+{
+	"info": {
+		"_postman_id": "7b17612c-f08f-48a1-bd65-ee1052735bce",
+		"name": "Setup_Acces_Policies",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get id of root process group",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Get Id of root process group\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    var pgId = jsonData.processGroupFlow.id;\r",
+							"    pm.environment.set(\"root.pg.id\", pgId);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/flow/process-groups/root",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"flow",
+						"process-groups",
+						"root"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get user",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Get Id of user\", function () {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    var users = jsonData.users;\r",
+							"    var result = false;\r",
+							"    for (var i = 0; i < users.length; i++) {\r",
+							"        var user = users[i]\r",
+							"        if (user.component.identity == \"CN=admin, OU=NIFI\") {\r",
+							"            pm.environment.set(\"user.id\", user.component.id);\r",
+							"            result = true;\r",
+							"            break;\r",
+							"        }\r",
+							"    }\r",
+							"    pm.expect(result).to.eql(true);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/tenants/users",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"tenants",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"view the component\" policies",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+							"pm.environment.set(\"nifi.client.id\", uuid);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"read\",\r\n        \"resource\": \"/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"modify the component\" policies",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"write\",\r\n        \"resource\": \"/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"operate the component\" policies",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"write\",\r\n        \"resource\": \"/operation/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"modify the data\" policies",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"2528933d-0196-1000-395f-b803dbf9d60a\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"write\",\r\n        \"resource\": \"/data/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"view provenance\" policies",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"2528933d-0196-1000-395f-b803dbf9d60a\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"read\",\r\n        \"resource\": \"/provenance-data/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create \"view the data\" policies",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 or 409\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.oneOf([201,409]);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"2528933d-0196-1000-395f-b803dbf9d60a\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"action\": \"read\",\r\n        \"resource\": \"/data/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"CN=admin, OU=NIFI\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/policies",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"policies"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
