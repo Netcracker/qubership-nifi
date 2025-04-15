@@ -49,7 +49,7 @@ runs:
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
-        collection-name: 'Setup_Acces_Policies.postman_collection.json'
+        collection-name: 'Setup_Access_Policies.postman_collection.json'
         env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'policies'
