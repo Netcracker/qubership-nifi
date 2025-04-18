@@ -4,6 +4,8 @@ services:
     image: local-nifi:test
     ports:
       - 127.0.0.1:8080:8080
+    volumes:
+      - nifi-conf:/opt/nifi/nifi-current/persistent_conf
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
@@ -26,3 +28,10 @@ services:
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
+volumes:
+  nifi-conf:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi/per-conf/

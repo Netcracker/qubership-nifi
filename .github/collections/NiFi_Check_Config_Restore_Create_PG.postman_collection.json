@@ -1,0 +1,61 @@
+{
+	"info": {
+		"_postman_id": "b8d9e52a-4be8-481e-a497-46823441d3c4",
+		"name": "NiFi_Check_Config_Restore_Create_PG",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create process group",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+							"pm.environment.set(\"nifi.client.id\", uuid);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"name\": \"Check Conf Restore\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups",
+					"host": [
+						"{{nifi.url}}"
+					],
+					"path": [
+						"nifi-api",
+						"process-groups",
+						"root",
+						"process-groups"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

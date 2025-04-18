@@ -17,6 +17,7 @@ runs:
         . .github/workflows/sh/nifi-lib.sh
         prepare_sens_key
         prepare_results_dir "${{ inputs.results-dir }}"
+        mkdir -p ./temp-vol/nifi/per-conf/
     - name: Run local nifi
       shell: bash
       run: |

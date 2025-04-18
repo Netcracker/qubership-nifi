@@ -102,6 +102,38 @@ configure_log_level(){
   fi
 }
 
+set_configuration_version(){
+  local version="$1"
+  local consulUrl="$2"
+  local ns="$3"
+  if [ -z "$consulUrl" ]; then
+    consulUrl='http://localhost:8500'
+  fi
+  if [ -z "$ns" ]; then
+    ns='local'
+  fi
+  echo "Configuring version = $version for restore..."
+  rm -rf ./consul-put-ver-resp.txt
+  respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-ver-resp.txt \
+      "$consulUrl/v1/kv/config/$ns/qubership-nifi/nifi-restore-version")
+  echo "Response code = $respCode"
+  if [ "$respCode" == "200" ]; then
+    echo "Successfully set log level in consul"
+    rm -rf ./consul-put-ver-resp.txt
+  else
+    echo "Failed to set version for restore in Consul. Response code = $respCode. Error message:"
+    cat ./consul-put-ver-resp.txt
+    return 1;
+  fi
+}
+
+get_flow_json_version(){
+  echo "Getting flow.json version from archive folder..."
+  CONF_VERSION=$(find $BASE_DIR/temp-vol/nifi/per-conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" {} + | sort -nr | head -n 1 | cut -d' ' -f2- | xargs basename)
+  export CONF_VERSION
+  echo "$CONF_VERSION" > ./nifi-conf-version.tmp
+}
+
 test_log_level(){
     local targetPkg="$1"
     local targetLevel="$2"
