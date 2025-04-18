@@ -18,6 +18,7 @@ runs:
         prepare_sens_key
         prepare_results_dir "${{ inputs.results-dir }}"
         mkdir -p ./temp-vol/nifi/per-conf/
+        chmod -R 777 ./temp-vol
     - name: Run local nifi
       shell: bash
       run: |
