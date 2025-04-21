@@ -128,8 +128,9 @@ set_configuration_version(){
 }
 
 get_flow_json_version(){
+  local containerName="$1"
   echo "Getting flow.json version from archive folder..."
-  CONF_VERSION=$(find ./temp-vol/nifi/per-conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" {} + | sort -nr | head -n 1 | cut -d' ' -f2- | xargs basename)
+  CONF_VERSION=$(docker exec "$containerName" find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
   export CONF_VERSION
   echo "$CONF_VERSION" > ./nifi-conf-version.tmp
 }

@@ -36,7 +36,7 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "60" "localhost" "8080" "true" "local-nifi-tls" "${{ inputs.results-dir }}" \
+        wait_nifi_container "15" "60" "localhost" "8080" "true" ".github/docker/tls/docker-compose.yaml" "${{ inputs.results-dir }}" \
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
     - name: Test log level configuration
@@ -78,6 +78,14 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+    - name: Run configuration restore tests
+      continue-on-error: true
+      uses: ./.github/actions/run-conf-restore-test
+      with:
+        results-dir: '${{ inputs.results-dir }}'
+        docker-container-name: 'local-nifi-tls'
+        docker-compose-path: '.github/docker/tls/docker-compose.yaml'
+        tls-mode: 'true'
     - name: Cleanup after tests
       shell: bash
       continue-on-error: true

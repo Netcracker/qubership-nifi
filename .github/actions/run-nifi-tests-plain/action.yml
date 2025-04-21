@@ -59,6 +59,7 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
+        docker-container-name: 'local-nifi-plain'
         docker-compose-path: '.github/docker/plain/docker-compose.yaml'
         tls-mode: 'false'
     - name: Cleanup after tests
@@ -67,4 +68,5 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Stopping and removing containers"
-        docker compose -f .github/docker/plain/docker-compose.yaml down
+        docker compose -f .github/docker/plain/docker-compose.yaml --env-file ./docker.env down -v
+        sudo rm -rf ./temp-vol/
