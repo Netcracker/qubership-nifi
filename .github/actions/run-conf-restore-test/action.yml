@@ -29,7 +29,7 @@ runs:
         . .github/workflows/sh/nifi-lib.sh
         get_flow_json_version "${{ inputs.docker-container-name }}"
     - name: Creating a test process group
-      if: ${{ !inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'false' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -38,12 +38,12 @@ runs:
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'create_pg'
     - name: Creating a test process group
-      if: ${{ inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'true' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
         collection-name: 'NiFi_Check_Config_Restore_Create_PG.postman_collection.json'
-        env-name: 'NiFi_AT.json.postman_environment'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'create_pg'
         tls-certs-dir: "./temp-vol/tls-cert"
@@ -63,14 +63,14 @@ runs:
         echo "Restarting containers..."
         docker-compose restart nifi
     - name: Wait for nifi container to start
-      if: ${{ !inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'false' }}
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         wait_nifi_container "15" "60" "127.0.0.1" "8080" "false" "${{ inputs.docker-compose-path }}" "${{ inputs.results-dir }}"
     - name: Wait for nifi container to start
-      if: ${{ inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'true' }}
       shell: bash
       continue-on-error: true
       run: |
@@ -79,7 +79,7 @@ runs:
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
     - name: Checking that the version has been restored
-      if: ${{ !inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'false' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -88,12 +88,12 @@ runs:
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
     - name: Checking that the version has been restored
-      if: ${{ inputs.tls-mode }}
+      if: ${{ inputs.tls-mode == 'true' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
         collection-name: 'NiFi_Check_Config_Restore_Check_PG.postman_collection.json'
-        env-name: 'NiFi_AT.json.postman_environment'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
         tls-certs-dir: "./temp-vol/tls-cert"
