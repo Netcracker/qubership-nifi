@@ -177,7 +177,7 @@ wait_nifi_container(){
     local hostName="$3"
     local portNum="$4"
     local useTls="$5"
-    local containerName="$6"
+    local composeFile="$6"
     local resultsDir="$7"
     local caCert="$8"
     local clientKeystore="$9"
@@ -185,14 +185,14 @@ wait_nifi_container(){
     local apiUrl="/nifi-api/controller/config"
     echo "Sleep for $initialWait seconds..."
     sleep "$initialWait"
-    echo "Waiting for nifi on $hostName:$portNum (TLS = $useTls, container = $containerName, apiUrl=$apiUrl) to start..."
+    echo "Waiting for nifi on $hostName:$portNum (TLS = $useTls, apiUrl=$apiUrl) to start..."
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
       "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
-        docker logs -n 500 "$containerName" > ./nifi_log_tmp.lst
+        docker compose -f "$composeFile" --env-file ./docker.env logs -n 500 > ./nifi_log_tmp.lst
         cat ./nifi_log_tmp.lst
         echo "Wait failed, nifi not available" > "./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
@@ -202,7 +202,7 @@ wait_nifi_container(){
 wait_nifi_reg_container(){
     local hostName="$1"
     local portNum="$2"
-    local containerName="$3"
+    local composeFile="$3"
     local useTls="$4"
     local initialWait="$5"
     local waitTimeout="$6"
@@ -242,6 +242,12 @@ create_docker_env_file(){
     echo "TRUSTSTORE_PASSWORD=$TRUSTSTORE_PASSWORD" > ./docker.env
     echo "KEYSTORE_PASSWORD_NIFI=$KEYSTORE_PASSWORD_NIFI" >> ./docker.env
     echo "KEYSTORE_PASSWORD_NIFI_REG=$KEYSTORE_PASSWORD_NIFI_REG" >> ./docker.env
+    gitDir="$(pwd)"
+    echo "BASE_DIR=$gitDir" >> ./docker.env
+}
+
+create_docker_env_file_plain(){
+    echo "Generating environment file for docker-compose..."
     gitDir="$(pwd)"
     echo "BASE_DIR=$gitDir" >> ./docker.env
 }

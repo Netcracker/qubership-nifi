@@ -50,7 +50,7 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        wait_nifi_container "15" "60" "127.0.0.1" "8080" "false" "local-nifi-plain" "${{ inputs.results-dir }}"
+        wait_nifi_container "15" "60" "127.0.0.1" "8080" "false" "${{ inputs.docker-compose-path }}" "${{ inputs.results-dir }}"
     - name: Checking that the version has been restored
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
