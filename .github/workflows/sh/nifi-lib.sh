@@ -129,7 +129,7 @@ set_configuration_version(){
 
 get_flow_json_version(){
   echo "Getting flow.json version from archive folder..."
-  CONF_VERSION=$(find $BASE_DIR/temp-vol/nifi/per-conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" {} + | sort -nr | head -n 1 | cut -d' ' -f2- | xargs basename)
+  CONF_VERSION=$(find ./temp-vol/nifi/per-conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" {} + | sort -nr | head -n 1 | cut -d' ' -f2- | xargs basename)
   export CONF_VERSION
   echo "$CONF_VERSION" > ./nifi-conf-version.tmp
 }
