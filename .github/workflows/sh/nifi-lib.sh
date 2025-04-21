@@ -118,7 +118,7 @@ set_configuration_version(){
       "$consulUrl/v1/kv/config/$ns/qubership-nifi/nifi-restore-version")
   echo "Response code = $respCode"
   if [ "$respCode" == "200" ]; then
-    echo "Successfully set log level in consul"
+    echo "Successfully set configuring version in consul"
     rm -rf ./consul-put-ver-resp.txt
   else
     echo "Failed to set version for restore in Consul. Response code = $respCode. Error message:"

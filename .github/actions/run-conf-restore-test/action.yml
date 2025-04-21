@@ -55,13 +55,13 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export CONF_VERSION=$(cat ./nifi-conf-version.tmp)
-        set_configuration_version '$CONF_VERSION'
+        set_configuration_version "$CONF_VERSION"
     - name: Restart local nifi
       shell: bash
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Restarting containers..."
-        docker compose restart nifi
+        docker compose -f ${{ inputs.docker-compose-path }} --env-file ./docker.env restart nifi
     - name: Wait for nifi container to start
       if: ${{ inputs.tls-mode == 'false' }}
       shell: bash
