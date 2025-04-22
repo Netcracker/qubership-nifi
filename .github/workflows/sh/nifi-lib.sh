@@ -114,7 +114,7 @@ set_configuration_version(){
   fi
   echo "Configuring version = $version for restore..."
   rm -rf ./consul-put-ver-resp.txt
-  respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-ver-resp.txt \
+  respCode=$(curl -X PUT -sS --data "$version" -w '%{response_code}' -o ./consul-put-ver-resp.txt \
       "$consulUrl/v1/kv/config/$ns/qubership-nifi/nifi-restore-version")
   echo "Response code = $respCode"
   if [ "$respCode" == "200" ]; then

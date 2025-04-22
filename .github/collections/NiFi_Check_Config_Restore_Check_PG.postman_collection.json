@@ -6,7 +6,7 @@
 	},
 	"item": [
 		{
-			"name": "Check that process group existed",
+			"name": "Check that process group not existed",
 			"event": [
 				{
 					"listen": "test",
@@ -26,7 +26,7 @@
 							"            break;\r",
 							"        }\r",
 							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
+							"    pm.expect(result).to.eql(false);\r",
 							"});"
 						],
 						"type": "text/javascript"
