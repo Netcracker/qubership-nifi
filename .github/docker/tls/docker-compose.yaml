@@ -37,6 +37,7 @@ services:
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
     container_name: local-nifi-tls
+    restart: always
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
     depends_on:
