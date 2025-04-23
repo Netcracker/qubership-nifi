@@ -1,12 +1,12 @@
 {
 	"info": {
-		"_postman_id": "961f607b-add4-4df7-83ee-8a04e0c479b1",
-		"name": "NiFi_Check_Config_Restore_Check_PG_Existed",
+		"_postman_id": "0cb2fd66-1402-4651-a6be-bc8ba821dc0e",
+		"name": "NiFi_Check_Config_Restore_Check_PG_Not_Exists",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
-			"name": "Check that process group existed",
+			"name": "Check that process group not existed",
 			"event": [
 				{
 					"listen": "test",
@@ -15,7 +15,7 @@
 							"pm.test(\"Status code is 200\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							"});\r",
-							"pm.test(\"Check that process group existed\", function () {\r",
+							"pm.test(\"Check that process group not existed\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
 							"    var processGroups = jsonData.processGroups;\r",
 							"    var result = false;\r",
@@ -26,7 +26,7 @@
 							"            break;\r",
 							"        }\r",
 							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
+							"    pm.expect(result).to.eql(false);\r",
 							"});"
 						],
 						"type": "text/javascript"

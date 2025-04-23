@@ -128,9 +128,11 @@ set_configuration_version(){
 }
 
 get_flow_json_version(){
-  local containerName="$1"
+  local dockerComposePath="$1"
   echo "Getting flow.json version from archive folder..."
-  CONF_VERSION=$(docker exec "$containerName" find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
+  CONF_VERSION=$(docker compose -f "$dockerComposePath" --env-file ./docker.env exec nifi \
+    find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f \
+    -exec stat --format="%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
   export CONF_VERSION
   echo "$CONF_VERSION" > ./nifi-conf-version.tmp
 }
@@ -138,8 +140,8 @@ get_flow_json_version(){
 get_flow_json_version_error(){
   echo "Creating a non-existent version of flow.json.gz..."
   CONF_VERSION_ERROR="20850421T211330+0000_flow.json.gz"
-  export CONF_VERSION
-  echo "$CONF_VERSION" > ./nifi-conf-version.tmp
+  export CONF_VERSION_ERROR
+  echo "$CONF_VERSION_ERROR" > ./nifi-conf-version.tmp
 }
 
 test_log_level(){

@@ -83,7 +83,6 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-container-name: 'local-nifi-tls'
         docker-compose-path: '.github/docker/tls/docker-compose.yaml'
         tls-mode: 'true'
         success-scenario: 'true'
@@ -92,7 +91,6 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-container-name: 'local-nifi-tls'
         docker-compose-path: '.github/docker/tls/docker-compose.yaml'
         tls-mode: 'true'
         success-scenario: 'false'

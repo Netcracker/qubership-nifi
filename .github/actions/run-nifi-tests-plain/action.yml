@@ -59,7 +59,6 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-container-name: 'local-nifi-plain'
         docker-compose-path: '.github/docker/plain/docker-compose.yaml'
         tls-mode: 'false'
         success-scenario: 'true'
@@ -68,7 +67,6 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-container-name: 'local-nifi-plain'
         docker-compose-path: '.github/docker/plain/docker-compose.yaml'
         tls-mode: 'false'
         success-scenario: 'false'
