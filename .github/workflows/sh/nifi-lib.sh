@@ -200,10 +200,8 @@ wait_nifi_container(){
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
-        docker compose -f "$composeFile" --env-file ./docker.env logs > ./nifi_log_tmp.lst
+        docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 > ./nifi_log_tmp.lst
         cat ./nifi_log_tmp.lst
-        docker cp local-nifi-tls:/opt/nifi/nifi-current/conf/authorizations.xml ./test-results/$resultsDir/authorizations_current.xml
-        docker cp local-nifi-tls:/opt/nifi/nifi-current/persistent_conf/conf-restore/authorizations.xml ./test-results/$resultsDir/authorizations_old.xml
         echo "Wait failed, nifi not available" > "./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
     fi
