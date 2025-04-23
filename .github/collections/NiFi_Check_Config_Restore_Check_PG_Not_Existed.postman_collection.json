@@ -15,7 +15,7 @@
 							"pm.test(\"Status code is 200\", function () {\r",
 							"    pm.response.to.have.status(200);\r",
 							"});\r",
-							"pm.test(\"Check that process group existed\", function () {\r",
+							"pm.test(\"Check that process group not existed\", function () {\r",
 							"    var jsonData = pm.response.json();\r",
 							"    var processGroups = jsonData.processGroups;\r",
 							"    var result = false;\r",
