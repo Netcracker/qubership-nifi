@@ -135,6 +135,13 @@ get_flow_json_version(){
   echo "$CONF_VERSION" > ./nifi-conf-version.tmp
 }
 
+get_flow_json_version_error(){
+  echo "Creating a non-existent version of flow.json.gz..."
+  CONF_VERSION_ERROR="20850421T211330+0000_flow.json.gz"
+  export CONF_VERSION
+  echo "$CONF_VERSION" > ./nifi-conf-version.tmp
+}
+
 test_log_level(){
     local targetPkg="$1"
     local targetLevel="$2"
