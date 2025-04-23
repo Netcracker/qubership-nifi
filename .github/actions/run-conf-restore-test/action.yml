@@ -19,7 +19,7 @@ inputs:
     required: false
     type: boolean
     default: false
-  successl-scenario:
+  success-scenario:
     description: 'NiFi run Mode'
     required: true
     type: boolean
@@ -28,14 +28,14 @@ runs:
   using: "composite"
   steps:
     - name: Getting the flow.json.gz version from the archive folder
-      if: ${{ inputs.successl-scenario == 'true' }}
+      if: ${{ inputs.success-scenario == 'true' }}
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         get_flow_json_version "${{ inputs.docker-container-name }}"
     - name: Getting the flow.json.gz version from the archive folder
-      if: ${{ inputs.successl-scenario == 'false' }}
+      if: ${{ inputs.success-scenario == 'false' }}
       shell: bash
       continue-on-error: true
       run: |
@@ -92,7 +92,7 @@ runs:
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
     - name: Checking that the version has been restored and the created process group not exist
-      if: ${{ inputs.tls-mode == 'false' }} && ${{ inputs.successl-scenario == 'true' }}
+      if: ${{ inputs.tls-mode == 'false' && inputs.success-scenario == 'true' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -101,7 +101,7 @@ runs:
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
     - name: Checking that the version has been restored and the created process group not exist
-      if: ${{ inputs.tls-mode == 'true' }} && ${{ inputs.successl-scenario == 'true' }}
+      if: ${{ inputs.tls-mode == 'true' && inputs.success-scenario == 'true' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -113,7 +113,7 @@ runs:
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
     - name: Checking that the version has been restored and the created process group exist
-      if: ${{ inputs.tls-mode == 'false' }} && ${{ inputs.successl-scenario == 'false' }}
+      if: ${{ inputs.tls-mode == 'false' && inputs.success-scenario == 'false' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -122,7 +122,7 @@ runs:
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
     - name: Checking that the version has been restored and the created process group does exist
-      if: ${{ inputs.tls-mode == 'true' }} && ${{ inputs.successl-scenario == 'false' }}
+      if: ${{ inputs.tls-mode == 'true' && inputs.success-scenario == 'false' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
