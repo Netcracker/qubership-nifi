@@ -19,6 +19,10 @@
 # shellcheck disable=SC2154
 . /opt/nifi/scripts/logging_api.sh
 
+if [ -z "$MICROSERVICE_NAME" ] ; then
+    export MICROSERVICE_NAME="qubership-nifi"
+fi
+
 #create temp directory
 mkdir -p /tmp/tmp-nifi
 mkdir -p /tmp/db-init-scripts
