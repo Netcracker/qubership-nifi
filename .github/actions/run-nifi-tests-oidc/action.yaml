@@ -19,11 +19,11 @@ runs:
         prepare_results_dir "${{ inputs.results-dir }}"
         generate_tls_passwords
         create_docker_env_file
-        mkdir -p ./temp-vol/pg-db/
         mkdir -p ./temp-vol/tls-cert/
         mkdir -p ./temp-vol/tls-cert/nifi/
         mkdir -p ./temp-vol/tls-cert/nifi-registry/
         mkdir -p ./temp-vol/nifi/per-conf/
+        mkdir -p ./temp-vol/pg-db/
         chmod -R 777 ./temp-vol
     - name: Run local nifi
       shell: bash
