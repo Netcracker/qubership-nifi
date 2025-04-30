@@ -246,12 +246,18 @@ generate_tls_passwords(){
 }
 
 create_docker_env_file(){
-    echo "Generating environment file for docker-compose..."
-    echo "TRUSTSTORE_PASSWORD=$TRUSTSTORE_PASSWORD" > ./docker.env
-    echo "KEYSTORE_PASSWORD_NIFI=$KEYSTORE_PASSWORD_NIFI" >> ./docker.env
-    echo "KEYSTORE_PASSWORD_NIFI_REG=$KEYSTORE_PASSWORD_NIFI_REG" >> ./docker.env
-    gitDir="$(pwd)"
-    echo "BASE_DIR=$gitDir" >> ./docker.env
+  echo "Generating environment file for docker-compose..."
+  echo "TRUSTSTORE_PASSWORD=$TRUSTSTORE_PASSWORD" > ./docker.env
+  echo "KEYSTORE_PASSWORD_NIFI=$KEYSTORE_PASSWORD_NIFI" >> ./docker.env
+  echo "KEYSTORE_PASSWORD_NIFI_REG=$KEYSTORE_PASSWORD_NIFI_REG" >> ./docker.env
+  DB_PASSWORD=$(generate_random_hex_password 8 4)
+  export DB_PASSWORD
+  echo "DB_PASSWORD=$DB_PASSWORD" >> ./docker.env
+  KEYCLOAK_ADMIN_PASSWORD=$(generate_random_hex_password 8 4)
+  export KEYCLOAK_ADMIN_PASSWORD
+  echo "KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD" >> ./docker.env
+  gitDir="$(pwd)"
+  echo "BASE_DIR=$gitDir" >> ./docker.env
 }
 
 create_docker_env_file_plain(){
