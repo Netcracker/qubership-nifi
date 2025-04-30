@@ -84,7 +84,7 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-compose-path: '.github/docker/tls/docker-compose.yaml'
+        docker-compose-path: '.github/docker/oidc/docker-compose.yaml'
         tls-mode: 'true'
         success-scenario: 'true'
     - name: Run configuration restore tests (Error case)
@@ -92,7 +92,7 @@ runs:
       uses: ./.github/actions/run-conf-restore-test
       with:
         results-dir: '${{ inputs.results-dir }}'
-        docker-compose-path: '.github/docker/tls/docker-compose.yaml'
+        docker-compose-path: '.github/docker/oidc/docker-compose.yaml'
         tls-mode: 'true'
         success-scenario: 'false'
     - name: Cleanup after tests
