@@ -73,8 +73,8 @@ services:
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration"
     container_name: local-nifi-registry-oidc
-    restart: unless-stopped
     hostname: nifi-registry
+    restart: unless-stopped
   consul:
     image: hashicorp/consul:1.20
     ports:
