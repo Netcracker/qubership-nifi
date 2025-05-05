@@ -59,7 +59,7 @@
 							"    var result = false;\r",
 							"    for (var i = 0; i < users.length; i++) {\r",
 							"        var user = users[i]\r",
-							"        if (user.component.identity == \"CN=admin, OU=NIFI\") {\r",
+							"        if (user.component.identity == \"CN=admin, OU=NIFI\" || user.component.identity == \"admin\") {\r",
 							"            pm.environment.set(\"user.id\", user.component.id);\r",
 							"            result = true;\r",
 							"            break;\r",

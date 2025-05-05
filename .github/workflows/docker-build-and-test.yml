@@ -22,6 +22,8 @@ on:
       - '.github/actions/**'
       - '.github/collections/**'
       - '.github/workflows/sh/**'
+      - '.github/docker/**'
+      - '.github/configuration/**'
   pull_request:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
@@ -42,6 +44,8 @@ on:
       - '.github/actions/**'
       - '.github/collections/**'
       - '.github/workflows/sh/**'
+      - '.github/docker/**'
+      - '.github/configuration/**'
   workflow_dispatch:
     inputs:
       java-version:
