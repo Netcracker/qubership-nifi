@@ -63,7 +63,7 @@ prop_replace 'nifi.web.http.host'   ''
 prop_replace 'nifi.web.https.port'  "${NIFI_WEB_HTTPS_PORT:-8443}"
 #prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
 
-if [ "${NIFI_CLUSTER_IS_NODE}" = "true" ];
+if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ];
     then 
         clusterHostName=$(hostname -f)
         prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$clusterHostName}"
