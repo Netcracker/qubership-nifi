@@ -25,13 +25,14 @@ qubership-nifi is scalable and configurable dataflow platform.
 Depending on configuration, it relies on:
 1. externally provided TLS certificates: TLS is required for security to be enabled, so TLS certificates are need for all configurations, except may be configuration for local development
 2. Consul service: used as property source, as well as for configuring logging levels
-3. identity provider service: required for OIDC integration, if it's enabled
-4. several file-system based repositories:
+3. Zookeeper service: required for NiFi clustering, if it's enabled
+4. identity provider service: required for OIDC integration, if it's enabled
+5. several file-system based repositories:
    1. Persistent Configuration (Database Repository and Flow Configuration). See [Administrator Guide](docs/administrator-guide.md) for more details.
    2. FlowFile Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
    3. Content Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
    4. Provenance Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
-5. qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
+6. qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
 
 qubership-nifi can be started in single node (non-cluster) or cluster configuration.
 In clustered configuration each cluster node has its own persistent volumes and secrets holding TLS certificates.

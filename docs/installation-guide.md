@@ -6,6 +6,12 @@ Sections below describe typical startup configurations:
 1. plain - service without any authentication with plain (HTTP) communications
 2. tls - service with mTLS authentication with encrypted (HTTPS) communications.
 
+## Prerequisites
+
+Make sure you have the following tools installed:
+1. Docker - any version of Docker Engine or any compatible docker container runtime.
+2. Docker Compose - any version of Docker Compose or any compatible docker container runtime.
+
 ## Running qubership-nifi in plain mode
 
 The steps below provide instructions on how to start the following services locally:
