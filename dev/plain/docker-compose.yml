@@ -1,0 +1,49 @@
+services:
+  nifi:
+    volumes:
+      - nifi-conf:/opt/nifi/nifi-current/persistent_conf
+    image: ghcr.io/netcracker/nifi:latest
+    ports:
+      - 127.0.0.1:28080:8080
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - AUTH=none
+      - NIFI_WEB_HTTP_PORT=8080
+      - NIFI_WEB_HTTPS_PORT=
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_PROPS_KEY}
+    container_name: nifi
+  nifi-registry:
+    image: ghcr.io/netcracker/nifi-registry:latest
+    volumes:
+      - nifi-registry-database:/opt/nifi-registry/nifi-registry-current/database
+      - nifi-registry-flow:/opt/nifi-registry/nifi-registry-current/flow_storage
+    ports:
+      - 127.0.0.1:18080:18080
+    environment:
+      - AUTH=none
+  consul:
+    image: hashicorp/consul:1.20
+    ports:
+      - 127.0.0.1:18500:8500
+    container_name: consul
+volumes:
+  nifi-conf:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi/conf/
+  nifi-registry-database:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi-registry/database/
+  nifi-registry-flow:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${PATH_TO_LOCAL_VOLUME:-.}/nifi-registry/flow-storage/

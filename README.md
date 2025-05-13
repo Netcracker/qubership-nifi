@@ -1,83 +1,71 @@
 # qubership-nifi
 
-qubership-nifi is a fork of Apache NiFi.
+qubership-nifi is a service extending Apache NiFi.
+Apache NiFi is scalable and configurable dataflow platform.
 Compared with Apache NiFi it supports:
-1. additional environment variables for configuration.
+1. additional environment variables for configuration
 2. integration with Consul as configuration source for logging levels and other configuration properties
 3. automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
 4. additional processors for various tasks not supported in opensource Apache NiFi: bulk DB operations, complex JSON extract from DB, rules-based validation
 5. reporting tasks for additional monitoring of NiFi processes.
 
-## Installation
+## Status
+![Unit tests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml/badge.svg)
+![Autotests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml/badge.svg)
+![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=coverage)
+![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=ncloc)
+![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=alert_status)
+![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=vulnerabilities)
 
-### Run in qubership-nifi in plain mode
+## Overview
 
-1. Create `docker-compose.yaml` file with contents (where `<image>` should be replaced with qubership-nifi's image, `<some key value>` should be replaced with some string at least 12 characters in length):
-```YAML
-services:
-  nifi:
-    image: <image>
-    ports:
-      - 127.0.0.1:28080:8080
-    environment:
-      - NAMESPACE=local
-      - CONSUL_ENABLED=true
-      - CONSUL_URL=consul:8500
-      - AUTH=none
-      - NIFI_NEW_SENSITIVE_KEY=<some key value>
-    container_name: nifi
-  consul:
-    image: hashicorp/consul:1.20
-    ports:
-      - 127.0.0.1:18500:8500
-    container_name: consul
+![qubership-nifi overview](./docs/images/nifi-overview.png)
+
+qubership-nifi is scalable and configurable dataflow platform.
+Depending on configuration, it relies on:
+1. externally provided TLS certificates: TLS is required for security to be enabled, so TLS certificates are need for all configurations, except may be configuration for local development
+2. identity provider service: required for OIDC integration, if it's enabled
+3. several file-system based repositories:
+   1. Persistent Configuration (Database Repository and Flow Configuration). See [Administrator Guide](docs/administrator-guide.md) for more details.
+   2. FlowFile Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+   3. Content Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+   4. Provenance Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+4. qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
+
+qubership-nifi can be started in single node (non-cluster) or cluster configuration.
+In clustered configuration each cluster node has its own persistent volumes and secrets holding TLS certificates.
+qubership-nifi-registry is not clustered and all cluster nodes must connect to the same service.
+
+## Build
+### Prerequisites
+
+Build process requires the following tools:
+1. Java - JDK 17 or JDK 21
+2. Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
+3. Docker - any version of Docker Engine or any compatible docker container runtime.
+
+### Project build
+
+To execute maven build, run:
+```shell
+mvn clean install
 ```
-2. Run `docker compose -f docker-compose.yaml up`
 
-### Run in qubership-nifi in tls mode
+Once maven build is completed, you can execute docker build. To do that, run:
+```shell
+docker build .
+```
 
-1. Copy the [`docker-compose.yaml`](dev/tls/docker-compose.yml) and [`.env`](dev/tls/.env) files to a local directory
-2. In the `.env` file set up values for all variables
-3. Run `docker compose -f docker-compose.yaml up`
+## Documentation
 
-## User Guide
+### Installation Guide
 
-Apache NiFi is scalable and conifgurable dataflow platform. Refer to Apache NiFi [User Guide](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html) for basic usage.
+[Installation Guide](docs/installation-guide.md)
 
-### Logging levels
+### Administrator's Guide
 
-You can modify logging levels by:
-1. Setting `ROOT_LOG_LEVEL` environment variable. Be mindful that this variable allows you to set only root logging level;
-2. Setting logging level for specific package in Consul. Consul property name must start with "logger." followed by package name. Value should be one of logging level supported by Logback: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF. Property should be located in one of two locations:
-    1. config/${NAMESPACE}/application
-    2. config/${NAMESPACE}/qubership-nifi
-where `NAMESPACE` is a value of `NAMESPACE` environment variable, or value = `local`, if not set.
+[Administrator Guide](docs/administrator-guide.md)
 
-To change the logging settings:
-1. Change the logger properties in Consul as per your requirements.
-2. Wait until the update is propagated to qubership-nifi. It may take up to 1 minute.
+### User Guide
 
-### NiFi configuration properties
-
-NiFi configuration properties could be set up in Consul:
-1. Property name must start with "nifi."
-2. Property should be located in one of two locations:
-    1. config/${NAMESPACE}/application
-    2. config/${NAMESPACE}/qubership-nifi
-
-To change NiFi properties:
-1. Change the NiFi properties in Consul as per your requirements.
-2. Restart qubership-nifi.
-
-The detailed description of all supported NiFi properties is available in the Apache NiFi System [Administrator's Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
-
-### Configuration restore
-
-qubership-nifi supports automated configuration restore. Steps below describe restore process:
-1. Set up configuration restore in Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. The parameter must contain name of archived configuration to restore from, e.g. `20250115T120000+0000_flow.json.gz`. The list of archived configuration versions is available in logs.
-2. Restart qubership-nifi.
-
-On startup qubership-nifi does the following:
-1. Checks if nifi-restore-version property is set
-2. If it's set, then if specified file exists or not. If not exists, then prints warning and continues with normal startup.
-3. If it's set and file exists in archive, then it moves current configuration to archive and replaces current configuration with specified archived version. Once it's done nifi-restore-version property is automatically cleared in Consul.
+[User Guide](docs/user-guide.md)

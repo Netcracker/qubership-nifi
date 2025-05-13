@@ -1,5 +1,5 @@
 ---
-name: Docker build and test
+name: docker-build-and-test
 
 on:
   push:
