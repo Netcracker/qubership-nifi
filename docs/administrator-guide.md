@@ -118,7 +118,7 @@ Steps below describe restore process:
 1. Set up version to restore in Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. The parameter must contain name of archived configuration to restore from, e.g. `20250115T120000+0000_flow.json.gz`. The list of archived configuration versions is printed in logs during service startup.
 2. Restart qubership-nifi container.
 
-On startup qubership-nifi does the following:
+On startup qubership-nifi performs the following:
 1. Checks if `nifi-restore-version` parameter is set
-2. If parameter is set and specified archive file does not exist, then prints warning in logs and continues with normal startup using current configuration
-3. If parameter is set and specified archive file exists, then it moves current configuration to archive and replaces current configuration with the specified archived version. Once it's done, `nifi-restore-version` parameter is automatically cleared in Consul.
+2. If parameter is set and the specified archive file does not exist, then prints warning in logs and continues with normal startup using current configuration
+3. If parameter is set and the specified archive file exists, then it moves current configuration to archive and replaces current configuration with the specified archived version. Once it's done, the `nifi-restore-version` parameter is automatically cleared in Consul.

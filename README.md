@@ -6,7 +6,7 @@ Compared with Apache NiFi it supports:
 1. additional environment variables for configuration
 2. integration with Consul as configuration source for logging levels and other configuration properties
 3. automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
-4. additional processors for various tasks not supported in opensource Apache NiFi: bulk DB operations, complex JSON extract from DB, rules-based validation
+4. additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations, complex JSON extract from DB, rules-based validation
 5. reporting tasks for additional monitoring of NiFi processes.
 
 ## Status
@@ -24,13 +24,14 @@ Compared with Apache NiFi it supports:
 qubership-nifi is scalable and configurable dataflow platform.
 Depending on configuration, it relies on:
 1. externally provided TLS certificates: TLS is required for security to be enabled, so TLS certificates are need for all configurations, except may be configuration for local development
-2. identity provider service: required for OIDC integration, if it's enabled
-3. several file-system based repositories:
+2. Consul service: used as property source, as well as for configuring logging levels
+3. identity provider service: required for OIDC integration, if it's enabled
+4. several file-system based repositories:
    1. Persistent Configuration (Database Repository and Flow Configuration). See [Administrator Guide](docs/administrator-guide.md) for more details.
    2. FlowFile Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
    3. Content Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
    4. Provenance Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
-4. qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
+5. qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
 
 qubership-nifi can be started in single node (non-cluster) or cluster configuration.
 In clustered configuration each cluster node has its own persistent volumes and secrets holding TLS certificates.
