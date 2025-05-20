@@ -1,0 +1,10 @@
+---
+# Don't report passed checks in output
+quiet: true
+skip-check:
+  # skip healthcheck presence for docker
+  - CKV_DOCKER_2
+  # skip check that requires inputs to be empty for workflow_dispatch
+  - CKV_GHA_7
+  # temporarily skip check ensuring that permissions are set for github workflows
+  - CKV2_GHA_1  
