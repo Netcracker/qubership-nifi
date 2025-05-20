@@ -8,7 +8,6 @@ on:
       - opened
       - edited
       - synchronize
-      - reopened
 
 permissions:
   pull-requests: read
@@ -18,4 +17,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: webiny/action-conventional-commits@v1.3.0
