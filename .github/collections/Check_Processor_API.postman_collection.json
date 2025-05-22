@@ -661,6 +661,135 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Drop all flowfiles in process groups",
+			"item": [
+				{
+					"name": "Request to drop all flowfiles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 202\", function () {\r",
+									"    pm.response.to.have.status(202);\r",
+									"});\r",
+									"pm.test(\"Get drop request id\", function () {\r",
+									"    var jsonData = pm.response.json();\r",
+									"    pm.environment.set(\"drop.request.id\", jsonData.dropRequest.id);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/process-groups/{{process.group.id}}/empty-all-connections-requests",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"process-groups",
+								"{{process.group.id}}",
+								"empty-all-connections-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Gets the current status of a drop all flowfiles request",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const responseJson = pm.response.json();\r",
+									"const dropRequest = responseJson.dropRequest;\r",
+									"\r",
+									"if (dropRequest.percentCompleted < 100 || dropRequest.state !== \"Completed successfully\") {\r",
+									"    console.log(`Current state: percentCompleted=${dropRequest.percentCompleted}, state='${dropRequest.state}' — repeat request`);\r",
+									"    \r",
+									"    pm.environment.put(\"polling_timeout\", Date.now() + 5000);\r",
+									"    \r",
+									"    setTimeout(() => {\r",
+									"        pm.execute(pm.info.requestName);\r",
+									"    }, 5000);\r",
+									"} else {\r",
+									"    console.log(\"Conditions met: percentCompleted=100 and state='Completed successfully'\");\r",
+									"    pm.test(\"The process has been completed successfully.\", function () {\r",
+									"        pm.expect(dropRequest.percentCompleted).to.equal(100);\r",
+									"        pm.expect(dropRequest.state).to.equal(\"Completed successfully\");\r",
+									"    });\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/process-groups/{{process.group.id}}/empty-all-connections-requests/{{drop.request.id}}",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"process-groups",
+								"{{process.group.id}}",
+								"empty-all-connections-requests",
+								"{{drop.request.id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Removes a request to drop all flowfiles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.url}}/nifi-api/process-groups/{{process.group.id}}/empty-all-connections-requests/{{drop.request.id}}",
+							"host": [
+								"{{nifi.url}}"
+							],
+							"path": [
+								"nifi-api",
+								"process-groups",
+								"{{process.group.id}}",
+								"empty-all-connections-requests",
+								"{{drop.request.id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
