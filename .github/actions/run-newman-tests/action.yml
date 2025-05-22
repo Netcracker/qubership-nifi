@@ -78,7 +78,7 @@ runs:
         fi
         dbPassword="${{ inputs.database-password }}"
         if [ -n "dbPassword" ]; then
-          globalDbPassword="--global-var global.db.password=${{ inputs.database-password }}"
+          globalDbPassword="--global-var global.db.pas=${{ inputs.database-password }}"
         else
           globalDbPassword=''
         fi
