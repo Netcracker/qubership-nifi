@@ -79,6 +79,7 @@ services:
     image: hashicorp/consul:1.20
     ports:
       - 127.0.0.1:8500:8500
+      - 127.0.0.1:8091:8091
     hostname: consul
   keycloak:
     image: keycloak/keycloak:26.1.4
