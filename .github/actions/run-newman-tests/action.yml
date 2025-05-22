@@ -36,6 +36,10 @@ inputs:
       Corresponds to newman option ssl-client-cert-list.
     required: false
     default: ''
+  database-password:
+    description: 'Password to connect to the database for E2E test'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -72,10 +76,16 @@ runs:
           echo "TLS certificate directory found at $tlsCertsDir, adding volume mapped to /tmp/tls-certs"
           additionalVolumes="-v \"$tlsCertsDir:/tmp/tls-certs\""
         fi
+        dbPassword="${{ inputs.database-password }}"
+        if [ -n "dbPassword" ]; then
+          globalDbPassword="--global-var global.db.password=${{ inputs.database-password }}"
+        else
+          globalDbPassword=''
+        fi
         eval docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
           "$additionalVolumes" postman/newman:alpine run "${{ inputs.collection-name }}" \
           --environment="${{ inputs.env-name }}" -r cli,junit \
-          "$caCertsOption" "$clientCertConfigOption" || \
+          "$caCertsOption" "$clientCertConfigOption" "$globalDbPassword" || \
           echo "Collection ${{ inputs.short-name }} failed to run" > \
             "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"
     - name: Collect test results
