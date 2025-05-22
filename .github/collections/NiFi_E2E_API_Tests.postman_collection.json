@@ -412,7 +412,7 @@
 									"pm.test(\"Status code is 200\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
 									"});\r",
-									"pm.test(\"Status code is 200\", function () {\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
 									"    let attributeName = \"test\";\r",
 									"    let attributeValue = \"Acme\";\r",
 									"    const responseJson = pm.response.json();\r",
