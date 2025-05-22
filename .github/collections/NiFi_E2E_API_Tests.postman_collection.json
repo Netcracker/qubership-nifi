@@ -216,7 +216,7 @@
 					"response": []
 				},
 				{
-					"name": "Start Controller Service",
+					"name": "Start Controller Services",
 					"event": [
 						{
 							"listen": "test",
@@ -235,7 +235,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": {{db.cs.version}}\r\n    },\r\n    \"state\": \"ENABLED\"\r\n}",
+							"raw": "{\r\n    \"id\": \"{{e2e.process.group.id}}\",\r\n    \"state\": \"ENABLED\",\r\n    \"disconnectedNodeAcknowledged\": false\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -243,15 +243,16 @@
 							}
 						},
 						"url": {
-							"raw": "{{nifi.url}}/nifi-api/controller-services/{{db.cs.id}}/run-status",
+							"raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{e2e.process.group.id}}/controller-services",
 							"host": [
 								"{{nifi.url}}"
 							],
 							"path": [
 								"nifi-api",
-								"controller-services",
-								"{{db.cs.id}}",
-								"run-status"
+								"flow",
+								"process-groups",
+								"{{e2e.process.group.id}}",
+								"controller-services"
 							]
 						}
 					},
@@ -264,24 +265,28 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {\r",
-									"    pm.response.to.have.status(200);\r",
-									"});\r",
-									"pm.test(\"Check state\", function () {\r",
-									"    const maxAttempts = 10;\r",
-									"    const targetState = \"ENABLED\";\r",
-									"    let attempt = pm.environment.get(\"polling_attempt\") || 1;\r",
-									"    const responseJson =pm.response.json();\r",
-									"    const currentState = responseJson.component.state;\r",
-									"    console.log(`Attempt ${attempt}: state = ${currentState}`);\r",
-									"    if (currentState !== targetState ) {\r",
-									"        if ( attempt < maxAttempts ) {\r",
-									"            pm.environment.set(\"polling_attempt\", attempt + 1);\r",
-									"            setTimeout(function(){}, 2000);\r",
-									"            postman.setNextRequest(\"Check state of CS\");\r",
-									"        }\r",
+									"const responseJson = pm.response.json();\r",
+									"\r",
+									"let attempt = pm.environment.get(\"polling_attempt\") || 1;\r",
+									"const maxAttempts = 5;\r",
+									"\r",
+									"pm.test(`Attempt ${attempt}: Checking the status of controller services`, function () {\r",
+									"    const allEnabled = responseJson.controllerServices.every(service => service.component.state === \"ENABLED\");\r",
+									"\r",
+									"    if (!allEnabled && attempt < maxAttempts) {\r",
+									"        console.log(`Not all services are ENABLED. Retry in 5 seconds (try ${attempt + 1})`);\r",
+									"        pm.environment.set(\"polling_attempt\", attempt + 1);\r",
+									"\r",
+									"        setTimeout(() => {\r",
+									"            pm.sendRequest(pm.request.url, (err, res) => {\r",
+									"                pm.environment.set(\"last_response\", res.text());\r",
+									"                pm.execute(); // Перезапуск теста\r",
+									"            });\r",
+									"        }, 5000); // Задержка 5 секунд\r",
 									"    } else {\r",
-									"        pm.environment.unset(\"polling_attempt\");\r",
+									"        pm.expect(allEnabled).to.be.true;\r",
+									"        console.log(\"All controllers have ENABLED status\");\r",
+									"        pm.environment.unset(\"polling_attempt\"); // Очистка счетчика\r",
 									"    }\r",
 									"});"
 								],
@@ -302,14 +307,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{nifi.url}}/nifi-api/controller-services/{{db.cs.id}}",
+							"raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{e2e.process.group.id}}/controller-services",
 							"host": [
 								"{{nifi.url}}"
 							],
 							"path": [
 								"nifi-api",
-								"controller-services",
-								"{{db.cs.id}}"
+								"flow",
+								"process-groups",
+								"{{e2e.process.group.id}}",
+								"controller-services"
 							]
 						}
 					},
