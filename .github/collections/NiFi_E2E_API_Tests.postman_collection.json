@@ -376,7 +376,12 @@
                                 "exec": [
                                     "pm.test(\"Status code is 200\", function () {\r",
                                     "    pm.response.to.have.status(200);\r",
-                                    "});"
+                                    "});\r",
+                                    "\r",
+                                    "if (pm.response.code !== 200) {\r",
+                                    "    console.log(\"Error: response status \" + pm.response.code);\r",
+                                    "    console.log(\"Response: \", pm.response.text());\r",
+                                    "}"
                                 ],
                                 "type": "text/javascript"
                             }
