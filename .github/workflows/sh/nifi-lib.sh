@@ -273,4 +273,6 @@ create_global_vars_file(){
     jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pas") | .value) = $pass' \
      "${gitDir}/.github/collections/Global_Vars.postman_globals.json" > "$tmp" \
      && mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
+    echo "Output Global_Vars.postman_globals.json for test"
+    cat "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
 }
