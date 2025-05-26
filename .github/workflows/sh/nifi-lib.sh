@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-wait_for_service(){
+wait_for_service() {
     local serviceHost="$1"
     local servicePort="$2"
     local apiUrlToCheck="$3"
@@ -42,7 +42,7 @@ wait_for_service(){
     fi
 
     startTime=$(date +%s)
-    endTime=$((startTime+timeout))
+    endTime=$((startTime + timeout))
     remainingTime="$timeout"
     res=1
     while [ "$res" != "0" ]; do
@@ -58,10 +58,10 @@ wait_for_service(){
         fi
         echo ""
         currentTime=$(date +%s)
-        remainingTime=$((endTime-currentTime))
+        remainingTime=$((endTime - currentTime))
         if ((currentTime > endTime)); then
             echo "ERROR: timeout reached; failed to wait"
-            return 1;
+            return 1
         fi
         sleep 2
     done
@@ -245,11 +245,11 @@ generate_tls_passwords(){
     export KEYSTORE_PASSWORD_NIFI_REG
 }
 
-create_docker_env_file(){
+create_docker_env_file() {
     echo "Generating environment file for docker-compose..."
-    echo "TRUSTSTORE_PASSWORD=$TRUSTSTORE_PASSWORD" > ./docker.env
-    echo "KEYSTORE_PASSWORD_NIFI=$KEYSTORE_PASSWORD_NIFI" >> ./docker.env
-    echo "KEYSTORE_PASSWORD_NIFI_REG=$KEYSTORE_PASSWORD_NIFI_REG" >> ./docker.env
+    echo "TRUSTSTORE_PASSWORD=$TRUSTSTORE_PASSWORD" >./docker.env
+    echo "KEYSTORE_PASSWORD_NIFI=$KEYSTORE_PASSWORD_NIFI" >>./docker.env
+    echo "KEYSTORE_PASSWORD_NIFI_REG=$KEYSTORE_PASSWORD_NIFI_REG" >>./docker.env
     DB_PASSWORD=$(generate_random_hex_password 8 4)
     export DB_PASSWORD
     echo "DB_PASSWORD=$DB_PASSWORD" >> ./docker.env
