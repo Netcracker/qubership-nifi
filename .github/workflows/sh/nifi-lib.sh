@@ -265,3 +265,12 @@ create_docker_env_file_plain(){
     gitDir="$(pwd)"
     echo "BASE_DIR=$gitDir" >> ./docker.env
 }
+
+create_global_vars_file(){
+    echo "Generating file with global vars for newman..."
+    gitDir="$(pwd)"
+    tmp=$(mktemp)
+    jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pas") | .value) = $pass' \
+     "${gitDir}/.github/collections/Global_Vars.postman_globals.json" > "$tmp" \
+     && mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
+}

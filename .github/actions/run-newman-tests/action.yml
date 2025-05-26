@@ -36,8 +36,8 @@ inputs:
       Corresponds to newman option ssl-client-cert-list.
     required: false
     default: ''
-  database-password:
-    description: 'Password to connect to the database for E2E test'
+  global-vars-file-name:
+    description: 'The name of the file in which global variables are specified'
     required: false
     default: ''
 runs:
@@ -76,16 +76,16 @@ runs:
           echo "TLS certificate directory found at $tlsCertsDir, adding volume mapped to /tmp/tls-certs"
           additionalVolumes="-v \"$tlsCertsDir:/tmp/tls-certs\""
         fi
-        dbPassword="${{ inputs.database-password }}"
-        if [ -n "dbPassword" ]; then
-          globalDbPassword="--global-var global.db.pas=${{ inputs.database-password }}"
+        globalVarFiles="${{ inputs.global-vars-file-name }}"
+        if [ -n "globalVarFiles" ]; then
+          pathGlobalVarFiles="--globals $collectionsDir/$globalVarFiles"
         else
-          globalDbPassword=''
+          pathGlobalVarFiles=''
         fi
         eval docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
           "$additionalVolumes" postman/newman:alpine run "${{ inputs.collection-name }}" \
           --environment="${{ inputs.env-name }}" -r cli,junit \
-          "$caCertsOption" "$clientCertConfigOption" "$globalDbPassword" || \
+          "$caCertsOption" "$clientCertConfigOption" "$pathGlobalVarFiles" || \
           echo "Collection ${{ inputs.short-name }} failed to run" > \
             "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"
     - name: Collect test results
@@ -93,4 +93,4 @@ runs:
       continue-on-error: true
       run: |
         echo "Collecting collection results into ./test-results/${{ inputs.results-dir }}..."
-        find .github/collections -name \*.xml -exec cp {} ./test-results/${{ inputs.results-dir }}/ \;
+        find .github/collections -name \*.xml -exec mv {} ./test-results/${{ inputs.results-dir }}/ \;
