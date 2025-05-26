@@ -78,7 +78,7 @@ runs:
         fi
         globalVarFiles="${{ inputs.global-vars-file-name }}"
         if [ -n "globalVarFiles" ]; then
-          pathGlobalVarFiles="--globals \"$collectionsDir/$globalVarFiles\""
+          pathGlobalVarFiles="--globals \"$globalVarFiles\""
         else
           pathGlobalVarFiles=''
         fi
