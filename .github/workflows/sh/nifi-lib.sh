@@ -76,7 +76,6 @@ generate_random_hex_password() {
     echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
 }
 
-
 configure_log_level() {
     local targetPkg="$1"
     local targetLevel="$2"
