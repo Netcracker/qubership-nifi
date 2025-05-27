@@ -73,7 +73,7 @@ wait_for_service() {
 
 generate_random_hex_password() {
     #args -- letters, numbers
-    echo "$(tr -dc A-F < /dev/urandom | head -c "$1")""$(tr -dc 0-9 < /dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
+    echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
 }
 
 
@@ -101,7 +101,7 @@ configure_log_level() {
     else
         echo "Failed to set log level in Consul. Response code = $respCode. Error message:"
         cat ./consul-put-resp.txt
-        return 1;
+        return 1
     fi
 }
 
@@ -126,7 +126,7 @@ set_configuration_version() {
     else
         echo "Failed to set version for restore in Consul. Response code = $respCode. Error message:"
         cat ./consul-put-ver-resp.txt
-        return 1;
+        return 1
     fi
 }
 
@@ -153,7 +153,7 @@ test_log_level() {
     resultsPath="./test-results/$resultsDir"
     echo "Testing Consul logging parameters configuration for package = $targetPkg, level = $targetLevel"
     echo "Results path = $resultsPath"
-    configure_log_level "$targetPkg" "$targetLevel" || \
+    configure_log_level "$targetPkg" "$targetLevel" ||
         echo "Consul config failed" >"$resultsPath/failed_consul_config.lst"
     echo "Waiting 20 seconds..."
     sleep 20
@@ -274,6 +274,6 @@ create_global_vars_file() {
     gitDir="$(pwd)"
     tmp=$(mktemp)
     jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pas") | .value) = $pass' \
-        "${gitDir}/.github/collections/Global_Vars.postman_globals.json" >"$tmp" && \
+        "${gitDir}/.github/collections/Global_Vars.postman_globals.json" >"$tmp" &&
         mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
 }

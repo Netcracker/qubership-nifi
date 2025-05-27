@@ -94,7 +94,7 @@ runs:
           { echo "Collection ${{ inputs.short-name }} failed to run" > \
             "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"; \
             docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 > ./nifi_log_tmp.lst; \
-            cp ./nifi_log_tmp.lst "./test-results/${{ inputs.results-dir }}/nifi_log_after_newman.log" }
+            cp ./nifi_log_tmp.lst "./test-results/${{ inputs.results-dir }}/nifi_log_after_newman.log;" }
     - name: Collect test results
       shell: bash
       continue-on-error: true
