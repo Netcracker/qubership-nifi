@@ -42,7 +42,7 @@ inputs:
     default: ''
   docker-compose-file:
     description: 'Path to docker compose file'
-    required: false
+    required: true
     default: ''
 runs:
   using: "composite"

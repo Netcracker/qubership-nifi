@@ -272,7 +272,7 @@ create_global_vars_file() {
     echo "Generating file with global vars for newman..."
     gitDir="$(pwd)"
     tmp=$(mktemp)
-    jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pas") | .value) = $pass' \
+    jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pass") | .value) = $pass' \
         "${gitDir}/.github/collections/Global_Vars.postman_globals.json" >"$tmp" &&
         mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
 }
