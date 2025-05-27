@@ -327,7 +327,7 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
-                                    "pm.test(\"Status code is 201\", function () {\r",
+                                    "pm.test(\"Status code is 200\", function () {\r",
                                     "    pm.response.to.have.status(200);\r",
                                     "});"
                                 ],
@@ -382,6 +382,15 @@
                                     "    console.log(\"Error: response status \" + pm.response.code);\r",
                                     "    console.log(\"Response: \", pm.response.text());\r",
                                     "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "setTimeout(function(){}, 2000);"
                                 ],
                                 "type": "text/javascript"
                             }
