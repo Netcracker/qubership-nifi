@@ -42,9 +42,8 @@ done
 echo "Flow for update: " "${listForUpdate[@]}"
 
 #Checking that the target version of NiFi is different from the one from which the export was made
-#respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
-respCode="200"
-if [ "$respCode" != "200" ]; then
+respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
+if [[ "$respCode" != "200" ]]; then
     echo "Failed to get NiFI. Response code = $respCode. Error message:"
     cat ./proc_type_resp.json
     handle_error "Failed to define NiFi target version"
