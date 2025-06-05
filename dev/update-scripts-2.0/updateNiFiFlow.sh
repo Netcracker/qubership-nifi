@@ -49,12 +49,12 @@ if [[ "$respCode" != "200" ]]; then
     handle_error "Failed to define NiFi target version"
 fi
 
-targetVer=$(< ./proc_type_resp.json jq -r '.processorTypes[] | select(.type == "org.apache.nifi.processors.attributes.UpdateAttribute") | .bundle.version') || handle_error "Error determining version of target NiFi"
+targetVer=$(<./proc_type_resp.json jq -r '.processorTypes[] | select(.type == "org.apache.nifi.processors.attributes.UpdateAttribute") | .bundle.version') || handle_error "Error determining version of target NiFi"
 
 echo "Target NiFi version - $targetVer"
 
 #If the NiFi version is 2.x.x, then run the script on the flow update
-if [ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]; then
+if [[ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
     . ./increaseNiFiVersionUpdate.sh
 fi
 
