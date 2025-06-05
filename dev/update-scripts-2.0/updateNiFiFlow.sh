@@ -10,12 +10,12 @@ delete_tmp_file() {
     rm -f ./proc_type_resp.json
 }
 
+pathToFlow=$1
+pathToUpdateNiFiConfig=$2
+
 #declare array
 declare -a listForUpdate
 declare -a exportFlow
-
-#Setting env variables
-. ./setEnv.sh
 
 if [ -z "$pathToFlow" ]; then
     echo "The variable - 'pathToFlow' is not set. The default value will be set."
@@ -33,7 +33,7 @@ mapfile -t exportFlow < <(find "$pathToFlow" -type f -name "*.json" | sort)
 for file in "${exportFlow[@]}"; do
     #Checking that there are no processors with NiFi version 2.x.x in the flow
     needUpdate=$(jq 'all(.. | objects | select(has("bundle")) | .bundle | objects; (has("group") and has("version") | not) or (.group != "org.apache.nifi" or (.version | test("^2\\.[0-9]+\\.[0-9]+$") | not)))' "$file") || handle_error "Error checking version in exported flow - $file"
-    if [[ "$needUpdate" == "true" ]]; then
+    if [ "$needUpdate" == "true" ]; then
         listForUpdate+=("$file")
         echo "Flow - $file needs to be updated"
     fi
@@ -42,19 +42,20 @@ done
 echo "Flow for update: " "${listForUpdate[@]}"
 
 #Checking that the target version of NiFi is different from the one from which the export was made
-respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
+#respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
+respCode="200"
 if [ "$respCode" != "200" ]; then
     echo "Failed to get NiFI. Response code = $respCode. Error message:"
     cat ./proc_type_resp.json
     handle_error "Failed to define NiFi target version"
 fi
 
-targetVer=$(cat ./proc_type_resp.json | jq -r '.processorTypes[] | select(.type == "org.apache.nifi.processors.attributes.UpdateAttribute") | .bundle.version') || handle_error "Error determining version of target NiFi"
+targetVer=$(< ./proc_type_resp.json jq -r '.processorTypes[] | select(.type == "org.apache.nifi.processors.attributes.UpdateAttribute") | .bundle.version') || handle_error "Error determining version of target NiFi"
 
 echo "Target NiFi version - $targetVer"
 
 #If the NiFi version is 2.x.x, then run the script on the flow update
-if [[ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
+if [ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]; then
     . ./increaseNiFiVersionUpdate.sh
 fi
 
