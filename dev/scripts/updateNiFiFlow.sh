@@ -1,12 +1,12 @@
 #!/bin/bash
 
-handle_error(){
+handle_error() {
     echo "$1" >&2
     delete_tmp_file
     exit 1
 }
 
-delete_tmp_file(){
+delete_tmp_file() {
     rm -f ./proc_type_resp.json
 }
 
@@ -39,10 +39,10 @@ for file in "${exportFlow[@]}"; do
     fi
 done
 
-echo "Flow for update: ${listForUpdate[@]}"
+echo "Flow for update: " "${listForUpdate[@]}"
 
 #Checking that the target version of NiFi is different from the one from which the export was made
-respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NiFi_TARGET_URL/nifi-api/flow/processor-types")
+respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
 if [ "$respCode" != "200" ]; then
     echo "Failed to get NiFI. Response code = $respCode. Error message:"
     cat ./proc_type_resp.json
@@ -54,7 +54,7 @@ targetVer=$(cat ./proc_type_resp.json | jq -r '.processorTypes[] | select(.type 
 echo "Target NiFi version - $targetVer"
 
 #If the NiFi version is 2.x.x, then run the script on the flow update
-if [[ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$  ]]; then
+if [[ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
     . ./increaseNiFiVersionUpdate.sh
 fi
 
