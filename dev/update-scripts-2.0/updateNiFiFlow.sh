@@ -18,16 +18,31 @@ declare -a listForUpdate
 declare -a exportFlow
 
 if [ -z "$pathToFlow" ]; then
-    echo "The variable - 'pathToFlow' is not set. The default value will be set."
+    echo "The first argument - 'pathToFlow' is not set. The default value - '/export' will be set."
     pathToFlow="./export"
 fi
 
 if [ -z "$pathToUpdateNiFiConfig" ]; then
-    echo "The variable - 'pathToUpdateNiFiConfig' is not set. The default value will be set."
+    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - 'updateNiFiVerNarConfig.json' will be set."
     pathToUpdateNiFiConfig="./updateNiFiVerNarConfig.json"
 fi
 
-echo "Startd update flow process"
+if [ ! -d "$pathToFlow" ]; then
+    echo "Error: The specified directory does not exist."
+    exit 1
+fi
+
+if [ ! -d "$pathToFlow" ]; then
+    echo "Error: The specified directory does not exist."
+    exit 1
+fi
+
+if [ ! -f "$pathToUpdateNiFiConfig" ]; then
+    echo "Error: The specified configuration file does not exist."
+    exit 1
+fi
+
+echo "Start update flow process"
 mapfile -t exportFlow < <(find "$pathToFlow" -type f -name "*.json" | sort)
 
 for file in "${exportFlow[@]}"; do
@@ -44,7 +59,7 @@ echo "Flow for update: " "${listForUpdate[@]}"
 #Checking that the target version of NiFi is different from the one from which the export was made
 respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
 if [[ "$respCode" != "200" ]]; then
-    echo "Failed to get NiFI. Response code = $respCode. Error message:"
+    echo "Failed to get types of processors that this NiFi supports. Response code = $respCode. Error message:"
     cat ./proc_type_resp.json
     handle_error "Failed to define NiFi target version"
 fi
