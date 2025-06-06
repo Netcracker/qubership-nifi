@@ -1,0 +1,18 @@
+{
+    "org.apache.nifi.processors.standard.JoltTransformJSON": {
+            "newType": "org.apache.nifi.processors.jolt.JoltTransformJSON",
+            "newArtifact": "nifi-jolt-nar"
+    },
+    "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer": {
+            "newType": "org.apache.nifi.distributed.cache.server.map.MapCacheServer"
+    },
+    "org.apache.nifi.distributed.cache.server.DistributedSetCacheServer": {
+            "newType": "org.apache.nifi.distributed.cache.server.SetCacheServer"
+    },
+    "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService": {
+            "newType": "org.apache.nifi.distributed.cache.client.MapCacheClientService"
+    },
+    "org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService": {
+            "newType": "org.apache.nifi.distributed.cache.client.SetCacheClientService"
+    }
+}
