@@ -18,12 +18,12 @@ declare -a listForUpdate
 declare -a exportFlow
 
 if [ -z "$pathToFlow" ]; then
-    echo "The first argument - 'pathToFlow' is not set. The default value - '/export' will be set."
+    echo "The first argument - 'pathToFlow' is not set. The default value - './export' will be set."
     pathToFlow="./export"
 fi
 
 if [ -z "$pathToUpdateNiFiConfig" ]; then
-    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - 'updateNiFiVerNarConfig.json' will be set."
+    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - './updateNiFiVerNarConfig.json' will be set."
     pathToUpdateNiFiConfig="./updateNiFiVerNarConfig.json"
 fi
 

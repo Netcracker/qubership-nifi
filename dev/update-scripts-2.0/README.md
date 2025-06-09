@@ -5,24 +5,24 @@
 The script 'updateNiFiFlow.sh' is designed to upgrade exported flows when switching to NiFi 2.4.0. The script changes the type and artifact for processors.
 Example of running a script:
 
-`updateNiFiFlow.sh arg1 arg2`
+`bash updateNiFiFlow.sh <pathToFlow> <pathToUpdateNiFiConfig>`
 
 As input arguments used in script:
 
-| №    | Argument               | Required | Default                      | Description                                                 |
-|------|------------------------|----------|------------------------------|-------------------------------------------------------------|
-| arg1 | pathToFlow             | Y        | /export                      | Path to the directory where the exported flows are located. |
-| arg2 | pathToUpdateNiFiConfig | Y        | /updateNiFiVerNarConfig.json | Path to mapping config .                                    |
+| Argument               | Required | Default                       | Description                                                 |
+|------------------------|----------|-------------------------------|-------------------------------------------------------------|
+| pathToFlow             | Y        | ./export                      | Path to the directory where the exported flows are located. |
+| pathToUpdateNiFiConfig | Y        | ./updateNiFiVerNarConfig.json | Path to mapping config.                                     |
 
 ## Environment variables
 
 The table below describes environment variables used in script
 
-| Parameter       | Required | Default                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|-----------------|----------|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NIFI_TARGET_URL | Y        | `https://localhost:8443` | URL for target NiFi.                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| DEBUG_MODE      | N        | false                    | If set to 'true', then when upgrading a flow, the difference between upgrade flow and export flow will be shown.                                                                                                                                                                                                                                                                                                                                                                             |
-| NIFI_CERT       | N        |                          | TLS certificates that are used to connect to the NiFi target. In case of `Alpine image`, to connect using certificates you need to use: <br/> 1. PKCS12 keystore<br/> 2. PKCS12 keystore password <br/> 3. The public certificate of the intermediate CA in PEM format. <br/> Example of certificate installation:<br/> `--cert '/path-to-certificate/CN=admin_OU=NIFI.p12:/path-to-certificate/CN=admin_OU=NIFI.password' --cert-type P12 --cacert /path-to-certificate/nifi-cert.pem`<br/> |
+| Parameter       | Required | Default                  | Description                                                                                                                                                                                                                                                                                                                                       |
+|-----------------|----------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NIFI_TARGET_URL | Y        | `https://localhost:8443` | URL for target NiFi.                                                                                                                                                                                                                                                                                                                              |
+| DEBUG_MODE      | N        | false                    | If set to 'true', then when upgrading a flow, the difference between upgrade flow and export flow will be shown.                                                                                                                                                                                                                                  |
+| NIFI_CERT       | N        |                          | TLS certificates that are used to connect to the NiFi target.<br/> Exact set of arguments depends on Linux distribution, refer to `curl` documentation on your system for more details on TLS-related parameters.<br/>For Alpine Linux the set of parameters is:<br/>`--cert 'client.p12:client.password' --cert-type P12 --cacert nifi-cert.pem` |
 
 ## Mapping config
 
