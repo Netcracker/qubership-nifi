@@ -44,6 +44,7 @@ runs:
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'create_pg'
+        docker-compose-file: '${{ inputs.docker-compose-path }}'
     - name: Creating a test process group
       if: ${{ inputs.tls-mode == 'true' }}
       continue-on-error: true
@@ -56,6 +57,7 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '${{ inputs.docker-compose-path }}'
     - name: Set the version in Consul
       shell: bash
       continue-on-error: true
@@ -95,6 +97,7 @@ runs:
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
+        docker-compose-file: '${{ inputs.docker-compose-path }}'
     - name: Checking that the version has been restored and the created process group not exist
       if: ${{ inputs.tls-mode == 'true' && inputs.success-scenario == 'true' }}
       continue-on-error: true
@@ -107,6 +110,7 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '${{ inputs.docker-compose-path }}'
     - name: Checking that the version has been restored and the created process group exist
       if: ${{ inputs.tls-mode == 'false' && inputs.success-scenario == 'false' }}
       continue-on-error: true
@@ -116,6 +120,7 @@ runs:
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'check_pg'
+        docker-compose-file: '${{ inputs.docker-compose-path }}'
     - name: Checking that the version has been restored and the created process group does exist
       if: ${{ inputs.tls-mode == 'true' && inputs.success-scenario == 'false' }}
       continue-on-error: true
@@ -128,3 +133,4 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '${{ inputs.docker-compose-path }}'

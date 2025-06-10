@@ -56,6 +56,7 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '.github/docker/tls/docker-compose.yaml'
     - name: Run basic nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -67,6 +68,7 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '.github/docker/tls/docker-compose.yaml'
     - name: Run processors nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -78,6 +80,7 @@ runs:
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: '.github/docker/tls/docker-compose.yaml'
     - name: Run configuration restore tests (Success case)
       continue-on-error: true
       uses: ./.github/actions/run-conf-restore-test

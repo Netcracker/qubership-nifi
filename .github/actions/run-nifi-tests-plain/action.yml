@@ -46,6 +46,7 @@ runs:
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'basic'
+        docker-compose-file: '.github/docker/plain/docker-compose.yaml'
     - name: Run processors nifi API tests
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -54,6 +55,7 @@ runs:
         env-name: 'NiFi_AT.json.postman_environment'
         results-dir: '${{ inputs.results-dir }}'
         short-name: 'processors'
+        docker-compose-file: '.github/docker/plain/docker-compose.yaml'
     - name: Run configuration restore tests (Success case)
       continue-on-error: true
       uses: ./.github/actions/run-conf-restore-test
