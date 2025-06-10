@@ -93,7 +93,7 @@ jobs:
           echo "Checking test results for failures..."
           failed_cnt=$(find ./test-results -name "failed_*.lst" | wc -l)
           echo "Found failed steps = $failed_cnt"
-          if [ "$failed_cnt" == "0" ]; then 
+          if [ "$failed_cnt" == "0" ]; then
             echo "All tests were successful!"
           else
             echo "Some tests ($failed_cnt) failed. Marking as failure."
@@ -107,4 +107,3 @@ jobs:
           path: |
             ./test-results
           retention-days: 2
-      
