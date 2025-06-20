@@ -77,7 +77,7 @@ jobs:
     needs: [check-tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven-command: "--batch-mode package"
+      maven-command: "--batch-mode package -Pcentral"
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: true
       artifact-id: 'nifi'
@@ -107,7 +107,7 @@ jobs:
     needs: [check-tag, tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven-command: ${{ (github.event.inputs.dry-run == 'true' && '--batch-mode package') || '--batch-mode deploy' }}
+      maven-command: ${{ (github.event.inputs.dry-run == 'true' && '--batch-mode package -Pcentral') || '--batch-mode deploy -Pcentral' }}
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: false
       artifact-id: 'nifi'
