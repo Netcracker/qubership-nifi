@@ -26,6 +26,8 @@
     <artifactId>qubership-service-nar</artifactId>
     <version>1.0.1</version>
     <packaging>nar</packaging>
+    <name>${project.groupId}:${project.artifactId}</name>
+
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>

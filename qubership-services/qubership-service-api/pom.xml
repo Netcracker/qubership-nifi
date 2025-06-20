@@ -25,7 +25,8 @@
 
     <artifactId>qubership-service-api</artifactId>
     <packaging>jar</packaging>
-    
+    <name>${project.groupId}:${project.artifactId}</name>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
