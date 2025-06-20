@@ -73,7 +73,6 @@ jobs:
           echo "Tag already exists: v${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "Tag already exists: v${{ github.event.inputs.version }}"
           exit 1
-          
   mvn-package:
     needs: [check-tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
