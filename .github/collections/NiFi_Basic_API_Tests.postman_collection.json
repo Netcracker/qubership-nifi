@@ -1,691 +1,691 @@
 {
-	"info": {
-		"_postman_id": "771dd42d-f52c-4eb1-b31d-c8706aa43a21",
-		"name": "NiFi_Basic_API_Tests",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Get reporting task types",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains custom reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var taskTypes = jsonData.reportingTaskTypes;\r",
-							"    var result = false;\r",
-							"    for (var i = 0; i < taskTypes.length; i++) {\r",
-							"        var taskType = taskTypes[i]\r",
-							"        if (taskType.type == \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\") {\r",
-							"            pm.environment.set(\"comp.prom.rep.task.id\", taskType.bundle.version);\r",
-							"            result = true;\r",
-							"            break;\r",
-							"        }\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/reporting-task-types",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"reporting-task-types"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get controller service types",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains custom controller services\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var csTypes = jsonData.controllerServiceTypes;\r",
-							"    var result = false;\r",
-							"    for (var i = 0; i < csTypes.length; i++) {\r",
-							"        var csType = csTypes[i]\r",
-							"        if (csType.type == \"org.qubership.nifi.service.RedisBulkDistributedMapCacheClientService\") {\r",
-							"            result = true;\r",
-							"            break;\r",
-							"        }\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/controller-service-types",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"controller-service-types"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get processor types",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains custom processors\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var processorTypes = jsonData.processorTypes;\r",
-							"    var result = false;\r",
-							"    for (var i = 0; i < processorTypes.length; i++) {\r",
-							"        var processorType = processorTypes[i]\r",
-							"        if (processorType.type == \"org.qubership.nifi.processors.FetchTableToJson\") {\r",
-							"            result = true;\r",
-							"            break;\r",
-							"        }\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/processor-types",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"processor-types"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get registry types",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var flowRegistryClientTypes = jsonData.flowRegistryClientTypes;\r",
-							"    var result = false;\r",
-							"    for (var i = 0; i < flowRegistryClientTypes.length; i++) {\r",
-							"        var registryClientType = flowRegistryClientTypes[i]\r",
-							"        if (registryClientType.type == \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\") {\r",
-							"            result = true;\r",
-							"            pm.environment.set(\"registry.client.version\", registryClientType.bundle.version);\r",
-							"            break;\r",
-							"        }\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/registry-types",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"registry-types"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get registry clients",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var registries = jsonData.registries;\r",
-							"    var result = false;\r",
-							"    if (registries.length > 0) {\r",
-							"        result = true\r",
-							"        var registryClientId = registries[0].id\r",
-							"        var registryClientName = registries[0].component.name\r",
-							"        pm.environment.set(\"registry.client.id\", registryClientId);\r",
-							"        pm.environment.set(\"registry.client.name\", registryClientName);\r",
-							"        postman.setNextRequest(\"Create 2nd registry client\")\r",
-							"    } else {\r",
-							"        result = true;\r",
-							"        postman.setNextRequest(\"Create registry client\")\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"registry-clients"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Create registry client",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 201\", function () {\r",
-							"    pm.response.to.have.status(201);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var registryClientName = jsonData.component.name;\r",
-							"    var registryClientId = jsonData.id;    \r",
-							"    pm.environment.set(\"registry.client.id\", registryClientId);\r",
-							"    pm.environment.set(\"registry.client.name\", registryClientName);\r",
-							"    var result = false;\r",
-							"    if (registryClientName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-							"pm.environment.set(\"nifi.client.id\", uuid);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"registry\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    },\r\n    \"component\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    }\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"registry-clients"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Create 2nd registry client",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 400\", function () {\r",
-							"    pm.response.to.have.status(400);\r",
-							"});\r",
-							"pm.test(\"Response is text and contains error message\", function () {\r",
-							"    var textData = pm.response.text();\r",
-							"    pm.expect(textData).to.eql(\"A Flow Registry already exists with the name NiFi Registry\");\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"const uuid = pm.variables.replaceIn('{{$guid}}');\r",
-							"pm.environment.set(\"nifi.client.id\", uuid);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"registry\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    },\r\n    \"component\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    }\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"registry-clients"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get registry client",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var registryClientName = jsonData.component.name;\r",
-							"    var result = false;\r",
-							"    if (registryClientName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/registry-clients/{{registry.client.id}}",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"registry-clients",
-						"{{registry.client.id}}"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get reporting tasks",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var reportingTasks = jsonData.reportingTasks;\r",
-							"    var result = false;\r",
-							"    for (var i = 0; i < reportingTasks.length; i++) {\r",
-							"        var reportingTask = reportingTasks[i]\r",
-							"        if (reportingTask.component.type == \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\") {\r",
-							"            result = true;\r",
-							"            var reportingTaskId = reportingTask.id\r",
-							"            pm.environment.set(\"reporting.task.comp.id\", reportingTaskId);\r",
-							"            postman.setNextRequest(\"Get reporting task\")\r",
-							"            break;\r",
-							"        }\r",
-							"    }\r",
-							"    if (!result) {\r",
-							"        result = true;\r",
-							"        postman.setNextRequest(\"Create reporting task\")\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/reporting-tasks",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"reporting-tasks"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Create reporting task",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 201\", function () {\r",
-							"    pm.response.to.have.status(201);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting task\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var compId = jsonData.id;    \r",
-							"    pm.environment.set(\"reporting.task.comp.id\", compId);\r",
-							"    var result = false;\r",
-							"    if (compId != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"component\": {\r\n        \"name\": \"ComponentPrometheusReportingTask\",\r\n        \"type\": \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\",\r\n        \"bundle\": {\r\n            \"group\": \"org.qubership.nifi\",\r\n            \"artifact\": \"migration-nifi-processors-open\",\r\n            \"version\": \"{{comp.prom.rep.task.id}}\"\r\n        },\r\n        \"state\": \"STOPPED\",\r\n        \"schedulingPeriod\": \"5 mins\",\r\n        \"schedulingStrategy\": \"TIMER_DRIVEN\",\r\n        \"properties\": {\r\n            \"port\": \"9392\",\r\n            \"processor-time-threshold\": \"150 sec\",\r\n            \"connection-queue-threshold\": \"80\",\r\n            \"pg-level-threshold\": \"2\"\r\n        }\r\n    }\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/controller/reporting-tasks",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"controller",
-						"reporting-tasks"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get reporting task",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var compName = jsonData.component.name;\r",
-							"    var compVersion = jsonData.revision.version;\r",
-							"    pm.environment.set(\"reporting.task.comp.version\", compVersion);\r",
-							"    var result = false;\r",
-							"    if (compName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"reporting-tasks",
-						"{{reporting.task.comp.id}}"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Stop reporting task",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var compName = jsonData.component.name;\r",
-							"    var result = false;\r",
-							"    if (compName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": \"{{reporting.task.comp.version}}\"\r\n    },\r\n    \"state\": \"STOPPED\",\r\n    \"disconnectedNodeAcknowledged\": true\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}/run-status",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"reporting-tasks",
-						"{{reporting.task.comp.id}}",
-						"run-status"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get reporting task2",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var compName = jsonData.component.name;\r",
-							"    var compVersion = jsonData.revision.version;\r",
-							"    pm.environment.set(\"reporting.task.comp.version\", compVersion);\r",
-							"    var result = false;\r",
-							"    if (compName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"reporting-tasks",
-						"{{reporting.task.comp.id}}"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Start reporting task",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {\r",
-							"    pm.response.to.have.status(200);\r",
-							"});\r",
-							"pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
-							"    var jsonData = pm.response.json();\r",
-							"    var compName = jsonData.component.name;\r",
-							"    var result = false;\r",
-							"    if (compName != null) {\r",
-							"        result = true;\r",
-							"    }\r",
-							"    pm.expect(result).to.eql(true);\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": \"{{reporting.task.comp.version}}\"\r\n    },\r\n    \"state\": \"RUNNING\",\r\n    \"disconnectedNodeAcknowledged\": true\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}/run-status",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"reporting-tasks",
-						"{{reporting.task.comp.id}}",
-						"run-status"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+  "info": {
+    "_postman_id": "771dd42d-f52c-4eb1-b31d-c8706aa43a21",
+    "name": "NiFi_Basic_API_Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get reporting task types",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains custom reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var taskTypes = jsonData.reportingTaskTypes;\r",
+              "    var result = false;\r",
+              "    for (var i = 0; i < taskTypes.length; i++) {\r",
+              "        var taskType = taskTypes[i]\r",
+              "        if (taskType.type == \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\") {\r",
+              "            pm.environment.set(\"comp.prom.rep.task.id\", taskType.bundle.version);\r",
+              "            result = true;\r",
+              "            break;\r",
+              "        }\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/flow/reporting-task-types",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "flow",
+            "reporting-task-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get controller service types",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains custom controller services\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var csTypes = jsonData.controllerServiceTypes;\r",
+              "    var result = false;\r",
+              "    for (var i = 0; i < csTypes.length; i++) {\r",
+              "        var csType = csTypes[i]\r",
+              "        if (csType.type == \"org.qubership.nifi.service.RedisBulkDistributedMapCacheClientService\") {\r",
+              "            result = true;\r",
+              "            break;\r",
+              "        }\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/flow/controller-service-types",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "flow",
+            "controller-service-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get processor types",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains custom processors\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var processorTypes = jsonData.processorTypes;\r",
+              "    var result = false;\r",
+              "    for (var i = 0; i < processorTypes.length; i++) {\r",
+              "        var processorType = processorTypes[i]\r",
+              "        if (processorType.type == \"org.qubership.nifi.processors.FetchTableToJson\") {\r",
+              "            result = true;\r",
+              "            break;\r",
+              "        }\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/flow/processor-types",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "flow",
+            "processor-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get registry types",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var flowRegistryClientTypes = jsonData.flowRegistryClientTypes;\r",
+              "    var result = false;\r",
+              "    for (var i = 0; i < flowRegistryClientTypes.length; i++) {\r",
+              "        var registryClientType = flowRegistryClientTypes[i]\r",
+              "        if (registryClientType.type == \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\") {\r",
+              "            result = true;\r",
+              "            pm.environment.set(\"registry.client.version\", registryClientType.bundle.version);\r",
+              "            break;\r",
+              "        }\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/registry-types",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "registry-types"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get registry clients",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var registries = jsonData.registries;\r",
+              "    var result = false;\r",
+              "    if (registries.length > 0) {\r",
+              "        result = true\r",
+              "        var registryClientId = registries[0].id\r",
+              "        var registryClientName = registries[0].component.name\r",
+              "        pm.environment.set(\"registry.client.id\", registryClientId);\r",
+              "        pm.environment.set(\"registry.client.name\", registryClientName);\r",
+              "        postman.setNextRequest(\"Create 2nd registry client\")\r",
+              "    } else {\r",
+              "        result = true;\r",
+              "        postman.setNextRequest(\"Create registry client\")\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "registry-clients"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create registry client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var registryClientName = jsonData.component.name;\r",
+              "    var registryClientId = jsonData.id;    \r",
+              "    pm.environment.set(\"registry.client.id\", registryClientId);\r",
+              "    pm.environment.set(\"registry.client.name\", registryClientName);\r",
+              "    var result = false;\r",
+              "    if (registryClientName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+              "pm.environment.set(\"nifi.client.id\", uuid);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"registry\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    },\r\n    \"component\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "registry-clients"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create 2nd registry client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 400\", function () {\r",
+              "    pm.response.to.have.status(400);\r",
+              "});\r",
+              "pm.test(\"Response is text and contains error message\", function () {\r",
+              "    var textData = pm.response.text();\r",
+              "    pm.expect(textData).to.eql(\"A Flow Registry already exists with the name NiFi Registry\");\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+              "pm.environment.set(\"nifi.client.id\", uuid);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"registry\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    },\r\n    \"component\": {\r\n        \"name\": \"NiFi Registry\",\r\n        \"description\": \"Default nifi registry client\",\r\n        \"type\": \"org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient\",\r\n        \"bundle\": {\r\n            \"group\": \"org.apache.nifi\",\r\n            \"artifact\": \"nifi-flow-registry-client-nar\",\r\n            \"version\": \"{{registry.client.version}}\"\r\n        },\r\n        \"properties\": {\r\n            \"url\": \"{{nifi.registry.int.url}}\",\r\n            \"ssl-context-service\": null\r\n        }\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/registry-clients",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "registry-clients"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get registry client",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains NiFi Registry client\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var registryClientName = jsonData.component.name;\r",
+              "    var result = false;\r",
+              "    if (registryClientName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/registry-clients/{{registry.client.id}}",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "registry-clients",
+            "{{registry.client.id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get reporting tasks",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var reportingTasks = jsonData.reportingTasks;\r",
+              "    var result = false;\r",
+              "    for (var i = 0; i < reportingTasks.length; i++) {\r",
+              "        var reportingTask = reportingTasks[i]\r",
+              "        if (reportingTask.component.type == \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\") {\r",
+              "            result = true;\r",
+              "            var reportingTaskId = reportingTask.id\r",
+              "            pm.environment.set(\"reporting.task.comp.id\", reportingTaskId);\r",
+              "            postman.setNextRequest(\"Get reporting task\")\r",
+              "            break;\r",
+              "        }\r",
+              "    }\r",
+              "    if (!result) {\r",
+              "        result = true;\r",
+              "        postman.setNextRequest(\"Create reporting task\")\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/flow/reporting-tasks",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "flow",
+            "reporting-tasks"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create reporting task",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 201\", function () {\r",
+              "    pm.response.to.have.status(201);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting task\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var compId = jsonData.id;    \r",
+              "    pm.environment.set(\"reporting.task.comp.id\", compId);\r",
+              "    var result = false;\r",
+              "    if (compId != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 0\r\n    },\r\n    \"component\": {\r\n        \"name\": \"ComponentPrometheusReportingTask\",\r\n        \"type\": \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\",\r\n        \"bundle\": {\r\n            \"group\": \"org.qubership.nifi\",\r\n            \"artifact\": \"migration-nifi-processors-open\",\r\n            \"version\": \"{{comp.prom.rep.task.id}}\"\r\n        },\r\n        \"state\": \"STOPPED\",\r\n        \"schedulingPeriod\": \"5 mins\",\r\n        \"schedulingStrategy\": \"TIMER_DRIVEN\",\r\n        \"properties\": {\r\n            \"port\": \"9392\",\r\n            \"processor-time-threshold\": \"150 sec\",\r\n            \"connection-queue-threshold\": \"80\",\r\n            \"pg-level-threshold\": \"2\"\r\n        }\r\n    }\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/controller/reporting-tasks",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "controller",
+            "reporting-tasks"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get reporting task",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var compName = jsonData.component.name;\r",
+              "    var compVersion = jsonData.revision.version;\r",
+              "    pm.environment.set(\"reporting.task.comp.version\", compVersion);\r",
+              "    var result = false;\r",
+              "    if (compName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "reporting-tasks",
+            "{{reporting.task.comp.id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Stop reporting task",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var compName = jsonData.component.name;\r",
+              "    var result = false;\r",
+              "    if (compName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": \"{{reporting.task.comp.version}}\"\r\n    },\r\n    \"state\": \"STOPPED\",\r\n    \"disconnectedNodeAcknowledged\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}/run-status",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "reporting-tasks",
+            "{{reporting.task.comp.id}}",
+            "run-status"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get reporting task2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var compName = jsonData.component.name;\r",
+              "    var compVersion = jsonData.revision.version;\r",
+              "    pm.environment.set(\"reporting.task.comp.version\", compVersion);\r",
+              "    var result = false;\r",
+              "    if (compName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "reporting-tasks",
+            "{{reporting.task.comp.id}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Start reporting task",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "pm.test(\"Response is JSON and contains reporting tasks\", function () {\r",
+              "    var jsonData = pm.response.json();\r",
+              "    var compName = jsonData.component.name;\r",
+              "    var result = false;\r",
+              "    if (compName != null) {\r",
+              "        result = true;\r",
+              "    }\r",
+              "    pm.expect(result).to.eql(true);\r",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": \"{{reporting.task.comp.version}}\"\r\n    },\r\n    \"state\": \"RUNNING\",\r\n    \"disconnectedNodeAcknowledged\": true\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.comp.id}}/run-status",
+          "host": [
+            "{{nifi.url}}"
+          ],
+          "path": [
+            "nifi-api",
+            "reporting-tasks",
+            "{{reporting.task.comp.id}}",
+            "run-status"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
 }
