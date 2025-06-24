@@ -66,9 +66,9 @@ prop_replace 'nifi.web.https.port' "${NIFI_WEB_HTTPS_PORT:-8443}"
 
 if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
     clusterHostName=$(hostname -f)
-    prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$clusterHostName}"
+    prop_replace 'nifi.web.https.host' "${NIFI_WEB_HTTPS_HOST:-$clusterHostName}"
 else
-    prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$(hostname)}"
+    prop_replace 'nifi.web.https.host' "${NIFI_WEB_HTTPS_HOST:-$(hostname)}"
 fi
 
 prop_replace 'nifi.remote.input.secure' 'true'
@@ -86,14 +86,12 @@ prop_replace 'nifi.security.user.login.identity.provider' "${NIFI_SECURITY_USER_
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 
-
 # Check if the user has specified a nifi.web.proxy.host setting and handle appropriately
 if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
     info 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode.  The NiFi UI may be inaccessible if using port mapping.'
 else
     prop_replace 'nifi.web.proxy.host' "${NIFI_WEB_PROXY_HOST}"
 fi
-
 
 if [ -n "${NODE_IDENTITY}" ]; then
     sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${NODE_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml

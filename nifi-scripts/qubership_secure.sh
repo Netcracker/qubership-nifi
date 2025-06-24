@@ -42,12 +42,12 @@ prop_replace 'nifi.security.identity.mapping.value.dn' "\$1"
     echo " "
     echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
     echo "nifi.security.identity.mapping.value.dn2=\$1"
-} >> "${NIFI_HOME}"/conf/nifi.properties
+} >>"${NIFI_HOME}"/conf/nifi.properties
 
 # Establish initial user and an associated admin identity
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity 2">'"${INITIAL_USER_IDENTITY}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml
-sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml 
+sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 
 if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
 
@@ -66,22 +66,20 @@ if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
     # 2. nifi.properties from Consul
     # 3. default nifi.properties
     if [ -n "$NIFI_ZOOKEEPER_CONNECT_TIMEOUT" ]; then
-        prop_replace 'nifi.zookeeper.connect.timeout'  "${NIFI_ZOOKEEPER_CONNECT_TIMEOUT}"
+        prop_replace 'nifi.zookeeper.connect.timeout' "${NIFI_ZOOKEEPER_CONNECT_TIMEOUT}"
     fi
     if [ -n "$NIFI_CLUSTER_NODE_READ_TIMEOUT" ]; then
         prop_replace 'nifi.cluster.node.read.timeout'  "${NIFI_CLUSTER_NODE_READ_TIMEOUT}"
     fi
 
-    sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${MICROSERVICE_NAME}-0.${NAMESPACE}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
+    sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${MICROSERVICE_NAME}-0.${NAMESPACE}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 
-    for (( i=1; i <= maxNode-1; i++ ))
-    do
+    for (( i=1; i <= maxNode-1; i++ )); do
         sed -i -e '/"Node Identity 1">'".*"'/a <property name="Node Identity '"$((i+1))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml
     done
 
-    for (( i=0; i <= maxNode-1; i++ ))
-    do
-        sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity '"$((i+3))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml   
+    for (( i=0; i <= maxNode-1; i++ )); do
+        sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity '"$((i+3))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml
     done
 fi
 
