@@ -74,11 +74,11 @@ if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
 
     sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${MICROSERVICE_NAME}-0.${NAMESPACE}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 
-    for ((i=1; i <= maxNode-1; i++)); do
+    for ((i = 1; i <= maxNode - 1; i++)); do
         sed -i -e '/"Node Identity 1">'".*"'/a <property name="Node Identity '"$((i + 1))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml
     done
 
-    for ((i=0; i <= maxNode-1; i++)); do
+    for ((i = 0; i <= maxNode - 1; i++)); do
         sed -i '/"Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'/a <property name="Initial User Identity '"$((i + 3))"'">'"${MICROSERVICE_NAME}-$i.${NAMESPACE}"'</property>' "${NIFI_HOME}"/conf/authorizers.xml
     done
 fi
@@ -154,6 +154,5 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
     prop_replace 'nifi.zookeeper.security.truststoreType' "JKS"
     prop_replace 'nifi.zookeeper.security.truststorePasswd' "$CERTIFICATE_FILE_PASSWORD"
 fi
-
 
 info "Done creating keystore."
