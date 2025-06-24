@@ -43,7 +43,7 @@ services:
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
-      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration"
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
     container_name: local-nifi-oidc
     restart: unless-stopped
   nifi-registry:
@@ -72,7 +72,7 @@ services:
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
-      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
     container_name: local-nifi-registry-oidc
     hostname: nifi-registry
     restart: unless-stopped
@@ -90,6 +90,7 @@ services:
         condition: service_started
     volumes:
       - keycloak-init:/opt/keycloak/data/import
+      - tls-cert:/tmp/tls-certs
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -97,13 +98,18 @@ services:
       KC_DB_URL: jdbc:postgresql://postgresql:5432/postgres
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HTTPS_KEY_STORE_FILE: /tmp/tls-certs/keycloak-server.p12
+      KC_HTTPS_KEY_STORE_PASSWORD: Admin1234
+      KC_HTTPS_PORT: 8443
+      KC_HTTP_ENABLED: false
     ports:
       - 28080:8080
+      - 28443:8443
     command:
       - start-dev
       - "--import-realm"
       - "--hostname"
-      - "http://localhost:28080"
+      - "https://localhost:28443"
       - "--hostname-backchannel-dynamic"
       - "true"
   postgresql:
