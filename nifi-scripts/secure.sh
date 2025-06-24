@@ -16,6 +16,7 @@
 #    limitations under the License.
 
 # shellcheck source=/dev/null
+# shellcheck disable=SC2154
 scripts_dir='/opt/nifi/scripts'
 
 . /opt/nifi/scripts/logging_api.sh
@@ -49,13 +50,13 @@ prop_replace 'nifi.security.truststore'         "${TRUSTSTORE_PATH}"
 prop_replace 'nifi.security.truststoreType'     "${TRUSTSTORE_TYPE}"
 prop_replace 'nifi.security.truststorePasswd'   "${TRUSTSTORE_PASSWORD}"
 
-prop_replace 'keystore'           "${KEYSTORE_PATH}"                    "$(nifi_toolkit_props_file)"
-prop_replace 'keystoreType'       "${KEYSTORE_TYPE}"                    "$(nifi_toolkit_props_file)"
-prop_replace 'keystorePasswd'     "${KEYSTORE_PASSWORD}"                "$(nifi_toolkit_props_file)"
-prop_replace 'keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" "$(nifi_toolkit_props_file)"
-prop_replace 'truststore'         "${TRUSTSTORE_PATH}"                  "$(nifi_toolkit_props_file)"
-prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"                  "$(nifi_toolkit_props_file)"
-prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              "$(nifi_toolkit_props_file)"
+prop_replace 'keystore'           "${KEYSTORE_PATH}"                    "${nifi_toolkit_props_file}"
+prop_replace 'keystoreType'       "${KEYSTORE_TYPE}"                    "${nifi_toolkit_props_file}"
+prop_replace 'keystorePasswd'     "${KEYSTORE_PASSWORD}"                "${nifi_toolkit_props_file}"
+prop_replace 'keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" "${nifi_toolkit_props_file}"
+prop_replace 'truststore'         "${TRUSTSTORE_PATH}"                  "${nifi_toolkit_props_file}"
+prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"                  "${nifi_toolkit_props_file}"
+prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              "${nifi_toolkit_props_file}"
 
 # Disable HTTP and enable HTTPS
 prop_replace 'nifi.web.http.port'   ''
@@ -76,7 +77,7 @@ prop_replace 'nifi.remote.input.secure' 'true'
 prop_replace 'nifi.cluster.protocol.is.secure' "${NIFI_CLUSTER_IS_NODE:-false}"
 
 # Setup nifi-toolkit
-prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$(hostname)}:${NIFI_WEB_HTTPS_PORT:-8443}" "$(nifi_toolkit_props_file)"
+prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$(hostname)}:${NIFI_WEB_HTTPS_PORT:-8443}" "${nifi_toolkit_props_file}"
 
 # Configure Authorizer and Login Identity Provider
 prop_replace 'nifi.security.user.authorizer' "${NIFI_SECURITY_USER_AUTHORIZER:-managed-authorizer}"

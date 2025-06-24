@@ -72,7 +72,7 @@ services:
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
-      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration"
+      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
     container_name: local-nifi-registry-oidc
     hostname: nifi-registry
     restart: unless-stopped
