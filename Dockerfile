@@ -22,18 +22,26 @@ RUN apk add --no-cache \
     bash=5.2.26-r0 \
     curl=8.12.1-r0
 
-#add /home/nifi symlink
-RUN mkdir -p /opt/nifi/nifi-home-dir \
-    && ln -s /opt/nifi/nifi-home-dir /home/nifi \
-    && chown 10001:0 /opt/nifi/nifi-home-dir \
-    && chmod 775 /opt/nifi/nifi-home-dir
-
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
 ENV NIFI_TOOLKIT_HOME $NIFI_BASE_DIR/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 ENV HOME=${NIFI_HOME}
+
+#add /home/nifi symlink
+RUN mkdir -p /opt/nifi/nifi-home-dir \
+    && ln -s /opt/nifi/nifi-home-dir /home/nifi \
+    && chown 10001:0 /opt/nifi/nifi-home-dir \
+    && chmod 775 /opt/nifi/nifi-home-dir \
+    && chmod 664 /opt/java/openjdk/lib/security/cacerts \
+    && adduser --disabled-password \
+       --gecos "" \
+       --home "${NIFI_HOME}" \
+       --ingroup "root" \
+       --no-create-home \
+       --uid 10001 \
+       nifi
 
 USER 10001
 
@@ -61,7 +69,7 @@ RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/enc
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-site-to-site-client-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/velocity-engine-core*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar
-    
+
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
 
