@@ -12,8 +12,8 @@ generate_nifi_certs() {
             -srcstorepass "${KEYSTORE_PASSWORD_NIFI}" -srcstoretype JKS -deststoretype PKCS12 \
             -destkeystore /tmp/tls-certs/nifi/keystore.p12 -deststorepass "${KEYSTORE_PASSWORD_NIFI}"
         keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/truststore.jks \
-        -srcstorepass "${TRUSTSTORE_PASSWORD}" -srcstoretype JKS -deststoretype PKCS12 \
-        -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass "${TRUSTSTORE_PASSWORD}";
+            -srcstorepass "${TRUSTSTORE_PASSWORD}" -srcstoretype JKS -deststoretype PKCS12 \
+            -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass "${TRUSTSTORE_PASSWORD}";
     else
         echo "Certificates already generated, exiting..."
         return 0
@@ -43,13 +43,13 @@ generate_nifi_certs() {
 create_newman_cert_config() {
     echo "Generating newman certificate config..."
     NIFI_CLIENT_PASSWORD=$(cat /tmp/tls-certs/nifi/CN=admin_OU=NIFI.password)
-    jq -c '' > ./newman-tls-config.json
+    jq -c '' >./newman-tls-config.json
     echo '[]' | jq --arg clientCert '/tmp/tls-certs/nifi/CN=admin_OU=NIFI.p12' --arg clientPass "$NIFI_CLIENT_PASSWORD" -c \
         '. += [{"name":"localhost-nifi","matches":["https://localhost:8080/*"],
-               "pfx":{"src":$clientCert},"passphrase":$clientPass},
-           {"name":"localhost-nifi-registry","matches":["https://localhost:18080/*"],
-               "pfx":{"src":$clientCert},"passphrase":$clientPass}
-            ]' > /tmp/tls-certs/newman-tls-config.json
+                    "pfx":{"src":$clientCert},"passphrase":$clientPass},
+                {"name":"localhost-nifi-registry","matches":["https://localhost:18080/*"],
+                    "pfx":{"src":$clientCert},"passphrase":$clientPass}
+            ]' >/tmp/tls-certs/newman-tls-config.json
 }
 
 generate_nifi_certs
