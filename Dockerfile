@@ -36,12 +36,12 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
     && chmod 775 /opt/nifi/nifi-home-dir \
     && chmod 664 /opt/java/openjdk/lib/security/cacerts \
     && adduser --disabled-password \
-       --gecos "" \
-       --home "${NIFI_HOME}" \
-       --ingroup "root" \
-       --no-create-home \
-       --uid 10001 \
-       nifi
+        --gecos "" \
+        --home "${NIFI_HOME}" \
+        --ingroup "root" \
+        --no-create-home \
+        --uid 10001 \
+        nifi
 
 USER 10001
 
