@@ -134,7 +134,7 @@ COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-h2-deps-2-1-210/target/l
 
 COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-consul-application.jar
 
-USER 10001:10001
+USER 10001:0
 WORKDIR $NIFI_HOME
 
 VOLUME ${NIFI_HOME}/conf
