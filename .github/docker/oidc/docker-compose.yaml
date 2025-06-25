@@ -8,6 +8,7 @@ services:
     volumes:
       - tls-cert:/tmp/tls-certs
       - tls-scripts:/tmp/tls-scripts
+      - tls-cert-ca:/tmp/cert
     environment:
       - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
@@ -24,6 +25,7 @@ services:
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
@@ -148,6 +150,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/tls-cert/nifi-registry/
+  tls-cert-ca:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/ca/
   nifi-conf:
     driver: local
     driver_opts:
