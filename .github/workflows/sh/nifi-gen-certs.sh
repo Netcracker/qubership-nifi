@@ -13,7 +13,7 @@ generate_nifi_certs() {
             -destkeystore /tmp/tls-certs/nifi/keystore.p12 -deststorepass "${KEYSTORE_PASSWORD_NIFI}"
         keytool -importkeystore -srckeystore /tmp/tls-certs/nifi/localhost/truststore.jks \
             -srcstorepass "${TRUSTSTORE_PASSWORD}" -srcstoretype JKS -deststoretype PKCS12 \
-            -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass "${TRUSTSTORE_PASSWORD}";
+            -destkeystore /tmp/tls-certs/nifi/truststore.p12 -deststorepass "${TRUSTSTORE_PASSWORD}"
     else
         echo "Certificates already generated, exiting..."
         return 0
