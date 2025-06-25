@@ -262,6 +262,7 @@ create_docker_env_file() {
     echo "KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD" >>./docker.env
     gitDir="$(pwd)"
     echo "BASE_DIR=$gitDir" >>./docker.env
+    echo "KEYCLOAK_TLS_PASS=$KEYCLOAK_TLS_PASS" >>./docker.env
 }
 
 create_docker_env_file_plain() {

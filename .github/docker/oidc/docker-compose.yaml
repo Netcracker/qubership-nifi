@@ -101,7 +101,7 @@ services:
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: ${DB_PASSWORD}
       KC_HTTPS_KEY_STORE_FILE: /tmp/tls-certs/keycloak-server.p12
-      KC_HTTPS_KEY_STORE_PASSWORD: Admin1234
+      KC_HTTPS_KEY_STORE_PASSWORD: ${KEYCLOAK_TLS_PASS}
       KC_HTTPS_PORT: 8443
       KC_HTTP_ENABLED: false
     ports:
