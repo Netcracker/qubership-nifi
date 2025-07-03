@@ -177,10 +177,10 @@ if [ ! -d "$pathToFlow" ]; then
 fi
 
 if [ -f "./updateAdvisorResult.txt" ]; then
-        rm -f ./updateAdvisorResult.txt
-    else
-        echo "The file updateAdvisorResult.txt not exist."
-        touch ./updateAdvisorResult.txt
+    rm -f ./updateAdvisorResult.txt
+else
+    echo "The file updateAdvisorResult.txt not exist."
+    touch ./updateAdvisorResult.txt
 fi
 
 echo "Start Update Advisor"
@@ -190,7 +190,7 @@ mapfile -t exportFlow < <(find "$pathToFlow" -type f -name "*.json" | sort)
 for flowName in "${exportFlow[@]}"; do
 
     echo "Current flowName - $flowName"
-    echo "Current flowName - $flowName" >> ./updateAdvisorResult.txt
+    echo "Current flowName - $flowName" >>./updateAdvisorResult.txt
 
     echo "Checking for Depracated Components in Exported Flow - $flowName"
     jq -r --argjson depracatedList "$deprecatedComponents" 'walk(
@@ -199,7 +199,7 @@ for flowName in "${exportFlow[@]}"; do
                 .checkMessage = $depracatedList[.type]
             else .
         end
-    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >> ./updateAdvisorResult.txt || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >>./updateAdvisorResult.txt || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecate Script Engine in ExecuteScript processors - $flowName"
     jq -r 'walk(
@@ -213,7 +213,7 @@ for flowName in "${exportFlow[@]}"; do
                 end
             else .
         end
-    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >> ./updateAdvisorResult.txt || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
+    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >>./updateAdvisorResult.txt || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
     jq -r 'walk(
@@ -226,7 +226,7 @@ for flowName in "${exportFlow[@]}"; do
                     .
             end
         else .
-    end) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >> ./updateAdvisorResult.txt || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
+    end) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToFlow/$flowName" >>./updateAdvisorResult.txt || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
     jq -r 'walk(
@@ -234,16 +234,16 @@ for flowName in "${exportFlow[@]}"; do
         then
             .checkMessage = "Warning: Variables in process group with name - " + .name + " is not available in Apache NiFi 2.x. You should use Parameter Contexts instead."
         else .
-    end) | .. | objects | select(has("checkMessage")) | .checkMessage' "$pathToFlow/$flowName" >> ./updateAdvisorResult.txt || handle_error "Error while checking for Variables in Exported Flow - $flowName"
+    end) | .. | objects | select(has("checkMessage")) | .checkMessage' "$pathToFlow/$flowName" >>./updateAdvisorResult.txt || handle_error "Error while checking for Variables in Exported Flow - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"
 reportTaskTypes=($(echo $deprecatedReportingTask | jq -r 'keys[]')) || handle_error "Error while checking the use of deprecated Reporting Task"
 
-for repTask in $reportTaskTypes; do
+for repTask in "${reportTaskTypes[@]}"; do
     if grep -rqF "$repTask" .; then
-        message=$(echo $deprecatedReportingTask | jq -r --arg repTask "$repTask" '.[$repTask]') || handle_error "Error while forming message for reporting task - $repTask"
-        echo "$message" >> ./updateAdvisorResult.txt
+        message=$(echo "$deprecatedReportingTask" | jq -r --arg repTask "$repTask" '.[$repTask]') || handle_error "Error while forming message for reporting task - $repTask"
+        echo "$message" >>./updateAdvisorResult.txt
     fi
 done
 

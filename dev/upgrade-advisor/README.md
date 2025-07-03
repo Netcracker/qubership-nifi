@@ -5,7 +5,7 @@
 The 'upgradeAdvisor.sh' script is designed to detect deprecates of components in exported flows when migrating to NiFi 2.4.0. The script generates a report 'updateAdvisorResult.txt', which lists all detected components.
 Example of running a script:
 
-`bash updateNiFiFlow.sh <pathToFlow> `
+`bash upgradeAdvisor.sh <pathToFlow>`
 
 As input arguments used in script:
 
