@@ -91,6 +91,8 @@ jobs:
         uses: ./.github/actions/run-nifi-tests-tls
       - name: Run tests for nifi in TLS and OIDC mode
         uses: ./.github/actions/run-nifi-tests-oidc
+      - name: Run tests for nifi cluster in TLS and OIDC mode
+        uses: ./.github/actions/run-nifi-tests-cluster
       - name: Verify test results
         shell: bash
         run: |
