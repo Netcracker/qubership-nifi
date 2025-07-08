@@ -1,0 +1,300 @@
+---
+services:
+  nifi-toolkit:
+    image: apache/nifi-toolkit:1.28.1
+    container_name: nifi-toolkit
+    entrypoint: /bin/bash
+    command: /tmp/tls-scripts/nifi-gen-certs.sh
+    volumes:
+      - tls-cert:/tmp/tls-certs
+      - tls-scripts:/tmp/tls-scripts
+    environment:
+      - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
+      - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - IS_CLUSTER=true
+  zookeeper:
+    image: zookeeper:3.9.3
+    ports:
+      - 127.0.0.1:2181:2181
+    hostname: zookeeper
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+  qubership-nifi-0:
+    image: local-nifi:test
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - nifi-conf0:/opt/nifi/nifi-current/persistent_conf
+      - tls-cert-nifi-0:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:8080:8080
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - AUTH=oidc
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
+      - NIFI_WEB_HTTPS_PORT=8080
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
+      - NIFI_CLUSTER_IS_NODE=true
+      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - NIFI_ZK_ROOT_NODE=/local/nifi
+      - MICROSERVICE_NAME=qubership-nifi
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+      - NIFI_ELECTION_MAX_WAIT=30 secs
+      - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
+    container_name: qubership-nifi-0
+    hostname: qubership-nifi-0
+    restart: unless-stopped
+  qubership-nifi-1:
+    image: local-nifi:test
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - nifi-conf1:/opt/nifi/nifi-current/persistent_conf
+      - tls-cert-nifi-1:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:9080:8080
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - AUTH=oidc
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
+      - NIFI_WEB_HTTPS_PORT=8080
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
+      - NIFI_CLUSTER_IS_NODE=true
+      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - NIFI_ZK_ROOT_NODE=/local/nifi
+      - MICROSERVICE_NAME=qubership-nifi
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+      - NIFI_ELECTION_MAX_WAIT=30 secs
+      - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
+    container_name: qubership-nifi-1
+    hostname: qubership-nifi-1
+    restart: unless-stopped
+  qubership-nifi-2:
+    image: local-nifi:test
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - nifi-conf2:/opt/nifi/nifi-current/persistent_conf
+      - tls-cert-nifi-2:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:10080:8080
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - AUTH=oidc
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
+      - NIFI_WEB_HTTPS_PORT=8080
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
+      - NIFI_CLUSTER_IS_NODE=true
+      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - NIFI_ZK_ROOT_NODE=/local/nifi
+      - MICROSERVICE_NAME=qubership-nifi
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
+      - NIFI_ELECTION_MAX_WAIT=30 secs
+      - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
+    container_name: qubership-nifi-2
+    hostname: qubership-nifi-2
+    restart: unless-stopped
+  nifi-registry:
+    image: ghcr.io/netcracker/nifi-registry:1.0.2
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - tls-cert-reg:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:18080:18080
+    environment:
+      - AUTH=oidc
+      - NIFI_REGISTRY_WEB_HTTPS_PORT=18080
+      - NIFI_REGISTRY_WEB_HTTP_HOST=0.0.0.0
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI_REG}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
+    container_name: local-nifi-registry-cluster
+    hostname: nifi-registry
+    restart: unless-stopped
+  consul:
+    image: hashicorp/consul:1.20
+    ports:
+      - 127.0.0.1:8500:8500
+    hostname: consul
+  keycloak:
+    image: keycloak/keycloak:26.1.4
+    hostname: keycloak
+    restart: on-failure:3
+    depends_on:
+      postgresql:
+        condition: service_started
+    volumes:
+      - keycloak-init:/opt/keycloak/data/import
+      - tls-cert:/tmp/tls-certs
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgresql:5432/postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HTTPS_KEY_STORE_FILE: /tmp/tls-certs/keycloak-server.p12
+      KC_HTTPS_KEY_STORE_PASSWORD: ${KEYCLOAK_TLS_PASS}
+      KC_HTTPS_PORT: 8443
+      KC_HTTP_ENABLED: false
+    ports:
+      - 28080:8080
+      - 28443:8443
+    command:
+      - start-dev
+      - "--import-realm"
+      - "--hostname"
+      - "https://localhost:28443"
+      - "--hostname-backchannel-dynamic"
+      - "true"
+  postgresql:
+    image: postgres:16.8
+    ports:
+      - "127.0.0.1:5430:5432"
+    volumes:
+      - pg-db:/var/lib/postgresql/data/pgdata
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    container_name: postgresql
+    hostname: postgresql
+volumes:
+  tls-scripts:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/.github/workflows/sh/
+  tls-cert:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/
+  tls-cert-nifi-0:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/qubership-nifi-0/
+  tls-cert-nifi-1:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/qubership-nifi-1/
+  tls-cert-nifi-2:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/qubership-nifi-2/
+  tls-cert-reg:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/nifi-registry/
+  tls-cert-ca:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/ca/
+  nifi-conf0:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi-0/per-conf/
+  nifi-conf1:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi-1/per-conf/
+  nifi-conf2:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi-2/per-conf/
+  pg-db:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/pg-db
+  keycloak-init:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/.github/configuration/keycloak/
