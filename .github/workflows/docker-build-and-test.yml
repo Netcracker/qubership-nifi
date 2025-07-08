@@ -73,10 +73,9 @@ jobs:
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
-      - name: Input parameters
+      - name: Prepare test results
         shell: bash
         run: |
-          echo "Java version: ${{ github.event.inputs.java-version || '21' }}" >> $GITHUB_STEP_SUMMARY
           mkdir -p ./test-results/
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,8 +100,10 @@ jobs:
           echo "Found failed steps = $failed_cnt"
           if [ "$failed_cnt" == "0" ]; then
             echo "All tests were successful!"
+            echo "All tests were successful!" >> $GITHUB_STEP_SUMMARY
           else
             echo "Some tests ($failed_cnt) failed. Marking as failure."
+            echo "Some tests ($failed_cnt) failed. Marking as failure." >> $GITHUB_STEP_SUMMARY
             exit 1;
           fi
       - name: Upload test results
