@@ -27,7 +27,9 @@ runs:
         mkdir -p ./temp-vol/tls-cert/qubership-nifi-1/
         mkdir -p ./temp-vol/tls-cert/qubership-nifi-2/
         mkdir -p ./temp-vol/tls-cert/nifi-registry/
-        mkdir -p ./temp-vol/nifi/per-conf/
+        mkdir -p ./temp-vol/nifi-0/per-conf/
+        mkdir -p ./temp-vol/nifi-1/per-conf/
+        mkdir -p ./temp-vol/nifi-2/per-conf/
         mkdir -p ./temp-vol/pg-db/
         chmod -R 777 ./temp-vol
         generate_add_nifi_certs
