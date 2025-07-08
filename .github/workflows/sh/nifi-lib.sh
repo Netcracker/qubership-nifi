@@ -54,7 +54,12 @@ wait_for_service() {
             echo "Failed to call service API, continue waiting..."
         }
         if [ "$res" == "0" ]; then
-            if [ "$resp_code" != '200' ]; then
+            if [ "$resp_code" == '409' ]; then
+                echo "Got response with code = $resp_code and body: "
+                cat ./temp-resp.json
+                echo "Continue waiting..."
+                res="1"
+            elif [ "$resp_code" != '200' ]; then
                 echo "Got response with code = $resp_code and body: "
                 cat ./temp-resp.json
             fi
