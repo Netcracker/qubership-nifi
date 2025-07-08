@@ -46,7 +46,7 @@ services:
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
-    container_name: local-nifi-oidc
+    container_name: local-nifi
     restart: unless-stopped
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
@@ -75,7 +75,7 @@ services:
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
-    container_name: local-nifi-registry-oidc
+    container_name: local-nifi-registry
     hostname: nifi-registry
     restart: unless-stopped
   consul:

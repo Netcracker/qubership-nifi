@@ -60,7 +60,7 @@ services:
       - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
-    container_name: qubership-nifi-0
+    container_name: local-nifi
     hostname: qubership-nifi-0
     restart: unless-stopped
   qubership-nifi-1:

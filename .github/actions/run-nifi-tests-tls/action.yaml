@@ -44,7 +44,7 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}' 'local-nifi-tls'
+        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.results-dir }}' 'local-nifi'
     - name: Run collection for setup policies
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests

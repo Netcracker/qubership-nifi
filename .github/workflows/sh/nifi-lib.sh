@@ -294,3 +294,41 @@ generate_add_nifi_certs() {
     keytool -importcert -keystore ./temp-vol/tls-cert/keycloak-server.p12 -storetype PKCS12 -storepass "$KEYCLOAK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer -alias keycloak-ca-cer -noprompt
 }
+
+setup_env_before_tests() {
+    local runMode="$1"
+    #generic case:
+    prepare_sens_key
+    prepare_results_dir "$runMode"
+    if [ "$runMode" == "plain" ]; then
+        create_docker_env_file_plain
+    else
+        generate_tls_passwords
+        create_docker_env_file
+    fi
+    if [ "$runMode" == "oidc" ]; then
+        create_global_vars_file
+    fi
+    mkdir -p ./temp-vol/tls-cert/
+    mkdir -p ./temp-vol/tls-cert/ca/
+    mkdir -p ./temp-vol/tls-cert/nifi/
+    mkdir -p ./temp-vol/tls-cert/nifi-registry/
+    if [ "$runMode" == "oidc" ] || [ "$runMode" == "cluster" ]; then
+        mkdir -p ./temp-vol/pg-db/
+    fi
+    if [ "$runMode" == "cluster" ]; then
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-0/
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-1/
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-2/
+        mkdir -p ./temp-vol/nifi-0/per-conf/
+        mkdir -p ./temp-vol/nifi-1/per-conf/
+        mkdir -p ./temp-vol/nifi-2/per-conf/
+    else
+        mkdir -p ./temp-vol/nifi/per-conf/
+    fi
+    chmod -R 777 ./temp-vol
+    #generate keycloak certificates:
+    if [ "$runMode" == "oidc" ] || [ "$runMode" == "cluster" ]; then
+        generate_add_nifi_certs
+    fi
+}
