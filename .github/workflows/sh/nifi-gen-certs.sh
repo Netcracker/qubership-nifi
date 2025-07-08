@@ -83,9 +83,9 @@ generate_nifi_cluster_certs() {
     mkdir -p /tmp/tls-certs/nifi
     chmod 777 /tmp/tls-certs/nifi
     cp /tmp/tls-certs/qubership-nifi-0/nifi-cert.pem \
-       /tmp/tls-certs/qubership-nifi-0/CN=admin_OU=NIFI.password \
-       /tmp/tls-certs/qubership-nifi-0/CN=admin_OU=NIFI.p12 \
-       /tmp/tls-certs/nifi/
+        /tmp/tls-certs/qubership-nifi-0/CN=admin_OU=NIFI.password \
+        /tmp/tls-certs/qubership-nifi-0/CN=admin_OU=NIFI.p12 \
+        /tmp/tls-certs/nifi/
     echo "Copying CA certificates..."
     mkdir -p /tmp/tls-certs/nifi-registry
     chmod 777 /tmp/tls-certs/nifi-registry
