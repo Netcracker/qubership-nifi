@@ -42,6 +42,9 @@ on:
         default: false
         description: 'Dry run'
 
+permissions:
+  contents: write
+  packages: write
 jobs:
   check-tag:
     runs-on: ubuntu-latest
