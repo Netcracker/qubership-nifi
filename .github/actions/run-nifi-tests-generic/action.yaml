@@ -67,7 +67,7 @@ runs:
         short-name: 'basic'
         tls-certs-dir: ${{ inputs.run-mode != 'plain' && './temp-vol/tls-cert' || '' }}
         tls-ca-certs: ${{ inputs.run-mode != 'plain' && 'nifi/nifi-cert.pem' || '' }}
-        tls-client-certs-config: ${{ inputs.run-mode != 'plain' && 'newman-tls-config.json || '' }}
+        tls-client-certs-config: ${{ inputs.run-mode != 'plain' && 'newman-tls-config.json' || '' }}
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run processors nifi API tests
       continue-on-error: true
@@ -79,7 +79,7 @@ runs:
         short-name: 'processors'
         tls-certs-dir: ${{ inputs.run-mode != 'plain' && './temp-vol/tls-cert' || '' }}
         tls-ca-certs: ${{ inputs.run-mode != 'plain' && 'nifi/nifi-cert.pem' || '' }}
-        tls-client-certs-config: ${{ inputs.run-mode != 'plain' && 'newman-tls-config.json || '' }}
+        tls-client-certs-config: ${{ inputs.run-mode != 'plain' && 'newman-tls-config.json' || '' }}
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run configuration restore tests (Success case)
       if: ${{ inputs.run-mode != 'cluster' }}
