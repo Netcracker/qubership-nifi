@@ -66,6 +66,9 @@ jobs:
       upload-artifact: true
       skip-sonar: true
   docker-build-and-test:
+    strategy:
+      matrix:
+        run-mode: [ 'plain', 'tls', 'oidc', 'cluster' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -85,14 +88,10 @@ jobs:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
-      #- name: Run tests for nifi in plain (non-TLS mode)
-      #  uses: ./.github/actions/run-nifi-tests-plain
-      #- name: Run tests for nifi in TLS mode
-      #  uses: ./.github/actions/run-nifi-tests-tls
-      #- name: Run tests for nifi in TLS and OIDC mode
-      #  uses: ./.github/actions/run-nifi-tests-oidc
-      - name: Run tests for nifi cluster in TLS and OIDC mode
-        uses: ./.github/actions/run-nifi-tests-cluster
+      - name: Run tests with mode = ${{ matrix.run-mode }}
+        uses: ./.github/actions/run-nifi-tests-generic
+        with:
+          run-mode: '${{ matrix.run-mode }}'
       - name: Verify test results
         shell: bash
         run: |
@@ -109,7 +108,7 @@ jobs:
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: nifi-autotests-logs
+          name: nifi-autotests-${{ matrix.run-mode }}-logs
           path: |
             ./test-results
           retention-days: 2

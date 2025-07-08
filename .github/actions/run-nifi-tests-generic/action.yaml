@@ -35,7 +35,7 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "60" "localhost" "8080" "true" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
+        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
     - name: Test log level configuration
