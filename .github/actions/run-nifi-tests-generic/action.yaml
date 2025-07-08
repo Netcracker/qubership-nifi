@@ -22,7 +22,7 @@ runs:
         echo "Starting containers..."
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
     - name: Wait for nifi container to start (plain)
-      if: ${{ inputs.run-mode != 'plain' }}
+      if: ${{ inputs.run-mode == 'plain' }}
       shell: bash
       continue-on-error: true
       run: |
