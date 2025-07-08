@@ -67,6 +67,7 @@ jobs:
       skip-sonar: true
   docker-build-and-test:
     strategy:
+      fail-fast: false
       matrix:
         run-mode: [ 'plain', 'tls', 'oidc', 'cluster' ]
     needs: [ mvn ]
