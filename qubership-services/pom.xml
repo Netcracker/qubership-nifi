@@ -21,13 +21,13 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.0.4-SNAPSHOT</version>
+        <version>1.0.4</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>org.qubership.nifi</groupId>
     <artifactId>qubership-services</artifactId>
-    <version>1.0.4-SNAPSHOT</version>
+    <version>1.0.4</version>
     <packaging>pom</packaging>
 
     <properties>
