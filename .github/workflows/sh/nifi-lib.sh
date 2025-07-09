@@ -81,6 +81,11 @@ generate_random_hex_password() {
     echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
 }
 
+generate_random_hex_password2() {
+    #args -- letters, numbers, special characters
+    echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")""$(tr -dc '!@#$%^&*()-+{}=`~,<>./?"''' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
+}
+
 configure_log_level() {
     local targetPkg="$1"
     local targetLevel="$2"
@@ -175,7 +180,7 @@ test_log_level() {
 
 prepare_sens_key() {
     echo "Generating temporary sensitive key..."
-    NIFI_SENSITIVE_KEY=$(generate_random_hex_password 12 4)
+    NIFI_SENSITIVE_KEY=$(generate_random_hex_password2 12 4 4)
     export NIFI_SENSITIVE_KEY
     echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key.tmp
 }
@@ -244,10 +249,10 @@ wait_nifi_reg_container() {
 
 generate_tls_passwords() {
     echo "Generating passwords..."
-    TRUSTSTORE_PASSWORD=$(generate_random_hex_password 8 4)
-    KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password 8 4)
-    KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password 8 4)
-    KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4)
+    TRUSTSTORE_PASSWORD=$(generate_random_hex_password2 8 4 3)
+    KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password2 8 4 3)
+    KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password2 8 4 3)
+    KEYCLOAK_TLS_PASS=$(generate_random_hex_password2 8 4 3)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
     export KEYSTORE_PASSWORD_NIFI_REG
