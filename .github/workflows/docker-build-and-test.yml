@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'plain', 'tls', 'oidc', 'cluster' ]
+        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
