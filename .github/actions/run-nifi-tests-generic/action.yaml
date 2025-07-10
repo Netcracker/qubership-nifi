@@ -58,7 +58,7 @@ runs:
         tls-client-certs-config: "newman-tls-config.json"
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run collection for setup cluster policies
-      if: ${{ inputs.run-mode == 'cluster' }}
+      if: ${{ startsWith(inputs.run-mode, 'cluster') }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
@@ -95,7 +95,7 @@ runs:
         tls-client-certs-config: ${{ inputs.run-mode != 'plain' && 'newman-tls-config.json' || '' }}
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run configuration restore tests (Success case)
-      if: ${{ inputs.run-mode != 'cluster' }}
+      if: ${{ !startsWith(inputs.run-mode, 'cluster') }}
       continue-on-error: true
       uses: ./.github/actions/run-conf-restore-test
       with:
@@ -104,7 +104,7 @@ runs:
         tls-mode: ${{ inputs.run-mode != 'plain' }}
         success-scenario: 'true'
     - name: Run configuration restore tests (Error case)
-      if: ${{ inputs.run-mode != 'cluster' }}
+      if: ${{ !startsWith(inputs.run-mode, 'cluster') }}
       continue-on-error: true
       uses: ./.github/actions/run-conf-restore-test
       with:
