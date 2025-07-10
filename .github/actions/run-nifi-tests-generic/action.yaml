@@ -65,7 +65,7 @@ runs:
         collection-name: 'Setup_Cluster_Access_Policies.postman_collection.json'
         env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.run-mode }}'
-        short-name: 'policies'
+        short-name: 'cluster-policies'
         tls-certs-dir: "./temp-vol/tls-cert"
         tls-ca-certs: "nifi/nifi-cert.pem"
         tls-client-certs-config: "newman-tls-config.json"

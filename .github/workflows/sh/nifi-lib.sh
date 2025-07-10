@@ -89,7 +89,7 @@ generate_random_hex_password2() {
 
 get_next_summary_file_name() {
     current_steps_count=$(find "./test-results/$1" -name "summary_*.txt" | wc -l)
-    echo "summary_step$((current_steps_count + 1)).txt"
+    echo "summary_step$(printf %03d $((current_steps_count + 1))).txt"
 }
 
 configure_log_level() {
@@ -265,7 +265,7 @@ generate_tls_passwords() {
     TRUSTSTORE_PASSWORD=$(generate_random_hex_password2 8 4 3)
     KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password2 8 4 3)
     KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password2 8 4 3)
-    KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4 3)
+    KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
     export KEYSTORE_PASSWORD_NIFI_REG
