@@ -1,0 +1,4 @@
+{
+    "Name": "NiFi-Policy",
+    "Rules": "key_prefix \"application/\" { policy = \"read\" }"
+}
