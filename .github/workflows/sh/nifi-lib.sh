@@ -88,8 +88,8 @@ generate_random_hex_password2() {
 }
 
 get_next_summary_file_name() {
-    current_steps_count=$(find "$resultsPath" -name "summary_*.txt" | wc -l)
-    echo "summary_step$((current_steps_count+1)).txt"
+    current_steps_count=$(find "./test-results/$1" -name "summary_*.txt" | wc -l)
+    echo "summary_step$((current_steps_count + 1)).txt"
 }
 
 configure_log_level() {
@@ -176,7 +176,7 @@ test_log_level() {
     docker cp "$containerName":/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
     res="0"
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
-    summaryFileName=$(get_next_summary_file_name)
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$res" == "0" ]; then
         echo "Logback configuration successfully applied"
         echo "| Logging levels configuration                   | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
@@ -218,7 +218,7 @@ wait_nifi_container() {
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
         "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
-    summaryFileName=$(get_next_summary_file_name)
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
@@ -226,9 +226,9 @@ wait_nifi_container() {
         cat ./nifi_log_tmp.lst
         echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
-        echo "| Wait for container start                       | Failed :x:                 |" >"$resultsPath/$summaryFileName"
+        echo "| Wait for container start                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
     fi
-    echo "| Wait for container start                       | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
+    echo "| Wait for container start                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
     return 0
 }
 
