@@ -4,7 +4,7 @@ services:
     image: apache/nifi-toolkit:1.28.1
     depends_on:
       consul:
-        condition: service_completed_successfully
+        condition: service_started
     container_name: nifi-toolkit
     entrypoint: /bin/bash
     command: /tmp/tls-scripts/nifi-gen-certs.sh
@@ -107,4 +107,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/consul/acl
+      device: $BASE_DIR/.github/configuration/consul/acl/
