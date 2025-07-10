@@ -173,9 +173,11 @@ test_log_level() {
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
     if [ "$res" == "0" ]; then
         echo "Logback configuration successfully applied"
+        echo "| Logging levels configuration                   | Success :white_check_mark: |" >> "$GITHUB_STEP_SUMMARY"
     else
         echo "Logback configuration failed to apply"
         echo "NiFi logger config update failed" >"$resultsPath/failed_log_config.lst"
+        echo "| Logging levels configuration                   | Failed :x:                 |" >> "$GITHUB_STEP_SUMMARY"
     fi
 }
 
@@ -217,7 +219,9 @@ wait_nifi_container() {
         cat ./nifi_log_tmp.lst
         echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
+        return 1
     fi
+    return 0
 }
 
 wait_nifi_reg_container() {
@@ -324,10 +328,10 @@ setup_env_before_tests() {
     mkdir -p ./temp-vol/tls-cert/ca/
     mkdir -p ./temp-vol/tls-cert/nifi/
     mkdir -p ./temp-vol/tls-cert/nifi-registry/
-    if [ "$runMode" == "oidc" ] || [ "$runMode" == "cluster" ]; then
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
-    if [ "$runMode" == "cluster" ]; then
+    if [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/tls-cert/qubership-nifi-0/
         mkdir -p ./temp-vol/tls-cert/qubership-nifi-1/
         mkdir -p ./temp-vol/tls-cert/qubership-nifi-2/
@@ -339,7 +343,7 @@ setup_env_before_tests() {
     fi
     chmod -R 777 ./temp-vol
     #generate keycloak certificates:
-    if [ "$runMode" == "oidc" ] || [ "$runMode" == "cluster" ]; then
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
 }
