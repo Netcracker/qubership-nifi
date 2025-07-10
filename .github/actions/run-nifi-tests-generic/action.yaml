@@ -19,7 +19,7 @@ runs:
         echo "Run mode = ${{ inputs.run-mode }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| Step                   | Result |" >> $GITHUB_STEP_SUMMARY
-        echo "| ---------------------------------------------- | -------------------- |" >> $GITHUB_STEP_SUMMARY
+        printf "| ---------------------------------------------- | -------------------- |" >> $GITHUB_STEP_SUMMARY
     - name: Run local nifi
       shell: bash
       run: |
@@ -32,11 +32,12 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        res=$(wait_nifi_container "15" "60" "localhost" "8080" "false" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}")
+        wait_nifi_container "15" "60" "localhost" "8080" "false" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}"
+        res="$?"
         if [ "$res" == "0" ]; then
-          echo "| Wait for container start                       | Success :white_check_mark: |" >> $GITHUB_STEP_SUMMARY
+          printf "| Wait for container start                       | Success :white_check_mark: |" >>"$GITHUB_STEP_SUMMARY"
         else
-          echo "| Wait for container start                       | Failed :x:                 |" >> $GITHUB_STEP_SUMMARY
+          printf "| Wait for container start                       | Failed :x:                 |" >>"$GITHUB_STEP_SUMMARY"
         fi
     - name: Wait for nifi container to start (TLS)
       if: ${{ inputs.run-mode != 'plain' }}
@@ -45,13 +46,14 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        res=$(wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
+        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
-          "$NIFI_CLIENT_PASSWORD")
+          "$NIFI_CLIENT_PASSWORD"
+        res="$?"
         if [ "$res" == "0" ]; then
-          echo "| Wait for container start                       | Success :white_check_mark: |" >> $GITHUB_STEP_SUMMARY
+          printf "| Wait for container start                       | Success :white_check_mark: |" >>"$GITHUB_STEP_SUMMARY"
         else
-          echo "| Wait for container start                       | Failed :x:                 |" >> $GITHUB_STEP_SUMMARY
+          printf "| Wait for container start                       | Failed :x:                 |" >>"$GITHUB_STEP_SUMMARY"
         fi
     - name: Test log level configuration
       shell: bash

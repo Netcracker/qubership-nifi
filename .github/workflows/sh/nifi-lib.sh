@@ -173,11 +173,11 @@ test_log_level() {
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
     if [ "$res" == "0" ]; then
         echo "Logback configuration successfully applied"
-        echo "| Logging levels configuration                   | Success :white_check_mark: |" >> "$GITHUB_STEP_SUMMARY"
+        printf "| Logging levels configuration                   | Success :white_check_mark: |" >>"$GITHUB_STEP_SUMMARY"
     else
         echo "Logback configuration failed to apply"
         echo "NiFi logger config update failed" >"$resultsPath/failed_log_config.lst"
-        echo "| Logging levels configuration                   | Failed :x:                 |" >> "$GITHUB_STEP_SUMMARY"
+        printf "| Logging levels configuration                   | Failed :x:                 |" >>"$GITHUB_STEP_SUMMARY"
     fi
 }
 
@@ -257,7 +257,7 @@ generate_tls_passwords() {
     TRUSTSTORE_PASSWORD=$(generate_random_hex_password2 8 4 3)
     KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password2 8 4 3)
     KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password2 8 4 3)
-    KEYCLOAK_TLS_PASS=$(generate_random_hex_password2 8 4 3)
+    KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4 3)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
     export KEYSTORE_PASSWORD_NIFI_REG
