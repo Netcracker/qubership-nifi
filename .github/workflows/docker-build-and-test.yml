@@ -95,6 +95,13 @@ jobs:
       - name: Verify test results
         shell: bash
         run: |
+          echo "Preparing summary..."
+          echo "## Autotests summary" >> $GITHUB_STEP_SUMMARY
+          echo "Run mode = ${{ matrix.run-mode }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step                                           | Result                     |" >> $GITHUB_STEP_SUMMARY
+          echo "| ---------------------------------------------- | -------------------------- |" >> $GITHUB_STEP_SUMMARY
+          cat ./test-results/*/summary_*.txt >> $GITHUB_STEP_SUMMARY || echo "Summary files not found"
           echo "Checking test results for failures..."
           failed_cnt=$(find ./test-results -name "failed_*.lst" | wc -l)
           echo "Found failed steps = $failed_cnt"

@@ -87,6 +87,11 @@ generate_random_hex_password2() {
         "$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
 }
 
+get_next_summary_file_name() {
+    current_steps_count=$(find "$resultsPath" -name "summary_*.txt" | wc -l)
+    echo "summary_step$((current_steps_count+1)).txt"
+}
+
 configure_log_level() {
     local targetPkg="$1"
     local targetLevel="$2"
@@ -171,13 +176,14 @@ test_log_level() {
     docker cp "$containerName":/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
     res="0"
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
+    summaryFileName=$(get_next_summary_file_name)
     if [ "$res" == "0" ]; then
         echo "Logback configuration successfully applied"
-        printf "| Logging levels configuration                   | Success :white_check_mark: |" >>"$GITHUB_STEP_SUMMARY"
+        echo "| Logging levels configuration                   | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
     else
         echo "Logback configuration failed to apply"
         echo "NiFi logger config update failed" >"$resultsPath/failed_log_config.lst"
-        printf "| Logging levels configuration                   | Failed :x:                 |" >>"$GITHUB_STEP_SUMMARY"
+        echo "| Logging levels configuration                   | Failed :x:                 |" >"$resultsPath/$summaryFileName"
     fi
 }
 
@@ -212,6 +218,7 @@ wait_nifi_container() {
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
         "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
+    summaryFileName=$(get_next_summary_file_name)
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
@@ -219,8 +226,9 @@ wait_nifi_container() {
         cat ./nifi_log_tmp.lst
         echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
-        return 1
+        echo "| Wait for container start                       | Failed :x:                 |" >"$resultsPath/$summaryFileName"
     fi
+    echo "| Wait for container start                       | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
     return 0
 }
 
