@@ -50,9 +50,14 @@ fi
 
 info "Start process of restore NiFi configuration."
 
-secretId="${CONSUL_ACL_TOKEN}"
+secretId=""
 
-[ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
+if [ -z "$CONSUL_ACL_TOKEN" ]; then
+    [ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
+else
+    info "The CONSUL_ACL_TOKEN variable will be used in secretId"
+    secretId="${CONSUL_ACL_TOKEN}"
+fi
 
 info "Getting nifi-restore-version from Consul"
 res=$(curl -sS --write-out "%{http_code}" -o /tmp/tmp-nifi/consulValue.json --header "X-Consul-Token: ${secretId}" "$CONSUL_URL/v1/kv/config/$NAMESPACE/$MICROSERVICE_NAME/nifi-restore-version") || handle_error 'Cannot get nifi-restore-version from Consul'

@@ -95,8 +95,9 @@ get_next_summary_file_name() {
 configure_log_level() {
     local targetPkg="$1"
     local targetLevel="$2"
-    local consulUrl="$3"
-    local ns="$4"
+    local secretId="$3"
+    local consulUrl="$4"
+    local ns="$5"
     if [ -z "$consulUrl" ]; then
         consulUrl='http://localhost:8500'
     fi
@@ -107,7 +108,7 @@ configure_log_level() {
     targetPath=$(echo "logger.$targetPkg" | sed 's|\.|/|g')
     echo "Consul URL = $consulUrl, namespace = $ns, targetPath = $targetPath"
     rm -rf ./consul-put-resp.txt
-    respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-resp.txt \
+    respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-resp.txt --header '"X-Consul-Token: ${secretId}"' \
         "$consulUrl/v1/kv/config/$ns/application/$targetPath")
     echo "Response code = $respCode"
     if [ "$respCode" == "200" ]; then
@@ -165,10 +166,11 @@ test_log_level() {
     local targetLevel="$2"
     local resultsDir="$3"
     local containerName="$4"
+    local secretId="$5"
     resultsPath="./test-results/$resultsDir"
     echo "Testing Consul logging parameters configuration for package = $targetPkg, level = $targetLevel"
     echo "Results path = $resultsPath"
-    configure_log_level "$targetPkg" "$targetLevel" ||
+    configure_log_level "$targetPkg" "$targetLevel" "$secretId" ||
         echo "Consul config failed" >"$resultsPath/failed_consul_config.lst"
     echo "Waiting 20 seconds..."
     sleep 20
