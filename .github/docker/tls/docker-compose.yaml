@@ -15,8 +15,9 @@ services:
       - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - CONSUL_TOKEN=${CONSUL_TOKEN}
   nifi:
-    image: local-nifi:test
+    image: local-nifi:1
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
@@ -107,4 +108,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/consul/acl/
+      device: $BASE_DIR/.github/configuration/consul/
