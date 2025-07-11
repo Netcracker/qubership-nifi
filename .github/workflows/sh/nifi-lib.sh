@@ -87,6 +87,11 @@ generate_random_hex_password2() {
         "$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
 }
 
+generate_uuid() {
+    head=$(head -c 16 /dev/urandom | od -An -t x1 | tr -d ' ')
+    echo "${head:0:8}-${head:8:4}-${head:12:4}-${head:16:4}-${head:20:12}"
+}
+
 get_next_summary_file_name() {
     current_steps_count=$(find "./test-results/$1" -name "summary_*.txt" | wc -l)
     echo "summary_step$(printf %03d $((current_steps_count + 1))).txt"
@@ -292,8 +297,8 @@ create_docker_env_file() {
     gitDir="$(pwd)"
     echo "BASE_DIR=$gitDir" >>./docker.env
     echo "KEYCLOAK_TLS_PASS=$KEYCLOAK_TLS_PASS" >>./docker.env
-    CONSUL_TOKEN="2f15d5dc-4086-46ae-9716-1f3a0daf8d26"
-    echo "$CONSUL_TOKEN" > ./consul-acl-token.tmp
+    CONSUL_TOKEN=$(generate_uuid)
+    echo "$CONSUL_TOKEN" >./consul-acl-token.tmp
     export CONSUL_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >> ./docker.env
 }
