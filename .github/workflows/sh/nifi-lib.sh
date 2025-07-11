@@ -123,16 +123,17 @@ configure_log_level() {
 
 set_configuration_version() {
     local version="$1"
-    local consulUrl="$2"
-    local ns="$3"
+    local secretId="$2"
+    local consulUrl="$3"
+    local ns="$4"
+    if [ -z "$secretId" ]; then
+        secretId=""
+    fi
     if [ -z "$consulUrl" ]; then
         consulUrl='http://localhost:8500'
     fi
     if [ -z "$ns" ]; then
         ns='local'
-    fi
-    if [ -f ./consul-acl-token.tmp ]; then
-        secretId=$(cat ./consul-acl-token.tmp)
     fi
     echo "Configuring version = $version for restore..."
     rm -rf ./consul-put-ver-resp.txt
