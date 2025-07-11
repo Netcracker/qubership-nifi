@@ -64,8 +64,7 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export CONF_VERSION=$(cat ./nifi-conf-version.tmp)
-        CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
-        set_configuration_version "$CONF_VERSION" "$CONSUL_TOKEN"
+        set_configuration_version "$CONF_VERSION"
     - name: Restart local nifi
       shell: bash
       run: |
