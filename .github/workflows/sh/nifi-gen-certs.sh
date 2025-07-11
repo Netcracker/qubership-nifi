@@ -151,15 +151,15 @@ generate_consul_token() {
         sleep 2
     done
     echo "Wait finished successfully. Consul API is available."
-    defaultSecretId=$(cat ./bootstrap-token-resp.json | jq -r '.SecretID')
+    defaultSecretId=$(<./bootstrap-token-resp.json jq -r '.SecretID')
 
     resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp.json -H '"X-Consul-Token: $defaultSecretId"' \
-        --data @/tmp/tls-scripts/create-policy-request.json --connect-timeout 5 --max-time 10 "http://tls-consul-1:8500/v1/acl/policy" )
+        --data @/tmp/tls-scripts/create-policy-request.json --connect-timeout 5 --max-time 10 "http://tls-consul-1:8500/v1/acl/policy")
     if [ "$resp_code" != '200' ]; then
         echo "Error: Error creating policy for NiFi in Consul response with code = $resp_code and body: "
         cat ./create-policy-resp.json
     fi
-    policyId=$(cat ./create-policy-resp.json | jq -r '.ID')
+    policyId=$(<./create-policy-resp.json jq -r '.ID')
 
     touch ./create-token-request.json
     jq --arg polId "$policyId" --arg consulToken "${CONSUL_TOKEN}" \
