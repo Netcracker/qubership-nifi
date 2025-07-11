@@ -1,0 +1,4 @@
+{
+    "Name": "NiFi-Policy",
+    "Rules": "key_prefix \"config/local/application/\" { policy = \"read\" } key_prefix \"config/local/application/\" { policy = \"write\" } key_prefix \"config/local/qubership-nifi/\" { policy = \"read\" } key_prefix \"config/local/qubership-nifi/\" { policy = \"write\" }"
+}

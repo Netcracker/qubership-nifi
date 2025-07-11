@@ -33,6 +33,7 @@ spring:
     consul:
       config:
         prefix: config/${NAMESPACE:local}
+        acl-token: ${CONSUL_ACL_TOKEN}
         defaultContext: application
         enabled: ${CONSUL_ENABLED:true}
         watch:
