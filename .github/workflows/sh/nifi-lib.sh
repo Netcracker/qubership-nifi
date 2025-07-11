@@ -300,7 +300,7 @@ create_docker_env_file() {
     CONSUL_TOKEN=$(generate_uuid)
     echo "$CONSUL_TOKEN" >./consul-acl-token.tmp
     export CONSUL_TOKEN
-    echo "CONSUL_TOKEN=$CONSUL_TOKEN" >> ./docker.env
+    echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
 }
 
 create_docker_env_file_plain() {
