@@ -83,8 +83,8 @@ generate_random_hex_password() {
 
 generate_random_password() {
     #args -- letters, numbers, special characters
-    echo "$(tr -dc '[:lower:]''[:upper:]' </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")"\
-"$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
+    echo "$(tr -dc '[:lower:]''[:upper:]' </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")""\
+$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
 }
 
 get_next_summary_file_name() {
