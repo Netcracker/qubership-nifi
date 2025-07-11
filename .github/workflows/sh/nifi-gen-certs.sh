@@ -153,10 +153,6 @@ generate_consul_token() {
     echo "Wait finished successfully. Consul API is available."
     defaultSecretId=$(cat ./bootstrap-token-resp.json | jq -r '.SecretID')
 
-    echo "defaultSecretId - $defaultSecretId"
-    echo "Default token response: "
-    cat ./bootstrap-token-resp.json
-
     resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp.json -H '"X-Consul-Token: $defaultSecretId"' \
                 --data @/tmp/tls-scripts/create-policy-request.json --connect-timeout 5 --max-time 10 "http://tls-consul-1:8500/v1/acl/policy" )
     if [ "$resp_code" != '200' ]; then

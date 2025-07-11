@@ -50,7 +50,7 @@ fi
 
 info "Start process of restore NiFi configuration."
 
-secretId=""
+secretId="${CONSUL_ACL_TOKEN}"
 
 [ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
 
