@@ -118,6 +118,7 @@ jobs:
               if [ -d "./test-results/${{ matrix.run-mode }}" ]; then
                 echo "Copying docker.env to test-results/${{ matrix.run-mode }}..."
                 cp ./docker.env "./test-results/${{ matrix.run-mode }}/"
+              fi
             fi
             exit 1;
           fi

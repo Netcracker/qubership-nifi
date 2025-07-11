@@ -227,6 +227,7 @@ wait_nifi_container() {
         echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
         echo "| Wait for container start                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+        return 1
     fi
     echo "| Wait for container start                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
     return 0
