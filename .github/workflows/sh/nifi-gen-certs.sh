@@ -165,16 +165,9 @@ generate_consul_token() {
     fi
     policyId=$(cat ./create-policy-resp.json | jq -r '.ID')
 
-    #echo "policyId - $policyId"
-    #echo "Create policy response: "
-    #cat ./create-policy-resp.json
-
     touch ./create-token-request.json
     jq --arg polId "$policyId" --arg consulToken "${CONSUL_TOKEN}" \
        '.Policies += [{"ID": $polId}] | .SecretID = $consulToken' /tmp/tls-scripts/create-token-template.json > ./create-token-request.json
-
-    #echo "Create token request: "
-    #cat ./create-token-request.json
 
     resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-token-resp.json -H '"X-Consul-Token: $defaultSecretId"' \
                 --data @./create-token-request.json --connect-timeout 5 --max-time 10 "http://tls-consul-1:8500/v1/acl/token")
@@ -193,4 +186,6 @@ else
     generate_nifi_certs
 fi
 create_newman_cert_config
-generate_consul_token
+if [ "$CONSUL_ACL_ENABLED" == "true" ]; then
+    generate_consul_token
+fi
