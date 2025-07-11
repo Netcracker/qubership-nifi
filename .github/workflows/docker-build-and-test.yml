@@ -114,6 +114,11 @@ jobs:
           else
             echo "Some tests ($failed_cnt) failed. Marking as failure."
             echo "Some tests ($failed_cnt) failed. Marking as failure." >> $GITHUB_STEP_SUMMARY
+            if [ -f ./docker.env ]; then
+              if [ -d "./test-results/${{ matrix.run-mode }}" ]; then
+                echo "Copying docker.env to test-results/${{ matrix.run-mode }}..."
+                cp ./docker.env "./test-results/${{ matrix.run-mode }}/"
+            fi
             exit 1;
           fi
       - name: Upload test results
