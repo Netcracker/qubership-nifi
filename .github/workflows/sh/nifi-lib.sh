@@ -108,7 +108,7 @@ configure_log_level() {
     targetPath=$(echo "logger.$targetPkg" | sed 's|\.|/|g')
     echo "Consul URL = $consulUrl, namespace = $ns, targetPath = $targetPath"
     rm -rf ./consul-put-resp.txt
-    respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-resp.txt --header '"X-Consul-Token: ${secretId}"' \
+    respCode=$(curl -X PUT -sS --data "$targetLevel" -w '%{response_code}' -o ./consul-put-resp.txt --header "X-Consul-Token: ${secretId}" \
         "$consulUrl/v1/kv/config/$ns/application/$targetPath")
     echo "Response code = $respCode"
     if [ "$respCode" == "200" ]; then
