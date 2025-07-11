@@ -1,0 +1,296 @@
+{
+    "info": {
+        "_postman_id": "729509b5-f59c-479b-a495-637c5e59ff80",
+        "name": "Setup_Cluster_Access_Policies",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get id of root process group",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get Id of root process group\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    var pgId = jsonData.processGroupFlow.id;\r",
+                            "    pm.environment.set(\"root.pg.id\", pgId);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/process-groups/root",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "process-groups",
+                        "root"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get users",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get Id of user\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    var users = jsonData.users;\r",
+                            "    var result = false;\r",
+                            "    var result0 = false;\r",
+                            "    var result1 = false;\r",
+                            "    var result2 = false;\r",
+                            "    for (var i = 0; i < users.length; i++) {\r",
+                            "        var user = users[i]\r",
+                            "        if (user.component.identity == \"CN=admin, OU=NIFI\" || user.component.identity == \"admin\") {\r",
+                            "            pm.environment.set(\"user.id\", user.component.id);\r",
+                            "            result = true;\r",
+                            "        }\r",
+                            "        if (user.component.identity == \"qubership-nifi-0.local\") {\r",
+                            "            pm.environment.set(\"node0.user.id\", user.component.id);\r",
+                            "            result0 = true;\r",
+                            "        }\r",
+                            "        if (user.component.identity == \"qubership-nifi-1.local\") {\r",
+                            "            pm.environment.set(\"node1.user.id\", user.component.id);\r",
+                            "            result1 = true;\r",
+                            "        }\r",
+                            "        if (user.component.identity == \"qubership-nifi-2.local\") {\r",
+                            "            pm.environment.set(\"node2.user.id\", user.component.id);\r",
+                            "            result2 = true;\r",
+                            "        }\r",
+                            "    }\r",
+                            "    pm.expect(result).to.eql(true);\r",
+                            "    pm.expect(result0).to.eql(true);\r",
+                            "    pm.expect(result1).to.eql(true);\r",
+                            "    pm.expect(result2).to.eql(true);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/tenants/users",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "tenants",
+                        "users"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get \"modify the data\" policy",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get Id of user\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    pm.environment.set(\"mod.data.policy.id\", jsonData.id);\r",
+                            "    pm.environment.set(\"mod.data.policy.version\", jsonData.revision.version);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            },
+            "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/policies/write/data/process-groups/{{root.pg.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "policies",
+                        "write",
+                        "data",
+                        "process-groups",
+                        "{{root.pg.id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Create \"modify the data\" policies",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200]);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"2528933d-0196-1000-395f-b803dbf9d60a\",\r\n        \"version\": {{mod.data.policy.version}}\r\n    },\r\n    \"id\": \"{{mod.data.policy.id}}\",\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"id\": \"{{mod.data.policy.id}}\",\r\n        \"action\": \"write\",\r\n        \"resource\": \"/data/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"admin\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node0.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node0.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-0.local\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node1.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node1.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-1.local\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node2.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node2.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-2.local\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/policies/{{mod.data.policy.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "policies",
+                        "{{mod.data.policy.id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get \"view the data\" policy",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get Id of user\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    pm.environment.set(\"view.data.policy.id\", jsonData.id);\r",
+                            "    pm.environment.set(\"view.data.policy.version\", jsonData.revision.version);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            },
+            "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/policies/read/data/process-groups/{{root.pg.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "policies",
+                        "read",
+                        "data",
+                        "process-groups",
+                        "{{root.pg.id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Create \"view the data\" policies",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200]);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"2528933d-0196-1000-395f-b803dbf9d60a\",\r\n        \"version\": {{view.data.policy.version}}\r\n    },\r\n    \"id\": \"{{view.data.policy.id}}\",\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"component\": {\r\n        \"id\": \"{{view.data.policy.id}}\",\r\n        \"action\": \"read\",\r\n        \"resource\": \"/data/process-groups/{{root.pg.id}}\",\r\n        \"users\": [\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{user.id}}\",\r\n                    \"identity\": \"admin\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node0.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node0.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-0.local\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node1.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node1.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-1.local\",\r\n                    \"configurable\": true\r\n                }\r\n            },\r\n            {\r\n                \"revision\": {\r\n                    \"version\": 0\r\n                },\r\n                \"id\": \"{{node2.user.id}}\",\r\n                \"permissions\": {\r\n                    \"canRead\": true,\r\n                    \"canWrite\": true\r\n                },\r\n                \"component\": {\r\n                    \"id\": \"{{node2.user.id}}\",\r\n                    \"identity\": \"qubership-nifi-2.local\",\r\n                    \"configurable\": true\r\n                }\r\n            }\r\n        ],\r\n        \"userGroups\": [\r\n        ]\r\n    }\r\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/policies/{{view.data.policy.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "policies",
+                        "{{view.data.policy.id}}"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}

@@ -54,7 +54,12 @@ wait_for_service() {
             echo "Failed to call service API, continue waiting..."
         }
         if [ "$res" == "0" ]; then
-            if [ "$resp_code" != '200' ]; then
+            if [ "$resp_code" == '409' ]; then
+                echo "Got response with code = $resp_code and body: "
+                cat ./temp-resp.json
+                echo "Continue waiting..."
+                res="1"
+            elif [ "$resp_code" != '200' ]; then
                 echo "Got response with code = $resp_code and body: "
                 cat ./temp-resp.json
             fi
@@ -74,6 +79,17 @@ wait_for_service() {
 generate_random_hex_password() {
     #args -- letters, numbers
     echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
+}
+
+generate_random_hex_password2() {
+    #args -- letters, numbers, special characters
+    echo "$(tr -dc A-F </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")" \
+        "$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
+}
+
+get_next_summary_file_name() {
+    current_steps_count=$(find "./test-results/$1" -name "summary_*.txt" | wc -l)
+    echo "summary_step$(printf %03d $((current_steps_count + 1))).txt"
 }
 
 configure_log_level() {
@@ -160,17 +176,20 @@ test_log_level() {
     docker cp "$containerName":/opt/nifi/nifi-current/conf/logback.xml "$resultsPath/logback.xml"
     res="0"
     grep "$targetPkg" "$resultsPath/logback.xml" | grep 'logger' | grep "$targetLevel" || res="1"
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$res" == "0" ]; then
         echo "Logback configuration successfully applied"
+        echo "| Logging levels configuration                   | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
     else
         echo "Logback configuration failed to apply"
         echo "NiFi logger config update failed" >"$resultsPath/failed_log_config.lst"
+        echo "| Logging levels configuration                   | Failed :x:                 |" >"$resultsPath/$summaryFileName"
     fi
 }
 
 prepare_sens_key() {
     echo "Generating temporary sensitive key..."
-    NIFI_SENSITIVE_KEY=$(generate_random_hex_password 12 4)
+    NIFI_SENSITIVE_KEY=$(generate_random_hex_password2 12 4 4)
     export NIFI_SENSITIVE_KEY
     echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key.tmp
 }
@@ -199,6 +218,7 @@ wait_nifi_container() {
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
         "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
@@ -206,7 +226,10 @@ wait_nifi_container() {
         cat ./nifi_log_tmp.lst
         echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
         mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
+        echo "| Wait for container start                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
     fi
+    echo "| Wait for container start                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    return 0
 }
 
 wait_nifi_reg_container() {
@@ -239,9 +262,9 @@ wait_nifi_reg_container() {
 
 generate_tls_passwords() {
     echo "Generating passwords..."
-    TRUSTSTORE_PASSWORD=$(generate_random_hex_password 8 4)
-    KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password 8 4)
-    KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password 8 4)
+    TRUSTSTORE_PASSWORD=$(generate_random_hex_password2 8 4 3)
+    KEYSTORE_PASSWORD_NIFI=$(generate_random_hex_password2 8 4 3)
+    KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_hex_password2 8 4 3)
     KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
@@ -296,4 +319,42 @@ generate_add_nifi_certs() {
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer
     keytool -importcert -keystore ./temp-vol/tls-cert/keycloak-server.p12 -storetype PKCS12 -storepass "$KEYCLOAK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer -alias keycloak-ca-cer -noprompt
+}
+
+setup_env_before_tests() {
+    local runMode="$1"
+    #generic case:
+    prepare_sens_key
+    prepare_results_dir "$runMode"
+    if [ "$runMode" == "plain" ]; then
+        create_docker_env_file_plain
+    else
+        generate_tls_passwords
+        create_docker_env_file
+    fi
+    if [ "$runMode" == "oidc" ]; then
+        create_global_vars_file
+    fi
+    mkdir -p ./temp-vol/tls-cert/
+    mkdir -p ./temp-vol/tls-cert/ca/
+    mkdir -p ./temp-vol/tls-cert/nifi/
+    mkdir -p ./temp-vol/tls-cert/nifi-registry/
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+        mkdir -p ./temp-vol/pg-db/
+    fi
+    if [[ "$runMode" == "cluster"* ]]; then
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-0/
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-1/
+        mkdir -p ./temp-vol/tls-cert/qubership-nifi-2/
+        mkdir -p ./temp-vol/nifi-0/per-conf/
+        mkdir -p ./temp-vol/nifi-1/per-conf/
+        mkdir -p ./temp-vol/nifi-2/per-conf/
+    else
+        mkdir -p ./temp-vol/nifi/per-conf/
+    fi
+    chmod -R 777 ./temp-vol
+    #generate keycloak certificates:
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+        generate_add_nifi_certs
+    fi
 }

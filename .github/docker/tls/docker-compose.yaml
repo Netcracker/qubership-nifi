@@ -41,7 +41,7 @@ services:
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - CONSUL_ACL_TOKEN=${CONSUL_TOKEN}
-    container_name: local-nifi-tls
+    container_name: local-nifi
     restart: unless-stopped
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
@@ -63,7 +63,7 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
-    container_name: local-nifi-registry-tls
+    container_name: local-nifi-registry
     hostname: nifi-registry
   consul:
     image: hashicorp/consul:1.20

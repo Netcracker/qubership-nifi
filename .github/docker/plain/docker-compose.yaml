@@ -14,14 +14,14 @@ services:
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTP_PORT=8080
       - NIFI_WEB_HTTPS_PORT=
-    container_name: local-nifi-plain
+    container_name: local-nifi
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
     ports:
       - 127.0.0.1:18080:18080
     environment:
       - AUTH=none
-    container_name: local-nifi-registry-plain
+    container_name: local-nifi-registry
     hostname: nifi-registry
   consul:
     image: hashicorp/consul:1.20

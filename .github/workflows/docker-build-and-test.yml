@@ -66,13 +66,16 @@ jobs:
       upload-artifact: true
       skip-sonar: true
   docker-build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
-      - name: Input parameters
+      - name: Prepare test results
         shell: bash
         run: |
-          echo "Java version: ${{ github.event.inputs.java-version || '21' }}" >> $GITHUB_STEP_SUMMARY
           mkdir -p ./test-results/
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,29 +88,39 @@ jobs:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
-      - name: Run tests for nifi in plain (non-TLS mode)
-        uses: ./.github/actions/run-nifi-tests-plain
-      - name: Run tests for nifi in TLS mode
-        uses: ./.github/actions/run-nifi-tests-tls
-      - name: Run tests for nifi in TLS and OIDC mode
-        uses: ./.github/actions/run-nifi-tests-oidc
+      - name: Run tests with mode = ${{ matrix.run-mode }}
+        uses: ./.github/actions/run-nifi-tests-generic
+        with:
+          run-mode: '${{ matrix.run-mode }}'
       - name: Verify test results
         shell: bash
         run: |
+          echo "Preparing summary..."
+          {
+            echo "## Autotests summary"
+            echo "Run mode = ${{ matrix.run-mode }}"
+            echo ""
+            echo "| Step                                           | Result                     |"
+            echo "| ---------------------------------------------- | -------------------------- |"
+            cat ./test-results/*/summary_*.txt
+            echo ""
+          } >> $GITHUB_STEP_SUMMARY
           echo "Checking test results for failures..."
           failed_cnt=$(find ./test-results -name "failed_*.lst" | wc -l)
           echo "Found failed steps = $failed_cnt"
           if [ "$failed_cnt" == "0" ]; then
             echo "All tests were successful!"
+            echo "All tests were successful!" >> $GITHUB_STEP_SUMMARY
           else
             echo "Some tests ($failed_cnt) failed. Marking as failure."
+            echo "Some tests ($failed_cnt) failed. Marking as failure." >> $GITHUB_STEP_SUMMARY
             exit 1;
           fi
       - name: Upload test results
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: nifi-autotests-logs
+          name: nifi-autotests-${{ matrix.run-mode }}-logs
           path: |
             ./test-results
           retention-days: 2
