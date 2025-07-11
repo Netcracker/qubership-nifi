@@ -124,7 +124,8 @@ configure_log_level() {
 set_configuration_version() {
     local version="$1"
     local consulUrl="$2"
-    local ns="$3"
+    local secretId="$3"
+    local ns="$4"
     if [ -z "$consulUrl" ]; then
         consulUrl='http://localhost:8500'
     fi
@@ -133,7 +134,7 @@ set_configuration_version() {
     fi
     echo "Configuring version = $version for restore..."
     rm -rf ./consul-put-ver-resp.txt
-    respCode=$(curl -X PUT -sS --data "$version" -w '%{response_code}' -o ./consul-put-ver-resp.txt \
+    respCode=$(curl -X PUT -sS --data "$version" -w '%{response_code}' -o ./consul-put-ver-resp.txt --header "X-Consul-Token: ${secretId}" \
         "$consulUrl/v1/kv/config/$ns/qubership-nifi/nifi-restore-version")
     echo "Response code = $respCode"
     if [ "$respCode" == "200" ]; then

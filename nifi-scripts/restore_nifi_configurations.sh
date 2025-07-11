@@ -55,7 +55,7 @@ secretId=""
 if [ -z "$CONSUL_ACL_TOKEN" ]; then
     [ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
 else
-    info "The CONSUL_ACL_TOKEN variable will be used in secretId"
+    info "The CONSUL_ACL_TOKEN variable will be used for accessing Consul"
     secretId="${CONSUL_ACL_TOKEN}"
 fi
 
