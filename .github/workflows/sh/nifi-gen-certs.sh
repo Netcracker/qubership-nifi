@@ -1,5 +1,8 @@
 #!/bin/bash -e
 
+# shellcheck source=/dev/null
+# shellcheck disable=SC2034
+
 generate_nifi_certs() {
     if [ ! -f /tmp/tls-certs/nifi/keystore.p12 ]; then
         mkdir -p /tmp/tls-certs/nifi
