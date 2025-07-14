@@ -39,19 +39,11 @@ runs:
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
           "$NIFI_CLIENT_PASSWORD"
     - name: Test log level configuration
-      if: ${{ inputs.run-mode != 'tls' }}
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.run-mode }}' 'local-nifi'
-    - name: Test log level configuration
-      if: ${{ inputs.run-mode == 'tls' }}
-      shell: bash
-      continue-on-error: true
-      run: |
-        . .github/workflows/sh/nifi-lib.sh
-        CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
+        [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
         test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.run-mode }}' 'local-nifi' "$CONSUL_TOKEN"
     - name: Run collection for setup policies
       if: ${{ inputs.run-mode != 'plain' }}

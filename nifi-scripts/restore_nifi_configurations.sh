@@ -24,7 +24,6 @@ delete_temp_files() {
     rm -rf /tmp/tmp-nifi/deleteValue.json
 }
 
-
 handle_error() {
     error "$1" >&2
     delete_temp_files
