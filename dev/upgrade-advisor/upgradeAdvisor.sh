@@ -5,7 +5,6 @@
 
 handle_error() {
     echo "$1" >&2
-    delete_tmp_file
     exit 1
 }
 
@@ -195,7 +194,7 @@ for flowName in "${exportFlow[@]}"; do
                 .checkMessage = $depracatedList[.type]
             else .
         end
-    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToExports/$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r 'walk(
@@ -209,7 +208,7 @@ for flowName in "${exportFlow[@]}"; do
                 end
             else .
         end
-    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToExports/$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
+    ) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
     jq -r 'walk(
@@ -222,7 +221,7 @@ for flowName in "${exportFlow[@]}"; do
                     .
             end
         else .
-    end) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$pathToExports/$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
+    end) | .. | objects | select(has("checkMessage")) | .checkMessage ' "$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
     jq -r 'walk(
@@ -230,7 +229,7 @@ for flowName in "${exportFlow[@]}"; do
         then
             .checkMessage = "Warning: Variables in process group with name - " + .name + " is not available in Apache NiFi 2.x. You should use Parameter Contexts instead."
         else .
-    end) | .. | objects | select(has("checkMessage")) | .checkMessage' "$pathToExports/$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Variables in Exported Flow - $flowName"
+    end) | .. | objects | select(has("checkMessage")) | .checkMessage' "$flowName" >>./upgradeAdvisorReport.txt || handle_error "Error while checking for Variables in Exported Flow - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"

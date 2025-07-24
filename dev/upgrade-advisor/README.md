@@ -8,6 +8,10 @@ Example of running a script:
 
 `bash upgradeAdvisor.sh <pathToExports>`
 
+Example of running a script using docker:
+
+`docker run -it --rm -v ".:/advisor" -v ".\export:<pathToExports>" --entrypoint=/bin/bash ghcr.io/netcracker/nifi-registry:1.0.3 /advisor/upgradeAdvisor.sh /export/`
+
 As input arguments used in script:
 
 | Argument      | Required | Default | Description                                                                                                                              |
