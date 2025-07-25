@@ -7,13 +7,13 @@ The script scans the specified directory and its subdirectories for exports, ana
 
 ## Running the Advisor with Bash
 
-### Prerequisites
+### Prerequisites for Bash
 
 Ensure you have the following tools installed:
 1. Bash – a command shell for running the script.
 2. jq – a command-line utility for processing JSON data in Bash. You can download jq [here](https://jqlang.org/download/).
 
-### Usage
+### Usage with Bash
 
 To run the advisor, execute the following command (replace parameters as needed):
 ```bash
@@ -29,14 +29,14 @@ The parameters referenced in the command above are described in the table below.
 
 The report file `upgradeAdvisorReport.txt` will be placed in the current working directory.
 
-## Running the Advisor with Docker
+## Running the Advisor as Docker container
 
-### Prerequisites
+### Prerequisites for Docker
 
 Ensure you have the following tool installed:
 1. Docker – any version of Docker Engine or a Docker-compatible container runtime.
 
-### Usage
+### Usage for Docker
 
 To run the advisor, execute the following command (replace parameters as needed):
 ```bash
