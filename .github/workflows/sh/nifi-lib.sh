@@ -302,6 +302,7 @@ create_docker_env_file() {
     echo "$CONSUL_TOKEN" >./consul-acl-token.tmp
     export CONSUL_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
+    set_consul_policy_file "create-policy-request.json"
 }
 
 create_docker_env_file_plain() {
@@ -370,4 +371,65 @@ setup_env_before_tests() {
     if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
+}
+
+regenerate_consul_token() {
+    NEW_CONSUL_TOKEN=$(generate_uuid)
+    regex="^CONSUL_TOKEN=.*$"
+    if grep -qE "$regex" ./docker.env; then
+        sed -i "s/$regex/CONSUL_TOKEN=$NEW_CONSUL_TOKEN/" ./docker.env
+    else
+        echo "CONSUL_TOKEN=$NEW_CONSUL_TOKEN" >> ./docker.env
+    fi
+}
+
+set_consul_policy_file() {
+    local policyFile="$1"
+    regex="^CONSUL_POLICY_FILE=.*$"
+    if grep -qE "$regex" ./docker.env; then
+        sed -i "s/$regex/CONSUL_POLICY_FILE=$policyFile/" ./docker.env
+    else
+        echo "CONSUL_POLICY_FILE=$policyFile" >> ./docker.env
+    fi
+}
+
+check_container_not_started() {
+    local logMessage="$1"
+    local containerName="$2"
+    local timeout="$3"
+
+    if [ -z "$timeout" ]; then
+        echo "Using default timeout = 180 seconds"
+        timeout=180
+    fi
+
+    startTime=$(date +%s)
+    endTime=$((startTime + timeout))
+    remainingTime="$timeout"
+    res=1
+    while [ "$res" != "0" ]; do
+        echo "Waiting for service to be available under URL = $serviceUrl, remaining time = $remainingTime"
+        res=0
+        logs=$(docker logs "$container_name" 2>&1) || {
+            res="$?"
+            echo "Failed to get logs from $containerName, continue waiting..."
+        }
+        if [ "$res" == "0" ]; then
+            if echo "$logs" | grep -q "$error_message"; then
+                echo "Message '$error_message' found in container logs '$container_name'."
+            else
+                echo "Message '$error_message' not found in container logs '$container_name'."
+                res="1"
+            fi
+        fi
+        echo ""
+        currentTime=$(date +%s)
+        remainingTime=$((endTime - currentTime))
+        if ((currentTime > endTime)); then
+            echo "ERROR: timeout reached; failed to wait"
+            return 1
+        fi
+        sleep 2
+    done
+    echo "Wait finished successfully. Service is available."
 }

@@ -1,0 +1,70 @@
+---
+name: 'Run NiFi with incorrect configuration for consul'
+description: 'Run NiFi with incorrect configuration for consul and tests to check for incorrect start'
+inputs:
+  run-mode:
+    description: 'Autotest run mode.'
+    required: false
+    default: 'tls'
+runs:
+  using: "composite"
+  steps:
+    - name: Prepare env
+      shell: bash
+      run: |
+        echo "Preparing env..."
+        . .github/workflows/sh/nifi-lib.sh
+        setup_env_before_tests "${{ inputs.run-mode }}"
+    - name: Run local nifi
+      shell: bash
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+        echo "Starting containers..."
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
+        echo "Change Consul ACL token for Nii..."
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env rm -f local-nifi
+        regenerate_consul_token
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
+    - name: Checking that local-nifi has not started
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        check_container_not_started "ERROR: Consul app java process has terminated prematurely. See logs for details..." "local-nifi"
+    - name: Stop local nifi
+      shell: bash
+      continue-on-error: true
+      run: |
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+        echo "Stopping and removing containers"
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env down -v
+        sudo rm -rf ./temp-vol/
+    - name: Prepare env
+      shell: bash
+      run: |
+        echo "Preparing env..."
+        . .github/workflows/sh/nifi-lib.sh
+        setup_env_before_tests "${{ inputs.run-mode }}"
+    - name: Run local nifi
+      shell: bash
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+        set_consul_policy_file "create-read-policy-request.json"
+        echo "Starting containers..."
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
+    - name: Checking that local-nifi has not started
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        check_container_not_started "ERROR: Consul app java process has terminated prematurely. See logs for details..." "local-nifi"
+    - name: Cleanup after tests
+      shell: bash
+      continue-on-error: true
+      run: |
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+        echo "Stopping and removing containers"
+        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env down -v
+        sudo rm -rf ./temp-vol/

@@ -88,6 +88,8 @@ jobs:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
+      - name: Run test for consul(error case)
+        uses: ./.github/actions/run-error-start-test
       - name: Run tests with mode = ${{ matrix.run-mode }}
         uses: ./.github/actions/run-nifi-tests-generic
         with:

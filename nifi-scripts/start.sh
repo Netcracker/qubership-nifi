@@ -119,7 +119,7 @@ if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
         fi
     done < "${NIFI_HOME}"/conf/custom.properties
     unset IFS
-    
+
     set_additional_properties
 fi
 
@@ -273,10 +273,10 @@ prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PR
 prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
 #prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
 
-if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then 
+if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     clusterHostName=$(hostname -f)
     prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$clusterHostName}"
-fi  
+fi
 prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
 prop_replace 'nifi.cluster.node.protocol.max.threads'       "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
 prop_replace 'nifi.cluster.load.balance.host'               "${NIFI_CLUSTER_LOAD_BALANCE_HOST:-}"
@@ -364,7 +364,7 @@ else
    info "Checking if any h2 db is corrupt..."
    verscount=${#h2_versions[@]}
    newDbFile=(./persistent_conf/database_repository/*.sh)
-   numDbFiles=${#newDbFile[@]}   
+   numDbFiles=${#newDbFile[@]}
   if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$numDbFiles" == "0" ]]; then
    info "Checking if nifi-flow-audit h2 db is corrupt..."
    count=$verscount
@@ -464,10 +464,10 @@ fi
 
 if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     startMode="$START_MODE_CLUSTER"
-    
+
     numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
     baseNode="$BASE_NODE_COUNT"
-    
+
     if [ "$numberNode" -gt "$((baseNode-1))" ]; then
         if [ "$startMode" == "delete" ]; then
             rm -f "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz"
