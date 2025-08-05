@@ -396,6 +396,7 @@ set_consul_policy_file() {
 check_container_not_started() {
     local logMessage="$1"
     local containerName="$2"
+    local composeFile="$3"
     local timeout="$3"
 
     if [ -z "$timeout" ]; then
@@ -410,7 +411,7 @@ check_container_not_started() {
     while [ "$res" != "0" ]; do
         echo "Waiting for container $containerName to be available, remaining time = $remainingTime"
         res=0
-        logs=$(docker logs "$container_name" 2>&1) || {
+        logs=$(docker compose -f "$composeFile" --env-file ./docker.env logs) || {
             res="$?"
             echo "Failed to get logs from $containerName, continue waiting..."
         }
@@ -427,9 +428,17 @@ check_container_not_started() {
         remainingTime=$((endTime - currentTime))
         if ((currentTime > endTime)); then
             echo "ERROR: timeout reached; failed to wait"
+            echo "Wait failed, container - $container_name not available. Last 500 lines of logs for container:"
+            echo "resultsDir=$resultsDir"
+            docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 >./nifi_log_tmp.lst
+            cat ./nifi_log_tmp.lst
+            echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
+            mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
+            echo "| Wait for container start                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
             return 1
         fi
         sleep 2
     done
     echo "Wait finished successfully. Service is available."
+    return 0
 }
