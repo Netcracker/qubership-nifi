@@ -22,7 +22,7 @@ runs:
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
-        echo "Change Consul ACL token for Nii..."
+        echo "Change Consul ACL token for NiFi..."
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env rm -f nifi
         regenerate_consul_token
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d

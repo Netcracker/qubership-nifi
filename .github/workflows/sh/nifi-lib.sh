@@ -399,8 +399,8 @@ check_container_not_started() {
     local timeout="$3"
 
     if [ -z "$timeout" ]; then
-        echo "Using default timeout = 180 seconds"
-        timeout=180
+        echo "Using default timeout = 30 seconds"
+        timeout=30
     fi
 
     startTime=$(date +%s)
@@ -408,17 +408,17 @@ check_container_not_started() {
     remainingTime="$timeout"
     res=1
     while [ "$res" != "0" ]; do
-        echo "Waiting for service to be available under URL = $serviceUrl, remaining time = $remainingTime"
+        echo "Waiting for container $containerName to be available, remaining time = $remainingTime"
         res=0
         logs=$(docker logs "$container_name" 2>&1) || {
             res="$?"
             echo "Failed to get logs from $containerName, continue waiting..."
         }
         if [ "$res" == "0" ]; then
-            if echo "$logs" | grep -q "$error_message"; then
-                echo "Message '$error_message' found in container logs '$container_name'."
+            if echo "$logs" | grep -q "$logMessage"; then
+                echo "Message '$logMessage' found in container logs '$container_name'."
             else
-                echo "Message '$error_message' not found in container logs '$container_name'."
+                echo "Message '$logMessage' not found in container logs '$container_name'."
                 res="1"
             fi
         fi
