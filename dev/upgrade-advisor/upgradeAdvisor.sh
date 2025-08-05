@@ -799,17 +799,17 @@ for flowName in "${exportFlow[@]}"; do
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" --argjson depracatedList "$deprecatedComponents" 'walk(
         if type == "object" and has("type") and .type != null and $depracatedList[.type] != null
             then
-                .checkSolution = $depracatedList[.type].solution | 
-                .checkIssue = $depracatedList[.type].issue | 
-                .checkLevel = $depracatedList[.type].level | 
+                .checkSolution = $depracatedList[.type].solution |
+                .checkIssue = $depracatedList[.type].issue |
+                .checkLevel = $depracatedList[.type].level |
                 .checkVersion = $depracatedList[.type].version?
             else .
         end
-    ) | .. | objects | select(has("checkIssue")) | 
-    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator + 
-    "\"" + .checkSolution + "\"" + $csvSeparator + 
-    "\"" + .checkVersion + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
+    ) | .. | objects | select(has("checkIssue")) |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + .checkVersion + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
     "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
@@ -826,11 +826,11 @@ for flowName in "${exportFlow[@]}"; do
                 end
             else .
         end
-    ) | .. | objects | select(has("checkIssue"))  | 
-    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator + 
-    "\"" + .checkSolution + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
+    ) | .. | objects | select(has("checkIssue"))  |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
     "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
@@ -847,11 +847,11 @@ for flowName in "${exportFlow[@]}"; do
                     .
             end
         else .
-    end) | .. | objects | select(has("checkIssue"))  | 
-    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator + 
-    "\"" + .checkSolution + "\"" + $csvSeparator + 
-    "\"" + .checkVersion + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
+    end) | .. | objects | select(has("checkIssue"))  |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + .checkVersion + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
     "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
@@ -862,11 +862,11 @@ for flowName in "${exportFlow[@]}"; do
             .checkIssue = "Variables are not available in Apache NiFi 2.x." |
             .checkSolution = "1) Create a parameter context (or several contexts, if needed). 2) Assign the PC(s) to the necessary process groups. 3) Change references in properties from ${varName} to #{paramName}."
         else .
-    end) | .. | objects | select(has("checkIssue"))  | 
-    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator + 
-    "\"" + .checkSolution + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
-    "\"" + "\"" + $csvSeparator + 
+    end) | .. | objects | select(has("checkIssue"))  |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
     "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Variables in Exported Flow - $flowName"
 done
 
