@@ -64,6 +64,7 @@ runs:
       shell: bash
       continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         set_consul_policy_file "create-read-policy-request.json"
         echo "Restarting nifi and nifi-toolkit containers..."

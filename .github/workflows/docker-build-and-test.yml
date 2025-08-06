@@ -88,14 +88,8 @@ jobs:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
-      - name: Run test for consul(read error case)
-        if: ${{ matrix.run-mode == 'tls-consul-read' }}
-        uses: ./.github/actions/run-error-start-test
-        with:
-          run-mode: 'tls'
-          error-mode: '${{ matrix.run-mode }}'
-      - name: Run test for consul(write error case)
-        if: ${{ matrix.run-mode == 'tls-consul-write' }}
+      - name: Run test for consul(error case)
+        if: ${{ matrix.run-mode == 'tls-consul-read' || matrix.run-mode == 'tls-consul-write' }}
         uses: ./.github/actions/run-error-start-test
         with:
           run-mode: 'tls'
