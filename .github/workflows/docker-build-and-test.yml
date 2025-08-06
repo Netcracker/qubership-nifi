@@ -70,7 +70,6 @@ jobs:
       fail-fast: false
       matrix:
         run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset' ]
-        error-mode: [ 'read', 'write']
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -90,8 +89,17 @@ jobs:
       - name: Run local docker build
         run: docker build -t local-nifi:test .
       - name: Run test for consul(error case)
-        if: ${{ inputs.run-mode == 'tls' }}
+        if: ${{ matrix.run-mode == 'tls' }}
         uses: ./.github/actions/run-error-start-test
+        with:
+          run-mode: '${{ matrix.run-mode }}'
+          error-mode: 'read'
+      - name: Run test for consul(error case)
+        if: ${{ matrix.run-mode == 'tls' }}
+        uses: ./.github/actions/run-error-start-test
+        with:
+          run-mode: '${{ matrix.run-mode }}'
+          error-mode: 'write'
       - name: Run tests with mode = ${{ matrix.run-mode }}
         uses: ./.github/actions/run-nifi-tests-generic
         with:
