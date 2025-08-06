@@ -397,7 +397,8 @@ check_container_not_started() {
     local logMessage="$1"
     local containerName="$2"
     local composeFile="$3"
-    local timeout="$4"
+    local resultsDir="$4"
+    local timeout="$5"
 
     if [ -z "$timeout" ]; then
         echo "Using default timeout = 30 seconds"
@@ -434,13 +435,13 @@ check_container_not_started() {
             cat ./nifi_log_tmp.lst
             echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
             mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
-            echo "| Wait for container start                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+            echo "| Wait message in container                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
             return 1
         fi
         sleep 2
     done
     echo "Wait finished successfully. Service is available."
     summaryFileName=$(get_next_summary_file_name "$resultsDir")
-    echo "| Wait for container start                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    echo "| Wait message in container                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
     return 0
 }
