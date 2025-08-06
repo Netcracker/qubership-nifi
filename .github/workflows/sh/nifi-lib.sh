@@ -397,7 +397,7 @@ check_container_not_started() {
     local logMessage="$1"
     local containerName="$2"
     local composeFile="$3"
-    local timeout="$3"
+    local timeout="$4"
 
     if [ -z "$timeout" ]; then
         echo "Using default timeout = 30 seconds"
@@ -417,9 +417,9 @@ check_container_not_started() {
         }
         if [ "$res" == "0" ]; then
             if echo "$logs" | grep -q "$logMessage"; then
-                echo "Message '$logMessage' found in container logs '$container_name'."
+                echo "Message '$logMessage' found in container logs '$containerName'."
             else
-                echo "Message '$logMessage' not found in container logs '$container_name'."
+                echo "Message '$logMessage' not found in container logs '$containerName'."
                 res="1"
             fi
         fi
@@ -428,7 +428,7 @@ check_container_not_started() {
         remainingTime=$((endTime - currentTime))
         if ((currentTime > endTime)); then
             echo "ERROR: timeout reached; failed to wait"
-            echo "Wait failed, container - $container_name not available. Last 500 lines of logs for container:"
+            echo "Wait failed, nifi container not available. Last 500 lines of logs for container:"
             echo "resultsDir=$resultsDir"
             docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 >./nifi_log_tmp.lst
             cat ./nifi_log_tmp.lst
@@ -440,5 +440,7 @@ check_container_not_started() {
         sleep 2
     done
     echo "Wait finished successfully. Service is available."
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
+    echo "| Wait for container start                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
     return 0
 }
