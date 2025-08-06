@@ -18,7 +18,7 @@ runs:
       run: |
         echo "Preparing env..."
         . .github/workflows/sh/nifi-lib.sh
-        setup_env_before_tests "${{ inputs.run-mode }}"
+        setup_env_before_tests "${{ inputs.error-mode }}"
     - name: Run local nifi
       shell: bash
       if: ${{ inputs.error-mode == 'tls-consul-read' }}
