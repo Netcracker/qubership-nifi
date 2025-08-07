@@ -20,7 +20,7 @@ services:
       - CONSUL_TOKEN=${CONSUL_TOKEN}
       - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
-    image: local-nifi:4
+    image: local-nifi:test
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
