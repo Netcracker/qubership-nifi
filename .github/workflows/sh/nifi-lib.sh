@@ -429,13 +429,13 @@ check_container_not_started() {
             cat ./nifi_log_tmp.lst
             echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
             mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
-            echo "| Wait message in container                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+            echo "| Wait expected error message in container logs                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
             return 1
         fi
         sleep 2
     done
-    echo "Wait finished successfully. Service is available."
+    echo "Wait finished successfully. Expected log message found."
     summaryFileName=$(get_next_summary_file_name "$resultsDir")
-    echo "| Wait message in container                       | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    echo "| Wait expected error message in container logs                 | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
     return 0
 }
