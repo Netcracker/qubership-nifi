@@ -92,7 +92,7 @@ jobs:
         if: ${{ matrix.run-mode == 'tls-consul-read' || matrix.run-mode == 'tls-consul-write' }}
         uses: ./.github/actions/run-error-start-test
         with:
-          run-mode: '${{ matrix.run-mode }}'
+          run-mode: 'tls'
           error-mode: '${{ matrix.run-mode }}'
       - name: Run tests with mode = ${{ matrix.run-mode }}
         if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' }}
