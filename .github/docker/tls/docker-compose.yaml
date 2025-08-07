@@ -18,9 +18,9 @@ services:
       - CONSUL_ACL_ENABLED=true
       - CONSUL_HOSTNAME=consul
       - CONSUL_TOKEN=${CONSUL_TOKEN}
-      - POLICY_FILE=${CONSUL_POLICY_FILE}
+      - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
-    image: local-nifi:test
+    image: local-nifi:4
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully

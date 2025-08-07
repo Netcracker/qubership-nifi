@@ -66,10 +66,10 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        set_consul_policy_file "create-read-policy-request.json"
         echo "Restarting nifi and nifi-toolkit containers..."
-        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env rm -f nifi-toolkit
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env rm -f nifi
+        [ -f ./consul-acl-read-token.tmp ] && READ_CONSUL_TOKEN=$(cat ./consul-acl-read-token.tmp)
+        sed -i "s/^CONSUL_TOKEN=.*$/CONSUL_TOKEN=$READ_CONSUL_TOKEN/" ./docker.env
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
     - name: Checking that local-nifi has not started
       shell: bash

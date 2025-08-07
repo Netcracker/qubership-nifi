@@ -123,6 +123,36 @@ create_newman_cert_config() {
             ]' >/tmp/tls-certs/newman-tls-config.json
 }
 
+create_consul_policy_and_token() {
+    local defaultSecretId="$1"
+    local policyFile="$2"
+    local tokenMode="$3"
+    local aclToken="$4"
+
+    echo "Create policy for token from file - $policyFile"
+    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp-$policyFile.json -H '"X-Consul-Token: $defaultSecretId"' \
+        --data @/tmp/tls-scripts/"$policyFile" --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/policy")
+    if [ "$resp_code" != '200' ]; then
+        echo "Error: Error creating policy for NiFi in Consul response with code = $resp_code and body: "
+        cat ./create-policy-resp-$policyFile.json
+    fi
+    policyId=$(<./create-policy-resp-$policyFile.json jq -r '.ID')
+
+    touch ./create-token-request-$tokenMode.json
+    jq --arg polId "$policyId" --arg consulToken "$aclToken" \
+        '.Policies += [{"ID": $polId}] | .SecretID = $consulToken' /tmp/tls-scripts/create-token-template.json >./create-token-request-$tokenMode.json
+
+    echo "Create ACL $tokenMode token for NiFi"
+    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-token-resp-$tokenMode.json -H '"X-Consul-Token: $defaultSecretId"' \
+        --data @./create-token-request-$tokenMode.json --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/token")
+    if [ "$resp_code" != '200' ]; then
+        echo "Error: Error creating token for NiFi in Consul response with code = $resp_code and body: "
+        cat ./create-token-resp-$tokenMode.json
+    fi
+
+    echo "ACL $tokenMode successfully created"
+}
+
 generate_consul_token() {
     local timeout=45
     local consulHostname=${CONSUL_HOSTNAME}
@@ -157,32 +187,10 @@ generate_consul_token() {
     echo "Wait finished successfully. Consul API is available."
     defaultSecretId=$(<./bootstrap-token-resp.json jq -r '.SecretID')
 
-    if [[ -z "$POLICY_FILE" ]]; then
-        POLICY_FILE="create-policy-request.json"
-    fi
+    create_consul_policy_and_token "$defaultSecretId" "create-policy-request.json" "write" "$CONSUL_TOKEN"
+    create_consul_policy_and_token "$defaultSecretId" "create-read-policy-request.json" "read" "$CONSUL_READ_TOKEN"
 
-    echo "Create policy for token"
-    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp.json -H '"X-Consul-Token: $defaultSecretId"' \
-        --data @/tmp/tls-scripts/"$POLICY_FILE" --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/policy")
-    if [ "$resp_code" != '200' ]; then
-        echo "Error: Error creating policy for NiFi in Consul response with code = $resp_code and body: "
-        cat ./create-policy-resp.json
-    fi
-    policyId=$(<./create-policy-resp.json jq -r '.ID')
-
-    touch ./create-token-request.json
-    jq --arg polId "$policyId" --arg consulToken "${CONSUL_TOKEN}" \
-        '.Policies += [{"ID": $polId}] | .SecretID = $consulToken' /tmp/tls-scripts/create-token-template.json >./create-token-request.json
-
-    echo "Create ACL token for NiFi"
-    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-token-resp.json -H '"X-Consul-Token: $defaultSecretId"' \
-        --data @./create-token-request.json --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/token")
-    if [ "$resp_code" != '200' ]; then
-        echo "Error: Error creating token for NiFi in Consul response with code = $resp_code and body: "
-        cat ./create-token-resp.json
-    fi
-
-    echo "ACL Token for NiFi created"
+    echo "ACL Tokens for NiFi created"
 }
 
 generate_nifi_certs

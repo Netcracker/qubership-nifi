@@ -300,9 +300,13 @@ create_docker_env_file() {
     echo "KEYCLOAK_TLS_PASS=$KEYCLOAK_TLS_PASS" >>./docker.env
     CONSUL_TOKEN=$(generate_uuid)
     echo "$CONSUL_TOKEN" >./consul-acl-token.tmp
+    echo "$CONSUL_TOKEN" >./consul-acl-write-token.tmp
     export CONSUL_TOKEN
+    CONSUL_READ_TOKEN=$(generate_uuid)
+    echo "$CONSUL_READ_TOKEN" >./consul-acl-read-token.tmp
+    export CONSUL_READ_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
-    set_consul_policy_file "create-policy-request.json"
+    echo "CONSUL_READ_TOKEN=$CONSUL_READ_TOKEN" >>./docker.env
 }
 
 create_docker_env_file_plain() {
@@ -380,16 +384,6 @@ regenerate_consul_token() {
         sed -i "s/$regex/CONSUL_TOKEN=$NEW_CONSUL_TOKEN/" ./docker.env
     else
         echo "CONSUL_TOKEN=$NEW_CONSUL_TOKEN" >> ./docker.env
-    fi
-}
-
-set_consul_policy_file() {
-    local policyFile="$1"
-    regex="^CONSUL_POLICY_FILE=.*$"
-    if grep -qE "$regex" ./docker.env; then
-        sed -i "s/$regex/CONSUL_POLICY_FILE=$policyFile/" ./docker.env
-    else
-        echo "CONSUL_POLICY_FILE=$policyFile" >> ./docker.env
     fi
 }
 
