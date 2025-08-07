@@ -411,7 +411,7 @@ check_container_not_started() {
             echo "Failed to get logs from $containerName, continue waiting..."
         }
         if [ "$res" == "0" ]; then
-            if echo "$logs" | grep -q "$logMessage"; then
+            if echo "$logs" | grep -E "$logMessage"; then
                 echo "Message '$logMessage' found in container logs '$containerName'."
             else
                 echo "Message '$logMessage' not found in container logs '$containerName'."
