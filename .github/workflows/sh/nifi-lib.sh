@@ -383,7 +383,7 @@ regenerate_consul_token() {
     if grep -qE "$regex" ./docker.env; then
         sed -i "s/$regex/CONSUL_TOKEN=$NEW_CONSUL_TOKEN/" ./docker.env
     else
-        echo "CONSUL_TOKEN=$NEW_CONSUL_TOKEN" >> ./docker.env
+        echo "CONSUL_TOKEN=$NEW_CONSUL_TOKEN" >>./docker.env
     fi
 }
 

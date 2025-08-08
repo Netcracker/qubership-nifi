@@ -130,24 +130,24 @@ create_consul_policy_and_token() {
     local aclToken="$4"
 
     echo "Create policy for token from file - $policyFile"
-    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp-$policyFile.json -H '"X-Consul-Token: $defaultSecretId"' \
+    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-policy-resp-"$policyFile".json -H '"X-Consul-Token: $defaultSecretId"' \
         --data @/tmp/tls-scripts/"$policyFile" --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/policy")
     if [ "$resp_code" != '200' ]; then
         echo "Error: Error creating policy for NiFi in Consul response with code = $resp_code and body: "
-        cat ./create-policy-resp-$policyFile.json
+        cat ./create-policy-resp-"$policyFile".json
     fi
-    policyId=$(<./create-policy-resp-$policyFile.json jq -r '.ID')
+    policyId=$(<./create-policy-resp-"$policyFile".json jq -r '.ID')
 
-    touch ./create-token-request-$tokenMode.json
+    touch ./create-token-request-"$tokenMode".json
     jq --arg polId "$policyId" --arg consulToken "$aclToken" \
-        '.Policies += [{"ID": $polId}] | .SecretID = $consulToken' /tmp/tls-scripts/create-token-template.json >./create-token-request-$tokenMode.json
+        '.Policies += [{"ID": $polId}] | .SecretID = $consulToken' /tmp/tls-scripts/create-token-template.json >./create-token-request-"$tokenMode".json
 
     echo "Create ACL $tokenMode token for NiFi"
-    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-token-resp-$tokenMode.json -H '"X-Consul-Token: $defaultSecretId"' \
-        --data @./create-token-request-$tokenMode.json --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/token")
+    resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./create-token-resp-"$tokenMode".json -H '"X-Consul-Token: $defaultSecretId"' \
+        --data @./create-token-request-"$tokenMode".json --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/token")
     if [ "$resp_code" != '200' ]; then
         echo "Error: Error creating token for NiFi in Consul response with code = $resp_code and body: "
-        cat ./create-token-resp-$tokenMode.json
+        cat ./create-token-resp-"$tokenMode".json
     fi
 
     echo "ACL $tokenMode successfully created"
