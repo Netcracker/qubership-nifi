@@ -20,11 +20,11 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-deps</artifactId>
-        <version>1.0.4</version>
+        <version>1.0.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>qubership-nifi-db-deps</artifactId>
+    <artifactId>qubership-nifi-misc-deps</artifactId>
 
     <properties>
         <ojdbc.version>19.3.0.0</ojdbc.version>
@@ -45,6 +45,11 @@
             <groupId>com.oracle.database.nls</groupId>
             <artifactId>orai18n</artifactId>
             <version>${ojdbc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>${json.smart.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -68,7 +68,10 @@ RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/enc
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-toolkit-flowanalyzer-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-site-to-site-client-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/velocity-engine-core*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar
+    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar \
+    && rm -rf $NIFI_HOME/lib/bootstrap/json-smart*.jar
+
+COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
@@ -127,9 +130,9 @@ RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/auxiliary-cp \
     && ln -s $NIFI_HOME/work/nar/extensions/nifi-poi-nar-$NIFI_VERSION.nar-unpacked/NAR-INF/bundled-dependencies $NIFI_HOME/auxiliary-cp/nifi-poi-nar-cp
 
-COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-db-deps/target/lib/ojdbc8-*.jar ${NIFI_HOME}/lib/ojdbc8.jar
-COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-db-deps/target/lib/orai18n-*.jar ${NIFI_HOME}/lib/orai18n.jar
-COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-db-deps/target/lib/postgresql-*.jar ${NIFI_HOME}/lib/postgresql.jar
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ojdbc8-*.jar ${NIFI_HOME}/lib/ojdbc8.jar
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/orai18n-*.jar ${NIFI_HOME}/lib/orai18n.jar
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/postgresql-*.jar ${NIFI_HOME}/lib/postgresql.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-h2-deps-2-1-210/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-1-214/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-2-220/target/lib/h2-*.jar ${NIFI_HOME}/utility-lib/
 
 COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-consul-application.jar
