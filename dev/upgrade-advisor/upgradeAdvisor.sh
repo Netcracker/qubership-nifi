@@ -742,12 +742,36 @@ deprecatedComponents='{
 }'
 
 deprecatedReportingTask='{
-    "org.apache.nifi.reporting.ganglia.StandardGangliaReporter": "Warning: The StandardGangliaReporter Reporting Task is not available in Apache NiFi 2.x. You should use REST API Metrics instead.",
-    "org.apache.nifi.atlas.reporting.ReportLineageToAtlas": "Error: The ReportLineageToAtlas Reporting Task is not available in Apache NiFi 2.x.",
-    "org.apache.nifi.metrics.reporting.task.MetricsReportingTask": "Error: The MetricsReportingTask Reporting Task is not available in Apache NiFi 2.x.",
-    "org.apache.nifi.reporting.ambari.AmbariReportingTask": "Error: The AmbariReportingTask Reporting Task is not available in Apache NiFi 2.x.",
-    "org.apache.nifi.reporting.datadog.DatadogReportingTask": "Error: The DatadogReportingTask Reporting Task is not available in Apache NiFi 2.x.",
-    "org.apache.nifi.reporting.prometheus.PrometheusReportingTask": "Warning: The PrometheusReportingTask Reporting Task is not available in Apache NiFi 2.x. You should use REST API Metrics instead."
+    "org.apache.nifi.reporting.ganglia.StandardGangliaReporter": {
+		"level": "Warning",
+		"issue": "The StandardGangliaReporter Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "You should use REST API Metrics instead."
+	},
+	"org.apache.nifi.atlas.reporting.ReportLineageToAtlas": {
+		"level": "Error",
+		"issue": "The ReportLineageToAtlas Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+	},
+	"org.apache.nifi.metrics.reporting.task.MetricsReportingTask": {
+		"level": "Error",
+		"issue": "The MetricsReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+	},
+	"org.apache.nifi.reporting.ambari.AmbariReportingTask": {
+		"level": "Error",
+		"issue": "The AmbariReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+	},
+	"org.apache.nifi.reporting.datadog.DatadogReportingTask": {
+		"level": "Error",
+		"issue": "The DatadogReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+	},
+	"org.apache.nifi.reporting.prometheus.PrometheusReportingTask": {
+		"level": "Warning",
+		"issue": "The PrometheusReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "You should use REST API Metrics instead."
+	}
 }'
 
 pathToExports=$1
@@ -786,12 +810,26 @@ else
 fi
 
 echo "Start Upgrade Advisor"
-
 mapfile -t exportFlow < <(find "$pathToExports" -type f -name "*.json" | sort)
+
+#set process group for component
+for flowName in "${exportFlow[@]}"; do
+	tmp=$(mktemp)
+	jq '
+		  (.flowContents | select(.componentType == "PROCESS_GROUP")) as $pg |
+		  ($pg.name) as $pgName |
+		  if $pg.processors then
+			.flowContents.processors |= map(. + {pgName: $pgName})
+		  else . end |
+		  if $pg.connections then
+			.flowContents.connections |= map(. + {pgName: $pgName})
+		  else . end
+		' "$flowName" > "$tmp" && mv "$tmp" "$flowName"
+done
+
 echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group" >"$reportFileName"
 
 for flowName in "${exportFlow[@]}"; do
-
     shortFlowName="${flowName//$pathToExports/}"
     echo "Current flowName - $flowName, shortFlowName - $shortFlowName"
 
@@ -809,8 +847,8 @@ for flowName in "${exportFlow[@]}"; do
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
-    "\"" + "\"" + $csvSeparator +
-    "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -830,8 +868,8 @@ for flowName in "${exportFlow[@]}"; do
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
-    "\"" + "\"" + $csvSeparator +
-    "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
+    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -851,8 +889,8 @@ for flowName in "${exportFlow[@]}"; do
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
-    "\"" + "\"" + $csvSeparator +
-    "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
+    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -867,16 +905,36 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
-    "\"" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Variables in Exported Flow - $flowName"
+    "\"" + .name + " (" + .identifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Variables in Exported Flow - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"
 mapfile -t reportTaskTypes < <(echo "$deprecatedReportingTask" | jq -r 'keys[]')
 
 for repTask in "${reportTaskTypes[@]}"; do
-    if grep -rqF "$repTask" "$pathToExports"; then
-        echo "$deprecatedReportingTask" | jq -r --arg repTask "$repTask" '.[$repTask]' >>"$reportFileName" || handle_error "Error while forming message for reporting task - $repTask"
+	foundFiles=$(grep -rlF "$repTask" "$pathToExports" 2>/dev/null)
+	if [ -n "$foundFiles" ]; then
+		shortfoundFiles="${foundFiles//$pathToExports/}"
+		echo "$deprecatedReportingTask" | jq -r --arg repTask "$repTask" --arg fileName "${shortfoundFiles}" --arg csvSeparator "${csvSeparator}" '$fileName + $csvSeparator + .[$repTask].level + $csvSeparator + .[$repTask].issue + $csvSeparator +
+		"\"" + .[$repTask].solution + "\"" + $csvSeparator +
+		"\"" + .checkVersion + "\"" + $csvSeparator +
+		"\"" + "\"" + $csvSeparator +
+		"\"" + "\""' >>"$reportFileName" || handle_error "Error while forming message for reporting task - $repTask"
     fi
 done
+
+#output summary
+for flowName in "${exportFlow[@]}"; do
+	shortFlowName="${flowName//$pathToExports/}"
+	if grep -q "$shortFlowName" "$reportFileName"; then
+		#echo "Строка найдена"
+		echo "$shortFlowName" >> ./summary_flow.txt
+	fi
+done
+
+echo "The following flows require changes: "
+cat ./summary_flow.txt
+rm -f ./summary_flow.txt
+echo "You can see more details in the report - $reportFileName"
 
 echo "Finish Update Advisor"
