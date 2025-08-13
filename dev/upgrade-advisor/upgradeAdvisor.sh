@@ -812,7 +812,7 @@ fi
 echo "Start Upgrade Advisor"
 mapfile -t exportFlow < <(find "$pathToExports" -type f -name "*.json" | sort)
 
-echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group Id" >"$reportFileName"
+echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group" >"$reportFileName"
 
 for flowName in "${exportFlow[@]}"; do
     shortFlowName="${flowName//$pathToExports/}"
@@ -820,7 +820,8 @@ for flowName in "${exportFlow[@]}"; do
 
     echo "Checking for Deprecated Components in Exported Flow - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" --argjson depracatedList "$deprecatedComponents" 'walk(
-        if type == "object" and has("type") and .type != null and $depracatedList[.type] != null
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ] | .connections = [ .connections[] | .groupName = $groupName ]
+        else if type == "object" and has("type") and .type != null and $depracatedList[.type] != null
             then
                 .checkSolution = $depracatedList[.type].solution |
                 .checkIssue = $depracatedList[.type].issue |
@@ -828,16 +829,18 @@ for flowName in "${exportFlow[@]}"; do
                 .checkVersion = $depracatedList[.type].version?
             else .
         end
+        end
     ) | .. | objects | select(has("checkIssue")) |
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
-        if type == "object" and has("type") and .type != null and .type == "org.apache.nifi.processors.script.ExecuteScript"
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ]
+        else if type == "object" and has("type") and .type != null and .type == "org.apache.nifi.processors.script.ExecuteScript"
             then
                 if .properties."Script Engine" == "ruby" or .properties."Script Engine" == "python" or .properties."Script Engine" == "lua"
                     then
@@ -849,16 +852,18 @@ for flowName in "${exportFlow[@]}"; do
                 end
             else .
         end
+        end
     ) | .. | objects | select(has("checkIssue"))  |
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
-    if type == "object" and .type != null and .type == "org.apache.nifi.processors.standard.InvokeHTTP"
+    if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ]
+    else if type == "object" and .type != null and .type == "org.apache.nifi.processors.standard.InvokeHTTP"
         then
             if .properties | with_entries(select(.key | startswith("Proxy "))) | length > 0
                 then
@@ -870,12 +875,13 @@ for flowName in "${exportFlow[@]}"; do
                     .
             end
         else .
+    end
     end) | .. | objects | select(has("checkIssue"))  |
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
