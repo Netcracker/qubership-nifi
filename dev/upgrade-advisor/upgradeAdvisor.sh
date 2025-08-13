@@ -743,35 +743,35 @@ deprecatedComponents='{
 
 deprecatedReportingTask='{
     "org.apache.nifi.reporting.ganglia.StandardGangliaReporter": {
-		"level": "Warning",
-		"issue": "The StandardGangliaReporter Reporting Task is not available in Apache NiFi 2.x.",
-        "solution": "You should use REST API Metrics instead."
-	},
-	"org.apache.nifi.atlas.reporting.ReportLineageToAtlas": {
-		"level": "Error",
-		"issue": "The ReportLineageToAtlas Reporting Task is not available in Apache NiFi 2.x.",
+        "level": "Warning",
+        "issue": "The StandardGangliaReporter Reporting Task is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-	},
-	"org.apache.nifi.metrics.reporting.task.MetricsReportingTask": {
-		"level": "Error",
-		"issue": "The MetricsReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+    },
+    "org.apache.nifi.atlas.reporting.ReportLineageToAtlas": {
+        "level": "Error",
+        "issue": "The ReportLineageToAtlas Reporting Task is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-	},
-	"org.apache.nifi.reporting.ambari.AmbariReportingTask": {
-		"level": "Error",
-		"issue": "The AmbariReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+    },
+    "org.apache.nifi.metrics.reporting.task.MetricsReportingTask": {
+        "level": "Error",
+        "issue": "The MetricsReportingTask Reporting Task is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-	},
-	"org.apache.nifi.reporting.datadog.DatadogReportingTask": {
-		"level": "Error",
-		"issue": "The DatadogReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+    },
+    "org.apache.nifi.reporting.ambari.AmbariReportingTask": {
+        "level": "Error",
+        "issue": "The AmbariReportingTask Reporting Task is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-	},
-	"org.apache.nifi.reporting.prometheus.PrometheusReportingTask": {
-		"level": "Warning",
-		"issue": "The PrometheusReportingTask Reporting Task is not available in Apache NiFi 2.x.",
-        "solution": "You should use REST API Metrics instead."
-	}
+    },
+    "org.apache.nifi.reporting.datadog.DatadogReportingTask": {
+        "level": "Error",
+        "issue": "The DatadogReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+    },
+    "org.apache.nifi.reporting.prometheus.PrometheusReportingTask": {
+        "level": "Warning",
+        "issue": "The PrometheusReportingTask Reporting Task is not available in Apache NiFi 2.x.",
+        "solution": "The following options are available to you: 1) rely on standard Apache NiFi REST API for metrics 2) create custom reporting task 3) rely on qubership-nifi ComponentPrometheusReportingTask"
+    }
 }'
 
 pathToExports=$1
@@ -811,21 +811,6 @@ fi
 
 echo "Start Upgrade Advisor"
 mapfile -t exportFlow < <(find "$pathToExports" -type f -name "*.json" | sort)
-
-#set process group for component
-for flowName in "${exportFlow[@]}"; do
-	tmp=$(mktemp)
-	jq '
-		  (.flowContents | select(.componentType == "PROCESS_GROUP")) as $pg |
-		  ($pg.name) as $pgName |
-		  if $pg.processors then
-			.flowContents.processors |= map(. + {pgName: $pgName})
-		  else . end |
-		  if $pg.connections then
-			.flowContents.connections |= map(. + {pgName: $pgName})
-		  else . end
-		' "$flowName" > "$tmp" && mv "$tmp" "$flowName"
-done
 
 echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group" >"$reportFileName"
 
@@ -912,29 +897,41 @@ echo "Checking the use of deprecated Reporting Task"
 mapfile -t reportTaskTypes < <(echo "$deprecatedReportingTask" | jq -r 'keys[]')
 
 for repTask in "${reportTaskTypes[@]}"; do
-	foundFiles=$(grep -rlF "$repTask" "$pathToExports" 2>/dev/null)
-	if [ -n "$foundFiles" ]; then
-		shortfoundFiles="${foundFiles//$pathToExports/}"
-		echo "$deprecatedReportingTask" | jq -r --arg repTask "$repTask" --arg fileName "${shortfoundFiles}" --arg csvSeparator "${csvSeparator}" '$fileName + $csvSeparator + .[$repTask].level + $csvSeparator + .[$repTask].issue + $csvSeparator +
-		"\"" + .[$repTask].solution + "\"" + $csvSeparator +
-		"\"" + .checkVersion + "\"" + $csvSeparator +
-		"\"" + "\"" + $csvSeparator +
-		"\"" + "\""' >>"$reportFileName" || handle_error "Error while forming message for reporting task - $repTask"
+    foundFiles=$(grep -rlF "$repTask" "$pathToExports" 2>/dev/null)
+    if [ -n "$foundFiles" ]; then
+        shortfoundFiles="${foundFiles//$pathToExports/}"
+        echo "$deprecatedReportingTask" | jq -r --arg repTask "$repTask" --arg fileName "${shortfoundFiles}" --arg csvSeparator "${csvSeparator}" '$fileName + $csvSeparator + .[$repTask].level + $csvSeparator + .[$repTask].issue + $csvSeparator +
+        "\"" + .[$repTask].solution + "\"" + $csvSeparator +
+        "\"" + .checkVersion + "\"" + $csvSeparator +
+        "\"" + "\"" + $csvSeparator +
+        "\"" + "\""' >>"$reportFileName" || handle_error "Error while forming message for reporting task - $repTask"
     fi
 done
 
 #output summary
+
 for flowName in "${exportFlow[@]}"; do
-	shortFlowName="${flowName//$pathToExports/}"
-	if grep -q "$shortFlowName" "$reportFileName"; then
-		#echo "Строка найдена"
-		echo "$shortFlowName" >> ./summary_flow.txt
-	fi
+    shortFlowName="${flowName//$pathToExports/}"
+    if grep -q "$shortFlowName" "$reportFileName"; then
+        echo "- $shortFlowName - Failed" >> ./summary_flow.txt
+    else
+        echo "- $shortFlowName - Success" >> ./summary_flow.txt
+    fi
 done
 
-echo "The following flows require changes: "
-cat ./summary_flow.txt
+count=$(grep -c "Failed$" ./summary_flow.txt)
+
+if [ $count -eq 0 ]; then
+    echo "Overall result: Success."
+    echo "All flows are compatible with 2.x, no changes needed."
+else
+    echo "Overall result: Failed."
+    echo "$count flows are incompatible with Apache NiFi 2.x and need to be adapted before upgrade."
+    cat ./summary_flow.txt
+    echo ""
+    echo "See report '$reportFileName' for more details."
+fi
+
 rm -f ./summary_flow.txt
-echo "You can see more details in the report - $reportFileName"
 
 echo "Finish Update Advisor"
