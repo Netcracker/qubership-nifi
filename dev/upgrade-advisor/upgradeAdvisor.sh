@@ -833,7 +833,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -854,7 +854,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
+    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for deprecate Script Engine in ExecuteScript processors - $flowName"
 
     echo "Checking for Proxy properties in InvokeHTTP processor - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -875,7 +875,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .pgName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
+    "\"" + .groupIdentifier + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Proxy properties in InvokeHTTP processor - $flowName"
 
     echo "Checking for Variables in Exported Flow - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
