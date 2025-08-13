@@ -812,7 +812,7 @@ fi
 echo "Start Upgrade Advisor"
 mapfile -t exportFlow < <(find "$pathToExports" -type f -name "*.json" | sort)
 
-echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group" >"$reportFileName"
+echo "Flow name${csvSeparator}Level${csvSeparator}Issue${csvSeparator}Solution${csvSeparator}Required NiFi version for solution${csvSeparator}Processor${csvSeparator}Process Group Id" >"$reportFileName"
 
 for flowName in "${exportFlow[@]}"; do
     shortFlowName="${flowName//$pathToExports/}"
