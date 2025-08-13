@@ -5,6 +5,20 @@
 The `upgradeAdvisor.sh` script is designed to detect deprecated components and features in NiFi configuration exports (versioned flows, controller services, and reporting tasks) before migrating to NiFi 2.x.
 The script scans the specified directory and its subdirectories for exports, analyzes them, and generates a report (`upgradeAdvisorReport.txt`) that lists all components and features that might be affected by the upgrade in each export file, along with recommendations on how to mitigate upgrade issues.
 
+## Result Report File
+
+The report file obtained as a result of the upgrade advisor operation contains the following columns:
+
+| Column name                        | Description                                                                         |
+|------------------------------------|-------------------------------------------------------------------------------------|
+| Flow name                          | Path to the file containing the data flow description in JSON format.               |
+| Level                              | Severity level of the issue (e.g., error, warning).                                 |
+| Issue                              | Detailed description of the identified problem.                                     |
+| Solution                           | Recommended approach to resolve the issue.                                          |
+| Required NiFi version for solution | Minimum Apache NiFi version required to apply the proposed solution.                |
+| Processor                          | Name and unique identifier (ID) of the processor where the issue occurred.          |
+| Process Group                      | Name and identifier (ID) of the process group containing the problematic processor. |
+
 ## Running the Advisor with Bash
 
 ### Prerequisites for Bash
@@ -22,12 +36,14 @@ bash <pathToScripts>/upgradeAdvisor.sh <pathToExports>
 
 The parameters referenced in the command above are described in the table below.
 
-| Parameter      | Required | Default | Description                                                                                                                              |
-|---------------|----------|---------|------------------------------------------------------------------------------------------------------------------------------------------|
-| pathToExports | Y        | .       | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files. |
-| pathToScripts | N        | .       | Path to the directory containing the `upgradeAdvisor.sh` script. |
+| Parameter      | Required | Default                    | Description                                                                                                                    |
+|----------------|----------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| pathToScripts  | N        | .                          | Path to the directory containing the `upgradeAdvisor.sh` script.                                                               |
+| pathToExports  | Y        | .                          | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files. |
+| csvSeparator   | Y        | ','                        | Character for separating columns in csv file.                                                                                  |
+| reportFileName | N        | 'upgradeAdvisorReport.csv' | Name of the report file with flow information.                                                                                 |
 
-The report file `upgradeAdvisorReport.txt` will be placed in the current working directory.
+The report file `upgradeAdvisorReport.csv` will be placed in the current working directory.
 
 ## Running the Advisor as Docker container
 
@@ -45,9 +61,12 @@ docker run --rm -v "<pathToScripts>:/advisor" -v "<pathToExports>:/export" -w "/
 
 The parameters referenced in the command above are described in the table below.
 
-| Parameter      | Required | Default   | Description                                                                                                                              |
-|---------------|----------|-----------|------------------------------------------------------------------------------------------------------------------------------------------|
-| pathToExports | Y        | .         | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files. |
-| pathToScripts | Y        | ./advisor | Path to the directory containing the `upgradeAdvisor.sh` script. |
+| Parameter      | Required | Default                    | Description                                                                                                                    |
+|----------------|----------|----------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| pathToScripts  | N        | .                          | Path to the directory containing the `upgradeAdvisor.sh` script.                                                               |
+| pathToExports  | Y        | .                          | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files. |
+| csvSeparator   | Y        | ','                        | Character for separating columns in csv file.                                                                                  |
+| reportFileName | N        | 'upgradeAdvisorReport.csv' | Name of the report file with flow information.                                                                                 |
 
-The report file `upgradeAdvisorReport.txt` will be placed in the `<pathToScripts>` directory.
+
+The report file `upgradeAdvisorReport.csv` will be placed in the `<pathToScripts>` directory.
