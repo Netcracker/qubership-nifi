@@ -913,15 +913,15 @@ done
 for flowName in "${exportFlow[@]}"; do
     shortFlowName="${flowName//$pathToExports/}"
     if grep -q "$shortFlowName" "$reportFileName"; then
-        echo "- $shortFlowName - Failed" >> ./summary_flow.txt
+        echo "- $shortFlowName - Failed" >>./summary_flow.txt
     else
-        echo "- $shortFlowName - Success" >> ./summary_flow.txt
+        echo "- $shortFlowName - Success" >>./summary_flow.txt
     fi
 done
 
 count=$(grep -c "Failed$" ./summary_flow.txt)
 
-if [ $count -eq 0 ]; then
+if [ "$count" -eq 0 ]; then
     echo "Overall result: Success."
     echo "All flows are compatible with 2.x, no changes needed."
 else
