@@ -820,7 +820,7 @@ for flowName in "${exportFlow[@]}"; do
 
     echo "Checking for Deprecated Components in Exported Flow - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" --argjson depracatedList "$deprecatedComponents" 'walk(
-        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .controllerServices = [ .controllerServices[] | .groupName = $groupName ] | .processors = [ .processors[] | .groupName = $groupName ] 
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .controllerServices = [ .controllerServices[] | .groupName = $groupName ] | .processors = [ .processors[] | .groupName = $groupName ]
         else if type == "object" and has("type") and .type != null and $depracatedList[.type] != null
             then
                 .checkSolution = $depracatedList[.type].solution |
