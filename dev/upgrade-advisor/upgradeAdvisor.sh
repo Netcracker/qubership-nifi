@@ -819,14 +819,14 @@ for flowName in "${exportFlow[@]}"; do
     echo "Current flowName - $flowName, shortFlowName - $shortFlowName"
 
     echo "Checking for Deprecated Components in Exported Flow - $flowName"
-    jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" --argjson deprecatedList "$deprecatedComponents" 'walk(
-        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ] | .connections = [ .connections[] | .groupName = $groupName ]
-        else if type == "object" and has("type") and .type != null and $deprecatedList[.type] != null
+    jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" --argjson depracatedList "$deprecatedComponents" 'walk(
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .controllerServices = [ .controllerServices[] | .groupName = $groupName ] | .processors = [ .processors[] | .groupName = $groupName ] 
+        else if type == "object" and has("type") and .type != null and $depracatedList[.type] != null
             then
-                .checkSolution = $deprecatedList[.type].solution |
-                .checkIssue = $deprecatedList[.type].issue |
-                .checkLevel = $deprecatedList[.type].level |
-                .checkVersion = $deprecatedList[.type].version?
+                .checkSolution = $depracatedList[.type].solution |
+                .checkIssue = $depracatedList[.type].issue |
+                .checkLevel = $depracatedList[.type].level |
+                .checkVersion = $depracatedList[.type].version?
             else .
         end
         end
@@ -835,7 +835,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Deprecated Components in Exported Flow - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
