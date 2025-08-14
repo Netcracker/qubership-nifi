@@ -69,4 +69,4 @@ The parameters referenced in the command above are described in the table below.
 | reportFileName | N        | upgradeAdvisorReport.csv | Name of the report file with flow information.                                                                                                                             |
 
 
-Report file name is defined by `<reportFileName>` parameter. This file will be placed in the `<pathToScripts>` directory.
+Report filename is defined by `<reportFileName>` parameter. This file will be placed in the `<pathToScripts>` directory.
