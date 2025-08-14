@@ -3,21 +3,21 @@
 ## Overview
 
 The `upgradeAdvisor.sh` script is designed to detect deprecated components and features in NiFi configuration exports (versioned flows, controller services, and reporting tasks) before migrating to NiFi 2.x.
-The script scans the specified directory and its subdirectories for exports, analyzes them, and generates a report (`upgradeAdvisorReport.txt`) that lists all components and features that might be affected by the upgrade in each export file, along with recommendations on how to mitigate upgrade issues.
+The script scans the specified directory and its subdirectories for exports, analyzes them, and generates a report that lists all components and features that might be affected by the upgrade in each export file, along with recommendations on how to mitigate upgrade issues. The name of the report file is specified using the `<reportFileName>` input parameter for the script.
 
 ## Result Report File
 
 The report file obtained as a result of the upgrade advisor operation contains the following columns:
 
-| Column name                        | Description                                                                         |
-|------------------------------------|-------------------------------------------------------------------------------------|
-| Flow name                          | Path to the file containing the data flow description in JSON format.               |
-| Level                              | Severity level of the issue (e.g., error, warning).                                 |
-| Issue                              | Short description of the identified problem.                                        |
-| Solution                           | Recommended approach to resolve the issue.                                          |
-| Required NiFi version for solution | Minimum Apache NiFi version required to apply the proposed solution.                |
-| Component                          | Name and unique identifier (ID) of the component where the issue occurred.          |
-| Process Group                      | Name and identifier (ID) of the process group containing the problematic component. |
+| Column name                        | Description                                                                                                                                     |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| Flow name                          | Path to the file containing the data flow description in JSON format.                                                                           |
+| Level                              | Severity level of the issue (e.g., error, warning).                                                                                             |
+| Issue                              | Short description of the identified problem.                                                                                                    |
+| Solution                           | Recommended approach to resolve the issue. Some solutions require you to use NiFi 2.x. For some, you need to support both 2.x and 1.x versions. |
+| Required NiFi version for solution | Minimum Apache NiFi version required to apply the proposed solution.                                                                            |
+| Component                          | Name and unique identifier (ID) of the component where the issue occurred.                                                                      |
+| Process Group                      | Name and identifier (ID) of the process group containing the problematic component.                                                             |
 
 ## Running the Advisor with Bash
 
@@ -69,4 +69,4 @@ The parameters referenced in the command above are described in the table below.
 | reportFileName | N        | upgradeAdvisorReport.csv | Name of the report file with flow information.                                                                                                                             |
 
 
-The report file `upgradeAdvisorReport.csv` will be placed in the `<pathToScripts>` directory.
+Report file name is defined by `<reportFileName>` parameter. This file will be placed in the `<pathToScripts>` directory.
