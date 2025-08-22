@@ -71,7 +71,7 @@ public class QueryDatabaseToJson extends AbstractSingleQueryDatabaseToJson {
             .displayName("Path")
             .description("A JsonPath expression that specifies path to source id attribute inside the array in an incoming FlowFile.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 

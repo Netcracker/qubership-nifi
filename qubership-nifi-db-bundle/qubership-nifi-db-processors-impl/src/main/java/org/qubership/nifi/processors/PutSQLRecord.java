@@ -17,7 +17,6 @@
 package org.qubership.nifi.processors;
 
 import org.qubership.nifi.JsonUtils;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -50,7 +49,6 @@ import java.util.*;
 
 import static org.apache.nifi.serialization.record.RecordFieldType.*;
 
-@EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"DBCP", "Record", "SQL"})
 @CapabilityDescription("Executes given SQL statement using data from input records. All records within single FlowFile are processed within single transaction.")
@@ -59,22 +57,22 @@ import static org.apache.nifi.serialization.record.RecordFieldType.*;
         @WritesAttribute(attribute = "parse.error", description = "If execution resulted in error while parsing and reading the input, this attribute is populated with error message")
 })
 public class PutSQLRecord extends AbstractProcessor {
-    
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully processed FlowFile")
             .build();
-    
+
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
             .description("A FlowFile is routed to this relationship, if DB query failed with recoverable error")
             .build();
-    
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship, if DB query failed with non-recoverable error")
             .build();
-            
+
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
@@ -83,7 +81,7 @@ public class PutSQLRecord extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
-    
+
     public static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
             .name("sql-statement")
             .displayName("SQL Statement")
@@ -93,7 +91,7 @@ public class PutSQLRecord extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-    
+
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("dbcp-service")
             .displayName("Database Connection Pooling Service")
@@ -102,7 +100,7 @@ public class PutSQLRecord extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .identifiesControllerService(DBCPService.class)
             .build();
-    
+
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("max-batch-size")
             .displayName("Maximum Batch Size")
@@ -122,7 +120,7 @@ public class PutSQLRecord extends AbstractProcessor {
             .allowableValues("true","false")
             .addValidator(Validator.VALID)
             .build();
-    
+
     protected static final String ERROR_MSG_ATTR = "putsql.error";
     protected static final String PARSING_ERROR_MSG_ATTR = "parse.error";
 
@@ -159,7 +157,7 @@ public class PutSQLRecord extends AbstractProcessor {
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
-    
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         this.dbcp = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
@@ -167,7 +165,7 @@ public class PutSQLRecord extends AbstractProcessor {
         this.maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         this.convertPayload = context.getProperty(CONVERT_PAYLOAD).asBoolean() != null && context.getProperty(CONVERT_PAYLOAD).asBoolean();
     }
-    
+
     private int getSqlType(DataType dt) {
         switch (dt.getFieldType()) {
             case ARRAY:
@@ -209,8 +207,8 @@ public class PutSQLRecord extends AbstractProcessor {
                 throw new UnsupportedOperationException("Record contains unknown type = " + dt.getFieldType());
         }
     }
-    
-    private void setFieldParameter(PreparedStatement ps, Object value, DataType dt, int i) 
+
+    private void setFieldParameter(PreparedStatement ps, Object value, DataType dt, int i)
             throws SQLException {
         if (value == null) {
             ps.setNull(i, getSqlType(dt));
@@ -269,11 +267,11 @@ public class PutSQLRecord extends AbstractProcessor {
                 throw new UnsupportedOperationException("Record contains unknown type = " + dt.getFieldType());
         }
     }
-    
+
     private void validateSchemaAndSQL(RecordSchema schema, PreparedStatement ps) throws SQLException {
         ParameterMetaData pmd = ps.getParameterMetaData();
         if (schema.getFieldCount() != pmd.getParameterCount()) {
-            throw new IllegalArgumentException("Number of fields in record (" + schema.getFieldCount() + 
+            throw new IllegalArgumentException("Number of fields in record (" + schema.getFieldCount() +
                     ") does not match number of parameters (" + pmd.getParameterCount() + ")");
         }
         for (int i = 0; i < schema.getFieldCount(); i++) {
@@ -295,7 +293,7 @@ public class PutSQLRecord extends AbstractProcessor {
         }
         return payload;
     }
-    
+
     private void processRecords(ProcessSession session, FlowFile ff, PreparedStatement ps)
             throws SQLException, IOException, MalformedRecordException, SchemaNotFoundException {
         try (InputStream in = session.read(ff);
@@ -394,5 +392,5 @@ public class PutSQLRecord extends AbstractProcessor {
             throw new ProcessException("Failed to execute PutSQLRecord service actions", ex);
         }
     }
-    
+
 }

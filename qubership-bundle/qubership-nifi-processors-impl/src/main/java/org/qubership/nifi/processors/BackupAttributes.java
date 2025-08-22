@@ -16,7 +16,6 @@
 
 package org.qubership.nifi.processors;
 
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -35,7 +34,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -47,7 +45,7 @@ public class BackupAttributes extends AbstractProcessor {
             .name("success")
             .description("Successfully processed FlowFile")
             .build();
-            
+
     public static final PropertyDescriptor PREFIX_ATTR = new PropertyDescriptor.Builder()
             .name("prefix-attr")
             .displayName("Prefix Attribute")
@@ -55,7 +53,7 @@ public class BackupAttributes extends AbstractProcessor {
             .required(false)
             .addValidator(Validator.VALID)
             .sensitive(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor EXCLUDED_ATTRS = new PropertyDescriptor.Builder()
@@ -65,12 +63,12 @@ public class BackupAttributes extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .sensitive(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     protected List<PropertyDescriptor> descriptors;
     protected Set<Relationship> relationships;
-    
+
     private String prefixAttr = "source.id";
     private Pattern excludedAttrsPattern = null;
 
@@ -111,17 +109,17 @@ public class BackupAttributes extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-        
+
         Map<String, String> backupAttributes = new HashMap<>();
         String prefix = flowFile.getAttribute(prefixAttr);
         StringBuilder fullPrefix = new StringBuilder(prefix);
         //add delimiter:
         fullPrefix.append(".");
-        
+
         for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
             //skip system attributes:
             String key = entry.getKey();
-            if ((!"path".equals(key)) && 
+            if ((!"path".equals(key)) &&
                 (!"uuid".equals(key)) &&
                 (!"filename".equals(key))) {
                 //skip excluded attributes, if defined:

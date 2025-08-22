@@ -40,10 +40,10 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.InfluxDBIOException;
 
-public abstract class AbstractInfluxDbReportingTask 
-        extends AbstractReportingTask 
+public abstract class AbstractInfluxDbReportingTask
+        extends AbstractReportingTask
 {
-    
+
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("influxdb-charset")
             .displayName("Character Set")
@@ -112,7 +112,7 @@ public abstract class AbstractInfluxDbReportingTask
             .description("Retention policy for the saving the records")
             .defaultValue("monitor")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -130,7 +130,7 @@ public abstract class AbstractInfluxDbReportingTask
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY, CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
-    
+
     protected InfluxDB influxDB;
     protected String consistencyLevel;
     protected String database;
@@ -138,8 +138,8 @@ public abstract class AbstractInfluxDbReportingTask
     protected String namespace;
     protected String hostname;
     protected List<PropertyDescriptor> propertyDescriptors;
-    
-    
+
+
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(DB_NAME);
@@ -232,11 +232,11 @@ public abstract class AbstractInfluxDbReportingTask
     }
 
     public abstract String createInfluxMessage(ReportingContext context);
-    
+
     protected String escapeTagValue(String str) {
         return escapeKeysOrTagValue(str);
     }
-    
+
     protected String escapeKey(String str) {
         return escapeKeysOrTagValue(str);
     }
@@ -248,7 +248,7 @@ public abstract class AbstractInfluxDbReportingTask
         //In tag keys, tag values, and field keys, you must escape: space, comma, equal siqn:
         return str.replaceAll(" ", "\\\\ ").replaceAll("=", "\\\\=").replaceAll(",", "\\\\,");
     }
-    
+
     protected String escapeFieldValue(String str) {
         if (str == null) {
             return null;
@@ -260,5 +260,5 @@ public abstract class AbstractInfluxDbReportingTask
     protected void writeToInfluxDB(String consistencyLevel, String database, String retentionPolicy, String records) {
         influxDB.write(database, retentionPolicy, InfluxDB.ConsistencyLevel.valueOf(consistencyLevel), records);
     }
-    
+
 }

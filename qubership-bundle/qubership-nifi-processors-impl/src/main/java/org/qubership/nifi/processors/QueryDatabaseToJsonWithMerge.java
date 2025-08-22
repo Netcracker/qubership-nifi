@@ -77,7 +77,7 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .displayName("Path")
             .description("A JsonPath expression that specifies path to source id attribute inside the array in the incoming FlowFile.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -105,7 +105,7 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .description("A key that is used to insert the queried object in the main object.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PATH_TO_INSERT = new PropertyDescriptor.Builder()
@@ -114,7 +114,7 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .description("A key that uses to insert queried objects in the objects that will come in the input JSON")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor CLEAN_UP_POLICY = new PropertyDescriptor.Builder()

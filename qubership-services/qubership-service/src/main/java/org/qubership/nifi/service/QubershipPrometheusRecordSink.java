@@ -88,7 +88,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .displayName("Prometheus Metrics Endpoint Port")
             .description("The Port where prometheus metrics can be accessed")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("9092")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
@@ -98,7 +98,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .displayName("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}_${NAMESPACE}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

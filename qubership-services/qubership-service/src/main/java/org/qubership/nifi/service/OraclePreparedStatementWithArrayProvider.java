@@ -43,8 +43,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
  */
 @Tags({"properties"})
 @CapabilityDescription("Provides a prepared statement service.")
-public class OraclePreparedStatementWithArrayProvider 
-        extends AbstractPreparedStatementProvider 
+public class OraclePreparedStatementWithArrayProvider
+        extends AbstractPreparedStatementProvider
         implements PreparedStatementProvider {
 
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
@@ -53,7 +53,7 @@ public class OraclePreparedStatementWithArrayProvider
             .description("Owner of the array type")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor CHAR_ARRAY_TYPE = new PropertyDescriptor.Builder()
@@ -62,17 +62,17 @@ public class OraclePreparedStatementWithArrayProvider
             .description("Character-based array type.")
             .defaultValue("ARRAYOFSTRINGS")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
-    
+
     public static final PropertyDescriptor NUM_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("num-array-type")
             .displayName("Numeric Array Type")
             .description("Numeric array type.")
             .defaultValue("ARRAYOFNUMBERS")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .build();
 
@@ -108,7 +108,7 @@ public class OraclePreparedStatementWithArrayProvider
         if (StringUtils.isNotEmpty(this.dbSchema)) {
             this.fullCharTypeName = this.dbSchema + DELIMITER + this.charArrayType;
             this.fullNumTypeName = this.dbSchema + DELIMITER + this.numArrayType;
-        } 
+        }
         else {
             //use local name
             this.fullCharTypeName = this.charArrayType;
@@ -134,7 +134,7 @@ public class OraclePreparedStatementWithArrayProvider
         PreparedStatement result = con.prepareStatement(query);
         String arrayType = getArrayType(type);
         Object[] idArray = convertArray(ids, type);
-        
+
         for (int cnt = bindsOffset+1; cnt < bindsOffset+numberOfBinds+1; cnt++) {
             try {
                 result.setArray(cnt, (Array)this.createArrayMethod.invoke(oraCon, new Object[]{arrayType, idArray}));
@@ -143,7 +143,7 @@ public class OraclePreparedStatementWithArrayProvider
                 throw new RuntimeException("Failed to invoke createOracleArray method while creating prepared statement");
             }
         }
-        
+
         return result;
     }
 }

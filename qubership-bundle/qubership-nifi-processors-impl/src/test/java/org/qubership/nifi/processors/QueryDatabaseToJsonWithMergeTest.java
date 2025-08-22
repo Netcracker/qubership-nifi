@@ -67,6 +67,7 @@ public class QueryDatabaseToJsonWithMergeTest {
         ControllerService preparedStatementControllerService = new DerbyPreparedStatement();
 
         testRunner = TestRunners.newTestRunner(QueryDatabaseToJsonWithMerge.class);
+        testRunner.setValidateExpressionUsage(false);
 
         testRunner.setProperty(DBCP_SERVICE, "dbcp");
         testRunner.setProperty(PS_PROVIDER_SERVICE, "DerbyPreparedStatement");

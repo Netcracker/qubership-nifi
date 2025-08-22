@@ -46,7 +46,7 @@ import java.util.*;
 
 @SideEffectFree
 @Tags({"CSV", "DB", "Database", "Query"})
-@CapabilityDescription("Fetches data from DB using specified query and transforms it to CSV in particular CSV format. " + 
+@CapabilityDescription("Fetches data from DB using specified query and transforms it to CSV in particular CSV format. " +
         "The processor allows to split query result into several FlowFiles and select CSV format for output.")
 @WritesAttributes({
     @WritesAttribute(attribute = "extraction.error", description = "Error message with stacktrace for the case, when the processor failed to extract DB data to CSV")
@@ -93,11 +93,11 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
             .displayName("Batch Size")
-            .description("The maximum number of rows from the result set to be saved in a single FlowFile. " + 
+            .description("The maximum number of rows from the result set to be saved in a single FlowFile. " +
                     "If set to 0, then the whole result set is saved to a single FlowFile.")
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -107,7 +107,7 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
             .defaultValue("10000")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -180,7 +180,7 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
                                 public void process(OutputStream out) throws IOException {
                                     int rowCount = 0;
                                     try (CSVPrinter printer = new CSVPrinter(
-                                            new PrintWriter(new BufferedOutputStream(out)), 
+                                            new PrintWriter(new BufferedOutputStream(out)),
                                             localCsvFormat)) {
                                         do {
                                             for (int i = 1; i <= columnCount; ++i) {

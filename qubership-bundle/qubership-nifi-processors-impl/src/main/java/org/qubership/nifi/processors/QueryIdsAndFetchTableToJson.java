@@ -89,7 +89,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .description("The maximum number of rows in table from source database from the result set to be saved in a single FlowFile.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor IDS_BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -98,7 +98,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .description("The maximum number of rows in table from ids database from the result.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -108,7 +108,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor IDS_FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -118,7 +118,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor CUSTOM_QUERY = new PropertyDescriptor.Builder()
@@ -387,7 +387,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             };
             writer.setBatchSize(batchSize);
             preparedStatement.setFetchSize(this.fetchSize);
-            
+
             boolean originalAutocommit = connection.getAutoCommit();
             //to allow PostgreSQL to use cursors, we have to set autocommit to false:
             connection.setAutoCommit(false);

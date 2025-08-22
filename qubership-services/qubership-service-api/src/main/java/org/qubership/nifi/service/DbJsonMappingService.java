@@ -32,7 +32,7 @@ public interface DbJsonMappingService extends ControllerService {
             .name("be-type")
             .displayName("Business Entity type")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -40,7 +40,7 @@ public interface DbJsonMappingService extends ControllerService {
             .name("source-system")
             .displayName("Source System")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(Validator.VALID)
             .build();
 

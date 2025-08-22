@@ -24,7 +24,6 @@ import org.qubership.nifi.processors.validation.ValidationContext;
 import org.qubership.nifi.processors.validator.JsonTreeValidator;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
-import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -43,7 +42,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
 import static org.qubership.nifi.NiFiUtils.MAPPER;
 
-@EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
