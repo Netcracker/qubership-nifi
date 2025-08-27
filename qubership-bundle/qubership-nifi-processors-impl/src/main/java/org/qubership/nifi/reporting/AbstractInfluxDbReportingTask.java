@@ -41,8 +41,7 @@ import org.influxdb.InfluxDBFactory;
 import org.influxdb.InfluxDBIOException;
 
 public abstract class AbstractInfluxDbReportingTask
-        extends AbstractReportingTask
-{
+        extends AbstractReportingTask {
 
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("influxdb-charset")
@@ -116,10 +115,14 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final AllowableValue CONSISTENCY_LEVEL_ALL = new AllowableValue("ALL", "All", "Return success when all nodes have responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_ANY = new AllowableValue("ANY", "Any", "Return success when any nodes have responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_ONE = new AllowableValue("ONE", "One", "Return success when one node has responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_QUORUM = new AllowableValue("QUORUM", "Quorum", "Return success when a majority of nodes have responded with write success");
+    public static final AllowableValue CONSISTENCY_LEVEL_ALL = new AllowableValue("ALL",
+            "All", "Return success when all nodes have responded with write success");
+    public static final AllowableValue CONSISTENCY_LEVEL_ANY = new AllowableValue("ANY",
+            "Any", "Return success when any nodes have responded with write success");
+    public static final AllowableValue CONSISTENCY_LEVEL_ONE = new AllowableValue("ONE",
+            "One", "Return success when one node has responded with write success");
+    public static final AllowableValue CONSISTENCY_LEVEL_QUORUM = new AllowableValue("QUORUM",
+            "Quorum", "Return success when a majority of nodes have responded with write success");
 
     public static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
             .name("influxdb-consistency-level")
@@ -128,18 +131,23 @@ public abstract class AbstractInfluxDbReportingTask
             .required(true)
             .defaultValue(CONSISTENCY_LEVEL_ONE.getValue())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY, CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
+            .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY,
+                    CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
 
-    protected InfluxDB influxDB;
-    protected String consistencyLevel;
-    protected String database;
-    protected String retentionPolicy;
-    protected String namespace;
-    protected String hostname;
-    protected List<PropertyDescriptor> propertyDescriptors;
+    private InfluxDB influxDB;
+    private String consistencyLevel;
+    private String database;
+    private String retentionPolicy;
+    private String namespace;
+    private String hostname;
+    private List<PropertyDescriptor> propertyDescriptors;
 
 
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(DB_NAME);
@@ -154,6 +162,9 @@ public abstract class AbstractInfluxDbReportingTask
         return prop;
     }
 
+    /**
+     * Initializes reporting task's property descriptors.
+     */
     @Override
     protected void init(ReportingInitializationContext config) {
         final List<PropertyDescriptor> prop = initProperties();
@@ -165,20 +176,18 @@ public abstract class AbstractInfluxDbReportingTask
         return propertyDescriptors;
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @OnScheduled
     @SuppressWarnings(value = "unchecked")
     public void onScheduled(final ConfigurationContext context) {
         consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
         database = context.getProperty(DB_NAME).getValue();
         retentionPolicy = context.getProperty(RETENTION_POLICY).getValue();
-        namespace = System.getenv("NAMESPACE");
-        try {
-            hostname = InetAddress.getLocalHost().getHostName();
-        }
-        catch (UnknownHostException ex) {
-            getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
-            hostname = "cloud-data-migration-nifi";
-        }
+        namespace = getNamespace();
+        hostname = getHostname();
         String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
         String influxDbUrl = context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue();
@@ -192,6 +201,36 @@ public abstract class AbstractInfluxDbReportingTask
         getLogger().info("InfluxDB connection created for host {}", new Object[]{influxDbUrl});
     }
 
+    /**
+     * Gets namespace used to run nifi service.
+     * @return namespace
+     */
+    protected String getNamespace() {
+        return System.getenv("NAMESPACE");
+    }
+
+    /**
+     * Gets hostname used to run nifi service.
+     * @return hostname
+     */
+    protected String getHostname() {
+        try {
+            return InetAddress.getLocalHost().getCanonicalHostName();
+        } catch (UnknownHostException ex) {
+            getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
+            return "cloud-data-migration-nifi";
+        }
+    }
+
+    /**
+     * Creating a connection to Influx.
+     *
+     * @param username
+     * @param password
+     * @param influxDbUrl
+     * @param connectionTimeout
+     * @return InfluxDB object
+     */
     protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder().connectTimeout(connectionTimeout, TimeUnit.SECONDS);
         if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
@@ -201,6 +240,9 @@ public abstract class AbstractInfluxDbReportingTask
         }
     }
 
+    /**
+     * Stops Influx server and releases all resources.
+     */
     @OnStopped
     public void close() {
         if (getLogger().isDebugEnabled()) {
@@ -212,6 +254,10 @@ public abstract class AbstractInfluxDbReportingTask
         }
     }
 
+    /**
+     * This method is periodically called to update metrics in meter registry.
+     * @param context  reporting context
+     */
     @Override
     public void onTrigger(ReportingContext context) {
         try {
@@ -222,25 +268,52 @@ public abstract class AbstractInfluxDbReportingTask
             writeToInfluxDB(consistencyLevel, database, retentionPolicy, influxDbMessage);
         } catch (InfluxDBIOException exception) {
             if (exception.getCause() instanceof SocketTimeoutException) {
-                getLogger().error("Failed to insert into influxDB due SocketTimeoutException to {} and retrying", new Object[]{exception.getLocalizedMessage()}, exception);
+                getLogger().error("Failed to insert into influxDB due SocketTimeoutException to {} and retrying",
+                        new Object[]{exception.getLocalizedMessage()}, exception);
             } else {
-                getLogger().error("Failed to insert into influxDB due to {}", new Object[]{exception.getLocalizedMessage()}, exception);
+                getLogger().error("Failed to insert into influxDB due to {}",
+                        new Object[]{exception.getLocalizedMessage()}, exception);
             }
         } catch (Exception exception) {
-            getLogger().error("Failed to insert into influxDB due to {}", new Object[]{exception.getLocalizedMessage()}, exception);
+            getLogger().error("Failed to insert into influxDB due to {}",
+                    new Object[]{exception.getLocalizedMessage()}, exception);
         }
     }
 
+    /**
+     * Create Influx message.
+     *
+     * @param context
+     * @return Influx message
+     */
     public abstract String createInfluxMessage(ReportingContext context);
 
+    /**
+     * Method for escaping tag value.
+     *
+     * @param str
+     * @return tag value
+     */
     protected String escapeTagValue(String str) {
         return escapeKeysOrTagValue(str);
     }
 
+    /**
+     * Method for escaping keys.
+     *
+     * @param str
+     * @return key
+     */
     protected String escapeKey(String str) {
         return escapeKeysOrTagValue(str);
     }
 
+    /**
+     * Method for escaping keys or tag value.
+     *
+     * @param str
+     * @return keys or tag value
+     */
     protected String escapeKeysOrTagValue(String str) {
         if (str == null) {
             return null;
@@ -249,6 +322,12 @@ public abstract class AbstractInfluxDbReportingTask
         return str.replaceAll(" ", "\\\\ ").replaceAll("=", "\\\\=").replaceAll(",", "\\\\,");
     }
 
+    /**
+     * Method for escaping field value.
+     *
+     * @param str
+     * @return field value
+     */
     protected String escapeFieldValue(String str) {
         if (str == null) {
             return null;
@@ -257,8 +336,26 @@ public abstract class AbstractInfluxDbReportingTask
         return str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"");
     }
 
-    protected void writeToInfluxDB(String consistencyLevel, String database, String retentionPolicy, String records) {
-        influxDB.write(database, retentionPolicy, InfluxDB.ConsistencyLevel.valueOf(consistencyLevel), records);
+    /**
+     * Write message to Influx.
+     *
+     * @param consistencyLevelValue
+     * @param databaseValue
+     * @param retentionPolicyValue
+     * @param records
+     */
+    protected void writeToInfluxDB(
+            String consistencyLevelValue,
+            String databaseValue,
+            String retentionPolicyValue,
+            String records
+    ) {
+        influxDB.write(
+                databaseValue,
+                retentionPolicyValue,
+                InfluxDB.ConsistencyLevel.valueOf(consistencyLevelValue),
+                records
+        );
     }
 
 }

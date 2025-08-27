@@ -40,16 +40,14 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
-import org.qubership.nifi.reporting.ComponentMetricsReportingTask;
 
 
 public class ComponentMetricsReportingTaskTest {
     private final String namespace = System.getenv("NAMESPACE");
-    private static final String TEST_HOSTNAME = "test";
+    private ComponentMetricsReportingTask componentMetricsReportingTask;
 
 
-    private ProcessGroupStatus createTestPG()
-    {
+    private ProcessGroupStatus createTestPG() {
         ProcessGroupStatus pg = new ProcessGroupStatus();
         pg.setId("TestPGId#1");
         pg.setName("TestPGName#1");
@@ -92,16 +90,14 @@ public class ComponentMetricsReportingTaskTest {
         return pg;
     }
 
-    private ProcessorStatus createTestProcessorStatus(int num, String namePrefix, boolean exceedsThreshold)
-    {
+    private ProcessorStatus createTestProcessorStatus(int num, String namePrefix, boolean exceedsThreshold) {
         ProcessorStatus st = new ProcessorStatus();
         st.setId("TestId#" + namePrefix + "#" + num);
         st.setName("TestName#" + namePrefix + "#" + num);
         if (exceedsThreshold) {
-            st.setProcessingNanos(151_000_000_000l);
-        }
-        else {
-            st.setProcessingNanos(1_000_000_000l);
+            st.setProcessingNanos(151_000_000_000L);
+        } else {
+            st.setProcessingNanos(1_000_000_000L);
         }
         st.setInvocations(10);
         st.setInputCount(1);
@@ -113,21 +109,19 @@ public class ComponentMetricsReportingTaskTest {
         return st;
     }
 
-    private ConnectionStatus createTestConnectionStatus(int num, String namePrefix, boolean exceedsThreshold)
-    {
+    private ConnectionStatus createTestConnectionStatus(int num, String namePrefix, boolean exceedsThreshold) {
         ConnectionStatus st = new ConnectionStatus();
         st.setId("TestId#" + namePrefix + "#" + num);
         st.setName("TestName#" + namePrefix + "#" + num);
         if (exceedsThreshold) {
             st.setQueuedCount(9000);
-        }
-        else {
+        } else {
             st.setQueuedCount(100);
         }
         st.setQueuedBytes(100);
         st.setInputCount(1);
         st.setOutputCount(2);
-        st.setBackPressureBytesThreshold(1000_000l);
+        st.setBackPressureBytesThreshold(1000_000L);
         st.setBackPressureObjectThreshold(10000);
         st.setDestinationName("TestDestName");
         st.setSourceName("TestSrcName");
@@ -160,22 +154,19 @@ public class ComponentMetricsReportingTaskTest {
         return str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\\(", "\\\\(").replaceAll("\\)", "\\\\)");
     }
 
-    private ComponentMetricsReportingTask createTask(long processorThreshold, double connectionThreshold)
-    {
-        ComponentMetricsReportingTask task = new ComponentMetricsReportingTask();
-        task.namespace = this.namespace;
-        task.hostname = TEST_HOSTNAME;
-        task.setProcessorTimeThreshold(processorThreshold);
-        task.setConnectionQueueThreshold(connectionThreshold);
-        return task;
+    private ComponentMetricsReportingTask createTask(long processorThreshold, double connectionThreshold) {
+        componentMetricsReportingTask = new ComponentMetricsReportingTask();
+        componentMetricsReportingTask.setProcessorTimeThreshold(processorThreshold);
+        componentMetricsReportingTask.setConnectionQueueThreshold(connectionThreshold);
+        return componentMetricsReportingTask;
     }
 
-    private String getExpectedConnectionMetrics(String namePrefix, int num)
-    {
+    private String getExpectedConnectionMetrics(String namePrefix, int num) {
         StringBuilder res = new StringBuilder();
         res.append("nifi_connections_monitoring,namespace=").append(namespace)
-           .append(",connection_uuid=").append("TestId#").append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
-           .append(",hostname=").append(TEST_HOSTNAME)
+           .append(",connection_uuid=").append("TestId#")
+           .append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
+           .append(",hostname=").append(componentMetricsReportingTask.getHostname())
            .append(",sourceId=").append("TestSrcId")
            .append(",destinationId=").append("TestDestId")
            .append(" name=\"").append("TestName#").append(escapeFieldValue(namePrefix)).append("#").append(num)
@@ -184,7 +175,7 @@ public class ComponentMetricsReportingTaskTest {
            .append("\",queuedCount=").append(num == 2 || num == 4 ? 100 : 9000)
            .append(",queuedBytes=").append(100)
            .append(",backPressureObjectThreshold=").append(10000)
-           .append(",backPressureBytesThreshold=").append(1000_000l);
+           .append(",backPressureBytesThreshold=").append(1000_000L);
 
         //escape regex:
         res = new StringBuilder(escapeRegEx(res.toString()));
@@ -192,15 +183,17 @@ public class ComponentMetricsReportingTaskTest {
         return res.toString();
     }
 
-    private String getExpectedProcessorMetrics(String namePrefix, int num)
-    {
+    private String getExpectedProcessorMetrics(String namePrefix, int num) {
         StringBuilder res = new StringBuilder();
         res.append("nifi_processors_monitoring,namespace=").append(namespace)
-           .append(",processor_uuid=").append("TestId#").append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
-           .append(",hostname=").append(TEST_HOSTNAME)
-           .append(",full_name=").append("TestName#").append(escapeKeysOrTagValue(namePrefix)).append("#").append(num).append("(").append("TestId#").append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
+           .append(",processor_uuid=").append("TestId#")
+           .append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
+           .append(",hostname=").append(componentMetricsReportingTask.getHostname())
+           .append(",full_name=").append("TestName#")
+           .append(escapeKeysOrTagValue(namePrefix)).append("#")
+           .append(num).append("(").append("TestId#").append(escapeKeysOrTagValue(namePrefix)).append("#").append(num)
            .append(") name=\"").append("TestName#").append(escapeFieldValue(namePrefix)).append("#").append(num)
-           .append("\",processingNanos=").append(num == 2 || num == 4 ? 1_000_000_000l : 151_000_000_000l)
+           .append("\",processingNanos=").append(num == 2 || num == 4 ? 1_000_000_000L : 151_000_000_000L)
            .append(",invocations=").append(10)
            .append(",inputCount=").append(1)
            .append(",outputCount=").append(2)
@@ -219,12 +212,12 @@ public class ComponentMetricsReportingTaskTest {
 
     @Test
     public void testCreateInfluxMessage() {
-        ComponentMetricsReportingTask task = createTask(150_000_000_000l, 0.8);
+        ComponentMetricsReportingTask testTask = createTask(150_000_000_000L, 0.8);
         ProcessGroupStatus pg = createTestPG();
         ReportingContext context = new TestReportingContext(pg);
 
         //get message:
-        String message = task.createInfluxMessage(context);
+        String message = testTask.createInfluxMessage(context);
         String[] lines = message.split("\n");
         Assertions.assertEquals(lines.length, 8);
         Assertions.assertLinesMatch(
@@ -244,12 +237,12 @@ public class ComponentMetricsReportingTaskTest {
 
     @Test
     public void testCreateInfluxMessageLowThresholds() {
-        ComponentMetricsReportingTask task = createTask(0l, 0);
+        ComponentMetricsReportingTask testTask = createTask(0L, 0);
         ProcessGroupStatus pg = createTestPG();
         ReportingContext context = new TestReportingContext(pg);
 
         //get message:
-        String message = task.createInfluxMessage(context);
+        String message = testTask.createInfluxMessage(context);
         String[] lines = message.split("\n");
         Assertions.assertEquals(lines.length, 14);
         Assertions.assertLinesMatch(
@@ -275,22 +268,21 @@ public class ComponentMetricsReportingTaskTest {
 
     @Test
     public void testCreateInfluxMessageHighThresholds() {
-        ComponentMetricsReportingTask task = createTask(300_000_000_000l, 1.0);
+        ComponentMetricsReportingTask testTask = createTask(300_000_000_000L, 1.0);
         ProcessGroupStatus pg = createTestPG();
         ReportingContext context = new TestReportingContext(pg);
 
         //get message:
-        String message = task.createInfluxMessage(context);
+        String message = testTask.createInfluxMessage(context);
         Assertions.assertTrue("".equals(message));
     }
 
 
 
-    class TestEventAccess implements EventAccess
-    {
+    class TestEventAccess implements EventAccess {
         private ProcessGroupStatus rootSt;
-        public TestEventAccess(ProcessGroupStatus rootSt) {
-            this.rootSt = rootSt;
+        TestEventAccess(final ProcessGroupStatus rootStValue) {
+            this.rootSt = rootStValue;
         }
 
         @Override
@@ -354,16 +346,16 @@ public class ComponentMetricsReportingTaskTest {
         }
     }
 
-    class TestReportingContext implements ReportingContext
-    {
+    class TestReportingContext implements ReportingContext {
         private EventAccess ea;
-        public TestReportingContext(ProcessGroupStatus st) {
+        TestReportingContext(final ProcessGroupStatus st) {
             this.ea = new TestEventAccess(st);
         }
 
         @Override
         public Map<PropertyDescriptor, String> getProperties() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
@@ -373,47 +365,56 @@ public class ComponentMetricsReportingTaskTest {
 
         @Override
         public BulletinRepository getBulletinRepository() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public Bulletin createBulletin(String string, Severity svrt, String string1) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public Bulletin createBulletin(String string, String string1, Severity svrt, String string2) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public ControllerServiceLookup getControllerServiceLookup() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public StateManager getStateManager() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public boolean isClustered() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public String getClusterNodeIdentifier() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public PropertyValue getProperty(PropertyDescriptor pd) {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
         public Map<String, String> getAllProperties() {
-            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            //To change body of generated methods, choose Tools | Templates.
+            throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 }

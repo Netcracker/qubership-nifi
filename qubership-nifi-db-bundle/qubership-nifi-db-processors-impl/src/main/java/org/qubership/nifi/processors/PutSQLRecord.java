@@ -28,7 +28,11 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -36,7 +40,6 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -44,17 +47,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.*;
-import java.util.*;
+import java.sql.Types;
+import java.sql.PreparedStatement;
+import java.sql.ParameterMetaData;
+import java.sql.SQLException;
+import java.sql.SQLRecoverableException;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.apache.nifi.serialization.record.RecordFieldType.*;
+import static org.apache.nifi.serialization.record.RecordFieldType.ARRAY;
+import static org.apache.nifi.serialization.record.RecordFieldType.CHOICE;
+import static org.apache.nifi.serialization.record.RecordFieldType.MAP;
+import static org.apache.nifi.serialization.record.RecordFieldType.RECORD;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"DBCP", "Record", "SQL"})
-@CapabilityDescription("Executes given SQL statement using data from input records. All records within single FlowFile are processed within single transaction.")
+@CapabilityDescription("Executes given SQL statement using data from input records. All records within single  \n"
+        + "FlowFile are processed within single transaction.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "putsql.error", description = "If execution resulted in error, this attribute is populated with error message"),
-        @WritesAttribute(attribute = "parse.error", description = "If execution resulted in error while parsing and reading the input, this attribute is populated with error message")
+        @WritesAttribute(attribute = "putsql.error", description = "If execution resulted in error, this attribute \n"
+                + " is populated with error message"),
+        @WritesAttribute(attribute = "parse.error", description = "If execution resulted in error while parsing \n"
+                + "and reading the input, this attribute is populated with error message")
 })
 public class PutSQLRecord extends AbstractProcessor {
 
@@ -85,8 +105,8 @@ public class PutSQLRecord extends AbstractProcessor {
     public static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
             .name("sql-statement")
             .displayName("SQL Statement")
-            .description("SQL statement that should be executed for each record. "
-                    + "Statement must contains exactly the same number and types of binds as number and types of fields in RecordSchema.")
+            .description("SQL statement that should be executed for each record. Statement must contains exactly"
+                    + " the same number and types of binds as number and types of fields in RecordSchema.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -114,23 +134,33 @@ public class PutSQLRecord extends AbstractProcessor {
     public static final PropertyDescriptor CONVERT_PAYLOAD = new PropertyDescriptor.Builder()
             .name("convert-payload")
             .displayName("Convert Payload")
-            .description("When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present in the input Record. By default is set to false.")
+            .description("When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. "
+                    + "Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present"
+                    + " in the input Record. By default is set to false.")
             .required(false)
             .defaultValue("false")
-            .allowableValues("true","false")
+            .allowableValues("true", "false")
             .addValidator(Validator.VALID)
             .build();
 
     protected static final String ERROR_MSG_ATTR = "putsql.error";
     protected static final String PARSING_ERROR_MSG_ATTR = "parse.error";
 
-    protected List<PropertyDescriptor> descriptors;
-    protected Set<Relationship> relationships;
+    private List<PropertyDescriptor> descriptors;
+    private Set<Relationship> relationships;
     private DBCPService dbcp;
     private RecordReaderFactory recordReaderFactory;
     private int maxBatchSize;
     private boolean convertPayload;
 
+    /**
+     * Initializes the processor by setting up shared resources and configuration needed for creating
+     * sessions during data processing. This method is called once by the framework when the processor
+     * is first instantiated or loaded, and is responsible for performing one-time initialization tasks.
+     *
+     * @param context the initialization context providing access to controller services, configuration
+     *  properties, and utility methods
+     */
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptorsList = new ArrayList<>();
@@ -148,22 +178,44 @@ public class PutSQLRecord extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(relationshipList);
     }
 
+    /**
+     * Returns:
+     * Set of all relationships this processor expects to transfer a flow file to.
+     * An empty set indicates this processor does not have any destination relationships.
+     * Guaranteed non-null.
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return this.relationships;
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
 
+    /**
+     * This method will be called before any onTrigger calls and will be called once each time the Processor
+     * is scheduled to run. This happens in one of two ways: either the user clicks to schedule the component to run,
+     * or NiFi restarts with the "auto-resume state" configuration set to true (the default) and the component
+     * is already running.
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         this.dbcp = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         this.recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         this.maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
-        this.convertPayload = context.getProperty(CONVERT_PAYLOAD).asBoolean() != null && context.getProperty(CONVERT_PAYLOAD).asBoolean();
+        this.convertPayload = context.getProperty(CONVERT_PAYLOAD).asBoolean() != null
+                && context.getProperty(CONVERT_PAYLOAD).asBoolean();
     }
 
     private int getSqlType(DataType dt) {
@@ -172,11 +224,11 @@ public class PutSQLRecord extends AbstractProcessor {
             case RECORD:
             case CHOICE:
             case MAP:
-                if(convertPayload)
+                if (convertPayload) {
                     return Types.VARCHAR;
-                else
+                } else {
                     throw new UnsupportedOperationException("Record contains unsupported type = " + dt.getFieldType());
-
+                }
             case BIGINT:
                 return Types.NUMERIC;
             case BYTE:
@@ -219,49 +271,50 @@ public class PutSQLRecord extends AbstractProcessor {
             case RECORD:
             case CHOICE:
             case MAP:
-                if(convertPayload)
-                    ps.setString(i, (String)value);
-                else
+                if (convertPayload) {
+                    ps.setString(i, (String) value);
+                } else {
                     throw new UnsupportedOperationException("Record contains unsupported type = " + dt.getFieldType());
+                }
                 break;
             case BIGINT:
-                ps.setBigDecimal(i, new BigDecimal((BigInteger)value));
+                ps.setBigDecimal(i, new BigDecimal((BigInteger) value));
                 break;
             case BYTE:
-                ps.setByte(i, (Byte)value);
+                ps.setByte(i, (Byte) value);
                 break;
             case INT:
-                ps.setInt(i, (Integer)value);
+                ps.setInt(i, (Integer) value);
                 break;
             case LONG:
-                ps.setLong(i, (Long)value);
+                ps.setLong(i, (Long) value);
                 break;
             case SHORT:
-                ps.setShort(i, (Short)value);
+                ps.setShort(i, (Short) value);
                 break;
             case STRING:
-                ps.setString(i, (String)value);
+                ps.setString(i, (String) value);
                 break;
             case DOUBLE:
-                ps.setDouble(i, (Double)value);
+                ps.setDouble(i, (Double) value);
                 break;
             case CHAR:
-                ps.setString(i, String.valueOf((Character)value));
+                ps.setString(i, String.valueOf((Character) value));
                 break;
             case FLOAT:
-                ps.setFloat(i, (Float)value);
+                ps.setFloat(i, (Float) value);
                 break;
             case BOOLEAN:
-                ps.setBoolean(i, (Boolean)value);
+                ps.setBoolean(i, (Boolean) value);
                 break;
             case DATE:
-                ps.setDate(i, (java.sql.Date)value);
+                ps.setDate(i, (java.sql.Date) value);
                 break;
             case TIME:
-                ps.setTime(i, (java.sql.Time)value);
+                ps.setTime(i, (java.sql.Time) value);
                 break;
             case TIMESTAMP:
-                ps.setTimestamp(i, (java.sql.Timestamp)value);
+                ps.setTimestamp(i, (java.sql.Timestamp) value);
                 break;
             default:
                 throw new UnsupportedOperationException("Record contains unknown type = " + dt.getFieldType());
@@ -271,8 +324,8 @@ public class PutSQLRecord extends AbstractProcessor {
     private void validateSchemaAndSQL(RecordSchema schema, PreparedStatement ps) throws SQLException {
         ParameterMetaData pmd = ps.getParameterMetaData();
         if (schema.getFieldCount() != pmd.getParameterCount()) {
-            throw new IllegalArgumentException("Number of fields in record (" + schema.getFieldCount() +
-                    ") does not match number of parameters (" + pmd.getParameterCount() + ")");
+            throw new IllegalArgumentException("Number of fields in record (" + schema.getFieldCount()
+                    + ") does not match number of parameters (" + pmd.getParameterCount() + ")");
         }
         for (int i = 0; i < schema.getFieldCount(); i++) {
             RecordField field = schema.getField(i);
@@ -283,7 +336,7 @@ public class PutSQLRecord extends AbstractProcessor {
 
     private Map<String, Object> convert(Object value) {
         Map<String, Object> payload = null;
-        if(value instanceof org.apache.nifi.serialization.record.Record) {
+        if (value instanceof org.apache.nifi.serialization.record.Record) {
             payload = new HashMap<>(((org.apache.nifi.serialization.record.Record) value).toMap());
             for (Map.Entry<String, Object> ob : payload.entrySet()) {
                 if (ob.getValue() instanceof org.apache.nifi.serialization.record.Record) {
@@ -307,7 +360,7 @@ public class PutSQLRecord extends AbstractProcessor {
                 for (int i = 0; i < values.length; i++) {
                     DataType dt = schema.getField(i).getDataType();
                     Object value = values[i];
-                    if(Boolean.TRUE.equals(convertPayload) ) {
+                    if (Boolean.TRUE.equals(convertPayload)) {
                         if (dt.getFieldType() == ARRAY || dt.getFieldType() == CHOICE || dt.getFieldType() == MAP) {
                             value = JsonUtils.MAPPER.writeValueAsString(value);
                         }
@@ -315,7 +368,7 @@ public class PutSQLRecord extends AbstractProcessor {
                             value = JsonUtils.MAPPER.writeValueAsString(convert(value));
                         }
                     }
-                    setFieldParameter(ps, value, dt, i+1);
+                    setFieldParameter(ps, value, dt, i + 1);
                 }
                 ps.addBatch();
                 batchSize++;
@@ -334,6 +387,15 @@ public class PutSQLRecord extends AbstractProcessor {
         }
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile ff = session.get();
@@ -363,7 +425,7 @@ public class PutSQLRecord extends AbstractProcessor {
                 session.putAttribute(ff, ERROR_MSG_ATTR, ex.getMessage());
                 session.putAttribute(ff, PARSING_ERROR_MSG_ATTR, ex.getMessage());
                 session.transfer(ff, REL_FAILURE);
-            } catch (UnsupportedOperationException | IllegalArgumentException ex ) {
+            } catch (UnsupportedOperationException | IllegalArgumentException ex) {
                 session.putAttribute(ff, PARSING_ERROR_MSG_ATTR, ex.getMessage());
                 throw ex;
             }  catch (SchemaNotFoundException ex) {
@@ -373,12 +435,14 @@ public class PutSQLRecord extends AbstractProcessor {
                 session.putAttribute(ff, PARSING_ERROR_MSG_ATTR, ex.getMessage());
                 session.transfer(ff, REL_FAILURE);
             } catch (SQLRecoverableException ex) {
-                getLogger().error("Failed to execute sqlStatement = {} for incoming records", new Object[]{sqlStatement}, ex);
+                getLogger().error("Failed to execute sqlStatement = {} for incoming records",
+                        new Object[]{sqlStatement}, ex);
                 con.rollback();
                 session.putAttribute(ff, ERROR_MSG_ATTR, ex.getMessage());
                 session.transfer(ff, REL_RETRY);
             } catch (SQLException ex) {
-                getLogger().error("Failed to execute sqlStatement = {} for incoming records", new Object[]{sqlStatement}, ex);
+                getLogger().error("Failed to execute sqlStatement = {} for incoming records",
+                        new Object[]{sqlStatement}, ex);
                 con.rollback();
                 session.putAttribute(ff, ERROR_MSG_ATTR, ex.getMessage());
                 session.transfer(ff, REL_FAILURE);

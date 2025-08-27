@@ -20,7 +20,6 @@ import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.qubership.nifi.reporting.CommonMetricsReportingTask;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -33,25 +32,23 @@ import java.util.concurrent.TimeUnit;
 public class CommonMetricsReportingTaskTest {
 
     private final String namespace = System.getenv("NAMESPACE");
-    private static final String TEST_HOSTNAME = "test";
 
-    private ProcessGroupStatus createTestPG()
-    {
+    private CommonMetricsReportingTask commonMetricsReportingTask;
+
+    private ProcessGroupStatus createTestPG() {
         ProcessGroupStatus pg = new ProcessGroupStatus();
         pg.setActiveThreadCount(1);
         return pg;
     }
 
-    private CommonMetricsReportingTask createTask()
-    {
-        CommonMetricsReportingTask task = new CommonMetricsReportingTask();
-        task.namespace = this.namespace;
-        task.hostname = this.TEST_HOSTNAME;
-        return task;
+    private CommonMetricsReportingTask createTask() {
+        commonMetricsReportingTask = new CommonMetricsReportingTask();
+        //task.setHostname(TEST_HOSTNAME);
+        return commonMetricsReportingTask;
     }
 
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsCommon(){
+    private VirtualMachineMetrics createTestVirtualMachineMetricsCommon() {
         VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
 
         //preparing test data
@@ -65,12 +62,12 @@ public class CommonMetricsReportingTaskTest {
         return  virtualMachineMetrics;
     }
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsThread(){
+    private VirtualMachineMetrics createTestVirtualMachineMetricsThread() {
         VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
 
         //preparing test data
         Map<Thread.State, Double> map = new HashMap<>();
-        map.put(Thread.State.WAITING,4.0);
+        map.put(Thread.State.WAITING, 4.0);
 
         when(virtualMachineMetrics.threadCount()).thenReturn(1);
         when(virtualMachineMetrics.threadStatePercentages()).thenReturn(map);
@@ -78,26 +75,26 @@ public class CommonMetricsReportingTaskTest {
         return  virtualMachineMetrics;
     }
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsGC(){
+    private VirtualMachineMetrics createTestVirtualMachineMetricsGC() {
         VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
-        VirtualMachineMetrics.GarbageCollectorStats garbageCollectorStats = mock(VirtualMachineMetrics.GarbageCollectorStats.class);
+        VirtualMachineMetrics.GarbageCollectorStats garbageCollectorStats =
+                mock(VirtualMachineMetrics.GarbageCollectorStats.class);
 
         //preparing test data
         Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = new HashMap<>();
 
-        map.put("G1YoungGeneration",garbageCollectorStats);
-        map.put("G1OldGeneration",garbageCollectorStats);
+        map.put("G1YoungGeneration", garbageCollectorStats);
+        map.put("G1OldGeneration", garbageCollectorStats);
 
         when(virtualMachineMetrics.garbageCollectors()).thenReturn(map);
 
         return  virtualMachineMetrics;
     }
 
-    private String getExpectedNifiCommonMetricks(long reportTime)
-    {
+    private String getExpectedNifiCommonMetricks(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_common_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(TEST_HOSTNAME)
+                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
                 .append(" activeThreadCount=").append(1)
                 .append(",heapMax=").append(5.0)
                 .append(",heapUsed=").append(25600.0)
@@ -109,28 +106,26 @@ public class CommonMetricsReportingTaskTest {
         return result.toString();
     }
 
-    private String getExpectedNiFiThreadsMetric(long reportTime)
-    {
+    private String getExpectedNiFiThreadsMetric(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_thread_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(TEST_HOSTNAME)
+                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
                 .append(",threadState=").append("WAITING")
                 .append(" threadCount=").append(4.0)
                 .append(" ").append(reportTime).append("\n");
         return result.toString();
     }
 
-    private String getExpectedNifiGcMetrics(long reportTime)
-    {
+    private String getExpectedNifiGcMetrics(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(TEST_HOSTNAME)
+                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
                 .append(",gcStatType=").append("G1YoungGeneration")
                 .append("  gcRuns=").append(0)
                 .append(",gcTime=").append(0)
                 .append(" ").append(reportTime).append("\n")
                 .append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(TEST_HOSTNAME)
+                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
                 .append(",gcStatType=").append("G1OldGeneration")
                 .append("  gcRuns=").append(0)
                 .append(",gcTime=").append(0)
@@ -140,41 +135,41 @@ public class CommonMetricsReportingTaskTest {
 
     @Test
     public void testCreateInfluxMessageNifiCommonMetricks() {
-        CommonMetricsReportingTask task = createTask();
+        CommonMetricsReportingTask testTask = createTask();
         ProcessGroupStatus pg = createTestPG();
         VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsCommon();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        task.reportNifiCommonMetricks(reportTime,result,virtualMachineMetrics,pg);
+        testTask.reportNifiCommonMetricks(reportTime, result, virtualMachineMetrics, pg);
 
-        Assertions.assertEquals(getExpectedNifiCommonMetricks(reportTime),result.toString());
+        Assertions.assertEquals(getExpectedNifiCommonMetricks(reportTime), result.toString());
     }
 
     @Test
     public void testCreateInfluxMessageNiFiThreadsMetric() {
-        CommonMetricsReportingTask task = createTask();
+        CommonMetricsReportingTask testTask = createTask();
         VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsThread();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        task.reportNifiThreadMetrics(reportTime,result,virtualMachineMetrics);
+        testTask.reportNifiThreadMetrics(reportTime, result, virtualMachineMetrics);
 
-        Assertions.assertEquals(getExpectedNiFiThreadsMetric(reportTime),result.toString());
+        Assertions.assertEquals(getExpectedNiFiThreadsMetric(reportTime), result.toString());
     }
 
     @Test
     public void testCreateInfluxMessageNifiGcMetrics() {
-        CommonMetricsReportingTask task = createTask();
+        CommonMetricsReportingTask testTask = createTask();
         VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsGC();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        task.reportGcMetrics(reportTime,result,virtualMachineMetrics);
+        testTask.reportGcMetrics(reportTime, result, virtualMachineMetrics);
 
-        Assertions.assertEquals(getExpectedNifiGcMetrics(reportTime),result.toString());
+        Assertions.assertEquals(getExpectedNifiGcMetrics(reportTime), result.toString());
     }
 }

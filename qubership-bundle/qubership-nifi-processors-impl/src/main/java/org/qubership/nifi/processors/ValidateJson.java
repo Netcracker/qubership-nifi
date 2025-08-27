@@ -32,13 +32,21 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.Set;
+import java.util.List;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.ArrayList;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
 import static org.qubership.nifi.NiFiUtils.MAPPER;
 
@@ -46,13 +54,15 @@ import static org.qubership.nifi.NiFiUtils.MAPPER;
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "schema", "validation"})
-@CapabilityDescription("Validates the content of FlowFiles against the JSON schema. \n" +
-        "The FlowFiles that are successfully validated against the specified schema are routed to valid relationship without any changes. \n" +
-        "The FlowFiles that are not valid according to the schema are routed to invalid relationship. Array with validation errors is added to the content of FlowFile.")
+@CapabilityDescription("Validates the content of FlowFiles against the JSON schema. \n"
+        + "The FlowFiles that are successfully validated against the specified schema are routed to valid \n"
+        + "relationship without any changes. \n"
+        + "The FlowFiles that are not valid according to the schema are routed to invalid relationship. \n"
+        + "Array with validation errors is added to the content of FlowFile.")
 
 public class ValidateJson extends AbstractProcessor {
     public static final String ERROR_ATTR = "validation.json.error";
-    private static ObjectMapper STRICT_MAPPER = MAPPER.enable(FAIL_ON_TRAILING_TOKENS);
+    private static final ObjectMapper STRICT_MAPPER = MAPPER.enable(FAIL_ON_TRAILING_TOKENS);
     private static final String DEFAULT_BE_TYPE_PATH = "_businessEntityType";
     private static final String DEFAULT_ID_PATH = "_sourceId";
     private static final String DEFAULT_ERROR_CODE = "ME-JV-0002";
@@ -72,7 +82,8 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor BE_TYPE_PATH_PROP = new PropertyDescriptor.Builder()
             .name(BE_TYPE_PATH_PROP_NAME)
             .displayName(BE_TYPE_PATH_PROP_DISPLAY_NAME)
-            .description("A JsonPath expression that specifies path to business entity type attribute in the content of incoming FlowFile.")
+            .description("A JsonPath expression that specifies path to business entity type "
+                    + "attribute in the content of incoming FlowFile.")
             .required(true)
             .defaultValue(DEFAULT_BE_TYPE_PATH)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -83,7 +94,8 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor ID_PATH_PROP = new PropertyDescriptor.Builder()
             .name(ID_PATH_PROP_NAME)
             .displayName(ID_PATH_PROP_DISPLAY_NAME)
-            .description("A JsonPath expression that specifies path to source id attribute in the content of incoming FlowFile.")
+            .description("A JsonPath expression that specifies path to source id attribute"
+                    + " in the content of incoming FlowFile.")
             .required(true)
             .defaultValue(DEFAULT_ID_PATH)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -94,7 +106,8 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor ERROR_CODE_PROP = new PropertyDescriptor.Builder()
             .name(ERROR_CODE_PROP_NAME)
             .displayName(ERROR_CODE_PROP_DISPLAY_NAME)
-            .description("Validation error code. Used as identification error code when formatting an array of validation errors.")
+            .description("Validation error code. Used as identification error code when"
+                    + " formatting an array of validation errors.")
             .required(true)
             .defaultValue(DEFAULT_ERROR_CODE)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -105,10 +118,10 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor WRAPPER_REGEX = new PropertyDescriptor.Builder()
             .name(WRAPPER_REGEX_PROP_NAME)
             .displayName(WRAPPER_REGEX_PROP_DISPLAY_NAME)
-            .description("Regex to define path of wrapper in aggregated business entity. " +
-                    "If validation errors are detected and regex is set and matched, " +
-                    "the wrapper path will be removed from the error path," +
-                    " ID of the wrapper will be replaced to ID of the business entity.")
+            .description("Regex to define path of wrapper in aggregated business entity. "
+                    + "If validation errors are detected and regex is set and matched, "
+                    + "the wrapper path will be removed from the error path,"
+                    + " ID of the wrapper will be replaced to ID of the business entity.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
@@ -135,6 +148,14 @@ public class ValidateJson extends AbstractProcessor {
     private Set<Relationship> relationships;
     private ProcessorProperty processorProperty;
 
+    /**
+     * Initializes the processor by setting up shared resources and configuration needed for creating
+     * sessions during data processing. This method is called once by the framework when the processor
+     * is first instantiated or loaded, and is responsible for performing one-time initialization tasks.
+     *
+     * @param context the initialization context providing access to controller services, configuration
+     *  properties, and utility methods
+     */
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> prop = new ArrayList<>();
@@ -152,16 +173,37 @@ public class ValidateJson extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(rel);
     }
 
+    /**
+     * Returns:
+     * Set of all relationships this processor expects to transfer a flow file to.
+     * An empty set indicates this processor does not have any destination relationships.
+     * Guaranteed non-null.
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
 
+    /**
+     * This method will be called before any onTrigger calls and will be called once each time the Processor
+     * is scheduled to run. This happens in one of two ways: either the user clicks to schedule the component to run,
+     * or NiFi restarts with the "auto-resume state" configuration set to true (the default) and the component
+     * is already running.
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         String sSchema = context.getProperty(SCHEMA).getValue();
@@ -175,13 +217,24 @@ public class ValidateJson extends AbstractProcessor {
         this.processorProperty = new ProcessorProperty(beTypePath, idPath, errorCode, schema, wrapperRegEx);
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) {
         FlowFile flowFile = session.get();
-        if (flowFile == null) return;
+        if (flowFile == null) {
+            return;
+        }
         flowFile = session.putAttribute(flowFile, "migration.phase", "Validation");
         JsonNode jsonNode = extractJsonNodeFromFlowFile(session, flowFile);
-        if (jsonNode == null){
+        if (jsonNode == null) {
             session.transfer(flowFile, REL_NOT_JSON);
             return;
         }
@@ -210,9 +263,9 @@ public class ValidateJson extends AbstractProcessor {
         try {
             session.read(inputFlowFile, in -> result.set(STRICT_MAPPER.readTree(in)));
             return result.get();
-        } catch (Exception e){
-            session.putAttribute(inputFlowFile, ERROR_ATTR, "Not json content in Flow file: " +
-                    ((e.getCause() != null) ? e.getCause() : e ).getMessage());
+        } catch (Exception e) {
+            session.putAttribute(inputFlowFile, ERROR_ATTR, "Not json content in Flow file: "
+                    + ((e.getCause() != null) ? e.getCause() : e).getMessage());
             getLogger().error("Not json content in Flow file", e);
             return null;
         }

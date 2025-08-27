@@ -26,10 +26,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
@@ -66,12 +76,20 @@ public class BackupAttributes extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    protected List<PropertyDescriptor> descriptors;
-    protected Set<Relationship> relationships;
+    private List<PropertyDescriptor> descriptors;
+    private Set<Relationship> relationships;
 
     private String prefixAttr = "source.id";
     private Pattern excludedAttrsPattern = null;
 
+    /**
+     * Initializes the processor by setting up shared resources and configuration needed for creating
+     * sessions during data processing. This method is called once by the framework when the processor
+     * is first instantiated or loaded, and is responsible for performing one-time initialization tasks.
+     *
+     * @param context the initialization context providing access to controller services, configuration
+     *  properties, and utility methods
+     */
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptorsList = new ArrayList<>();
@@ -84,16 +102,37 @@ public class BackupAttributes extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(relationshipList);
     }
 
+    /**
+     * Returns:
+     * Set of all relationships this processor expects to transfer a flow file to.
+     * An empty set indicates this processor does not have any destination relationships.
+     * Guaranteed non-null.
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return this.relationships;
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
 
+    /**
+     * This method will be called before any onTrigger calls and will be called once each time the Processor
+     * is scheduled to run. This happens in one of two ways: either the user clicks to schedule the component to run,
+     * or NiFi restarts with the "auto-resume state" configuration set to true (the default) and the component
+     * is already running.
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         prefixAttr = context.getProperty(PREFIX_ATTR).evaluateAttributeExpressions().getValue();
@@ -103,6 +142,15 @@ public class BackupAttributes extends AbstractProcessor {
         }
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
@@ -119,9 +167,9 @@ public class BackupAttributes extends AbstractProcessor {
         for (Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
             //skip system attributes:
             String key = entry.getKey();
-            if ((!"path".equals(key)) &&
-                (!"uuid".equals(key)) &&
-                (!"filename".equals(key))) {
+            if ((!"path".equals(key))
+                && (!"uuid".equals(key))
+                && (!"filename".equals(key))) {
                 //skip excluded attributes, if defined:
                 Matcher m = excludedAttrsPattern != null ? excludedAttrsPattern.matcher(key) : null;
                 if (m == null || !m.matches()) {

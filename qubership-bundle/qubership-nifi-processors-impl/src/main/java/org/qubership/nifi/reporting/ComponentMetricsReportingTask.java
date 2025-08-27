@@ -48,7 +48,7 @@ public class ComponentMetricsReportingTask
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
-    
+
     public static final PropertyDescriptor CONNECTION_QUEUE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("connection-queue-threshold")
             .displayName("Connection queue threshold")
@@ -84,9 +84,9 @@ public class ComponentMetricsReportingTask
         processorTimeThreshold = context.getProperty(PROCESSOR_TIME_THRESHOLD).asTimePeriod(TimeUnit.NANOSECONDS);
         connectionQueueThreshold = context.getProperty(CONNECTION_QUEUE_THRESHOLD).asDouble()/100;
     }
-    
-    
-    
+
+
+
     private void getAllEligibleStatuses(ProcessGroupStatus pgStatus, List<ConnectionStatus> connections, List<ProcessorStatus> processors) {
         if (pgStatus == null) {
             return;
@@ -94,7 +94,7 @@ public class ComponentMetricsReportingTask
         //add connections:
         Collection<ConnectionStatus> newConnections = pgStatus.getConnectionStatus();
         if (newConnections != null) {
-            newConnections.stream().filter((s) -> 
+            newConnections.stream().filter((s) ->
                     (s.getQueuedCount() > s.getBackPressureObjectThreshold() * connectionQueueThreshold)).
                 forEach((s) -> {
                     connections.add(s);
@@ -103,7 +103,7 @@ public class ComponentMetricsReportingTask
         //add processors:
         Collection<ProcessorStatus> newProcessors = pgStatus.getProcessorStatus();
         if (newProcessors != null) {
-            newProcessors.stream().filter((s) -> 
+            newProcessors.stream().filter((s) ->
                     (s.getProcessingNanos()> processorTimeThreshold)).
                 forEach((s) -> {
                     processors.add(s);
@@ -117,12 +117,12 @@ public class ComponentMetricsReportingTask
             });
         }
     }
-    
+
     private void reportConnectionMetrics(long reportTime, StringBuilder res, ConnectionStatus st)
     {
-        res.append("nifi_connections_monitoring,namespace=").append(escapeTagValue(namespace))
+        res.append("nifi_connections_monitoring,namespace=").append(escapeTagValue(getNamespace()))
            .append(",connection_uuid=").append(escapeTagValue(st.getId()))
-           .append(",hostname=").append(hostname)
+           .append(",hostname=").append(getHostname())
            .append(",sourceId=").append(escapeTagValue(st.getSourceId()))
            .append(",destinationId=").append(escapeTagValue(st.getDestinationId()))
            .append(" name=\"").append(escapeFieldValue(st.getName()))
@@ -134,12 +134,12 @@ public class ComponentMetricsReportingTask
            .append(",backPressureBytesThreshold=").append(st.getBackPressureBytesThreshold())
            .append(" ").append(reportTime).append("\n");
     }
-    
+
     private void reportProcessorMetrics(long reportTime, StringBuilder res, ProcessorStatus st)
     {
-        res.append("nifi_processors_monitoring,namespace=").append(escapeTagValue(namespace))
+        res.append("nifi_processors_monitoring,namespace=").append(escapeTagValue(getNamespace()))
            .append(",processor_uuid=").append(escapeTagValue(st.getId()))
-           .append(",hostname=").append(hostname)
+           .append(",hostname=").append(getHostname())
            .append(",full_name=").append(escapeTagValue(st.getName())).append("(").append(escapeTagValue(st.getId()))
            .append(") name=\"").append(escapeFieldValue(st.getName()))
            .append("\",processingNanos=").append(st.getProcessingNanos())
@@ -152,7 +152,7 @@ public class ComponentMetricsReportingTask
            .append(",bytesSent=").append(st.getBytesSent())
            .append(" ").append(reportTime).append("\n");
     }
-    
+
     @Override
     public String createInfluxMessage(ReportingContext context) {
         ProcessGroupStatus controllerStatus = context.getEventAccess().getControllerStatus();
@@ -160,7 +160,7 @@ public class ComponentMetricsReportingTask
         List<ProcessorStatus> processors = new ArrayList<>();
         //start with root process group:
         getAllEligibleStatuses(controllerStatus, connections, processors);
-        
+
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
@@ -172,7 +172,7 @@ public class ComponentMetricsReportingTask
         processors.forEach((s) -> {
             reportProcessorMetrics(reportTime, result, s);
         });
-        
+
         return result.toString().trim();
     }
 }

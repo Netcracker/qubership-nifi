@@ -86,6 +86,9 @@ public class OraclePreparedStatementWithArrayProvider
     private Class oracleConnection;
     private Method createArrayMethod;
 
+    /**
+     * Constructor for class OraclePreparedStatementWithArrayProvider.
+     */
     public OraclePreparedStatementWithArrayProvider() {
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(SCHEMA);
@@ -95,11 +98,21 @@ public class OraclePreparedStatementWithArrayProvider
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
     }
 
+    /**
+     * @param context
+     *            the configuration context
+     */
     @OnEnabled
     public void onEnable(ConfigurationContext context) {
         this.dbSchema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
@@ -108,8 +121,7 @@ public class OraclePreparedStatementWithArrayProvider
         if (StringUtils.isNotEmpty(this.dbSchema)) {
             this.fullCharTypeName = this.dbSchema + DELIMITER + this.charArrayType;
             this.fullNumTypeName = this.dbSchema + DELIMITER + this.numArrayType;
-        }
-        else {
+        } else {
             //use local name
             this.fullCharTypeName = this.charArrayType;
             this.fullNumTypeName = this.numArrayType;
@@ -118,29 +130,50 @@ public class OraclePreparedStatementWithArrayProvider
             this.oracleConnection = Class.forName("oracle.jdbc.OracleConnection");
         } catch (ClassNotFoundException ex) {
             getLogger().error("Unable to find OracleConnection", ex);
-            throw new RuntimeException("Oracle JDBC driver classes not found. Check NiFi classpath for presence of ojdbc jar");
+            throw new RuntimeException("Oracle JDBC driver classes not found. "
+                    + "Check NiFi classpath for presence of ojdbc jar");
         }
         try {
-            this.createArrayMethod = this.oracleConnection.getMethod("createOracleArray", new Class[]{String.class, Object.class});
+            this.createArrayMethod = this.oracleConnection.getMethod("createOracleArray",
+                    new Class[]{String.class, Object.class});
         } catch (NoSuchMethodException | SecurityException ex) {
             getLogger().error("Unable to find createOracleArray method", ex);
-            throw new RuntimeException("Oracle JDBC driver connection doesn't have necessary method createOracleArray. Check ojdbc jar version");
+            throw new RuntimeException("Oracle JDBC driver connection doesn't have necessary method createOracleArray."
+                    + " Check ojdbc jar version");
         }
     }
 
+    /**
+     * Creates PreparedStatement with specified query and sets ids as string array parameter.
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     @Override
-    public PreparedStatement createPreparedStatement(String query, ProcessContext context, Collection<String> ids, Connection con, DBElementType type, int numberOfBinds, int bindsOffset) throws SQLException {
+    public PreparedStatement createPreparedStatement(
+            String query,
+            ProcessContext context,
+            Collection<String> ids,
+            Connection con,
+            DBElementType type,
+            int numberOfBinds,
+            int bindsOffset
+    ) throws SQLException {
         Object oraCon = con.unwrap(this.oracleConnection);
         PreparedStatement result = con.prepareStatement(query);
         String arrayType = getArrayType(type);
         Object[] idArray = convertArray(ids, type);
 
-        for (int cnt = bindsOffset+1; cnt < bindsOffset+numberOfBinds+1; cnt++) {
+        for (int cnt = bindsOffset + 1; cnt < bindsOffset + numberOfBinds + 1; cnt++) {
             try {
-                result.setArray(cnt, (Array)this.createArrayMethod.invoke(oraCon, new Object[]{arrayType, idArray}));
+                result.setArray(cnt, (Array) this.createArrayMethod.invoke(oraCon, new Object[]{arrayType, idArray}));
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
                 getLogger().error("Failed to invoke createOracleArray method", ex);
-                throw new RuntimeException("Failed to invoke createOracleArray method while creating prepared statement");
+                throw new RuntimeException("Failed to invoke createOracleArray method "
+                        + " while creating prepared statement");
             }
         }
 

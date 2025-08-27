@@ -55,8 +55,8 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
 
 
     public void reportNifiCommonMetricks(long reportTime,  StringBuilder result, VirtualMachineMetrics vmMetrics, ProcessGroupStatus controllerStatus){
-        result.append("nifi_common_metrics,namespace=").append(escapeTagValue(namespace))
-                .append(",hostname=").append(hostname)
+        result.append("nifi_common_metrics,namespace=").append(escapeTagValue(getNamespace()))
+                .append(",hostname=").append(getHostname())
                 .append(" activeThreadCount=").append(controllerStatus.getActiveThreadCount())
                 .append(",heapMax=").append(vmMetrics.heapMax() / 1024)
                 .append(",heapUsed=").append(vmMetrics.heapUsage()*vmMetrics.heapMax() / 1024)
@@ -66,10 +66,10 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
                 .append(",jvmThreadTotalCount=").append(vmMetrics.threadCount())
                 .append(" ").append(reportTime).append("\n");
     }
-    
+
     private void reportNiFiThreadsMetric(long reportTime, StringBuilder result, State state, double threadCount) {
-        result.append("nifi_thread_metrics,namespace=").append(escapeTagValue(namespace))
-            .append(",hostname=").append(hostname)
+        result.append("nifi_thread_metrics,namespace=").append(escapeTagValue(getNamespace()))
+            .append(",hostname=").append(getHostname())
             .append(",threadState=").append(state.toString())
             .append(" threadCount=").append(threadCount)
             .append(" ").append(reportTime).append("\n");
@@ -88,8 +88,8 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
         Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = vmMetrics.garbageCollectors();
 
         for (Map.Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : map.entrySet()) {
-            result.append("nifi_gc_metrics,namespace=").append(escapeTagValue(namespace))
-                    .append(",hostname=").append(hostname)
+            result.append("nifi_gc_metrics,namespace=").append(escapeTagValue(getNamespace()))
+                    .append(",hostname=").append(getHostname())
                     .append(",gcStatType=").append(escapeTagValue(entry.getKey()))
                     .append("  gcRuns=").append(entry.getValue().getRuns())
                     .append(",gcTime=").append(entry.getValue().getTime(TimeUnit.MILLISECONDS))

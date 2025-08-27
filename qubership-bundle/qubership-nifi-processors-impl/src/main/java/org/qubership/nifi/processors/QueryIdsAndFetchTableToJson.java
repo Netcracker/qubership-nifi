@@ -39,8 +39,17 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.qubership.nifi.processors.query.AbstractRsToJsonWriter;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.UUID;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"JSON", "DB"})
@@ -57,9 +66,10 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     private static final String ATTR_ROWS_COUNT = "rows.count";
     private static final String ATTR_FETCH_ID = "fetch.id";
     private static final String EXTRACTION_ERROR = "extraction.error";
-    private static final String oracleCondition = "select /*+ cardinality (t 10) */ t.column_value from table(cast(? as arrayofstrings)) t";
-    private static final String postgresCondition = "select unnest(?)";
-    private static final String emptyCondition = "NULL";
+    private static final String ORACLE_CONDITION = "select /*+ cardinality (t 10) */ t.column_value"
+            + " from table(cast(? as arrayofstrings)) t";
+    private static final String POSTGRES_CONDITION = "select unnest(?)";
+    private static final String EMPTY_CONDITION = "NULL";
 
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
@@ -86,7 +96,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
             .displayName("Batch Size")
-            .description("The maximum number of rows in table from source database from the result set to be saved in a single FlowFile.")
+            .description("The maximum number of rows in table from source database from the result set to be saved "
+                    + " in a single FlowFile.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -104,8 +115,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("fetch-size")
             .displayName("Fetch Size")
-            .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
-                    + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+            .description("The number of result rows to be fetched from the result set at a time. "
+                    + "This is a hint to the database driver and may not be honored and/or exact. "
+                    + " If the value specified is zero, then the hint is ignored.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -114,7 +126,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     public static final PropertyDescriptor IDS_FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-fetch-size")
             .displayName("Ids Fetch Size")
-            .description("The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be "
+            .description("The number of result rows to be fetched from the result set at a time. "
+                    + "This is a hint to the database driver and may not be "
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -167,13 +180,15 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed. The incoming FlowFile will be penalized and routed to this relationship. "
+            .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed."
+                    + " The incoming FlowFile will be penalized and routed to this relationship. "
                     + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
     public static final Relationship REL_TOTAL_COUNT = new Relationship.Builder()
             .name("count")
-            .description("One FlowFile per request with attributes:" + ATTR_ROWS_COUNT + " - total of fetched rows, " + ATTR_FETCH_COUNT + " - number of batches.")
+            .description("One FlowFile per request with attributes:" + ATTR_ROWS_COUNT + " - total of fetched rows, "
+                    + ATTR_FETCH_COUNT + " - number of batches.")
             .build();
 
     private String query;
@@ -189,7 +204,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propDescriptors;
 
-
+    /**
+     * Constructor for class QueryDatabaseToCSV.
+     */
     public QueryIdsAndFetchTableToJson() {
         final Set<Relationship> rel = new HashSet<>();
         rel.add(REL_SUCCESS);
@@ -214,6 +231,14 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
+    /**
+     * This method will be called before any onTrigger calls and will be called once each time the Processor
+     * is scheduled to run. This happens in one of two ways: either the user clicks to schedule the component to run,
+     * or NiFi restarts with the "auto-resume state" configuration set to true (the default) and the component
+     * is already running.
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions().getValue();
@@ -224,9 +249,19 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         fetchSize = Integer.parseInt(context.getProperty(FETCH_SIZE).getValue());
         idsBatchSize = context.getProperty(IDS_BATCH_SIZE).asInteger();
         idsFetchSize = Integer.parseInt(context.getProperty(IDS_FETCH_SIZE).getValue());
-        statementProducer = context.getProperty(PS_PROVIDER_SERVICE).asControllerService(PreparedStatementProvider.class);
+        statementProducer = context.getProperty(PS_PROVIDER_SERVICE)
+                        .asControllerService(PreparedStatementProvider.class);
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile invocationFile = session.get();
@@ -237,20 +272,27 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         long[] totalCount;
         Map<String, String> attributes = Collections.emptyMap();
 
-        if (isRequestInvalid(invocationFile, context)) return;
+        if (isRequestInvalid(invocationFile, context)) {
+            return;
+        }
 
         if (context.hasIncomingConnection() && invocationFile != null) {
             attributes = invocationFile.getAttributes();
             fetchId = invocationFile.getAttribute(ATTR_FETCH_ID);
             query = context.getProperty(CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue();
             idsQuery = context.getProperty(IDS_CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue();
-            if (isWriteByBatch) session.remove(invocationFile);
+            if (isWriteByBatch) {
+                session.remove(invocationFile);
+            }
         }
 
-        if (fetchId == null) fetchId = UUID.randomUUID().toString();
+        if (fetchId == null) {
+            fetchId = UUID.randomUUID().toString();
+        }
 
         try {
-            if (StringUtils.isNotEmpty(context.getProperty(IDS_CUSTOM_QUERY).evaluateAttributeExpressions(invocationFile).getValue())) {
+            if (StringUtils.isNotEmpty(context.getProperty(IDS_CUSTOM_QUERY)
+                    .evaluateAttributeExpressions(invocationFile).getValue())) {
                 try (Connection idsConnection = createIdsConnection(context);) {
                     boolean originalAutocommit = idsConnection.getAutoCommit();
                     //to allow PostgreSQL to use cursors, we have to set autocommit to false:
@@ -261,10 +303,11 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     ) {
                         int rowCount = 0;
                         if (idsResultSet.isBeforeFirst()) {
-                            if (context.getProperty(PS_PROVIDER_SERVICE).asControllerService().toString().contains("Oracle")) {
-                                query = query.replace("#SOURCE_IDS#", oracleCondition);
+                            if (context.getProperty(PS_PROVIDER_SERVICE).asControllerService()
+                                    .toString().contains("Oracle")) {
+                                query = query.replace("#SOURCE_IDS#", ORACLE_CONDITION);
                             } else {
-                                query = query.replace("#SOURCE_IDS#", postgresCondition);
+                                query = query.replace("#SOURCE_IDS#", POSTGRES_CONDITION);
                             }
                             while (idsResultSet.next()) {
                                 id.add(idsResultSet.getString("source_id"));
@@ -272,7 +315,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
 
                                 if (isIdsWriteByBatch && rowCount == idsBatchSize) {
                                     rowCount = 0;
-                                    totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
+                                    totalCount = fetchTableToJson(fetchId, attributes, session, context,
+                                            invocationFile, id);
                                     totalRowCount = totalRowCount + totalCount[0];
                                     totalBatchCount = totalBatchCount + totalCount[1];
                                     id = new ArrayList<>();
@@ -280,13 +324,15 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
 
                             }
                             if (rowCount > 0) {
-                                totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
+                                totalCount = fetchTableToJson(fetchId, attributes, session, context,
+                                        invocationFile, id);
                                 totalRowCount = totalRowCount + totalCount[0];
                                 totalBatchCount = totalBatchCount + totalCount[1];
                             }
                         } else {
-                            query = query.replace("#SOURCE_IDS#", emptyCondition);
-                            totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
+                            query = query.replace("#SOURCE_IDS#", EMPTY_CONDITION);
+                            totalCount = fetchTableToJson(fetchId, attributes, session, context,
+                                    invocationFile, id);
                             totalRowCount = totalRowCount + totalCount[0];
                             totalBatchCount = totalBatchCount + totalCount[1];
                         }
@@ -316,7 +362,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             session.transfer(countFlowFile, REL_TOTAL_COUNT);
         } catch (Exception ex) {
             FlowFile exFlowFile = session.putAttribute(
-                    invocationFile != null && !isWriteByBatch ? invocationFile : session.putAllAttributes(session.create(), attributes),
+                    invocationFile != null && !isWriteByBatch ? invocationFile
+                            : session.putAllAttributes(session.create(), attributes),
                     EXTRACTION_ERROR,
                     ExceptionUtils.getStackTrace(ex)
             );
@@ -345,8 +392,11 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return context.getProperty(IDS_DBCP_SERVICE).asControllerService(DBCPService.class);
     }
 
-    private PreparedStatement createPreparedStatement(Connection con, ProcessContext context, List<String> id) throws SQLException {
-        if(id.size() != 0){
+    private PreparedStatement createPreparedStatement(
+            Connection con,
+            ProcessContext context,
+            List<String> id) throws SQLException {
+        if (id.size() != 0) {
             return getStatementProducer().createPreparedStatement(
                     query,
                     context,
@@ -357,13 +407,19 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return con.prepareStatement(query);
     }
 
-    private long[] fetchTableToJson(String fetchId, Map<String, String> attributes, ProcessSession session, ProcessContext context, FlowFile invocationFile, List<String> id) throws SQLException {
+    private long[] fetchTableToJson(
+            String fetchId,
+            Map<String, String> attributes,
+            ProcessSession session,
+            ProcessContext context,
+            FlowFile invocationFile,
+            List<String> id) throws SQLException {
         long[] totalCount = new long[2];
         long totalRowCount = 0;
         long totalBatchCount = 0;
         try (
                 Connection connection = createConnection(context);
-                PreparedStatement preparedStatement = createPreparedStatement(connection,context,id);
+                PreparedStatement preparedStatement = createPreparedStatement(connection, context, id);
         ) {
             String dbUrl = connection.getMetaData().getURL();
             String finalFetchId = fetchId;
@@ -382,7 +438,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     session.getProvenanceReporter().fetch(flowFile, dbUrl);
                     session.transfer(flowFile, REL_SUCCESS);
 
-                    if (isWriteByBatch) session.commit();
+                    if (isWriteByBatch) {
+                        session.commit();
+                    }
                 }
             };
             writer.setBatchSize(batchSize);
@@ -419,12 +477,18 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return ps;
     }
 
+    /**
+     * Returns a Prepared Statement to connect to the database.
+     * @return PreparedStatementProvider objects
+     */
     protected PreparedStatementProvider getStatementProducer() {
         return statementProducer;
     }
 
     private void removeInvocationFlowFile(FlowFile invocationFile, ProcessSession session) {
-        if (invocationFile != null && !isWriteByBatch) session.remove(invocationFile);
+        if (invocationFile != null && !isWriteByBatch) {
+            session.remove(invocationFile);
+        }
     }
 
     private long countTotalBatch(long totalRowCount) {
@@ -433,11 +497,24 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return (long) totalBatchCount;
     }
 
+    /**
+     * Returns:
+     * Set of all relationships this processor expects to transfer a flow file to.
+     * An empty set indicates this processor does not have any destination relationships.
+     * Guaranteed non-null.
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
