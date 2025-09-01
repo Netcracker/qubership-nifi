@@ -84,7 +84,7 @@ generate_random_hex_password() {
 generate_random_password() {
     #args -- letters, numbers, special characters
     echo "$(tr -dc '[:lower:]''[:upper:]' </dev/urandom | head -c "$1")""$(tr -dc 0-9 </dev/urandom | head -c "$2")""\
-$(tr -dc '!@#%^&*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
+$(tr -dc '!@#%^*()-+{}=`~,<>./?' </dev/urandom | head -c "$3")" | fold -w 1 | shuf | tr -d '\n'
 }
 
 generate_uuid() {
@@ -300,8 +300,13 @@ create_docker_env_file() {
     echo "KEYCLOAK_TLS_PASS=$KEYCLOAK_TLS_PASS" >>./docker.env
     CONSUL_TOKEN=$(generate_uuid)
     echo "$CONSUL_TOKEN" >./consul-acl-token.tmp
+    echo "$CONSUL_TOKEN" >./consul-acl-write-token.tmp
     export CONSUL_TOKEN
+    CONSUL_READ_TOKEN=$(generate_uuid)
+    echo "$CONSUL_READ_TOKEN" >./consul-acl-read-token.tmp
+    export CONSUL_READ_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
+    echo "CONSUL_READ_TOKEN=$CONSUL_READ_TOKEN" >>./docker.env
 }
 
 create_docker_env_file_plain() {
@@ -370,4 +375,67 @@ setup_env_before_tests() {
     if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
+}
+
+regenerate_consul_token() {
+    NEW_CONSUL_TOKEN=$(generate_uuid)
+    regex="^CONSUL_TOKEN=.*$"
+    if grep -qE "$regex" ./docker.env; then
+        sed -i "s/$regex/CONSUL_TOKEN=$NEW_CONSUL_TOKEN/" ./docker.env
+    else
+        echo "CONSUL_TOKEN=$NEW_CONSUL_TOKEN" >>./docker.env
+    fi
+}
+
+check_container_not_started() {
+    local logMessage="$1"
+    local containerName="$2"
+    local composeFile="$3"
+    local resultsDir="$4"
+    local timeout="$5"
+
+    if [ -z "$timeout" ]; then
+        echo "Using default timeout = 30 seconds"
+        timeout=30
+    fi
+
+    startTime=$(date +%s)
+    endTime=$((startTime + timeout))
+    remainingTime="$timeout"
+    res=1
+    while [ "$res" != "0" ]; do
+        echo "Waiting for container $containerName to be available, remaining time = $remainingTime"
+        res=0
+        logs=$(docker compose -f "$composeFile" --env-file ./docker.env logs) || {
+            res="$?"
+            echo "Failed to get logs from $containerName, continue waiting..."
+        }
+        if [ "$res" == "0" ]; then
+            if echo "$logs" | grep -E "$logMessage"; then
+                echo "Message '$logMessage' found in container logs '$containerName'."
+            else
+                echo "Message '$logMessage' not found in container logs '$containerName'."
+                res="1"
+            fi
+        fi
+        echo ""
+        currentTime=$(date +%s)
+        remainingTime=$((endTime - currentTime))
+        if ((currentTime > endTime)); then
+            echo "ERROR: timeout reached; failed to wait"
+            echo "Wait failed, nifi container not available. Last 500 lines of logs for container:"
+            echo "resultsDir=$resultsDir"
+            docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 >./nifi_log_tmp.lst
+            cat ./nifi_log_tmp.lst
+            echo "Wait failed, nifi not available" >"./test-results/$resultsDir/failed_nifi_wait.lst"
+            mv ./nifi_log_tmp.lst "./test-results/$resultsDir/nifi_log_after_wait.log"
+            echo "| Wait expected error message in container logs                       | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+            return 1
+        fi
+        sleep 2
+    done
+    echo "Wait finished successfully. Expected log message found."
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
+    echo "| Wait expected error message in container logs                 | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    return 0
 }

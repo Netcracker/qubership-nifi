@@ -382,7 +382,7 @@
     "username" : "nifi-test-user",
     "firstName" : "nifi-test-user",
     "lastName" : "nifi-test-user",
-    "email" : "nifi-test-user@qubership.org",
+    "email" : "nifi-test-user@example.com",
     "emailVerified" : true,
     "createdTimestamp" : 1743524127962,
     "enabled" : true,

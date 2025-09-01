@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset' ]
+        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -88,7 +88,14 @@ jobs:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
         run: docker build -t local-nifi:test .
+      - name: Run test for consul = ${{ matrix.run-mode }}
+        if: ${{ matrix.run-mode == 'tls-consul-read' || matrix.run-mode == 'tls-consul-write' }}
+        uses: ./.github/actions/run-error-start-test
+        with:
+          run-mode: 'tls'
+          error-mode: '${{ matrix.run-mode }}'
       - name: Run tests with mode = ${{ matrix.run-mode }}
+        if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' }}
         uses: ./.github/actions/run-nifi-tests-generic
         with:
           run-mode: '${{ matrix.run-mode }}'

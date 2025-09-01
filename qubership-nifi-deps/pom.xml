@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.0.4</version>
+        <version>1.0.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     </properties>
 
     <modules>
-        <module>qubership-nifi-db-deps</module>
+        <module>qubership-nifi-misc-deps</module>
         <module>qubership-nifi-h2-deps-2-2-220</module>
         <module>qubership-nifi-h2-deps-2-1-214</module>
         <module>qubership-nifi-h2-deps-2-1-210</module>

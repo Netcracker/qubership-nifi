@@ -18,6 +18,7 @@ services:
       - CONSUL_ACL_ENABLED=true
       - CONSUL_HOSTNAME=consul
       - CONSUL_TOKEN=${CONSUL_TOKEN}
+      - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
     image: local-nifi:test
     depends_on:
