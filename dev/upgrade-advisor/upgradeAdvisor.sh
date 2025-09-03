@@ -23,6 +23,9 @@ get_short_found_files() {
     else
         shortFlowName="$fullFileName"
     fi
+    if [[ "$shortFlowName" == /* ]]; then
+        shortFlowName="${shortFlowName#/}"
+    fi
     echo "$shortFlowName"
 }
 
@@ -806,7 +809,6 @@ else
     if [[ "$pathToExports" == *"\\"* ]]; then
         pathToExports="${pathToExports//\\/\/}"
     fi
-    #echo "Test pathToExports - $pathToExports"
 fi
 
 if [ -z "$csvSeparator" ]; then
