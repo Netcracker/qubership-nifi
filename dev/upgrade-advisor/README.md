@@ -29,17 +29,17 @@ Ensure you have the following tools installed:
 
 ### Usage with Bash
 
-To run the advisor, execute the following command (replace parameters as needed):
+To run the advisor, execute the following command (replace parameters as needed, parameters in square brackets are optional):
 ```bash
-bash <pathToScripts>/upgradeAdvisor.sh <pathToExports>
+bash <pathToScripts>/upgradeAdvisor.sh [<pathToExports>] [<csvSeparator>] [<reportFileName>]
 ```
 
 The parameters referenced in the command above are described in the table below.
 
-| Parameter      | Required | Default                  | Description                                                                                                                                                                |
-|----------------|----------|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| pathToScripts  | N        | .                        | Path to the directory containing the `upgradeAdvisor.sh` script.                                                                                                           |
-| pathToExports  | N        | .                        | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files.                                             |
+| Parameter      | Required | Default                    | Description                                                                                                                                                                |
+|----------------|----------|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| pathToScripts  | Y        | .                          | Path to the directory containing the `upgradeAdvisor.sh` script.                                                                                                           |
+| pathToExports  | N        | .                          | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files.                                             |
 | csvSeparator   | N        | `comma`                    | Character for separating values in the csv file. Available values: `comma` (corresponds to ',') and `semicolon` (corresponds to ';'). |
 | reportFileName | N        | `upgradeAdvisorReport.csv` | Name of the report file with flow information.                                                                                                                             |
 
@@ -54,19 +54,19 @@ Ensure you have the following tool installed:
 
 ### Usage for Docker
 
-To run the advisor, execute the following command (replace parameters as needed):
+To run the advisor, execute the following command (replace parameters as needed, parameters in square brackets are optional):
 ```bash
-docker run --rm -v "<pathToScripts>:/advisor" -v "<pathToExports>:/export" -w "/advisor/" --entrypoint=/bin/bash ghcr.io/netcracker/nifi-registry:1.0.3 upgradeAdvisor.sh /export/
+docker run --rm -v "<pathToScripts>:/advisor" -v "<pathToExports>:/export" -w "/advisor/" --entrypoint=/bin/bash ghcr.io/netcracker/nifi-registry:1.0.3 upgradeAdvisor.sh /export/ [<csvSeparator>] [<reportFileName>]
 ```
 
 The parameters referenced in the command above are described in the table below.
 
-| Parameter      | Required | Default                  | Description                                                                                                                                                                |
-|----------------|----------|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| pathToScripts  | N        | .                        | Path to the directory containing the `upgradeAdvisor.sh` script.                                                                                                           |
-| pathToExports  | N        | .                        | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files.                                             |
-| csvSeparator   | N        | comma                    | Character for separating columns in csv file. Parameter has two available values -- comma (corresponds to ',') and semicolon (corresponds to ';'). Default is comma (','). |
-| reportFileName | N        | upgradeAdvisorReport.csv | Name of the report file with flow information.                                                                                                                             |
+| Parameter      | Required | Default                    | Description                                                                                                                                                                |
+|----------------|----------|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| pathToScripts  | Y        | .                          | Path to the directory containing the `upgradeAdvisor.sh` script.                                                                                                           |
+| pathToExports  | Y        | .                          | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files.                                             |
+| csvSeparator   | N        | `comma`                    | Character for separating columns in csv file. Parameter has two available values -- comma (corresponds to ',') and semicolon (corresponds to ';'). Default is comma (','). |
+| reportFileName | N        | `upgradeAdvisorReport.csv` | Name of the report file with flow information.                                                                                                                             |
 
 
 Report filename is defined by `<reportFileName>` parameter. This file will be placed in the `<pathToScripts>` directory.
