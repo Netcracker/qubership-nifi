@@ -45,6 +45,21 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
+FROM alpine/java:21-jdk as upd
+
+USER root
+
+RUN apk add --no-cache zip=3.0-r12 \
+    && mkdir -p /tmp-upd \
+    && chown 10001:0 /tmp-upd
+
+USER 10001:0
+
+COPY --chown=10001:0 --from=apache/nifi:1.28.1 /opt/nifi/nifi-current/lib/properties/spring-web-5.3.39.jar /tmp-upd/
+WORKDIR /tmp-upd
+RUN zip -d spring-web-5.3.39.jar org/springframework/remoting/httpinvoker/ \
+    && mv spring-web-5.3.39.jar spring-web-5.3.39-fix-cve-2016-1000027.jar
+
 FROM apache/nifi:1.28.1 as nifi
 
 RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/encrypt-config.sh \
@@ -69,9 +84,11 @@ RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/enc
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-site-to-site-client-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/velocity-engine-core*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar \
-    && rm -rf $NIFI_HOME/lib/bootstrap/json-smart*.jar
+    && rm -rf $NIFI_HOME/lib/bootstrap/json-smart*.jar \
+    && rm -rf $NIFI_HOME/lib/properties/spring-web-5.3.39.jar
 
 COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
+COPY --chown=1000:1000 --from=upd /tmp-upd/spring-web-5.3.39-fix-cve-2016-1000027.jar $NIFI_HOME/lib/properties/spring-web-5.3.39-fix-cve-2016-1000027.jar
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
