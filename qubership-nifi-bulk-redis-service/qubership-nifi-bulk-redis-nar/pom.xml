@@ -19,13 +19,14 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-bulk-redis-service</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>qubership-nifi-bulk-redis-nar</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.5</version>
     <packaging>nar</packaging>
+    <name>${project.groupId}:${project.artifactId}</name>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>

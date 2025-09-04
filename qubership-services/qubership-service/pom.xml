@@ -15,18 +15,17 @@
  limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-services</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>qubership-service</artifactId>
+    <name>${project.groupId}:${project.artifactId}</name>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -147,13 +146,13 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>9.4.56.v20240826</version>
+            <version>9.4.57.v20241219</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>9.4.56.v20240826</version>
+            <version>9.4.57.v20241219</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

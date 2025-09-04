@@ -15,13 +15,11 @@
  limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-bundle</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.5</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -54,6 +52,13 @@
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!--Transitive dependency on json-smart due to json-path lib-->
+        <dependency>
+            <groupId>net.minidev</groupId>
+            <artifactId>json-smart</artifactId>
+            <version>${json.smart.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.networknt</groupId>

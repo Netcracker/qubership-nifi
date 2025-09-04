@@ -19,23 +19,20 @@ mkdir -p /tmp/tmp-nifi
 
 scripts_dir='/opt/nifi/scripts'
 
-delete_temp_files(){
+delete_temp_files() {
     rm -rf /tmp/tmp-nifi/consulValue.json
     rm -rf /tmp/tmp-nifi/deleteValue.json
 }
 
-
-handle_error(){
+handle_error() {
     error "$1" >&2
     delete_temp_files
     exit 1
 }
 
 info "List of available archived configuration versions:"
-if [[ -d "${NIFI_HOME}"/persistent_conf/conf/archive ]]
-then
-    if [[ -z "$(find "${NIFI_HOME}"/persistent_conf/conf/archive -name '*.json.gz' | head -1)" ]]
-    then
+if [[ -d "${NIFI_HOME}"/persistent_conf/conf/archive ]]; then
+    if [[ -z "$(find "${NIFI_HOME}"/persistent_conf/conf/archive -name '*.json.gz' | head -1)" ]]; then
         info "Configuration files are missing from the directory..."
     else
         for filename in "${NIFI_HOME}"/persistent_conf/conf/archive/*.json.gz; do
@@ -52,7 +49,12 @@ info "Start process of restore NiFi configuration."
 
 secretId=""
 
-[ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
+if [ -z "$CONSUL_ACL_TOKEN" ]; then
+    [ -f "${scripts_dir}/restore_nifi_configurations_add_funct.sh" ] && . "${scripts_dir}/restore_nifi_configurations_add_funct.sh"
+else
+    info "The CONSUL_ACL_TOKEN variable will be used for accessing Consul"
+    secretId="${CONSUL_ACL_TOKEN}"
+fi
 
 info "Getting nifi-restore-version from Consul"
 res=$(curl -sS --write-out "%{http_code}" -o /tmp/tmp-nifi/consulValue.json --header "X-Consul-Token: ${secretId}" "$CONSUL_URL/v1/kv/config/$NAMESPACE/$MICROSERVICE_NAME/nifi-restore-version") || handle_error 'Cannot get nifi-restore-version from Consul'
@@ -65,7 +67,7 @@ if [ "$res" != "200" ]; then
     error "Failed to get nifi-restore-version value from Consul. Error message = $(cat /tmp/tmp-nifi/consulValue.json)"
     handle_error "Failed to get nifi-restore-version value from Consul. Response status code = $res"
 fi
-fileName=$(< /tmp/tmp-nifi/consulValue.json jq -r '.[].Value | @base64d')
+fileName=$(</tmp/tmp-nifi/consulValue.json jq -r '.[].Value | @base64d')
 
 info "nifi-restore-version - ${fileName}"
 
@@ -75,9 +77,8 @@ if [ ! -f "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" ]; then
     exit 0
 fi
 
-
-gzip -dc "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" | jq -r '.rootGroup | .. | .connections? | .[]? | .destination.instanceIdentifier' > listInstanceIdentifier.txt
-if < ./listInstanceIdentifier.txt grep -q -F -e 'temp-funnel'; then
+gzip -dc "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" | jq -r '.rootGroup | .. | .connections? | .[]? | .destination.instanceIdentifier' >listInstanceIdentifier.txt
+if <./listInstanceIdentifier.txt grep -q -F -e 'temp-funnel'; then
     warn "The selected flow.json.gz - ${fileName} contains temporary funnels, its use can lead to incorrect behavior of NiFi. Select a different version and restart the configuration recovery process."
     delete_temp_files
     exit 0
@@ -90,7 +91,7 @@ mv "${NIFI_HOME}/persistent_conf/conf/flow.json.gz" "${NIFI_HOME}/persistent_con
 cp "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" "${NIFI_HOME}/persistent_conf/conf/flow.json.gz"
 
 info "Deleting nifi-restore-version from Consul"
-res=$(curl -sS --write-out "%{http_code}" --request DELETE -o /tmp/tmp-nifi/deleteValue.json  "$CONSUL_URL"/v1/kv/config/"$NAMESPACE"/"$MICROSERVICE_NAME"/nifi-restore-version?token="$secretId")
+res=$(curl -sS --write-out "%{http_code}" --request DELETE -o /tmp/tmp-nifi/deleteValue.json "$CONSUL_URL"/v1/kv/config/"$NAMESPACE"/"$MICROSERVICE_NAME"/nifi-restore-version?token="$secretId")
 if [ "$res" != "200" ]; then
     warn "Removing the property 'nifi-restore-version' from the consul was not completed. You must manually remove the properties. Error message = $(cat /tmp/tmp-nifi/deleteValue.json)"
 fi

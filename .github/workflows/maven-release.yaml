@@ -16,7 +16,7 @@
 # Please find detailed instructions:
 # https://github.com/Netcracker/qubership-workflow-hub?tab=readme-ov-file#maven-project-release-workflow
 
-name: Release And Deploy Maven Artifact
+name: Release And Deploy Maven Artifact v1
 
 on:
   workflow_dispatch:
@@ -42,6 +42,9 @@ on:
         default: false
         description: 'Dry run'
 
+permissions:
+  contents: write
+  packages: write
 jobs:
   check-tag:
     runs-on: ubuntu-latest
@@ -73,37 +76,14 @@ jobs:
           echo "Tag already exists: v${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "Tag already exists: v${{ github.event.inputs.version }}"
           exit 1
-
-  update-pom-version:
-    needs: [check-tag]
-    runs-on: ubuntu-latest
-    outputs:
-      artifact_id: ${{ steps.config.outputs.artifact_id }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Update pom.xml
-        id: config
-        uses: netcracker/qubership-workflow-hub/actions/pom-updater@main
-        with:
-          new_value: ${{ github.event.inputs.version }}
-
-      - name: Commit Changes
-        uses: netcracker/qubership-workflow-hub/actions/commit-and-push@main
-        with:
-          commit_message: "Update pom.xml version to ${{ github.event.inputs.version }}"
-
   mvn-package:
-    needs: [update-pom-version]
+    needs: [check-tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven-command: "--batch-mode package"
+      maven-command: "--batch-mode package -Pcentral"
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: true
-      artifact-id: ${{ needs.update-pom-version.outputs.artifact_id }}
+      artifact-id: 'nifi'
     secrets:
       maven-username: ${{ secrets.MAVEN_USER }}
       maven-token: ${{ secrets.MAVEN_PASSWORD }}
@@ -127,13 +107,13 @@ jobs:
       tag-name: "v${{ github.event.inputs.version }}"
 
   mvn-deploy:
-    needs: [update-pom-version, tag]
+    needs: [check-tag, tag]
     uses: netcracker/qubership-workflow-hub/.github/workflows/maven-publish.yml@main
     with:
-      maven-command: ${{ (github.event.inputs.dry-run == 'true' && '--batch-mode package') || '--batch-mode deploy' }}
+      maven-command: ${{ (github.event.inputs.dry-run == 'true' && '--batch-mode package -Pcentral') || '--batch-mode deploy -Pcentral' }}
       java-version: ${{ github.event.inputs.java-version }}
       upload-artifact: false
-      artifact-id: ${{ needs.update-pom-version.outputs.artifact_id }}
+      artifact-id: 'nifi'
       server-id: "central"
     secrets:
       maven-username: ${{ secrets.MAVEN_USER }}
@@ -143,7 +123,7 @@ jobs:
 
   check-dockerfile:
     runs-on: ubuntu-latest
-    needs: [update-pom-version, tag]
+    needs: [check-tag, tag]
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
     steps:
@@ -162,12 +142,12 @@ jobs:
           cat "$GITHUB_OUTPUT"
 
   docker-build-publish:
-    needs: [update-pom-version, tag, check-dockerfile]
+    needs: [check-tag, tag, check-dockerfile]
     if: ${{ github.event.inputs.build-docker == 'true' && needs.check-dockerfile.outputs.dockerfile_exists == 'exists' }}
     uses: netcracker/qubership-workflow-hub/.github/workflows/docker-publish.yml@main
     with:
       ref: "v${{ github.event.inputs.version }}"
-      artifact-id: ${{ needs.update-pom-version.outputs.artifact_id }}
+      artifact-id: 'nifi'
       dry-run: ${{ inputs.dry-run }}
       download-artifact: true
 

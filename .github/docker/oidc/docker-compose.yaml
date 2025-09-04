@@ -8,6 +8,7 @@ services:
     volumes:
       - tls-cert:/tmp/tls-certs
       - tls-scripts:/tmp/tls-scripts
+      - tls-cert-ca:/tmp/cert
     environment:
       - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
@@ -24,6 +25,7 @@ services:
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
@@ -43,8 +45,8 @@ services:
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
-      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration"
-    container_name: local-nifi-oidc
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+    container_name: local-nifi
     restart: unless-stopped
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
@@ -72,8 +74,8 @@ services:
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
-      - "OIDC_DISCOVERY_URL_NEW=http://keycloak:8080/realms/nifi-test-realm/.well-known/openid-configuration"
-    container_name: local-nifi-registry-oidc
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+    container_name: local-nifi-registry
     hostname: nifi-registry
     restart: unless-stopped
   consul:
@@ -90,6 +92,7 @@ services:
         condition: service_started
     volumes:
       - keycloak-init:/opt/keycloak/data/import
+      - tls-cert:/tmp/tls-certs
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -97,13 +100,18 @@ services:
       KC_DB_URL: jdbc:postgresql://postgresql:5432/postgres
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HTTPS_KEY_STORE_FILE: /tmp/tls-certs/keycloak-server.p12
+      KC_HTTPS_KEY_STORE_PASSWORD: ${KEYCLOAK_TLS_PASS}
+      KC_HTTPS_PORT: 8443
+      KC_HTTP_ENABLED: false
     ports:
       - 28080:8080
+      - 28443:8443
     command:
       - start-dev
       - "--import-realm"
       - "--hostname"
-      - "http://localhost:28080"
+      - "https://localhost:28443"
       - "--hostname-backchannel-dynamic"
       - "true"
   postgresql:
@@ -142,6 +150,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/tls-cert/nifi-registry/
+  tls-cert-ca:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/ca/
   nifi-conf:
     driver: local
     driver_opts:

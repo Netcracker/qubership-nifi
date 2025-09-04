@@ -2,6 +2,9 @@
 services:
   nifi-toolkit:
     image: apache/nifi-toolkit:1.28.1
+    depends_on:
+      consul:
+        condition: service_started
     container_name: nifi-toolkit
     entrypoint: /bin/bash
     command: /tmp/tls-scripts/nifi-gen-certs.sh
@@ -12,6 +15,10 @@ services:
       - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - CONSUL_ACL_ENABLED=true
+      - CONSUL_HOSTNAME=consul
+      - CONSUL_TOKEN=${CONSUL_TOKEN}
+      - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
     image: local-nifi:test
     depends_on:
@@ -36,7 +43,8 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
-    container_name: local-nifi-tls
+      - CONSUL_ACL_TOKEN=${CONSUL_TOKEN}
+    container_name: local-nifi
     restart: unless-stopped
   nifi-registry:
     image: ghcr.io/netcracker/nifi-registry:latest
@@ -58,10 +66,12 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
-    container_name: local-nifi-registry-tls
+    container_name: local-nifi-registry
     hostname: nifi-registry
   consul:
     image: hashicorp/consul:1.20
+    volumes:
+      - consul-conf:/consul/config
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
@@ -96,3 +106,9 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/nifi/per-conf/
+  consul-conf:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/.github/configuration/consul/

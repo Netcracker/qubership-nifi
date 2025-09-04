@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>nifi</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.0.5</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -74,6 +74,7 @@
         <commons.io.version>2.15.1</commons.io.version>
         <postgresql.jdbc.version>42.5.5</postgresql.jdbc.version>
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
+        <json.smart.version>2.5.2</json.smart.version>
     </properties>
 
     <modules>

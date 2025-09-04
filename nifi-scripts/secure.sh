@@ -16,6 +16,7 @@
 #    limitations under the License.
 
 # shellcheck source=/dev/null
+# shellcheck disable=SC2154
 scripts_dir='/opt/nifi/scripts'
 
 . /opt/nifi/scripts/logging_api.sh
@@ -41,34 +42,33 @@ fi
 : "${TRUSTSTORE_TYPE:?"Must specify the type of truststore (JKS, PKCS12, PEM) of the truststore being used."}"
 : "${TRUSTSTORE_PASSWORD:?"Must specify the password of the truststore being used."}"
 
-prop_replace 'nifi.security.keystore'           "${KEYSTORE_PATH}"
-prop_replace 'nifi.security.keystoreType'       "${KEYSTORE_TYPE}"
-prop_replace 'nifi.security.keystorePasswd'     "${KEYSTORE_PASSWORD}"
-prop_replace 'nifi.security.keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
-prop_replace 'nifi.security.truststore'         "${TRUSTSTORE_PATH}"
-prop_replace 'nifi.security.truststoreType'     "${TRUSTSTORE_TYPE}"
-prop_replace 'nifi.security.truststorePasswd'   "${TRUSTSTORE_PASSWORD}"
+prop_replace 'nifi.security.keystore' "${KEYSTORE_PATH}"
+prop_replace 'nifi.security.keystoreType' "${KEYSTORE_TYPE}"
+prop_replace 'nifi.security.keystorePasswd' "${KEYSTORE_PASSWORD}"
+prop_replace 'nifi.security.keyPasswd' "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+prop_replace 'nifi.security.truststore' "${TRUSTSTORE_PATH}"
+prop_replace 'nifi.security.truststoreType' "${TRUSTSTORE_TYPE}"
+prop_replace 'nifi.security.truststorePasswd' "${TRUSTSTORE_PASSWORD}"
 
-prop_replace 'keystore'           "${KEYSTORE_PATH}"                    "$(nifi_toolkit_props_file)"
-prop_replace 'keystoreType'       "${KEYSTORE_TYPE}"                    "$(nifi_toolkit_props_file)"
-prop_replace 'keystorePasswd'     "${KEYSTORE_PASSWORD}"                "$(nifi_toolkit_props_file)"
-prop_replace 'keyPasswd'          "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" "$(nifi_toolkit_props_file)"
-prop_replace 'truststore'         "${TRUSTSTORE_PATH}"                  "$(nifi_toolkit_props_file)"
-prop_replace 'truststoreType'     "${TRUSTSTORE_TYPE}"                  "$(nifi_toolkit_props_file)"
-prop_replace 'truststorePasswd'   "${TRUSTSTORE_PASSWORD}"              "$(nifi_toolkit_props_file)"
+prop_replace 'keystore' "${KEYSTORE_PATH}" "${nifi_toolkit_props_file}"
+prop_replace 'keystoreType' "${KEYSTORE_TYPE}" "${nifi_toolkit_props_file}"
+prop_replace 'keystorePasswd' "${KEYSTORE_PASSWORD}" "${nifi_toolkit_props_file}"
+prop_replace 'keyPasswd' "${KEY_PASSWORD:-$KEYSTORE_PASSWORD}" "${nifi_toolkit_props_file}"
+prop_replace 'truststore' "${TRUSTSTORE_PATH}" "${nifi_toolkit_props_file}"
+prop_replace 'truststoreType' "${TRUSTSTORE_TYPE}" "${nifi_toolkit_props_file}"
+prop_replace 'truststorePasswd' "${TRUSTSTORE_PASSWORD}" "${nifi_toolkit_props_file}"
 
 # Disable HTTP and enable HTTPS
-prop_replace 'nifi.web.http.port'   ''
-prop_replace 'nifi.web.http.host'   ''
-prop_replace 'nifi.web.https.port'  "${NIFI_WEB_HTTPS_PORT:-8443}"
-#prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
+prop_replace 'nifi.web.http.port' ''
+prop_replace 'nifi.web.http.host' ''
+prop_replace 'nifi.web.https.port' "${NIFI_WEB_HTTPS_PORT:-8443}"
+#prop_replace 'nifi.web.https.host' "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
 
-if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ];
-    then 
-        clusterHostName=$(hostname -f)
-        prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$clusterHostName}"
-    else 
-        prop_replace 'nifi.web.https.host'  "${NIFI_WEB_HTTPS_HOST:-$(hostname)}"
+if [ "${NIFI_CLUSTER_IS_NODE}" == "true" ]; then
+    clusterHostName=$(hostname -f)
+    prop_replace 'nifi.web.https.host' "${NIFI_WEB_HTTPS_HOST:-$clusterHostName}"
+else
+    prop_replace 'nifi.web.https.host' "${NIFI_WEB_HTTPS_HOST:-$(hostname)}"
 fi
 
 prop_replace 'nifi.remote.input.secure' 'true'
@@ -76,16 +76,15 @@ prop_replace 'nifi.remote.input.secure' 'true'
 prop_replace 'nifi.cluster.protocol.is.secure' "${NIFI_CLUSTER_IS_NODE:-false}"
 
 # Setup nifi-toolkit
-prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$(hostname)}:${NIFI_WEB_HTTPS_PORT:-8443}" "$(nifi_toolkit_props_file)"
+prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$(hostname)}:${NIFI_WEB_HTTPS_PORT:-8443}" "${nifi_toolkit_props_file}"
 
 # Configure Authorizer and Login Identity Provider
 prop_replace 'nifi.security.user.authorizer' "${NIFI_SECURITY_USER_AUTHORIZER:-managed-authorizer}"
 prop_replace 'nifi.security.user.login.identity.provider' "${NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER}"
 
 # Establish initial user and an associated admin identity
-sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
-sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
-
+sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
+sed -i -e 's|<property name="Initial Admin Identity"></property>|<property name="Initial Admin Identity">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 
 # Check if the user has specified a nifi.web.proxy.host setting and handle appropriately
 if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
@@ -94,9 +93,8 @@ else
     prop_replace 'nifi.web.proxy.host' "${NIFI_WEB_PROXY_HOST}"
 fi
 
-
 if [ -n "${NODE_IDENTITY}" ]; then
-    sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${NODE_IDENTITY}"'</property>|'  "${NIFI_HOME}"/conf/authorizers.xml
+    sed -i -e 's|<property name="Node Identity 1"></property>|<property name="Node Identity 1">'"${NODE_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
 fi
 
-prop_replace 'proxiedEntity' "${INITIAL_ADMIN_IDENTITY}" "$(nifi_toolkit_props_file)"
+prop_replace 'proxiedEntity' "${INITIAL_ADMIN_IDENTITY}" "${nifi_toolkit_props_file}"
