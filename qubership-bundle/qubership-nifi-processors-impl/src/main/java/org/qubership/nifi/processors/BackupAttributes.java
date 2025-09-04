@@ -76,8 +76,8 @@ public class BackupAttributes extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
+    protected List<PropertyDescriptor> descriptors;
+    protected Set<Relationship> relationships;
 
     private String prefixAttr = "source.id";
     private Pattern excludedAttrsPattern = null;

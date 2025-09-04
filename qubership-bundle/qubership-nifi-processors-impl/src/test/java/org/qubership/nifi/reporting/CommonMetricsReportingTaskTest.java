@@ -94,7 +94,7 @@ public class CommonMetricsReportingTaskTest {
     private String getExpectedNifiCommonMetricks(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_common_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
+                .append(",hostname=").append(commonMetricsReportingTask.hostname)
                 .append(" activeThreadCount=").append(1)
                 .append(",heapMax=").append(5.0)
                 .append(",heapUsed=").append(25600.0)
@@ -109,7 +109,7 @@ public class CommonMetricsReportingTaskTest {
     private String getExpectedNiFiThreadsMetric(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_thread_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
+                .append(",hostname=").append(commonMetricsReportingTask.hostname)
                 .append(",threadState=").append("WAITING")
                 .append(" threadCount=").append(4.0)
                 .append(" ").append(reportTime).append("\n");
@@ -119,13 +119,13 @@ public class CommonMetricsReportingTaskTest {
     private String getExpectedNifiGcMetrics(long reportTime) {
         StringBuilder result = new StringBuilder();
         result.append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
+                .append(",hostname=").append(commonMetricsReportingTask.hostname)
                 .append(",gcStatType=").append("G1YoungGeneration")
                 .append("  gcRuns=").append(0)
                 .append(",gcTime=").append(0)
                 .append(" ").append(reportTime).append("\n")
                 .append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.getHostname())
+                .append(",hostname=").append(commonMetricsReportingTask.hostname)
                 .append(",gcStatType=").append("G1OldGeneration")
                 .append("  gcRuns=").append(0)
                 .append(",gcTime=").append(0)

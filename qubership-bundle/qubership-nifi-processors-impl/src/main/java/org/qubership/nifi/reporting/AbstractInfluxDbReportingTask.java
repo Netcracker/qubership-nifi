@@ -135,13 +135,13 @@ public abstract class AbstractInfluxDbReportingTask
                     CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
 
-    private InfluxDB influxDB;
-    private String consistencyLevel;
-    private String database;
-    private String retentionPolicy;
-    private String namespace;
-    private String hostname;
-    private List<PropertyDescriptor> propertyDescriptors;
+    protected InfluxDB influxDB;
+    protected String consistencyLevel;
+    protected String database;
+    protected String retentionPolicy;
+    protected String namespace;
+    protected String hostname;
+    protected List<PropertyDescriptor> propertyDescriptors;
 
 
     /**
@@ -186,8 +186,13 @@ public abstract class AbstractInfluxDbReportingTask
         consistencyLevel = context.getProperty(CONSISTENCY_LEVEL).getValue();
         database = context.getProperty(DB_NAME).getValue();
         retentionPolicy = context.getProperty(RETENTION_POLICY).getValue();
-        namespace = getNamespace();
-        hostname = getHostname();
+        namespace = System.getenv("NAMESPACE");
+        try {
+            hostname = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException ex) {
+            getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
+            hostname = "cloud-data-migration-nifi";
+        }
         String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
         String influxDbUrl = context.getProperty(INFLUX_DB_URL).evaluateAttributeExpressions().getValue();

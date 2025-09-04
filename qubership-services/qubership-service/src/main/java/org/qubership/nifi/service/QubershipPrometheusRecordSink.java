@@ -16,7 +16,6 @@
 
 package org.qubership.nifi.service;
 
-import lombok.Getter;
 import org.qubership.nifi.service.recordSink.MetricCompositeKey;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.prometheus.PrometheusConfig;
@@ -81,13 +80,12 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private Server prometheusServer;
-    @Getter
-    private PrometheusMeterRegistry meterRegistry;
+    public PrometheusMeterRegistry meterRegistry;
     private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
-    private String namespace;
-    private String hostname;
+    protected String namespace;
+    protected String hostname;
     private String instance;
 
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();

@@ -120,9 +120,9 @@ public class ComponentMetricsReportingTask
 
     private void reportConnectionMetrics(long reportTime, StringBuilder res, ConnectionStatus st)
     {
-        res.append("nifi_connections_monitoring,namespace=").append(escapeTagValue(getNamespace()))
+        res.append("nifi_connections_monitoring,namespace=").append(escapeTagValue(namespace))
            .append(",connection_uuid=").append(escapeTagValue(st.getId()))
-           .append(",hostname=").append(getHostname())
+           .append(",hostname=").append(hostname)
            .append(",sourceId=").append(escapeTagValue(st.getSourceId()))
            .append(",destinationId=").append(escapeTagValue(st.getDestinationId()))
            .append(" name=\"").append(escapeFieldValue(st.getName()))
@@ -137,9 +137,9 @@ public class ComponentMetricsReportingTask
 
     private void reportProcessorMetrics(long reportTime, StringBuilder res, ProcessorStatus st)
     {
-        res.append("nifi_processors_monitoring,namespace=").append(escapeTagValue(getNamespace()))
+        res.append("nifi_processors_monitoring,namespace=").append(escapeTagValue(namespace))
            .append(",processor_uuid=").append(escapeTagValue(st.getId()))
-           .append(",hostname=").append(getHostname())
+           .append(",hostname=").append(hostname)
            .append(",full_name=").append(escapeTagValue(st.getName())).append("(").append(escapeTagValue(st.getId()))
            .append(") name=\"").append(escapeFieldValue(st.getName()))
            .append("\",processingNanos=").append(st.getProcessingNanos())

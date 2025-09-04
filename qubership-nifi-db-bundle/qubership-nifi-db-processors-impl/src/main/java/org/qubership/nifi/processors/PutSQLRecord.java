@@ -146,8 +146,8 @@ public class PutSQLRecord extends AbstractProcessor {
     protected static final String ERROR_MSG_ATTR = "putsql.error";
     protected static final String PARSING_ERROR_MSG_ATTR = "parse.error";
 
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
+    protected List<PropertyDescriptor> descriptors;
+    protected Set<Relationship> relationships;
     private DBCPService dbcp;
     private RecordReaderFactory recordReaderFactory;
     private int maxBatchSize;
