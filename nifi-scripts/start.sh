@@ -119,7 +119,7 @@ if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
         fi
     done < "${NIFI_HOME}"/conf/custom.properties
     unset IFS
-    
+
     set_additional_properties
 fi
 
@@ -188,6 +188,11 @@ if [ -n "${X_JAVA_ARGS}" ]; then
     done
 fi
 
+# Setup NiFi to use Python
+uncomment "nifi.python.command" ${nifi_props_file}
+prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+# Setup NiFi to scan for new NARs in nar_extensions
+prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
@@ -208,41 +213,16 @@ prop_replace 'keystoreType'       "PKCS12"                              "${nifi_
 prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    "${nifi_toolkit_props_file}"
 prop_replace 'truststoreType'     "PKCS12"                              "${nifi_toolkit_props_file}"
 
-if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
-    prop_replace 'nifi.web.https.port'                        ''
-    prop_replace 'nifi.web.https.host'                        ''
-    prop_replace 'nifi.web.http.port'                         "${NIFI_WEB_HTTP_PORT}"
-    prop_replace 'nifi.web.http.host'                         "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
-    prop_replace 'nifi.remote.input.secure'                   'false'
-    prop_replace 'nifi.cluster.protocol.is.secure'            'false'
-    prop_replace 'nifi.security.keystore'                     ''
-    prop_replace 'nifi.security.keystoreType'                 ''
-    prop_replace 'nifi.security.truststore'                   ''
-    prop_replace 'nifi.security.truststoreType'               ''
-    prop_replace 'nifi.security.user.login.identity.provider' ''
-    prop_replace 'keystore'                                   '' "${nifi_toolkit_props_file}"
-    prop_replace 'keystoreType'                               '' "${nifi_toolkit_props_file}"
-    prop_replace 'truststore'                                 '' "${nifi_toolkit_props_file}"
-    prop_replace 'truststoreType'                             '' "${nifi_toolkit_props_file}"
-    prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" "${nifi_toolkit_props_file}"
-
-    if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
-        info 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
-        prop_replace 'nifi.web.proxy.host' ''
-    fi
-else
-    if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
-        info 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
-    fi
+if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+    info 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
 fi
 
 export HOME="/opt/nifi/nifi-current/"
 
 # Set custom flow files storage
-prop_replace 'nifi.flow.configuration.file'               "${NIFI_FLOW_CONF_FILE:-./persistent_conf/conf/flow.xml.gz}"
-prop_replace 'nifi.flow.configuration.json.file'          "${NIFI_FLOW_CONF_JSON_FILE:-./persistent_conf/conf/flow.json.gz}"
+prop_replace 'nifi.flow.configuration.file'               "${NIFI_FLOW_CONF_FILE:-./persistent_conf/conf/flow.json.gz}"
 prop_replace 'nifi.flow.configuration.archive.dir'        "${NIFI_FLOW_CONF_ARCH_DIR:-./persistent_conf/conf/archive/}"
-prop_replace 'nifi.templates.directory'                   "${NIFI_TEMPLATES_DIR:-./persistent_conf/conf/templates/}"
+#prop_replace 'nifi.templates.directory'                   "${NIFI_TEMPLATES_DIR:-./persistent_conf/conf/templates/}"
 prop_replace 'nifi.database.directory'                    "${NIFI_DB_REPOSITORY_DIR:-./persistent_conf/database_repository}"
 prop_replace 'nifi.flowfile.repository.directory'         "${NIFI_FLOW_FILE_REPO_DIR:-./flowfile_repository}"
 prop_replace 'nifi.content.repository.directory.default'  "${NIFI_CONTENT_REPO_DIR:-./persistent_data/content_repository}"
@@ -269,14 +249,13 @@ prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_
 
 export HOME="/opt/nifi/nifi-current/"
 
-prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
 prop_replace 'nifi.cluster.is.node'                         "${NIFI_CLUSTER_IS_NODE:-false}"
 #prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$HOSTNAME}"
 
-if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then 
+if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     clusterHostName=$(hostname -f)
     prop_replace 'nifi.cluster.node.address'                    "${NIFI_CLUSTER_ADDRESS:-$clusterHostName}"
-fi  
+fi
 prop_replace 'nifi.cluster.node.protocol.port'              "${NIFI_CLUSTER_NODE_PROTOCOL_PORT:-}"
 prop_replace 'nifi.cluster.node.protocol.max.threads'       "${NIFI_CLUSTER_NODE_PROTOCOL_MAX_THREADS:-50}"
 prop_replace 'nifi.cluster.load.balance.host'               "${NIFI_CLUSTER_LOAD_BALANCE_HOST:-}"
@@ -288,6 +267,10 @@ prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CO
 
 prop_replace 'nifi.provenance.repository.indexed.attributes' "${NIFI_INDEXED_ATTRIBUTES}"
 
+# Set leader election and state management properties
+prop_replace 'nifi.cluster.leader.election.implementation'      "${NIFI_CLUSTER_LEADER_ELECTION_IMPLEMENTATION:-CuratorLeaderElectionManager}"
+prop_replace 'nifi.state.management.provider.cluster'           "${NIFI_STATE_MANAGEMENT_PROVIDER_CLUSTER:-zk-provider}"
+
 # Set analytics properties
 prop_replace 'nifi.analytics.predict.enabled'                   "${NIFI_ANALYTICS_PREDICT_ENABLED:-false}"
 prop_replace 'nifi.analytics.predict.interval'                  "${NIFI_ANALYTICS_PREDICT_INTERVAL:-3 mins}"
@@ -295,6 +278,9 @@ prop_replace 'nifi.analytics.query.interval'                    "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.implementation'   "${NIFI_ANALYTICS_MODEL_IMPLEMENTATION:-org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares}"
 prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}"
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
+
+# Set kubernetes properties
+prop_replace 'nifi.cluster.leader.election.kubernetes.lease.prefix'  "${NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX:-}"
 
 if [ "${NIFI_REG_NAR_PROVIDER_ENABLED}" == "true" ]; then
 	{
@@ -364,7 +350,7 @@ else
    info "Checking if any h2 db is corrupt..."
    verscount=${#h2_versions[@]}
    newDbFile=(./persistent_conf/database_repository/*.sh)
-   numDbFiles=${#newDbFile[@]}   
+   numDbFiles=${#newDbFile[@]}
   if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$numDbFiles" == "0" ]]; then
    info "Checking if nifi-flow-audit h2 db is corrupt..."
    count=$verscount
@@ -464,10 +450,10 @@ fi
 
 if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     startMode="$START_MODE_CLUSTER"
-    
+
     numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
     baseNode="$BASE_NODE_COUNT"
-    
+
     if [ "$numberNode" -gt "$((baseNode-1))" ]; then
         if [ "$startMode" == "delete" ]; then
             rm -f "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz"

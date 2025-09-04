@@ -45,10 +45,9 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:1.28.1 as nifi
+FROM apache/nifi:2.5.0 as nifi
 
-RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/encrypt-config.sh \
-    && chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh \
+RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-web-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-core-*.jar \
     && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-aop-*.jar \
@@ -123,7 +122,7 @@ COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
 
-ARG NIFI_VERSION='1.28.1'
+ARG NIFI_VERSION='2.5.0'
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
