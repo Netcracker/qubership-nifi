@@ -527,12 +527,12 @@ case ${AUTH} in
 esac
 
 #Set up bootstrap sensitive key: letters=11, numbers=21
-NIFI_BOOTSTRAP_SENSITIVE_KEY=$(generate_random_hex_password 11 21)
+#NIFI_BOOTSTRAP_SENSITIVE_KEY=$(generate_random_hex_password 11 21)
 
-if [ -n "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
-    info "Setting bootstrap sensitive key..."
-    /opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n "${NIFI_HOME}"/conf/nifi.properties -b "${NIFI_HOME}"/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
-fi
+#if [ -n "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
+    #info "Setting bootstrap sensitive key..."
+    #/opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n "${NIFI_HOME}"/conf/nifi.properties -b "${NIFI_HOME}"/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
+#fi
 
 load_additional_resources
 
