@@ -47,28 +47,7 @@ USER 10001
 
 FROM apache/nifi:2.5.0 as nifi
 
-RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-web-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-core-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-aop-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-context-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-beans-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-expression-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-jdbc-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-tx-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-vault-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-security-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/ant*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/netty-codec*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/xmlsec-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/h2-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/protobuf-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/esapi-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-toolkit-flowanalyzer-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-site-to-site-client-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/velocity-engine-core*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar \
-    && rm -rf $NIFI_HOME/lib/bootstrap/json-smart*.jar
+RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 
 COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
 
