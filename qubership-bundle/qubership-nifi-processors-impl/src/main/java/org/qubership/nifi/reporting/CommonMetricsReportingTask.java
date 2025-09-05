@@ -36,37 +36,64 @@ import java.util.concurrent.TimeUnit;
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends Nifi metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
-public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
+public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
 
     private volatile VirtualMachineMetrics vmMetrics;
 
-
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     @Override
     protected List<PropertyDescriptor> initProperties() {
         List<PropertyDescriptor> allProps = super.initProperties();
         return allProps;
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @Override
     public void onScheduled(ConfigurationContext context) {
         super.onScheduled(context);
     }
 
 
-
-    public void reportNifiCommonMetricks(long reportTime,  StringBuilder result, VirtualMachineMetrics vmMetrics, ProcessGroupStatus controllerStatus){
+    /**
+     * Collecting Nifi Common Metrics for sending to monitoring.
+     *
+     * @param reportTime
+     * @param result
+     * @param vmMetricsValue
+     * @param controllerStatus
+     */
+    public void reportNifiCommonMetricks(
+            long reportTime,
+            StringBuilder result,
+            VirtualMachineMetrics vmMetricsValue,
+            ProcessGroupStatus controllerStatus
+    ) {
         result.append("nifi_common_metrics,namespace=").append(escapeTagValue(namespace))
                 .append(",hostname=").append(hostname)
                 .append(" activeThreadCount=").append(controllerStatus.getActiveThreadCount())
-                .append(",heapMax=").append(vmMetrics.heapMax() / 1024)
-                .append(",heapUsed=").append(vmMetrics.heapUsage()*vmMetrics.heapMax() / 1024)
-                .append(",heapCommited=").append(vmMetrics.heapCommitted() / 1024)
-                .append(",uptime=").append(vmMetrics.uptime())
-                .append(",jvmDaemonThreadCount=").append(vmMetrics.daemonThreadCount())
-                .append(",jvmThreadTotalCount=").append(vmMetrics.threadCount())
+                .append(",heapMax=").append(vmMetricsValue.heapMax() / 1024)
+                .append(",heapUsed=").append(vmMetricsValue.heapUsage() * vmMetricsValue.heapMax() / 1024)
+                .append(",heapCommited=").append(vmMetricsValue.heapCommitted() / 1024)
+                .append(",uptime=").append(vmMetricsValue.uptime())
+                .append(",jvmDaemonThreadCount=").append(vmMetricsValue.daemonThreadCount())
+                .append(",jvmThreadTotalCount=").append(vmMetricsValue.threadCount())
                 .append(" ").append(reportTime).append("\n");
     }
 
+    /**
+     * Collecting NiFi Threads Metrics for sending to monitoring.
+     *
+     * @param reportTime
+     * @param result
+     * @param state
+     * @param threadCount
+     */
     private void reportNiFiThreadsMetric(long reportTime, StringBuilder result, State state, double threadCount) {
         result.append("nifi_thread_metrics,namespace=").append(escapeTagValue(namespace))
             .append(",hostname=").append(hostname)
@@ -75,17 +102,31 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
             .append(" ").append(reportTime).append("\n");
     }
 
-    public void reportNifiThreadMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetrics) {
-        Map<State, Double> map = vmMetrics.threadStatePercentages();
+    /**
+     * Collecting Nifi Thread Metrics for sending to monitoring.
+     *
+     * @param reportTime
+     * @param result
+     * @param vmMetricsValue
+     */
+    public void reportNifiThreadMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetricsValue) {
+        Map<State, Double> map = vmMetricsValue.threadStatePercentages();
         for (Map.Entry<State, Double> entry : map.entrySet()) {
-            double normalizedValue = (entry.getValue() == null ? 0 : entry.getValue()*vmMetrics.threadCount());
+            double normalizedValue = (entry.getValue() == null ? 0 : entry.getValue() * vmMetricsValue.threadCount());
             reportNiFiThreadsMetric(reportTime, result, entry.getKey(), normalizedValue);
         }
     }
 
-    public void reportGcMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetrics ){
+    /**
+     * Collecting Java Gc Metrics for sending to monitoring.
+     *
+     * @param reportTime
+     * @param result
+     * @param vmMetricsValue
+     */
+    public void reportGcMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetricsValue) {
 
-        Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = vmMetrics.garbageCollectors();
+        Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = vmMetricsValue.garbageCollectors();
 
         for (Map.Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : map.entrySet()) {
             result.append("nifi_gc_metrics,namespace=").append(escapeTagValue(namespace))
@@ -97,7 +138,12 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask{
         }
     }
 
-
+    /**
+     * Creating a message for Influx.
+     *
+     * @param context
+     * @return Influx message
+     */
     @Override
     public String createInfluxMessage(ReportingContext context) {
 
