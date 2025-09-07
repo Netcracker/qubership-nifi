@@ -47,7 +47,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
             .description("Validation Json Schema.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     /**

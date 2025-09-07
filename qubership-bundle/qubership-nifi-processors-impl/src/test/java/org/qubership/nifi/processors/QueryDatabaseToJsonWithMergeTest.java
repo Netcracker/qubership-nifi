@@ -39,7 +39,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.DriverManager;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.Statement;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,11 +55,17 @@ import static org.qubership.nifi.processors.QueryDatabaseToJson.SQL_QUERY;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.*;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.PATH;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.JOIN_KEY_PARENT_WITH_CHILD;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.JOIN_KEY_CHILD_WITH_PARENT;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.KEY_TO_INSERT;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.REL_FAILURE;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.REL_SUCCESS;
+import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.BATCH_SIZE;
 
 public class QueryDatabaseToJsonWithMergeTest {
 
-    private final static String DB_LOCATION = "target/db_ldt";
+    private static final String DB_LOCATION = "target/db_ldt";
     private TestRunner testRunner;
     private Connection connection;
     private static final String TABLE_NAME = "TEST_TABLE";
@@ -67,6 +77,7 @@ public class QueryDatabaseToJsonWithMergeTest {
         ControllerService preparedStatementControllerService = new DerbyPreparedStatement();
 
         testRunner = TestRunners.newTestRunner(QueryDatabaseToJsonWithMerge.class);
+        testRunner.setValidateExpressionUsage(false);
 
         testRunner.setProperty(DBCP_SERVICE, "dbcp");
         testRunner.setProperty(PS_PROVIDER_SERVICE, "DerbyPreparedStatement");
@@ -96,7 +107,7 @@ public class QueryDatabaseToJsonWithMergeTest {
         }
     }
 
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private final class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -112,51 +123,56 @@ public class QueryDatabaseToJsonWithMergeTest {
         }
     }
     private void initBdTestDataFirstSet() throws SQLException {
-        try (Statement statement = connection.createStatement()){
-            statement.execute("create table " + TABLE_NAME + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("create table " + TABLE_NAME
+                    + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
 
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 400, 404)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 200, 202)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 300, 303)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 100, 101)" );
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 400, 404)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 200, 202)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 300, 303)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 100, 101)");
 
-            testRunner.setProperty(PATH,"$.[*]");
-            testRunner.setProperty(JOIN_KEY_PARENT_WITH_CHILD,"id");  // this key should match with node key from json file. case-sensitive
-            testRunner.setProperty(JOIN_KEY_CHILD_WITH_PARENT,"ID");  // this key should match with column name from SQL_QUERY. case-sensitive
-            testRunner.setProperty(KEY_TO_INSERT,"data");
+            testRunner.setProperty(PATH, "$.[*]");
+            // this key should match with node key from json file. case-sensitive
+            testRunner.setProperty(JOIN_KEY_PARENT_WITH_CHILD, "id");
+            // this key should match with column name from SQL_QUERY. case-sensitive
+            testRunner.setProperty(JOIN_KEY_CHILD_WITH_PARENT, "ID");
+            testRunner.setProperty(KEY_TO_INSERT, "data");
         }
     }
     private void initBdBatchTestDataSecondSet() throws SQLException {
-        try (Statement statement = connection.createStatement()){
+        try (Statement statement = connection.createStatement()) {
             statement.execute("create table " + TABLE_NAME + " (id integer not null, val integer, val2 integer)");
 
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 400, 404)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 200, 202)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 300, 303)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 100, 101)" );
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 400, 404)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 200, 202)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 300, 303)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 100, 101)");
 
 
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 4004, 40004)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 2002, 20002)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 2001, 20003)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 3003, 30003)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1001, 10001)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1002, 10002)" );
-            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1003, 10003)" );
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (4, 4004, 40004)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 2002, 20002)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (2, 2001, 20003)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (3, 3003, 30003)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1001, 10001)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1002, 10002)");
+            statement.execute("INSERT INTO " + TABLE_NAME + "(ID, VAL, VAL2)" + " VALUES (1, 1003, 10003)");
 
-            testRunner.setProperty(PATH,"$.[*]");
-            testRunner.setProperty(JOIN_KEY_PARENT_WITH_CHILD,"id");  // this key should match with node key from json file. case-sensitive
-            testRunner.setProperty(JOIN_KEY_CHILD_WITH_PARENT,"ID");  // this key should match with column name from SQL_QUERY. case-sensitive
-            testRunner.setProperty(KEY_TO_INSERT,"data");
+            testRunner.setProperty(PATH, "$.[*]");
+            // this key should match with node key from json file. case-sensitive
+            testRunner.setProperty(JOIN_KEY_PARENT_WITH_CHILD, "id");
+            // this key should match with column name from SQL_QUERY. case-sensitive
+            testRunner.setProperty(JOIN_KEY_CHILD_WITH_PARENT, "ID");
+            testRunner.setProperty(KEY_TO_INSERT, "data");
         }
     }
 
     @Test
-    public void testValidSQL() throws IOException,SQLException {
+    public void testValidSQL() throws IOException, SQLException {
         initBdTestDataFirstSet();
-        testRunner.setProperty(SQL_QUERY,"SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
 
         putInQueue("test_table_input.json", Collections.emptyMap());
         testRunner.run();
@@ -179,20 +195,21 @@ public class QueryDatabaseToJsonWithMergeTest {
         putInQueue("test_table_input.json", Collections.emptyMap());
         try {
             testRunner.run();
-        }catch (AssertionError e){
-            assertTrue(e.getMessage().contains("SQLException") &&
-                    e.getMessage().contains("An exception occurs during the QueryDatabaseToJsonWithMerge processing"));
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("SQLException")
+                    && e.getMessage().contains("An exception occurs during "
+                    + "the QueryDatabaseToJsonWithMerge processing"));
         }
         List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(1, failedFlowFiles.size());
     }
     @Test
-    public void testIfIdNotFoundInBd() throws IOException,SQLException {
+    public void testIfIdNotFoundInBd() throws IOException, SQLException {
 
         initBdTestDataFirstSet();
-        testRunner.setProperty(SQL_QUERY,"SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
 
         putInQueue("test_table_input_wrong_id.json", Collections.emptyMap());
         testRunner.run();
@@ -212,30 +229,30 @@ public class QueryDatabaseToJsonWithMergeTest {
         Assertions.assertTrue(!successFlowFiles.isEmpty() && failFlowFiles.isEmpty());
     }
     @Test
-    public void testInvalidInputJson() throws IOException,SQLException {
+    public void testInvalidInputJson() throws IOException, SQLException {
         initBdTestDataFirstSet();
-        testRunner.setProperty(SQL_QUERY,"SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
 
         putInQueue("test_table_input_invalid_json.json", Collections.emptyMap());
 
-        Assertions.assertThrows(AssertionError.class,()->testRunner.run());
+        Assertions.assertThrows(AssertionError.class, () -> testRunner.run());
         try {
             testRunner.run();
-        }catch (AssertionError e){
-            assertTrue(e.getMessage().contains("JsonParseException") &&
-                    e.getMessage().contains("expecting comma to separate Array entries"));
+        } catch (AssertionError e) {
+            assertTrue(e.getMessage().contains("JsonParseException")
+                    && e.getMessage().contains("expecting comma to separate Array entries"));
         }
         List<MockFlowFile> failedFlowFiles = testRunner.getFlowFilesForRelationship(REL_FAILURE);
         assertEquals(0, failedFlowFiles.size());
     }
     @Test
-    public void testValidSQLwithTwoBatch() throws IOException,SQLException {
+    public void testValidSQLwithTwoBatch() throws IOException, SQLException {
         initBdBatchTestDataSecondSet();
-        testRunner.setProperty(SQL_QUERY, "SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
         testRunner.setProperty(BATCH_SIZE, "2");
         putInQueue("test_table_input.json", Collections.emptyMap());
         testRunner.run();
@@ -245,14 +262,14 @@ public class QueryDatabaseToJsonWithMergeTest {
         assertEquals(1, successFlowFiles.size());
 
         JsonNode node = mapper.readTree(successFlowFiles.get(0).toByteArray());
-        assertEquals(true,  isNodeElementArray("/data",node));
+        assertEquals(true,  isNodeElementArray("/data", node));
     }
     @Test
-    public void testValidSQLwithOneBatch() throws IOException,SQLException {
+    public void testValidSQLwithOneBatch() throws IOException, SQLException {
         initBdBatchTestDataSecondSet();
-        testRunner.setProperty(SQL_QUERY, "SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
         testRunner.setProperty(BATCH_SIZE, "1");
         putInQueue("test_table_input.json", Collections.emptyMap());
         testRunner.run();
@@ -262,14 +279,14 @@ public class QueryDatabaseToJsonWithMergeTest {
         assertEquals(1, successFlowFiles.size());
 
         JsonNode node = mapper.readTree(successFlowFiles.get(0).toByteArray());
-        assertEquals(false,  isNodeElementArray("/data",node));
+        assertEquals(false,  isNodeElementArray("/data", node));
     }
     @Test
-    public void testValidSQLwithDefaultBatch() throws IOException,SQLException {
+    public void testValidSQLwithDefaultBatch() throws IOException, SQLException {
         initBdBatchTestDataSecondSet();
-        testRunner.setProperty(SQL_QUERY, "SELECT *  " +
-                "FROM  test_table t " +
-                "WHERE id in (?,?,?,?)");
+        testRunner.setProperty(SQL_QUERY, "SELECT *  "
+                + "FROM  test_table t "
+                + "WHERE id in (?,?,?,?)");
 
         putInQueue("test_table_input.json", Collections.emptyMap());
         testRunner.run();
@@ -279,11 +296,13 @@ public class QueryDatabaseToJsonWithMergeTest {
         assertEquals(1, successFlowFiles.size());
 
         JsonNode node = mapper.readTree(successFlowFiles.get(0).toByteArray());
-        assertEquals(true,  isNodeElementArray("/data",node));
+        assertEquals(true,  isNodeElementArray("/data", node));
     }
     private boolean isNodeElementArray(String attribute, JsonNode arrayNode) {
-        for(JsonNode jsonNode : arrayNode){
-            if( jsonNode.at(attribute).isArray()) return true;
+        for (JsonNode jsonNode : arrayNode) {
+            if (jsonNode.at(attribute).isArray()) {
+                return true;
+            }
         }
         return false;
     }

@@ -32,7 +32,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Counter;
-import org.apache.nifi.serialization.record.*;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -50,7 +52,12 @@ import java.io.Writer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -70,11 +77,11 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
  * Controller Services which allows to expose metrics to Prometheus.
  */
 @Tags({"record", "send", "write", "prometheus"})
-public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService{
+public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private Server prometheusServer;
     public PrometheusMeterRegistry meterRegistry;
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
     protected String namespace;
@@ -88,7 +95,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .displayName("Prometheus Metrics Endpoint Port")
             .description("The Port where prometheus metrics can be accessed")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("9092")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
@@ -98,7 +105,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .displayName("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}_${NAMESPACE}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -106,7 +113,8 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     public static final PropertyDescriptor CLEAR_METRICS = new PropertyDescriptor.Builder()
             .name("prometheus-sink-clear-metrics")
             .displayName("Clear Metrics on Disable")
-            .description("If set to Yes, all metrics stored in the controller service are cleared, when the controller service is disabled. By default, metrics are not cleared.")
+            .description("If set to Yes, all metrics stored in the controller service are cleared, "
+                    + "when the controller service is disabled. By default, metrics are not cleared.")
             .defaultValue("No")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues("Yes", "No")
@@ -118,32 +126,49 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         props.add(METRICS_ENDPOINT_PORT);
         props.add(INSTANCE_ID);
         props.add(CLEAR_METRICS);
-        properties = Collections.unmodifiableList(props);
+        PROPERTIES = Collections.unmodifiableList(props);
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
+    /**
+     * Start jetty server.
+     */
     protected void startServer() {
-        try{
+        try {
             prometheusServer = new Server(metricsEndpointPort);
             ServletContextHandler servletContextHandler = new ServletContextHandler();
             servletContextHandler.setContextPath("/");
             servletContextHandler.addServlet(new ServletHolder(new PrometheusServlet()), "/metrics");
             prometheusServer.setHandler(servletContextHandler);
             prometheusServer.start();
-        } catch (Exception e){
+        } catch (Exception e) {
             getLogger().error("Error while starting Jetty server {}", e);
             throw new ProcessException("Error while starting Jetty server {}", e);
         }
     }
 
+    /**
+     * Gets namespace used to run nifi service.
+     * @return namespace
+     */
     protected String getNamespace() {
         return System.getenv("NAMESPACE");
     }
 
+    /**
+     * Gets hostname used to run nifi service.
+     * @return hostname
+     */
     protected String getHostname() {
         try {
             return InetAddress.getLocalHost().getCanonicalHostName();
@@ -153,6 +178,10 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         }
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
         meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
@@ -164,9 +193,12 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         startServer();
     }
 
+    /**
+     * Stops jetty server and releases all resources.
+     */
     @OnDisabled
     public void onStopped() throws Exception {
-        if(clearMetrics){
+        if (clearMetrics) {
             meterRegistry.clear();
             metricSet.clear();
         }
@@ -176,6 +208,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         }
     }
 
+    /**
+     * Stops jetty server and releases all resources.
+     */
     @OnShutdown
     public void onShutDown() throws Exception {
         if (prometheusServer != null) {
@@ -184,6 +219,16 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         }
     }
 
+    /**
+     * Sends the record set to the RecordSinkService.
+     *
+     * @param recordSet The RecordSet to transmit
+     * @param map Attributes associated with the RecordSet
+     * @param b Whether to transmit empty record sets
+     * @return WriteResult object containing the number of records transmitted,
+     * as well as any metadata in the form of attributes
+     * @throws IOException
+     */
     @Override
     public WriteResult sendData(RecordSet recordSet, Map<String, String> map, boolean b) throws IOException {
         String[] labelNames;
@@ -192,8 +237,8 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         RecordSchema recordSchema = recordSet.getSchema();
 
         labelNames = Stream.concat(recordSchema.getFields().stream().filter(
-                        (f) -> isLabel(f.getDataType().getFieldType())).map(RecordField::getFieldName).sorted()
-                ,Arrays.stream(staticLabelNames)).toArray(String[]::new);
+                        (f) -> isLabel(f.getDataType().getFieldType())).map(RecordField::getFieldName)
+                .sorted(), Arrays.stream(staticLabelNames)).toArray(String[]::new);
 
         int recordCount = 0;
         org.apache.nifi.serialization.record.Record r;
@@ -201,23 +246,27 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             final org.apache.nifi.serialization.record.Record record = r;
             String[] labelValues;
 
-            //labelValues = Arrays.stream(labelNames).map(label -> record.getAsString(label) != null ? record.getAsString(label) : "" ).toArray(String[]::new);
+            //labelValues = Arrays.stream(labelNames).map(label ->
+            // record.getAsString(label) != null ? record.getAsString(label) : "" ).toArray(String[]::new);
             labelValues = Arrays.stream(labelNames).map(label -> {
                 String value = record.getAsString(label);
-                if (value != null)
+                if (value != null) {
                     return value; // If value is not null, return it
-                else if ("namespace".equals(label))
+                } else if ("namespace".equals(label)) {
                     return namespace;
-                else if ("hostname".equals(label))
+                } else if ("hostname".equals(label)) {
                     return hostname;
-                else if ("instance".equals(label))
+                } else if ("instance".equals(label)) {
                     return instance;
-                else
+                } else {
                     return ""; // Default fallback for all other cases
+                }
             }).toArray(String[]::new);
 
-            recordSchema.getFields().stream().filter((field) -> isNumeric(field.getDataType().getFieldType())).forEach(recordField -> {
-                MetricCompositeKey metricCompositeKey = new MetricCompositeKey(recordField.getFieldName(), labelNames, labelValues);
+            recordSchema.getFields().stream().filter((field) ->
+                    isNumeric(field.getDataType().getFieldType())).forEach(recordField -> {
+                MetricCompositeKey metricCompositeKey = new MetricCompositeKey(recordField.getFieldName(),
+                        labelNames, labelValues);
                 Number num = convertNum(record, recordField.getFieldName());
                 if (num != null) {
                     metricSet.put(metricCompositeKey, convertNum(record, recordField.getFieldName()));
@@ -227,7 +276,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                                     Number value = getMetricValue(metricCompositeKey);
                                     return value == null ? 0 : value;
                                 })
-                                .tags(IntStream.range(0, labelValues.length).filter(i -> labelValues[i] != null).mapToObj(i -> Tag.of(labelNames[i], labelValues[i])).collect(Collectors.toList()))
+                                .tags(IntStream.range(0, labelValues.length).filter(i ->
+                                        labelValues[i] != null).mapToObj(i ->
+                                        Tag.of(labelNames[i], labelValues[i])).collect(Collectors.toList()))
                                 .register(meterRegistry);
                     }
                 }
@@ -237,7 +288,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 Record metricRecord = (Record) record.getValue(recordField);
                 Number value = convertNum(metricRecord, "value");
                 String type = metricRecord.getAsString("type");
-                if (value != null){
+                if (value != null) {
                     Optional<DataType> dataType = record.getSchema().getDataType(metricName);
                     if (dataType.isPresent()) {
                         List<Tag> tagsList = IntStream.range(0, labelValues.length)
@@ -261,7 +312,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         return writeResult;
     }
 
-    private synchronized Counter createCounter(String metricName, List<Tag> tagsList){
+    private synchronized Counter createCounter(String metricName, List<Tag> tagsList) {
         Counter counter = Counter.builder(metricName)
                     .tags(tagsList)
                     .register(meterRegistry);
@@ -269,21 +320,21 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         return counter;
     }
 
-    private synchronized DistributionSummary createSummary(String metricName, Record metricRecord, List<Tag> tagsList){
+    private synchronized DistributionSummary createSummary(String metricName, Record metricRecord, List<Tag> tagsList) {
         Duration statisticExpiry = null;
         double[] publishPercentiles = null;
         Object[] publishPercentilesObject = metricRecord.getAsArray("publishPercentiles");
-        if(publishPercentilesObject != null){
+        if (publishPercentilesObject != null) {
             publishPercentiles = new double[publishPercentilesObject.length];
 
-            for(int i=0; i < publishPercentilesObject.length; i++){
-                if(publishPercentilesObject[i] instanceof Number){
+            for (int i = 0; i < publishPercentilesObject.length; i++) {
+                if (publishPercentilesObject[i] instanceof Number) {
                     publishPercentiles[i] = ((Number) publishPercentilesObject[i]).doubleValue();
                 }
             }
         }
 
-        if (StringUtils.isNotEmpty(metricRecord.getAsString("statisticExpiry"))){
+        if (StringUtils.isNotEmpty(metricRecord.getAsString("statisticExpiry"))) {
             statisticExpiry = Duration.parse(metricRecord.getAsString("statisticExpiry"));
         }
 
@@ -297,14 +348,14 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         return distributionSummary;
     }
 
-    private Number getMetricValue(MetricCompositeKey metricCompositeKey){
+    private Number getMetricValue(MetricCompositeKey metricCompositeKey) {
         return metricSet.get(metricCompositeKey);
     }
 
-    private Number convertNum(org.apache.nifi.serialization.record.Record record, String name){
+    private Number convertNum(org.apache.nifi.serialization.record.Record record, String name) {
         Number num = null;
 
-        switch(record.getSchema().getDataType(name).get().getFieldType()) {
+        switch (record.getSchema().getDataType(name).get().getFieldType()) {
             case INT:
                 num = record.getAsInt(name);
                 break;
@@ -318,7 +369,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 num = record.getAsDouble(name);
                 break;
             case DECIMAL:
-                if(record.getSchema().getDataType(name).get().getFieldType() == DOUBLE){
+                if (record.getSchema().getDataType(name).get().getFieldType() == DOUBLE) {
                     num = record.getAsDouble(name);
                 } else {
                     num = record.getAsFloat(name);
@@ -328,7 +379,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 num = NumberUtils.createNumber(record.getAsString(name));
                 break;
             case BOOLEAN:
-                if(record.getAsBoolean(name)){
+                if (record.getAsBoolean(name)) {
                     num = 1;
                 } else {
                     num = 0;
@@ -357,7 +408,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     private boolean isRecord(RecordField field) {
-        if(RecordFieldType.RECORD.equals(field.getDataType().getFieldType())){
+        if (RecordFieldType.RECORD.equals(field.getDataType().getFieldType())) {
             RecordSchema schema = ((RecordDataType) field.getDataType()).getChildSchema();
             return schema.getField("type").isPresent() && schema.getField("value").isPresent();
         }

@@ -75,7 +75,7 @@ public class ComponentPrometheusReportingTaskTest {
     public void setUp() throws Exception {
         task = new MockComponentPrometheusReportingTask();
         componentLogger = new MockComponentLog("reporting-task-id", task);
-        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null);
+        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
         task.initProperties();
         initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);

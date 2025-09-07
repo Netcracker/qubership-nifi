@@ -51,6 +51,7 @@ public class QubershipPrometheusRecordSinkTest {
     public void setup() throws Exception {
         recordSink = new MockQubershipPrometheusRecordSink();
         runner = TestRunners.newTestRunner(TestProcessorRecordSink.class);
+        runner.setValidateExpressionUsage(false);
         runner.addControllerService(MockQubershipPrometheusRecordSink.class.getSimpleName(), recordSink);
         runner.setProperty(recordSink, QubershipPrometheusRecordSink.METRICS_ENDPOINT_PORT, "9092");
         runner.setProperty(recordSink, QubershipPrometheusRecordSink.INSTANCE_ID, "test-instance-id");

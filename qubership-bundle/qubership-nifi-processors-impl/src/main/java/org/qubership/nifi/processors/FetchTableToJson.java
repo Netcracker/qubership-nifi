@@ -92,7 +92,7 @@ public class FetchTableToJson extends AbstractProcessor {
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(
-                    ExpressionLanguageScope.VARIABLE_REGISTRY)
+                    ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -103,7 +103,7 @@ public class FetchTableToJson extends AbstractProcessor {
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor COLUMN_NAMES = new PropertyDescriptor.Builder()

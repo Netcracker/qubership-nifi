@@ -23,7 +23,6 @@ then
   sleep 10
   exit 3;
 fi
-encrypt_scripts_dir='/opt/nifi/nifi-toolkit-current/bin'
 flow_dir="${NIFI_HOME}/persistent_conf/conf"
 newKeyHash="$(echo -n "${NIFI_NEW_SENSITIVE_KEY}" | sha256sum )"
 
@@ -53,7 +52,6 @@ then
     # re-encrypt from NIFI_PREVIOUS_SENSITIVE_KEY to NIFI_NEW_SENSITIVE_KEY, create old_key_hash from NIFI_NEW_SENSITIVE_KEY
     prop_replace 'nifi.sensitive.props.key'     "${NIFI_PREVIOUS_SENSITIVE_KEY}"
     info "setting OLD_SENSITIVE_KEY with NIFI_NEW_SENSITIVE_KEY for re-encryption."
-    ${encrypt_scripts_dir}/encrypt-config.sh -f "${flow_dir}"/flow.json.gz -n "${NIFI_HOME}"/conf/nifi.properties -s "${NIFI_NEW_SENSITIVE_KEY}" -x
     echo "${newKeyHash}" > "${NIFI_HOME}/persistent_conf/old_key_hash"
     info "Result is ok, continue..."
 
@@ -90,7 +88,6 @@ else
     #then, re-encrypt from SENSITIVE_KEY to NIFI_NEW_SENSITIVE_KEY, create old_key_hash from NIFI_NEW_SENSITIVE_KEY
     prop_replace 'nifi.sensitive.props.key'     "${SENSITIVE_KEY}"
     info "OLD_SENSITIVE_KEY is empty, setting it with new NIFI_NEW_SENSITIVE_KEY for re-encryption."
-    ${encrypt_scripts_dir}/encrypt-config.sh -f "${flow_dir}"/flow.json.gz -n "${NIFI_HOME}"/conf/nifi.properties -s "${NIFI_NEW_SENSITIVE_KEY}" -x
     echo "${newKeyHash}" > "${NIFI_HOME}/persistent_conf/old_key_hash"
     info "Result is ok, continue..."
 
@@ -102,7 +99,6 @@ else
       # then re-encrypt from SENSITIVE_KEY to NIFI_NEW_SENSITIVE_KEY, create old_key_hash from NIFI_NEW_SENSITIVE_KEY
       prop_replace 'nifi.sensitive.props.key'     "${SENSITIVE_KEY}"
       info "setting OLD_SENSITIVE_KEY with new NIFI_NEW_SENSITIVE_KEY for re-encryption."
-      ${encrypt_scripts_dir}/encrypt-config.sh -f "${flow_dir}"/flow.json.gz -n "${NIFI_HOME}"/conf/nifi.properties -s "${NIFI_NEW_SENSITIVE_KEY}" -x
       echo "${newKeyHash}" > "${NIFI_HOME}/persistent_conf/old_key_hash"
       info "Result is ok, continue..."
 
@@ -112,7 +108,6 @@ else
       prop_replace 'nifi.sensitive.props.key'     "${SENSITIVE_KEY}"
       info "OLD_SENSITIVE_KEY != SENSITIVE_KEY, so setting OLD_SENSITIVE_KEY with new NIFI_NEW_SENSITIVE_KEY for re-encryption."
       try_current="0"
-      ${encrypt_scripts_dir}/encrypt-config.sh -f "${flow_dir}"/flow.json.gz -n "${NIFI_HOME}"/conf/nifi.properties -s "${NIFI_NEW_SENSITIVE_KEY}" -x || try_current="1"
       echo "${newKeyHash}" > "${NIFI_HOME}/persistent_conf/old_key_hash"
       info "Result is ok, continue..."
 
@@ -120,8 +115,6 @@ else
         warn "Failed to re-encrypt flow.json.gz with key using SENSITIVE_KEY. Trying re-encrypt from OLD_SENSITIVE_KEY to NIFI_NEW_SENSITIVE_KEY..."
 
         prop_replace 'nifi.sensitive.props.key'     "${OLD_SENSITIVE_KEY}"
-
-        ${encrypt_scripts_dir}/encrypt-config.sh -f "${flow_dir}"/flow.json.gz -n "${NIFI_HOME}"/conf/nifi.properties -s "${NIFI_NEW_SENSITIVE_KEY}" -x
         echo "${newKeyHash}" > "${NIFI_HOME}/persistent_conf/old_key_hash"
         info "re-encrypt from OLD_SENSITIVE_KEY to NIFI_NEW_SENSITIVE_KEY is done. Result ok, continue..."
       fi

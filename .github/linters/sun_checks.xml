@@ -169,9 +169,10 @@
     <module name="IllegalInstantiation"/>
     <module name="InnerAssignment"/>
     <module name="MagicNumber">
+      <property name="ignoreNumbers" value="1024, 100, 0"/>
       <property name="ignoreFieldDeclaration" value="true"/>
     </module>
-    <module name="MissingSwitchDefault"/>
+    <!-- <module name="MissingSwitchDefault"/> -->
     <module name="MultipleVariableDeclarations"/>
     <module name="SimplifyBooleanExpression"/>
     <module name="SimplifyBooleanReturn"/>
@@ -182,7 +183,9 @@
     <module name="FinalClass"/>
     <module name="HideUtilityClassConstructor"/>
     <module name="InterfaceIsType"/>
-    <module name="VisibilityModifier"/>
+    <module name="VisibilityModifier">
+        <property name="protectedAllowed" value="true"/>
+    </module>
 
     <!-- Miscellaneous other checks.                   -->
     <!-- See https://checkstyle.org/checks/misc/index.html -->

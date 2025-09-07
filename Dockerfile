@@ -20,7 +20,9 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.12.1-r0
+    curl=8.12.1-r0 \
+    python3 \
+    py3-pip
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
@@ -45,31 +47,9 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:1.28.1 as nifi
+FROM apache/nifi:2.5.0 as nifi
 
-RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/encrypt-config.sh \
-    && chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-web-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-core-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-aop-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-context-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-beans-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-expression-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-jdbc-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-tx-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-vault-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/spring-security-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/ant*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/netty-codec*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/xmlsec-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/h2-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/protobuf-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/esapi-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-toolkit-flowanalyzer-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/nifi-site-to-site-client-*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/velocity-engine-core*.jar \
-    && rm -rf $NIFI_BASE_DIR/nifi-toolkit-current/lib/testng*.jar \
-    && rm -rf $NIFI_HOME/lib/bootstrap/json-smart*.jar
+RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 
 COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
 
@@ -123,7 +103,7 @@ COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
 
-ARG NIFI_VERSION='1.28.1'
+ARG NIFI_VERSION='2.5.0'
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
