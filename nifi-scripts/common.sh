@@ -53,3 +53,6 @@ export nifi_props_file="${NIFI_HOME}"/conf/nifi.properties
 export nifi_toolkit_props_file="${HOME}"/conf/.nifi-cli.nifi.properties
 hostname="$(hostname)"
 export hostname
+
+# Set Path to include local directory for Astral uv
+export PATH=${PATH}:~/.local/bin
