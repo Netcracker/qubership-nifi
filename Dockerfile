@@ -20,7 +20,9 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.12.1-r0
+    curl=8.12.1-r0 \
+    python3 \
+    py3-pip
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
