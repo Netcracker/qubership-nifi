@@ -57,8 +57,8 @@ USER 10001:0
 
 COPY --chown=10001:0 --from=apache/nifi:1.28.1 /opt/nifi/nifi-current/lib/properties/spring-web-5.3.39.jar /tmp-upd/
 WORKDIR /tmp-upd
-RUN zip -d spring-web-5.3.39.jar org/springframework/remoting/httpinvoker/ \
-    && mv spring-web-5.3.39.jar spring-web-5.3.39-fix-cve-2016-1000027.jar
+RUN zip -d spring-web-5.3.39.jar 'org/springframework/remoting/httpinvoker/*' \
+    && mv spring-web-5.3.39.jar spring-web-5.3.39-1.jar
 
 FROM apache/nifi:1.28.1 as nifi
 
@@ -88,7 +88,7 @@ RUN sed -i "s:-Xmx256m}:-Xmx640m}:g" $NIFI_BASE_DIR/nifi-toolkit-current/bin/enc
     && rm -rf $NIFI_HOME/lib/properties/spring-web-5.3.39.jar
 
 COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
-COPY --chown=1000:1000 --from=upd /tmp-upd/spring-web-5.3.39-fix-cve-2016-1000027.jar $NIFI_HOME/lib/properties/spring-web-5.3.39-fix-cve-2016-1000027.jar
+COPY --chown=1000:1000 --from=upd /tmp-upd/spring-web-5.3.39-1.jar $NIFI_HOME/lib/properties/spring-web-5.3.39-1.jar
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
