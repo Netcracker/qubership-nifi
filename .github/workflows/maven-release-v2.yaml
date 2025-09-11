@@ -18,7 +18,7 @@
 # - `GH_BUMP_VERSION_APP_ID`: The GitHub App ID used for authentication.
 # - `GH_BUMP_VERSION_APP_KEY`: The private key for the GitHub App used for authentication.
 # The workflow also requires the https://github.com/Netcracker/.github/blob/main/config/examples/release-drafter-config.yml config file to create a GitHub release.
-# Please prepare project's pom.xml file according to https://github.com/netcracker/qubership-workflow-hub/blob/main/docs/maven-publish-pom-preparation_doc.md
+# Please prepare project's pom.xml file according to https://github.com/netcracker/.github/blob/main/docs/maven-publish-pom-preparation_doc.md
 # to be able to use this workflow.
 
 name: Maven release
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.3
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -88,14 +88,14 @@ jobs:
     steps:
       # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule
       - name: "Prepare app token"
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
         id: app-token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
           private-key: ${{ secrets.GH_BUMP_VERSION_APP_KEY }}
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.3
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -109,8 +109,11 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           dry-run: 'false'
+      - name: Move all artifacts to working directory
+        run: |
+          mv ${{ github.event.repository.name }}/* ./
       - name: Upload all Maven target directories
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ github.event.repository.name }}
           path: '**/target'
@@ -121,7 +124,7 @@ jobs:
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: "Check Dockerfile existence"
         id: check_dockerfile
         shell: bash
@@ -149,13 +152,14 @@ jobs:
         with:
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
+          download-artifact-path: '.'
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
   github-release:
     needs: [deploy]
     if: ${{ needs.deploy.result == 'success' }}
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@v1.0.3
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@v1.0.5
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true

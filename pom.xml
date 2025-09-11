@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>nifi</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.5</version>
+    <version>1.0.6-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -41,8 +41,8 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:git://github.com/Netcracker/qubership-nifi.git</connection>
-        <developerConnection>scm:git:ssh://github.com:Netcracker/qubership-nifi.git</developerConnection>
+        <connection>scm:git:https://github.com/Netcracker/qubership-nifi.git</connection>
+        <developerConnection>scm:git:https://github.com/Netcracker/qubership-nifi.git</developerConnection>
         <url>https://github.com/Netcracker/qubership-nifi/tree/main</url>
     </scm>
 
@@ -112,6 +112,8 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
         </profile>
+        <!-- Maven Central -->
+        <!-- mvn deploy -P central -->
         <profile>
             <id>central</id>
             <activation>
@@ -121,9 +123,14 @@
                 <repository>
                     <id>central</id>
                     <name>Central Maven Repository</name>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
                 </repository>
             </distributionManagement>
         </profile>
+        <!-- GitHub packages -->
+        <!-- mvn deploy -P github -->
         <profile>
             <id>github</id>
             <activation>
@@ -133,11 +140,49 @@
                 <repository>
                     <id>github</id>
                     <name>GitHub Packages</name>
-                    <url>https://maven.pkg.github.com/netcracker/qubership-nifi</url>
+                    <url>https://maven.pkg.github.com/Netcracker/qubership-nifi</url>
                 </repository>
             </distributionManagement>
         </profile>
     </profiles>
+
+    <repositories>
+        <!-- Maven Central repository for release versions -->
+        <repository>
+            <id>oss.sonatype.org</id>
+            <url>https://central.sonatype.com</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+
+        <!-- Maven Central repository for SNAPSHOT versions-->
+        <repository>
+            <id>oss.sonatype.org-snapshot</id>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+
+        <!-- GitHub packages repository for both release and SNAPSHOT versions -->
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/netcracker/*</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
@@ -323,6 +368,16 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.1.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.18.0</version>
             </plugin>
         </plugins>
         <pluginManagement>
