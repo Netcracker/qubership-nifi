@@ -1,0 +1,12 @@
+---
+disable-telemetry: true
+exit-code: 1
+exit-on-eol: 2
+severity:
+  - HIGH
+  - CRITICAL
+scan:
+  scanners:
+    - vuln
+    - misconfig
+    - secret
