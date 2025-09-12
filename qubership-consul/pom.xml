@@ -66,12 +66,13 @@
         <pmd.version>3.26.0</pmd.version>
         <jacoco.version>0.8.8</jacoco.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
-        <com-google-guava.version>32.0.1-jre</com-google-guava.version>
+        <com-google-guava.version>32.1.3-jre</com-google-guava.version>
         <spring-cloud-consul.version>4.2.1</spring-cloud-consul.version>
         <spring-cloud-context.version>4.2.1</spring-cloud-context.version>
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
         <testcontainers.version>1.20.4</testcontainers.version>
         <nifi.version>1.28.1</nifi.version>
+        <spring-framework.version>6.2.10</spring-framework.version>
     </properties>
 
     <profiles>
