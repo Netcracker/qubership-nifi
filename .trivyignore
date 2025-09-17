@@ -1,0 +1,3 @@
+# Accept the risk, library needed to read old database during upgrade
+# web-console not used
+CVE-2022-45868
