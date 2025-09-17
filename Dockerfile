@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jdk as base
+FROM alpine/java:21-jdk AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -21,12 +21,12 @@ RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
     curl=8.12.1-r0 \
-    python3 \
-    py3-pip
+    python3=3.12.11-r0 \
+    py3-pip=24.0-r2
 
-ENV NIFI_BASE_DIR /opt/nifi
-ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
-ENV NIFI_TOOLKIT_HOME $NIFI_BASE_DIR/nifi-toolkit-current
+ENV NIFI_BASE_DIR=/opt/nifi
+ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
+ENV NIFI_TOOLKIT_HOME=$NIFI_BASE_DIR/nifi-toolkit-current
 ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 ENV HOME=${NIFI_HOME}
@@ -47,11 +47,9 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:2.5.0 as nifi
+FROM apache/nifi:2.5.0 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
-
-COPY --chown=1000:1000 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/json-smart-*.jar $NIFI_HOME/lib/bootstrap/json-smart-2.5.2.jar
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
