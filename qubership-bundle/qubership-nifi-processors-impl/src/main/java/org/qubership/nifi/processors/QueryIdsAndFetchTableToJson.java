@@ -71,6 +71,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     private static final String POSTGRES_CONDITION = "select unnest(?)";
     private static final String EMPTY_CONDITION = "NULL";
 
+    /**
+     * Source DB Connection property descriptor
+     */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the source database.")
@@ -78,6 +81,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Mapping DB Connection property descriptor
+     */
     public static final PropertyDescriptor IDS_DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Ids Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the mapping database.")
@@ -85,6 +91,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Prepared statement provider property descriptor
+     */
     public static final PropertyDescriptor PS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("prepared-statement-provider-service")
             .displayName("Prepared Statement Provider")
@@ -93,6 +102,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .identifiesControllerService(PreparedStatementProvider.class)
             .build();
 
+    /**
+     * Batch size property descriptor
+     */
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
             .displayName("Batch Size")
@@ -103,6 +115,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Ids batch size property descriptor
+     */
     public static final PropertyDescriptor IDS_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-batch-size")
             .displayName("Ids Batch Size")
@@ -112,6 +127,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Fetch size property descriptor
+     */
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("fetch-size")
             .displayName("Fetch Size")
@@ -123,6 +141,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Ids fetch size property descriptor
+     */
     public static final PropertyDescriptor IDS_FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-fetch-size")
             .displayName("Ids Fetch Size")
@@ -134,6 +155,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Custom query property descriptor
+     */
     public static final PropertyDescriptor CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("custom-query")
             .displayName("Custom Query")
@@ -143,6 +167,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Ids custom query property descriptor
+     */
     public static final PropertyDescriptor IDS_CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("ids-custom-query")
             .displayName("Ids Custom Query")
@@ -153,6 +180,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Write by batch property descriptor
+     */
     public static final PropertyDescriptor WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("write-by-batch")
             .displayName("Write By Batch")
@@ -163,6 +193,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    /**
+     * Ids write by batch property descriptor
+     */
     public static final PropertyDescriptor IDS_WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("ids-write-by-batch")
             .displayName("Ids Write By Batch")
@@ -173,11 +206,17 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    /**
+     * Success relationship
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
+    /**
+     * Failure relationship
+     */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed."
@@ -185,6 +224,9 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
+    /**
+     * Count relationship
+     */
     public static final Relationship REL_TOTAL_COUNT = new Relationship.Builder()
             .name("count")
             .description("One FlowFile per request with attributes:" + ATTR_ROWS_COUNT + " - total of fetched rows, "

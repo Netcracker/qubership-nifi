@@ -64,7 +64,9 @@ import static org.qubership.nifi.NiFiUtils.readJsonNodeFromFlowFile;
 })
 public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJson {
 
-
+    /**
+     * SQL query property descriptor
+     */
     public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
             .name("db-fetch-sql-query")
             .displayName("Query")
@@ -75,6 +77,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Path property descriptor
+     */
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("path")
             .displayName("Path")
@@ -85,6 +90,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Join Key Parent with Child property descriptor
+     */
     public static final PropertyDescriptor JOIN_KEY_PARENT_WITH_CHILD = new PropertyDescriptor.Builder()
             .name("join-key-parent-with-child")
             .displayName("Join Key Parent With Child")
@@ -94,6 +102,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Join Key Child With Parent property descriptor
+     */
     public static final PropertyDescriptor JOIN_KEY_CHILD_WITH_PARENT = new PropertyDescriptor.Builder()
             .name("Join Key Child With Parent")
             .displayName("Join Key Child With Parent")
@@ -103,6 +114,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Key to Insert property descriptor
+     */
     public static final PropertyDescriptor KEY_TO_INSERT = new PropertyDescriptor.Builder()
             .name("key-to-insert")
             .displayName("Key To Insert")
@@ -112,6 +126,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Path to insert property descriptor
+     */
     public static final PropertyDescriptor PATH_TO_INSERT = new PropertyDescriptor.Builder()
             .name("path-to-insert")
             .displayName("Path To Insert")
@@ -121,6 +138,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Clean up policy property descriptor
+     */
     public static final PropertyDescriptor CLEAN_UP_POLICY = new PropertyDescriptor.Builder()
             .name("clean-up-policy")
             .displayName("Clean Up Policy")

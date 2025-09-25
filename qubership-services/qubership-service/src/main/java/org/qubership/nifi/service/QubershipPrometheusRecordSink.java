@@ -80,16 +80,28 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private Server prometheusServer;
+    /**
+     * Prometheus Meter Registry to use
+     */
     public PrometheusMeterRegistry meterRegistry;
     private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
+    /**
+     * K8s namespace
+     */
     protected String namespace;
+    /**
+     * NiFi hostname
+     */
     protected String hostname;
     private String instance;
 
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();
 
+    /**
+     * Metrics endpoint port property descriptor
+     */
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("prometheus-sink-metrics-endpoint-port")
             .displayName("Prometheus Metrics Endpoint Port")
@@ -100,6 +112,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
+    /**
+     * Instance ID property descriptor
+     */
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("prometheus-sink-instance-id")
             .displayName("Instance ID")
@@ -110,6 +125,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Clear metrics property descriptor
+     */
     public static final PropertyDescriptor CLEAR_METRICS = new PropertyDescriptor.Builder()
             .name("prometheus-sink-clear-metrics")
             .displayName("Clear Metrics on Disable")
@@ -186,7 +204,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     public void onScheduled(final ConfigurationContext context) {
         meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         metricsEndpointPort = context.getProperty(METRICS_ENDPOINT_PORT).asInteger();
-        clearMetrics = context.getProperty(CLEAR_METRICS).getValue().equals("Yes") ? true : false;
+        clearMetrics = context.getProperty(CLEAR_METRICS).getValue().equals("Yes");
         namespace = getNamespace();
         hostname = getHostname();
         instance = namespace + "_" + hostname;
