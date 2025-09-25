@@ -72,50 +72,50 @@ if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
     while read -r key value
     do
         if [[ "$key" == "nifi.http-auth-proxying-disabled-schemes" ]]; then
-          if [[ "$value" != "Default" ]]; then
-            if [[ "$value" == "null" ]]; then
-                info "HTTP_AUTH_PROXYING_DISABLED_SCHEMES = null, setting as empty string"
-                HTTP_AUTH_PROXYING_DISABLED_SCHEMES=""
-            else
-                info "HTTP_AUTH_PROXYING_DISABLED_SCHEMES = $value"
-                HTTP_AUTH_PROXYING_DISABLED_SCHEMES="$value"
+            if [[ "$value" != "Default" ]]; then
+                if [[ "$value" == "null" ]]; then
+                    info "HTTP_AUTH_PROXYING_DISABLED_SCHEMES = null, setting as empty string"
+                    HTTP_AUTH_PROXYING_DISABLED_SCHEMES=""
+                else
+                    info "HTTP_AUTH_PROXYING_DISABLED_SCHEMES = $value"
+                    HTTP_AUTH_PROXYING_DISABLED_SCHEMES="$value"
+                fi
             fi
-          fi
         fi
         if [[ "$key" == "nifi.http-auth-tunneling-disabled-schemes" ]]; then
-          if [[ "$value" != "Default" ]]; then
-            if [[ "$value" == "null" ]]; then
-                info "HTTP_AUTH_TUNNELING_DISABLED_SCHEMES = null, setting as empty string"
-                HTTP_AUTH_TUNNELING_DISABLED_SCHEMES=""
-            else
-                info "HTTP_AUTH_TUNNELING_DISABLED_SCHEMES = $value"
-                HTTP_AUTH_TUNNELING_DISABLED_SCHEMES="$value"
+            if [[ "$value" != "Default" ]]; then
+                if [[ "$value" == "null" ]]; then
+                    info "HTTP_AUTH_TUNNELING_DISABLED_SCHEMES = null, setting as empty string"
+                    HTTP_AUTH_TUNNELING_DISABLED_SCHEMES=""
+                else
+                    info "HTTP_AUTH_TUNNELING_DISABLED_SCHEMES = $value"
+                    HTTP_AUTH_TUNNELING_DISABLED_SCHEMES="$value"
+                fi
             fi
-          fi
         fi
         if [[ "$key" == "nifi.conf.clean-db-repository" ]]; then
-          info "nifi.conf.clean-db-repository = $value; NIFI_CONF_PV_CLEAN_DB_REPO = $NIFI_CONF_PV_CLEAN_DB_REPO"
-          if [ -z "$NIFI_CONF_PV_CLEAN_DB_REPO" ]; then
-              export NIFI_CONF_PV_CLEAN_DB_REPO="$value"
-          fi
+            info "nifi.conf.clean-db-repository = $value; NIFI_CONF_PV_CLEAN_DB_REPO = $NIFI_CONF_PV_CLEAN_DB_REPO"
+            if [ -z "$NIFI_CONF_PV_CLEAN_DB_REPO" ]; then
+                export NIFI_CONF_PV_CLEAN_DB_REPO="$value"
+            fi
         fi
         if [[ "$key" == "nifi.conf.clean-configuration" ]]; then
-          info "nifi.conf.clean-configuration = $value; NIFI_CONF_PV_CLEAN_CONF = $NIFI_CONF_PV_CLEAN_CONF"
-          if [ -z "$NIFI_CONF_PV_CLEAN_CONF" ]; then
-              export NIFI_CONF_PV_CLEAN_CONF="$value"
-          fi
+            info "nifi.conf.clean-configuration = $value; NIFI_CONF_PV_CLEAN_CONF = $NIFI_CONF_PV_CLEAN_CONF"
+            if [ -z "$NIFI_CONF_PV_CLEAN_CONF" ]; then
+                export NIFI_CONF_PV_CLEAN_CONF="$value"
+            fi
         fi
         if [[ "$key" == "nifi.nifi-registry.nar-provider-enabled" ]]; then
-          info "NIFI_REG_NAR_PROVIDER_ENABLED = $value"
-          NIFI_REG_NAR_PROVIDER_ENABLED="$value"
+            info "NIFI_REG_NAR_PROVIDER_ENABLED = $value"
+            NIFI_REG_NAR_PROVIDER_ENABLED="$value"
         fi
         if [[ "$key" == "nifi.cluster.base-node-count" ]]; then
-          info "BASE_NODE_COUNT = $value"
-          BASE_NODE_COUNT="$value"
+            info "BASE_NODE_COUNT = $value"
+            BASE_NODE_COUNT="$value"
         fi
         if [[ "$key" == "nifi.cluster.start-mode" ]]; then
-          info "START_MODE_CLUSTER = $value"
-          START_MODE_CLUSTER="$value"
+            info "START_MODE_CLUSTER = $value"
+            START_MODE_CLUSTER="$value"
         fi
     done < "${NIFI_HOME}"/conf/custom.properties
     unset IFS
@@ -189,7 +189,7 @@ if [ -n "${X_JAVA_ARGS}" ]; then
 fi
 
 # Setup NiFi to use Python
-uncomment "nifi.python.command" ${nifi_props_file}
+uncomment "nifi.python.command" "${nifi_props_file}"
 prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
 # Setup NiFi to scan for new NARs in nar_extensions
 prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
@@ -283,13 +283,13 @@ prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTIC
 prop_replace 'nifi.cluster.leader.election.kubernetes.lease.prefix'  "${NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX:-}"
 
 if [ "${NIFI_REG_NAR_PROVIDER_ENABLED}" == "true" ]; then
-	{
-	  echo ""
-	  echo "#default nifi registry nar provider"
-	  echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider'
-	  echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080'
-	  echo ""
-	} >> "${NIFI_HOME}"/conf/nifi.properties
+    {
+        echo ""
+        echo "#default nifi registry nar provider"
+        echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider'
+        echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080'
+        echo ""
+    } >> "${NIFI_HOME}"/conf/nifi.properties
 fi
 
 if [ "${NIFI_CONF_PV_CLEAN_CONF}" == "true" ]; then
@@ -347,79 +347,71 @@ if [ "${NIFI_CONF_PV_CLEAN_DB_REPO}" == "true" ]; then
     info "$endCleanTime Finished db repository clean. Removed files: $numFiles"
     info "$endCleanTime Finished db repository clean. Removed files: $numFiles" >> ./persistent_conf/clean_install.log
 else
-   info "Checking if any h2 db is corrupt..."
-   verscount=${#h2_versions[@]}
-   newDbFile=(./persistent_conf/database_repository/*.sh)
-   numDbFiles=${#newDbFile[@]}
-  if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$numDbFiles" == "0" ]]; then
-   info "Checking if nifi-flow-audit h2 db is corrupt..."
-   count=$verscount
-   for version in "${h2_versions[@]}"
-   do
-       h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
-       info "h2 jar path: $h2jar"
-       errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-flow-audit -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-flow-audit-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-flow-audit.mv.db')
-       if [ -n "$errormessage" ]
-       then
-              info "$errormessage"
-              if [[ "$errormessage" == *"The write format"*"than the supported format"* ]]; then
-                  count=$((count-1))
-                  info "Unsupported h2 version: $version"
-              else
-                 info "Renaming nifi-flow-audit.mv.db as it is found to be corrupt"
-                 now=$(date +%Y-%m-%dT%H:%M:%S)
-                 mv "./persistent_conf/database_repository/nifi-flow-audit.mv.db" "./persistent_conf/database_repository/nifi-flow-audit.mv.db.bk_$now"
-                 break
-              fi
-       else
-         break
-       fi
-
-   done
-
-   if [[ $count == 0 ]]; then
-     info "Renaming nifi-flow-audit.mv.db as it is not readable by any of the available h2 versions"
-     now=$(date +%Y-%m-%dT%H:%M:%S)
-     mv "./persistent_conf/database_repository/nifi-flow-audit.mv.db" "./persistent_conf/database_repository/nifi-flow-audit.mv.db.bk_$now"
-   fi
-
- rm -rf /tmp/tmp-nifi/nifi-flow-audit-bkp.sql
- fi
-
-  if [ -f "./persistent_conf/database_repository/nifi-identity-providers.mv.db" ]; then
-    info "Checking if nifi-identity-providers h2 db is corrupt..."
-    count=$verscount
-    for version in "${h2_versions[@]}"
-    do
-        h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
-        info "h2 jar path: $h2jar"
-        errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-identity-providers -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-identity-providers-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-identity-providers.mv.db')
-        if [ -n "$errormessage" ]
-        then
-               info "$errormessage"
-               if [[ "$errormessage" == *"The write format"*"than the supported format"* ]]; then
-                   count=$((count-1))
-                   info "Unsupported h2 version: $version"
-               else
-                  info "Renaming nifi-identity-providers.mv.db as it is found to be corrupt"
-                  now=$(date +%Y-%m-%dT%H:%M:%S)
-                  mv "./persistent_conf/database_repository/nifi-identity-providers.mv.db" "./persistent_conf/database_repository/nifi-identity-providers.mv.db.bk_$now"
-                  break
-               fi
-        else
-          break
+    info "Checking if any h2 db is corrupt..."
+    verscount=${#h2_versions[@]}
+    newDbFile=(./persistent_conf/database_repository/*.sh)
+    numDbFiles=${#newDbFile[@]}
+    if [[ -f "./persistent_conf/database_repository/nifi-flow-audit.mv.db" && "$numDbFiles" == "0" ]]; then
+        info "Checking if nifi-flow-audit h2 db is corrupt..."
+        count=$verscount
+        for version in "${h2_versions[@]}"
+        do
+            h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
+            info "h2 jar path: $h2jar"
+            errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-flow-audit -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-flow-audit-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-flow-audit.mv.db')
+            if [ -n "$errormessage" ]; then
+                info "$errormessage"
+                if [[ "$errormessage" == *"The write format"*"than the supported format"* ]]; then
+                    count=$((count-1))
+                    info "Unsupported h2 version: $version"
+                else
+                    info "Renaming nifi-flow-audit.mv.db as it is found to be corrupt"
+                    now=$(date +%Y-%m-%dT%H:%M:%S)
+                    mv "./persistent_conf/database_repository/nifi-flow-audit.mv.db" "./persistent_conf/database_repository/nifi-flow-audit.mv.db.bk_$now"
+                    break
+                fi
+            else
+                break
+            fi
+        done
+        if [[ $count == 0 ]]; then
+            info "Renaming nifi-flow-audit.mv.db as it is not readable by any of the available h2 versions"
+            now=$(date +%Y-%m-%dT%H:%M:%S)
+            mv "./persistent_conf/database_repository/nifi-flow-audit.mv.db" "./persistent_conf/database_repository/nifi-flow-audit.mv.db.bk_$now"
         fi
-    done
-
-    if [[ $count == 0 ]]; then
-         info "Renaming nifi-identity-providers.mv.db as it is not readable by any of the available h2 versions"
-         now=$(date +%Y-%m-%dT%H:%M:%S)
-         mv "./persistent_conf/database_repository/nifi-identity-providers.mv.db" "./persistent_conf/database_repository/nifi-identity-providers.mv.db.bk_$now"
+        rm -rf /tmp/tmp-nifi/nifi-flow-audit-bkp.sql
     fi
-  rm -rf /tmp/tmp-nifi/nifi-identity-providers-bkp.sql
+    if [ -f "./persistent_conf/database_repository/nifi-identity-providers.mv.db" ]; then
+        info "Checking if nifi-identity-providers h2 db is corrupt..."
+        count=$verscount
+        for version in "${h2_versions[@]}"
+        do
+            h2jar=${NIFI_HOME}/utility-lib/h2-$version.jar
+            info "h2 jar path: $h2jar"
+            errormessage=$("$JAVA_HOME"/bin/java -cp "$h2jar" org.h2.tools.Script -url jdbc:h2:./persistent_conf/database_repository/nifi-identity-providers -user "nf" -password "nf" -script /tmp/tmp-nifi/nifi-identity-providers-bkp.sql -options NODATA 2>&1 || echo 'H2 script call failed for nifi-identity-providers.mv.db')
+            if [ -n "$errormessage" ]; then
+                info "$errormessage"
+                if [[ "$errormessage" == *"The write format"*"than the supported format"* ]]; then
+                    count=$((count-1))
+                    info "Unsupported h2 version: $version"
+                else
+                    info "Renaming nifi-identity-providers.mv.db as it is found to be corrupt"
+                    now=$(date +%Y-%m-%dT%H:%M:%S)
+                    mv "./persistent_conf/database_repository/nifi-identity-providers.mv.db" "./persistent_conf/database_repository/nifi-identity-providers.mv.db.bk_$now"
+                    break
+                fi
+            else
+                break
+            fi
+        done
 
-  fi
-
+        if [[ $count == 0 ]]; then
+            info "Renaming nifi-identity-providers.mv.db as it is not readable by any of the available h2 versions"
+            now=$(date +%Y-%m-%dT%H:%M:%S)
+            mv "./persistent_conf/database_repository/nifi-identity-providers.mv.db" "./persistent_conf/database_repository/nifi-identity-providers.mv.db.bk_$now"
+        fi
+        rm -rf /tmp/tmp-nifi/nifi-identity-providers-bkp.sql
+    fi
 fi
 
 if [ "${NIFI_CONF_PV_CLEAN_INSTALL_SHOW_LOG}" == "true" ]; then

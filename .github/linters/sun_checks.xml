@@ -73,7 +73,7 @@
   <module name="FileLength"/>
   <module name="LineLength">
     <property name="fileExtensions" value="java"/>
-	<property name="max" value="120"/>
+    <property name="max" value="120"/>
   </module>
 
   <!-- Checks for whitespace                               -->
@@ -104,7 +104,7 @@
     <module name="JavadocMethod"/>
     <module name="JavadocType"/>
     <module name="JavadocVariable">
-      <property name="excludeScope" value="private"/>
+        <property name="accessModifiers" value="public, protected, package"/>
     </module>
     <module name="JavadocStyle"/>
     <module name="MissingJavadocMethod"/>
