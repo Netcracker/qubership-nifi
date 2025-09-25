@@ -15,10 +15,9 @@ The table below describes environment variables supported by qubership-nifi.
 | MICROSERVICE_NAME                    | N                                  | qubership-nifi | Service name to use.                                                                                                                                                                                                                                       |
 | CONSUL_ENABLED                       | Y                                  | true           | Defines, if Consul integration is enabled (`true`) or not (`false`)                                                                                                                                                                                        |
 | CONSUL_URL                           | Y                                  |                | URL to access Consul service. Must be in format: `<hostname>:<port>`.                                                                                                                                                                                      |
-| CONSUL_CONFIG_JAVA_OPTIONS           | N                                  |                | A list of additional java startup arguments for auxiliary application used for Consul integration.                                                                                                                                                         |
+| CONSUL_CONFIG_JAVA_OPTIONS           | N                                  |                | A list of additional Java startup arguments for auxiliary application used for Consul integration.                                                                                                                                                         |
 | CONSUL_ACL_TOKEN                     | N                                  |                | An access token that is used in Consul to manage permissions and security for interactions between NiFi and Consul.                                                                                                                                        |
-| NIFI_NEW_SENSITIVE_KEY               | Y                                  |                | Key used for encryption of sensitive properties in NiFi configuration (flow.json.gz). Must be a string at least 12 characters long.                                                                                                                        |
-| NIFI_PREVIOUS_SENSITIVE_KEY          | N                                  |                | Previous value of `NIFI_NEW_SENSITIVE_KEY`. Must be set, when changing value for `NIFI_NEW_SENSITIVE_KEY` to new one.                                                                                                                                      |
+| NIFI_NEW_SENSITIVE_KEY               | Y                                  |                | Key used for encryption of sensitive properties in NiFi configuration (flow.json.gz). Must be a string at least 12 characters long. Must not be changed after first deployment, otherwise error will be thrown during startup.                             |
 | AUTH                                 | N                                  |                | Authentication method to support. One of: tls (mTLS), oidc (mTLS and OIDC), ldap (mTLS and LDAP).                                                                                                                                                          |
 | INITIAL_ADMIN_IDENTITY               | Y (if AUTH = oidc or tls or ldap)  |                | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal.     |
 | INITIAL_USER_IDENTITY                | Y (if AUTH = oidc or tls or ldap)  |                | The identity of an initial user with read-only access to the UI.                                                                                                                                                                                           |
@@ -45,15 +44,15 @@ The table below describes environment variables supported by qubership-nifi.
 | NIFI_DEBUG_JIT_LOGGING               | N                                  |                | Enables JIT logging feature in JVM, if set to non-empty value. Adds `-XX:+PrintCompilation` to Java startup arguments.                                                                                                                                     |
 | HTTP_AUTH_PROXYING_DISABLED_SCHEMES  | N                                  |                | Sets non-standard proxying disabledSchemes in JVM, if this variable is not empty. Adds `-Djdk.http.auth.proxying.disabledSchemes=<value>` to Java startup arguments.                                                                                       |
 | HTTP_AUTH_TUNNELING_DISABLED_SCHEMES | N                                  |                | Sets non-standard tunneling disabledSchemes in JVM, if this variable is not empty. Adds `-Djdk.http.auth.tunneling.disabledSchemes=<value>` to Java startup arguments.                                                                                     |
-| NIFI_ADDITIONAL_JVM_ARGS             | N                                  |                | A list of additional java startup arguments. Must be valid list of arguments separated by spaces just like in command-line.                                                                                                                                |
-| X_JAVA_ARGS                          | N                                  |                | A list of additional java startup arguments. Must be valid list of arguments separated by spaces just like in command-line.                                                                                                                                |
+| NIFI_ADDITIONAL_JVM_ARGS             | N                                  |                | A list of additional Java startup arguments. Must be valid list of arguments separated by spaces just like in command-line.                                                                                                                                |
+| X_JAVA_ARGS                          | N                                  |                | A list of additional Java startup arguments. Must be valid list of arguments separated by spaces just like in command-line.                                                                                                                                |
 | NIFI_CLUSTER_NODE_PROTOCOL_PORT      | Y (if NIFI_CLUSTER_IS_NODE = true) |                | The node’s cluster protocol port. Any non-used port > 1024.                                                                                                                                                                                                |
 | NIFI_ELECTION_MAX_WAIT               | N                                  | 5 mins         | Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the nifi.cluster.flow.election.max.candidates property, the cluster will not wait this long. |
 | NIFI_WEB_PROXY_HOST                  | Y (if NIFI_CLUSTER_IS_NODE = true) |                | A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different `host[:port]` than it is bound to.                                                                       |
 
 ## Extension points
 
-Qubership-nifi docker image has several predefined extension points that could be used to customize its
+Qubership-nifi Docker image has several predefined extension points that could be used to customize its
 behavior without significant changes to other parts of the image.
 The table below provides a list of such extension points and their description.
 
@@ -64,7 +63,7 @@ The table below provides a list of such extension points and their description.
 
 ## Volumes and directories
 
-Qubership-nifi docker image has several volumes that are used for storing data
+Qubership-nifi Docker image has several volumes that are used for storing data
 and several directories that used for storing or injecting data.
 The table below provides a list of volumes and directories and their description.
 
@@ -111,18 +110,6 @@ The detailed description of all supported NiFi properties is available in the Ap
 ## NiFi configuration restore
 
 qubership-nifi supports automated configuration restore.
-
-
-
-
-
-
-
-
-
-
-
-
 
 Steps below describe restore process:
 1. Set up version to restore in Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. The parameter must contain name of archived configuration to restore from, e.g. `20250115T120000+0000_flow.json.gz`. The list of archived configuration versions is printed in logs during service startup.
