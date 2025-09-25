@@ -17,8 +17,7 @@ The table below describes environment variables supported by qubership-nifi.
 | CONSUL_URL                           | Y                                  |                | URL to access Consul service. Must be in format: `<hostname>:<port>`.                                                                                                                                                                                      |
 | CONSUL_CONFIG_JAVA_OPTIONS           | N                                  |                | A list of additional java startup arguments for auxiliary application used for Consul integration.                                                                                                                                                         |
 | CONSUL_ACL_TOKEN                     | N                                  |                | An access token that is used in Consul to manage permissions and security for interactions between NiFi and Consul.                                                                                                                                        |
-| NIFI_NEW_SENSITIVE_KEY               | Y                                  |                | Key used for encryption of sensitive properties in NiFi configuration (flow.json.gz). Must be a string at least 12 characters long.                                                                                                                        |
-| NIFI_PREVIOUS_SENSITIVE_KEY          | N                                  |                | Previous value of `NIFI_NEW_SENSITIVE_KEY`. Must be set, when changing value for `NIFI_NEW_SENSITIVE_KEY` to new one.                                                                                                                                      |
+| NIFI_NEW_SENSITIVE_KEY               | Y                                  |                | Key used for encryption of sensitive properties in NiFi configuration (flow.json.gz). Must be a string at least 12 characters long. Must not be changed after first deployment, otherwise error will be thrown during startup.                             |
 | AUTH                                 | N                                  |                | Authentication method to support. One of: tls (mTLS), oidc (mTLS and OIDC), ldap (mTLS and LDAP).                                                                                                                                                          |
 | INITIAL_ADMIN_IDENTITY               | Y (if AUTH = oidc or tls or ldap)  |                | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal.     |
 | INITIAL_USER_IDENTITY                | Y (if AUTH = oidc or tls or ldap)  |                | The identity of an initial user with read-only access to the UI.                                                                                                                                                                                           |
@@ -111,18 +110,6 @@ The detailed description of all supported NiFi properties is available in the Ap
 ## NiFi configuration restore
 
 qubership-nifi supports automated configuration restore.
-
-
-
-
-
-
-
-
-
-
-
-
 
 Steps below describe restore process:
 1. Set up version to restore in Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. The parameter must contain name of archived configuration to restore from, e.g. `20250115T120000+0000_flow.json.gz`. The list of archived configuration versions is printed in logs during service startup.
