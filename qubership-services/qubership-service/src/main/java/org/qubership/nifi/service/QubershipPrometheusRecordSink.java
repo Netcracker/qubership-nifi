@@ -81,18 +81,18 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
 
     private Server prometheusServer;
     /**
-     * Prometheus Meter Registry to use
+     * Prometheus Meter Registry to use.
      */
     public PrometheusMeterRegistry meterRegistry;
     private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
     /**
-     * K8s namespace
+     * K8s namespace.
      */
     protected String namespace;
     /**
-     * NiFi hostname
+     * NiFi hostname.
      */
     protected String hostname;
     private String instance;
@@ -100,7 +100,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();
 
     /**
-     * Metrics endpoint port property descriptor
+     * Metrics endpoint port property descriptor.
      */
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("prometheus-sink-metrics-endpoint-port")
@@ -113,7 +113,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .build();
 
     /**
-     * Instance ID property descriptor
+     * Instance ID property descriptor.
      */
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("prometheus-sink-instance-id")
@@ -126,7 +126,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             .build();
 
     /**
-     * Clear metrics property descriptor
+     * Clear metrics property descriptor.
      */
     public static final PropertyDescriptor CLEAR_METRICS = new PropertyDescriptor.Builder()
             .name("prometheus-sink-clear-metrics")
@@ -433,7 +433,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         return false;
     }
 
-    private class PrometheusServlet extends HttpServlet {
+    private final class PrometheusServlet extends HttpServlet {
 
         @Override
         protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {

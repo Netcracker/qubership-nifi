@@ -72,7 +72,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     private static final String EMPTY_CONDITION = "NULL";
 
     /**
-     * Source DB Connection property descriptor
+     * Source DB Connection property descriptor.
      */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
@@ -82,7 +82,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Mapping DB Connection property descriptor
+     * Mapping DB Connection property descriptor.
      */
     public static final PropertyDescriptor IDS_DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Ids Database Connection Pooling Service")
@@ -92,7 +92,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Prepared statement provider property descriptor
+     * Prepared statement provider property descriptor.
      */
     public static final PropertyDescriptor PS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
             .name("prepared-statement-provider-service")
@@ -103,7 +103,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Batch size property descriptor
+     * Batch size property descriptor.
      */
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
@@ -116,7 +116,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids batch size property descriptor
+     * Ids batch size property descriptor.
      */
     public static final PropertyDescriptor IDS_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-batch-size")
@@ -128,7 +128,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Fetch size property descriptor
+     * Fetch size property descriptor.
      */
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("fetch-size")
@@ -142,7 +142,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids fetch size property descriptor
+     * Ids fetch size property descriptor.
      */
     public static final PropertyDescriptor IDS_FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-fetch-size")
@@ -156,7 +156,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Custom query property descriptor
+     * Custom query property descriptor.
      */
     public static final PropertyDescriptor CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("custom-query")
@@ -168,7 +168,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids custom query property descriptor
+     * Ids custom query property descriptor.
      */
     public static final PropertyDescriptor IDS_CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("ids-custom-query")
@@ -181,7 +181,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Write by batch property descriptor
+     * Write by batch property descriptor.
      */
     public static final PropertyDescriptor WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("write-by-batch")
@@ -194,7 +194,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids write by batch property descriptor
+     * Ids write by batch property descriptor.
      */
     public static final PropertyDescriptor IDS_WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("ids-write-by-batch")
@@ -207,7 +207,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Success relationship
+     * Success relationship.
      */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -215,7 +215,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Failure relationship
+     * Failure relationship.
      */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
@@ -225,7 +225,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Count relationship
+     * Count relationship.
      */
     public static final Relationship REL_TOTAL_COUNT = new Relationship.Builder()
             .name("count")
