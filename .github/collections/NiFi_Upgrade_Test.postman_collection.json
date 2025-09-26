@@ -1,0 +1,315 @@
+{
+	"info": {
+		"_postman_id": "06f40a26-4ca5-446a-ba58-a3f4a5822fcc",
+		"name": "NiFi_Upgrade_Test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "E2E Tests",
+			"item": [
+				{
+					"name": "JoltTransformJSON test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let attributeName = \"test\";\r",
+									"    let attributeValue = \"Acme\";\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.bookMap).to.have.property(attributeName);\r",
+									"    pm.expect(responseJson.bookMap.test).to.equal(attributeValue);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"data\": {\r\n    \"clientId\": \"test\",\r\n    \"clientName\": \"Acme\"\r\n  }\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{nifi.e2e.url}}/joltTransformJSON",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"joltTransformJSON"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FetchTableToJson one batch test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let expFetchCount = 1;\r",
+									"    let expArrayLenght = 5;\r",
+									"    let expId = \"1\";\r",
+									"    let expVal = \"val2\";\r",
+									"    let expTimeValue = \"2023-07-13 11:30:30+00\";\r",
+									"    let expAttr = \"{\\\"attr41\\\": \\\"test-value1\\\", \\\"attr42\\\": \\\"test-value2\\\"}\";\r",
+									"    const responseJson = pm.response.json();\r",
+									"\r",
+									"    const dataObj = responseJson.find(item => item.fetchData !== undefined);\r",
+									"    const countObj = responseJson.find(item => item[\"fetch.count\"] !== undefined);\r",
+									"\r",
+									"    pm.expect(dataObj).to.not.be.undefined;\r",
+									"    pm.expect(countObj).to.not.be.undefined;\r",
+									"\r",
+									"    const arrayLength = dataObj.fetchData.length;\r",
+									"    const countValue = parseInt(countObj[\"fetch.count\"], 10);\r",
+									"\r",
+									"    pm.expect(arrayLength).to.equal(expArrayLenght);\r",
+									"    pm.expect(countValue).to.equal(expFetchCount);\r",
+									"    pm.expect(dataObj.fetchData[0].id).to.equal(expId);\r",
+									"    pm.expect(dataObj.fetchData[1].val1).to.equal(expVal);\r",
+									"    pm.expect(dataObj.fetchData[2].time_value).to.equal(expTimeValue);\r",
+									"    pm.expect(dataObj.fetchData[3].attr).to.equal(expAttr);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.e2e.url}}/fetchTableToJsonTest/oneBatch",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"fetchTableToJsonTest",
+								"oneBatch"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FetchTableToJson several batch test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let expFetchCount = 2;\r",
+									"    let expArrayLenght = 5;\r",
+									"    const responseJson = pm.response.json();\r",
+									"\r",
+									"    const fetchDataArrays = responseJson\r",
+									"        .filter(item => item.fetchData !== undefined && Array.isArray(item.fetchData));\r",
+									"    const countObj = responseJson.find(item => item[\"fetch.count\"] !== undefined);\r",
+									"    pm.expect(countObj).to.not.be.undefined;\r",
+									"    const totalElements = fetchDataArrays.reduce((sum, obj) => sum + obj.fetchData.length, 0);\r",
+									"    const countValue = parseInt(countObj[\"fetch.count\"], 10);\r",
+									"\r",
+									"    pm.expect(totalElements).to.equal(expArrayLenght);\r",
+									"    pm.expect(countValue).to.equal(expFetchCount); \r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.e2e.url}}/fetchTableToJsonTest/severalBatch",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"fetchTableToJsonTest",
+								"severalBatch"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "FetchTableToJson single flow files Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let expFetchCount = 5;\r",
+									"    let expArrayLenght = 5;\r",
+									"    const responseJson = pm.response.json();\r",
+									"\r",
+									"    const fetchDataItems = responseJson.filter(item => item.fetchData !== undefined);\r",
+									"    const countObj = responseJson.find(item => item[\"fetch.count\"] !== undefined);\r",
+									"    pm.expect(countObj).to.not.be.undefined;\r",
+									"    const countValue = parseInt(countObj[\"fetch.count\"], 10);\r",
+									"\r",
+									"    pm.expect(fetchDataItems).to.have.lengthOf(expArrayLenght);\r",
+									"    pm.expect(countValue).to.equal(expFetchCount); \r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{nifi.e2e.url}}/fetchTableToJsonTest/single",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"fetchTableToJsonTest",
+								"single"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PutSQLRecord and QueryDatabaseToJson test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let expId = \"1\";\r",
+									"    let expVal2 = \"val2\";\r",
+									"    let expTimeValue = \"2023-07-13 08:30:30+00\";\r",
+									"    let expAttr = \"{\\\"attr31\\\": \\\"test-value1\\\", \\\"attr32\\\": \\\"test-value2\\\"}\";\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson).to.be.an('array');\r",
+									"    pm.expect(responseJson.length).to.equal(3);\r",
+									"    pm.expect(responseJson[0].id).to.equal(expId);\r",
+									"    pm.expect(responseJson[1].val2).to.equal(expVal2);\r",
+									"    pm.expect(responseJson[2].time_value).to.equal(expTimeValue);\r",
+									"    pm.expect(responseJson[2].attr).to.equal(expAttr);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n    {\r\n        \"id\": 1,\r\n        \"val2\": \"val1\",\r\n        \"time_value\": \"2021-03-03 08:30:30+00\",\r\n        \"attr\": \"{\\\"attr11\\\": \\\"test-value1\\\", \\\"attr12\\\": \\\"test-value2\\\"}\"\r\n    },\r\n    {\r\n        \"id\": 2,\r\n        \"val2\": \"val2\",\r\n        \"time_value\": \"2022-05-07 11:30:30+00\",\r\n        \"attr\": \"{\\\"attr21\\\": \\\"test-value1\\\", \\\"attr22\\\": \\\"test-value2\\\"}\"\r\n    },\r\n    {\r\n        \"id\": 3,\r\n        \"val2\": \"val3\",\r\n        \"time_value\": \"2023-07-13 08:30:30+00\",\r\n        \"attr\": \"{\\\"attr31\\\": \\\"test-value1\\\", \\\"attr32\\\": \\\"test-value2\\\"}\"\r\n    }\r\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{nifi.e2e.url}}/queryDatabaseToJson",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"queryDatabaseToJson"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "QueryDatabaseToJsonWithMerge test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.test(\"Checking the contents of the response\", function () {\r",
+									"    let expCount = 5;\r",
+									"    let expId = 1;\r",
+									"    let expIdValue = \"1\";\r",
+									"    let expVal = \"200\";\r",
+									"    let expVal2 = \"303\";\r",
+									"    let expTimeValue = \"2021-03-03 11:30:30+00\";\r",
+									"    let expAttr = \"{\\\"attr51\\\": \\\"test-value1\\\", \\\"attr52\\\": \\\"test-value5\\\"}\";\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson).to.be.an('array');\r",
+									"    pm.expect(responseJson.length).to.equal(expCount);\r",
+									"    pm.expect(responseJson[0].id).to.equal(expId);\r",
+									"    pm.expect(responseJson[0].data[0].id).to.equal(expIdValue);\r",
+									"    pm.expect(responseJson[1].data[0].val).to.equal(expVal);\r",
+									"    pm.expect(responseJson[2].data[0].val2).to.equal(expVal2);\r",
+									"    pm.expect(responseJson[3].data[0].time_value).to.equal(expTimeValue);\r",
+									"    pm.expect(responseJson[4].data[0].attr).to.equal(expAttr);\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n  {\r\n    \"id\" : 1\r\n  },\r\n  {\r\n    \"id\" : 2\r\n  },\r\n  {\r\n    \"id\" : 3\r\n  },\r\n  {\r\n    \"id\" : 4\r\n  },\r\n  {\r\n    \"id\" : 5\r\n  }\r\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{nifi.e2e.url}}/queryDatabaseToJsonWithMerge",
+							"host": [
+								"{{nifi.e2e.url}}"
+							],
+							"path": [
+								"queryDatabaseToJsonWithMerge"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

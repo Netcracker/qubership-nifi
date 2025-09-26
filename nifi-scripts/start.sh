@@ -66,6 +66,10 @@ while true; do
     sleep 1
 done
 
+#Update configuration from 1.x version to 2.x
+. "${scripts_dir}/update_flow_json.sh"
+
+
 if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
     # IFS is the 'internal field separator'. In this case, file uses '='
     IFS="="

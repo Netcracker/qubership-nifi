@@ -94,7 +94,7 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && mkdir -p $NIFI_HOME/extensions \
     && chmod 775 $NIFI_HOME/extensions
 
-COPY --chown=10001:0 ./nifi-scripts/*.sh $NIFI_BASE_DIR/scripts/
+COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
 COPY --chown=10001:0 ./scripts $NIFI_HOME/scripts/
 COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 
