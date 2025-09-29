@@ -14,7 +14,7 @@ runs:
       run: |
         echo "Preparing env..."
         . .github/workflows/sh/nifi-lib.sh
-        setup_env_before_tests "${{ inputs.error-mode }}"
+        setup_env_before_tests "${{ inputs.run-mode }}"
     - name: Run local nifi
       shell: bash
       run: |
