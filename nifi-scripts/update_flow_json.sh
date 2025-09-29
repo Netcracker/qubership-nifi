@@ -28,15 +28,15 @@ flow_conf_path="${NIFI_HOME}/persistent_conf/conf"
 
 # Fix already applied. Skip.
 if [ -f "$flow_conf_path/update_flow_json.applied" ]; then
-    info "Nars in flow.json.gz has already been updated."
+    info "Nar in flow.json.gz has already been updated."
     exit 0
 fi
 
 # flow.json.gz missing. Skip.
-#if [ ! -f "$flow_conf_path/flow.json.gz" ]; then
-#    info "$flow_conf_path/flow.json.gz not found. No replacement of information about the nar is required."
-#    exit 0
-#fi
+if [ ! -f "$flow_conf_path/flow.json.gz" ]; then
+    info "$flow_conf_path/flow.json.gz not found. No replacement of information about the nar is required."
+    exit 0
+fi
 
 info "Updating information about nar files"
 
@@ -46,7 +46,6 @@ cp "$flow_conf_path/flow.json.gz" "$flow_conf_path/flow.json.gz_bk"
 info "Unzip flow.json.gz"
 gzip -d "$flow_conf_path/flow.json.gz"
 
-mkdir -p /tmp
 info "Replace nar information in flow.json.gz"
 configFile=$(cat /opt/nifi/scripts/narMappingConfig.json)
 tmp=$(mktemp)
@@ -55,7 +54,8 @@ mv "$tmp" "$flow_conf_path/flow.json"
 
 tmp2=$(mktemp)
 jq 'walk(if type == "object" and .type != null and .type == "org.apache.nifi.processors.jolt.JoltTransformJSON" then .properties |= with_entries(if .key == "jolt-spec" then .key = "Jolt Specification" elif .key == "jolt-transform" then .key = "Jolt Transform" elif .key == "pretty_print" then .key = "Pretty Print" else .key |= . end ) else . end)' "$flow_conf_path/flow.json" >"$tmp2" || handle_error "Error while executing replacement properties for JoltTransformJSON processor in flow - $expflow"
-mv "$tmp2" "$expflow"
+mv "$tmp2" "$flow_conf_path/flow.json"
 
-
+create_bugfix_marker "File flow.json updated"
+gzip "$flow_conf_path/flow.json"
 info "Updating flow.json complete"

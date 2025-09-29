@@ -66,10 +66,6 @@ while true; do
     sleep 1
 done
 
-#Update configuration from 1.x version to 2.x
-. "${scripts_dir}/update_flow_json.sh"
-
-
 if [ -f "${NIFI_HOME}/conf/custom.properties" ]; then
     # IFS is the 'internal field separator'. In this case, file uses '='
     IFS="="
@@ -197,6 +193,9 @@ uncomment "nifi.python.command" ${nifi_props_file}
 prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
 # Setup NiFi to scan for new NARs in nar_extensions
 prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
+
+#Update configuration from 1.x version to 2.x
+bash "${scripts_dir}/update_flow_json.sh"
 
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
