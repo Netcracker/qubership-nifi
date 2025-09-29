@@ -357,7 +357,7 @@ setup_env_before_tests() {
     mkdir -p ./temp-vol/tls-cert/ca/
     mkdir -p ./temp-vol/tls-cert/nifi/
     mkdir -p ./temp-vol/tls-cert/nifi-registry/
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]] || [[ "$runMode" == "upgrade-test" ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
     if [[ "$runMode" == "cluster"* ]]; then
