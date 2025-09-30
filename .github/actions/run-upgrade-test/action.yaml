@@ -62,17 +62,13 @@ runs:
       run: |
         echo "Stop local nifi..."
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env rm -f nifi
-    - name: Change image for local nifi
-      shell: bash
-      run: |
-        echo "Set the image version for nifi..."
-        export NIFI_DOCKER_IMAGE="local-nifi"
-        export NIFI_DOCKER_IMAGE_TAG="test"
     - name: Run local nifi 2.x
       shell: bash
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
+        export NIFI_DOCKER_IMAGE="local-nifi"
+        export NIFI_DOCKER_IMAGE_TAG="test"
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
     - name: Run E2E upgrade test
       continue-on-error: true
