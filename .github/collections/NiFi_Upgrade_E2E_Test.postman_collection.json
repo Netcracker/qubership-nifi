@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "06f40a26-4ca5-446a-ba58-a3f4a5822fcc",
-		"name": "NiFi_Upgrade_Test",
+		"name": "NiFi_Upgrade_E2E_Test",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -217,7 +217,7 @@
 									"    let expAttr = \"{\\\"attr31\\\": \\\"test-value1\\\", \\\"attr32\\\": \\\"test-value2\\\"}\";\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson).to.be.an('array');\r",
-									"    pm.expect(responseJson.length).to.equal(3);\r",
+									"    pm.expect(responseJson.length).to.equal(6);\r",
 									"    pm.expect(responseJson[0].id).to.equal(expId);\r",
 									"    pm.expect(responseJson[1].val2).to.equal(expVal2);\r",
 									"    pm.expect(responseJson[2].time_value).to.equal(expTimeValue);\r",

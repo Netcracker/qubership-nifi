@@ -20,8 +20,8 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
-        export NIFI_DOCKER_IMAGE="ghcr.io/netcracker/nifi"
-        export NIFI_DOCKER_IMAGE_TAG="1.0.5"
+        export NIFI_DOCKER_IMAGE="ghcr.io/netcracker/qubership-nifi"
+        export NIFI_DOCKER_IMAGE_TAG="1.0.6"
         docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
     - name: Wait for nifi container to start (TLS)
       shell: bash
@@ -57,6 +57,12 @@ runs:
         tls-client-certs-config: "newman-tls-config.json"
         global-vars-file-name: "Global_Vars.postman_globals.json"
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
+    - name: Getting the flow.json.gz version from the archive folder
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        get_flow_json_version "${{ inputs.docker-compose-path }}"
     - name: Stop local nifi
       shell: bash
       continue-on-error: true
@@ -84,7 +90,43 @@ runs:
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
-        collection-name: 'NiFi_Upgrade_Test.postman_collection.json'
+        collection-name: 'NiFi_Upgrade_E2E_Test.postman_collection.json'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
+        results-dir: '${{ inputs.run-mode }}'
+        short-name: 'upgrade'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
+        global-vars-file-name: "Global_Vars.postman_globals.json"
+        docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
+    - name: Set the version in Consul
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        export CONF_VERSION=$(cat ./nifi-conf-version.tmp)
+        [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
+        set_configuration_version "$CONF_VERSION" "$CONSUL_TOKEN"
+    - name: Restart local nifi
+      shell: bash
+      run: |
+        export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+        echo "Restarting containers..."
+        docker compose -f ${{ inputs.docker-compose-path }} --env-file ./docker.env restart nifi
+    - name: Wait for nifi container to start
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+        wait_nifi_container "15" "60" "localhost" "8080" "true" ".github/docker/tls/docker-compose.yaml" "${{ inputs.results-dir }}" \
+        "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
+        "$NIFI_CLIENT_PASSWORD"
+    - name: Run E2E restore test
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'NiFi_Upgrade_Restore_Test.postman_collection.json'
         env-name: 'NiFi_AT_TLS.json.postman_environment'
         results-dir: '${{ inputs.run-mode }}'
         short-name: 'upgrade'
