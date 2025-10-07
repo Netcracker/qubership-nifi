@@ -20,7 +20,7 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.12.1-r0 \
+    curl=8.14.1-r2 \
     python3=3.12.11-r0 \
     py3-pip=24.0-r2
 
