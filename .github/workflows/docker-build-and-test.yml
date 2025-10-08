@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write' ]
+        run-mode: [ 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write', 'upgrade-test' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -95,8 +95,13 @@ jobs:
         with:
           run-mode: 'tls'
           error-mode: '${{ matrix.run-mode }}'
+      - name: Run test for upgrade test = ${{ matrix.run-mode }}
+        if: ${{ matrix.run-mode == 'upgrade-test' }}
+        uses: ./.github/actions/run-upgrade-test
+        with:
+          run-mode: 'upgrade-test'
       - name: Run tests with mode = ${{ matrix.run-mode }}
-        if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' }}
+        if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' && matrix.run-mode != 'upgrade-test' }}
         uses: ./.github/actions/run-nifi-tests-generic
         with:
           run-mode: '${{ matrix.run-mode }}'
