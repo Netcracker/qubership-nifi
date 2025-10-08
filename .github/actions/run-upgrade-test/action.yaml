@@ -62,7 +62,7 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        get_flow_json_version "${{ inputs.docker-compose-path }}"
+        get_flow_json_version ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Stop local nifi
       shell: bash
       continue-on-error: true
