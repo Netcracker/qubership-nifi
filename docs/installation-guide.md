@@ -28,7 +28,7 @@ To start qubership-nifi in plain (unencrypted) mode, do the following:
    | PATH_TO_LOCAL_VOLUME       | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<ul><li>nifi-registry/ - for storing NiFi Registry's data</li><li>nifi/conf/ - for storing nifi flow configuration</li></ul> |
    | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                       |
 
-3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/nifi:latest` is used
+3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
 
 ### Accessing NiFi UI in plain mode
@@ -55,7 +55,7 @@ To start qubership-nifi in TLS mode, do the following:
     | KEYSTORE_PASSWORD_NIFI_REG | Y        |         | Defines password for qubership-nifi-registry keystore with server certificates. It'll be created during the first run.                                                                                                                                               |
     | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                                                                                |
 
-3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/nifi:latest` is used
+3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
 
 ### Accessing NiFi UI in TLS mode

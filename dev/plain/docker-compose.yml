@@ -2,7 +2,7 @@ services:
   nifi:
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
-    image: ghcr.io/netcracker/nifi:latest
+    image: ghcr.io/netcracker/qubership-nifi:latest
     ports:
       - 127.0.0.1:28080:8080
     environment:
@@ -15,7 +15,7 @@ services:
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_PROPS_KEY}
     container_name: nifi
   nifi-registry:
-    image: ghcr.io/netcracker/nifi-registry:latest
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest
     volumes:
       - nifi-registry-database:/opt/nifi-registry/nifi-registry-current/database
       - nifi-registry-flow:/opt/nifi-registry/nifi-registry-current/flow_storage

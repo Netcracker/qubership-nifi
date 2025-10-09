@@ -78,21 +78,33 @@ import static org.apache.nifi.serialization.record.RecordFieldType.RECORD;
 })
 public class PutSQLRecord extends AbstractProcessor {
 
+    /**
+     * Success relationship.
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully processed FlowFile")
             .build();
 
+    /**
+     * Retry relationship.
+     */
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
             .description("A FlowFile is routed to this relationship, if DB query failed with recoverable error")
             .build();
 
+    /**
+     * Failure relationship.
+     */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship, if DB query failed with non-recoverable error")
             .build();
 
+    /**
+     * Record Reader property descriptor.
+     */
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
             .displayName("Record Reader")
@@ -101,7 +113,9 @@ public class PutSQLRecord extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
-
+    /**
+     * SQL Statement property descriptor.
+     */
     public static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
             .name("sql-statement")
             .displayName("SQL Statement")
@@ -112,6 +126,9 @@ public class PutSQLRecord extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Database Connection Pooling Service property descriptor.
+     */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("dbcp-service")
             .displayName("Database Connection Pooling Service")
@@ -121,6 +138,9 @@ public class PutSQLRecord extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Maximum Batch Size property descriptor.
+     */
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("max-batch-size")
             .displayName("Maximum Batch Size")
@@ -131,6 +151,9 @@ public class PutSQLRecord extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    /**
+     * Convert Payload property descriptor.
+     */
     public static final PropertyDescriptor CONVERT_PAYLOAD = new PropertyDescriptor.Builder()
             .name("convert-payload")
             .displayName("Convert Payload")
@@ -143,10 +166,22 @@ public class PutSQLRecord extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .build();
 
+    /**
+     * Error message FlowFile attribute name.
+     */
     protected static final String ERROR_MSG_ATTR = "putsql.error";
+    /**
+     * Parsing error message FlowFile attribute name.
+     */
     protected static final String PARSING_ERROR_MSG_ATTR = "parse.error";
 
+    /**
+     * List of all supported property descriptors.
+     */
     protected List<PropertyDescriptor> descriptors;
+    /**
+     * Set of all supported relationships.
+     */
     protected Set<Relationship> relationships;
     private DBCPService dbcp;
     private RecordReaderFactory recordReaderFactory;

@@ -73,6 +73,7 @@
         <testcontainers.version>1.20.4</testcontainers.version>
         <nifi.version>2.5.0</nifi.version>
         <spring-framework.version>6.2.10</spring-framework.version>
+        <slf4j.version>2.0.17</slf4j.version>
     </properties>
 
     <profiles>
@@ -249,7 +250,6 @@
                     <linkXRef>true</linkXRef>
                     <includeTests>true</includeTests>
                     <failurePriority>2</failurePriority>
-                    <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
                 </configuration>
                 <executions>
                     <execution>

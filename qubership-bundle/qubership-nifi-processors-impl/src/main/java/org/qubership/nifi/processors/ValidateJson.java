@@ -61,6 +61,9 @@ import static org.qubership.nifi.NiFiUtils.MAPPER;
         + "Array with validation errors is added to the content of FlowFile.")
 
 public class ValidateJson extends AbstractProcessor {
+    /**
+     * Error FlowFile attribute name.
+     */
     public static final String ERROR_ATTR = "validation.json.error";
     private static final ObjectMapper STRICT_MAPPER = MAPPER.enable(FAIL_ON_TRAILING_TOKENS);
     private static final String DEFAULT_BE_TYPE_PATH = "_businessEntityType";
@@ -69,6 +72,9 @@ public class ValidateJson extends AbstractProcessor {
     private static final String SCHEMA_PROP_NAME = "validate-json-schema";
     private static final String SCHEMA_PROP_DISPLAY_NAME = "JSON Schema";
 
+    /**
+     * JSON Schema property descriptor.
+     */
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name(SCHEMA_PROP_NAME)
             .displayName(SCHEMA_PROP_DISPLAY_NAME)
@@ -79,6 +85,9 @@ public class ValidateJson extends AbstractProcessor {
 
     private static final String BE_TYPE_PATH_PROP_NAME = "be-type-path";
     private static final String BE_TYPE_PATH_PROP_DISPLAY_NAME = "Entity Type Path";
+    /**
+     * Entity Type Path property descriptor.
+     */
     public static final PropertyDescriptor BE_TYPE_PATH_PROP = new PropertyDescriptor.Builder()
             .name(BE_TYPE_PATH_PROP_NAME)
             .displayName(BE_TYPE_PATH_PROP_DISPLAY_NAME)
@@ -91,6 +100,9 @@ public class ValidateJson extends AbstractProcessor {
 
     private static final String ID_PATH_PROP_NAME = "source-id-path";
     private static final String ID_PATH_PROP_DISPLAY_NAME = "ID Path";
+    /**
+     * ID Path property descriptor.
+     */
     public static final PropertyDescriptor ID_PATH_PROP = new PropertyDescriptor.Builder()
             .name(ID_PATH_PROP_NAME)
             .displayName(ID_PATH_PROP_DISPLAY_NAME)
@@ -103,6 +115,9 @@ public class ValidateJson extends AbstractProcessor {
 
     private static final String ERROR_CODE_PROP_NAME = "error-code";
     private static final String ERROR_CODE_PROP_DISPLAY_NAME = "Error Code";
+    /**
+     * Error Code property descriptor.
+     */
     public static final PropertyDescriptor ERROR_CODE_PROP = new PropertyDescriptor.Builder()
             .name(ERROR_CODE_PROP_NAME)
             .displayName(ERROR_CODE_PROP_DISPLAY_NAME)
@@ -115,6 +130,9 @@ public class ValidateJson extends AbstractProcessor {
 
     private static final String WRAPPER_REGEX_PROP_NAME = "wrapper-regex";
     private static final String WRAPPER_REGEX_PROP_DISPLAY_NAME = "Wrapper regex";
+    /**
+     * Wrapper regex property descriptor.
+     */
     public static final PropertyDescriptor WRAPPER_REGEX = new PropertyDescriptor.Builder()
             .name(WRAPPER_REGEX_PROP_NAME)
             .displayName(WRAPPER_REGEX_PROP_DISPLAY_NAME)
@@ -127,17 +145,26 @@ public class ValidateJson extends AbstractProcessor {
             .build();
 
     private static final String REL_VALID_NAME = "valid";
+    /**
+     * Valid relationship.
+     */
     public static final Relationship REL_VALID = new Relationship.Builder()
             .name(REL_VALID_NAME)
             .description("FlowFiles matching the specified schema are routed to this relationship.")
             .build();
 
     private static final String REL_INVALID_NAME = "invalid";
+    /**
+     * Invalid relationship.
+     */
     public static final Relationship REL_INVALID = new Relationship.Builder()
             .name(REL_INVALID_NAME)
             .description("FlowFiles not matching the specified schema are routed to this relationship.")
             .build();
     private static final String REL_NOT_JSON_NAME = "not_json";
+    /**
+     * Not JSON relationship.
+     */
     public static final Relationship REL_NOT_JSON = new Relationship.Builder()
             .name(REL_NOT_JSON_NAME)
             .description("FlowFiles that are not valid JSON are routed to this relationship")

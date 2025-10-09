@@ -194,6 +194,9 @@ prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/py
 # Setup NiFi to scan for new NARs in nar_extensions
 prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 
+#Update configuration from 1.x version to 2.x
+bash "${scripts_dir}/update_flow_json.sh"
+
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"

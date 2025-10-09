@@ -28,6 +28,9 @@ import java.util.Map;
 
 public interface DbJsonMappingService extends ControllerService {
 
+    /**
+     * Business Entity type property descriptor.
+     */
     PropertyDescriptor BE_TYPE = new PropertyDescriptor.Builder()
             .name("be-type")
             .displayName("Business Entity type")
@@ -36,6 +39,9 @@ public interface DbJsonMappingService extends ControllerService {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Source System property descriptor.
+     */
     PropertyDescriptor SOURCE_SYSTEM = new PropertyDescriptor.Builder()
             .name("source-system")
             .displayName("Source System")

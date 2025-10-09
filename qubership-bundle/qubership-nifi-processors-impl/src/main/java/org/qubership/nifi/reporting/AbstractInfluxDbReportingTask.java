@@ -42,7 +42,9 @@ import org.influxdb.InfluxDBIOException;
 
 public abstract class AbstractInfluxDbReportingTask
         extends AbstractReportingTask {
-
+    /**
+     * Character Set property descriptor.
+     */
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("influxdb-charset")
             .displayName("Character Set")
@@ -52,6 +54,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
+    /**
+     * Influx DB URL property descriptor.
+     */
     public static final PropertyDescriptor INFLUX_DB_URL = new PropertyDescriptor.Builder()
             .name("influxdb-url")
             .displayName("InfluxDB URL")
@@ -61,6 +66,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
+    /**
+     * Connection timeout property descriptor.
+     */
     public static final PropertyDescriptor INFLUX_DB_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection timeout")
             .description("The maximum time for establishing connection to the InfluxDB")
@@ -70,6 +78,9 @@ public abstract class AbstractInfluxDbReportingTask
             .sensitive(false)
             .build();
 
+    /**
+     * Database Name property descriptor.
+     */
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
             .name("influxdb-dbname")
             .displayName("Database Name")
@@ -79,6 +90,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Username property descriptor.
+     */
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("influxdb-username")
             .displayName("Username")
@@ -87,6 +101,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Password property descriptor.
+     */
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("influxdb-password")
             .displayName("Password")
@@ -96,6 +113,9 @@ public abstract class AbstractInfluxDbReportingTask
             .sensitive(true)
             .build();
 
+    /**
+     * Max size of records property descriptor.
+     */
     public static final PropertyDescriptor MAX_RECORDS_SIZE = new PropertyDescriptor.Builder()
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
@@ -105,6 +125,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    /**
+     * Retention Policy property descriptor.
+     */
     public static final PropertyDescriptor RETENTION_POLICY = new PropertyDescriptor.Builder()
             .name("influxdb-retention-policy")
             .displayName("Retention Policy")
@@ -115,15 +138,30 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Consistency level All.
+     */
     public static final AllowableValue CONSISTENCY_LEVEL_ALL = new AllowableValue("ALL",
             "All", "Return success when all nodes have responded with write success");
+    /**
+     * Consistency level Any.
+     */
     public static final AllowableValue CONSISTENCY_LEVEL_ANY = new AllowableValue("ANY",
             "Any", "Return success when any nodes have responded with write success");
+    /**
+     * Consistency level One.
+     */
     public static final AllowableValue CONSISTENCY_LEVEL_ONE = new AllowableValue("ONE",
             "One", "Return success when one node has responded with write success");
+    /**
+     * Consistency level Quorum.
+     */
     public static final AllowableValue CONSISTENCY_LEVEL_QUORUM = new AllowableValue("QUORUM",
             "Quorum", "Return success when a majority of nodes have responded with write success");
 
+    /**
+     * Consistency Level property descriptor.
+     */
     public static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
             .name("influxdb-consistency-level")
             .displayName("Consistency Level")
@@ -135,12 +173,33 @@ public abstract class AbstractInfluxDbReportingTask
                     CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
 
+    /**
+     * InfluxDB instance.
+     */
     protected InfluxDB influxDB;
+    /**
+     * Consistency level.
+     */
     protected String consistencyLevel;
+    /**
+     * Database name.
+     */
     protected String database;
+    /**
+     * Retention policy.
+     */
     protected String retentionPolicy;
+    /**
+     * K8s namespace.
+     */
     protected String namespace;
+    /**
+     * NiFi hostname.
+     */
     protected String hostname;
+    /**
+     * List of all supported property descriptors.
+     */
     protected List<PropertyDescriptor> propertyDescriptors;
 
 
@@ -204,27 +263,6 @@ public abstract class AbstractInfluxDbReportingTask
             throw new ProcessException("Error while getting connection " + e.getLocalizedMessage(), e);
         }
         getLogger().info("InfluxDB connection created for host {}", new Object[]{influxDbUrl});
-    }
-
-    /**
-     * Gets namespace used to run nifi service.
-     * @return namespace
-     */
-    protected String getNamespace() {
-        return System.getenv("NAMESPACE");
-    }
-
-    /**
-     * Gets hostname used to run nifi service.
-     * @return hostname
-     */
-    protected String getHostname() {
-        try {
-            return InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException ex) {
-            getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
-            return "cloud-data-migration-nifi";
-        }
     }
 
     /**

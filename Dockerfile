@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jdk AS base
+FROM alpine/java:21-jre AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -20,7 +20,7 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.12.1-r0 \
+    curl=8.14.1-r2 \
     python3=3.12.11-r0 \
     py3-pip=24.0-r2
 
@@ -94,7 +94,7 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && mkdir -p $NIFI_HOME/extensions \
     && chmod 775 $NIFI_HOME/extensions
 
-COPY --chown=10001:0 ./nifi-scripts/*.sh $NIFI_BASE_DIR/scripts/
+COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
 COPY --chown=10001:0 ./scripts $NIFI_HOME/scripts/
 COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 
