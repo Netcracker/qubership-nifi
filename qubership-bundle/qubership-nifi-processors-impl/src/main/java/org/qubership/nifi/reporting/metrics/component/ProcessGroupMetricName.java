@@ -23,7 +23,11 @@ public enum ProcessGroupMetricName {
     BULLETIN_CNT_METRIC_NAME("nc_nifi_pg_bulletin_cnt"),
     ACTIVE_THREAD_COUNT_METRIC_NAME("nc_nifi_pg_active_thread_count"),
     QUEUED_COUNT_PG_METRIC_NAME("nc_nifi_pg_queued_count"),
-    QUEUED_BYTES_PG_METRIC_NAME("nc_nifi_pg_queued_bytes");
+    QUEUED_BYTES_PG_METRIC_NAME("nc_nifi_pg_queued_bytes"),
+
+    ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME("nifi_amount_threads_active"),
+    ROOT_QUEUED_COUNT_PG_METRIC_NAME("nifi_amount_items_queued"),
+    ROOT_QUEUED_BYTES_PG_METRIC_NAME("nifi_size_content_queued_total");
 
     private final String name;
 

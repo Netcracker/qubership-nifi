@@ -201,6 +201,16 @@
             <artifactId>qubership-nifi-bundle-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jvm</artifactId>
+            <version>4.2.37</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>4.2.37</version>
+        </dependency>
 
         <!--TEST-->
         <dependency>

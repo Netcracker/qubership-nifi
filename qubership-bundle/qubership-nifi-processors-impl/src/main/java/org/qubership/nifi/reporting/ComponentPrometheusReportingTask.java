@@ -50,6 +50,11 @@ import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
 import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,6 +74,9 @@ import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricN
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.QUEUED_COUNT_PG_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ACTIVE_THREAD_COUNT_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.BULLETIN_CNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_COUNT_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_BYTES_PG_METRIC_NAME;
 import static org.apache.nifi.reporting.ComponentType.REPORTING_TASK;
 import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
@@ -170,6 +178,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         pgLevelThreshold = context.getProperty(PROCESS_GROUP_LEVEL_THRESHOLD).asInteger();
         //JVM Metrics should be bind only when meter registry is created/recreated:
         registerGaugesForJvmMetric();
+        //NiFi Jvm metrics
+        registerGaugesForNiFiJvmMetric();
     }
 
     /**
@@ -205,6 +215,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             registerGaugesForBulletins(bulletinSummaries);
             registerGaugesForTopProcessGroups(processGroupBulletin, processGroupComponentCount,
                     controllerStatus.getProcessGroupStatus());
+            registerNiFiGaugesForTopProcessGroups(controllerStatus);
             registerGaugesForProcessGroups(controllerStatus, processGroupsStatus);
         } catch (RuntimeException ex) {
             if (logger != null) {
@@ -537,6 +548,43 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
     }
 
+    private void registerNiFiGaugesForTopProcessGroups(ProcessGroupStatus topProcessGroup) {
+        Gauge.builder(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName(), () -> {
+                    Integer activeThreadCount = topProcessGroup.getActiveThreadCount();
+                    return activeThreadCount == null ? 0 : activeThreadCount;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+
+        Gauge.builder(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName(), () -> {
+                    Long queuedContentSize = topProcessGroup.getQueuedContentSize();
+                    return queuedContentSize == null ? 0 : queuedContentSize;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+
+        Gauge.builder(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName(), () -> {
+                    Integer queuedCount = topProcessGroup.getQueuedCount();
+                    return queuedCount == null ? 0 : queuedCount;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+    }
 
     private void registerGaugesForProcessGroups(ProcessGroupStatus topProcessGroup,
                                                 Map<String, ProcessGroupStatus> processGroupsStatus) {
@@ -624,6 +672,80 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         jvmCompilationMetrics.bindTo(getMeterRegistry());
         jvmHeapPressureMetrics.bindTo(getMeterRegistry());
         jvmInfoMetrics.bindTo(getMeterRegistry());
+    }
+
+    private void registerGaugesForNiFiJvmMetric() {
+        List<Tag> tagsList = List.of(
+                Tag.of("instance", getInstance()),
+                Tag.of("hostname", getHostname()),
+                Tag.of("namespace", getNamespace())
+        );
+        new ThreadStatesGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "count".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst() // если нужен только один gauge
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi.jvm.threads.count", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new JvmAttributeGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "uptime".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst()
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi.jvm.uptime", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new MemoryUsageGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "heap.usage".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst()
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi.jvm.heap.usage", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new GarbageCollectorMetricSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .forEach(entry -> {
+                    String name = entry.getKey();
+                    Object metric = entry.getValue();
+
+                    if (metric instanceof com.codahale.metrics.Gauge) {
+                        com.codahale.metrics.Gauge<?> gauge = (com.codahale.metrics.Gauge<?>) metric;
+                        String metricName = "nifi.jvm.gc." + name.replace(" ", "_").toLowerCase();
+
+                        Gauge.builder(metricName, () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry());
+                    }
+                });
+    }
+
+    private static Number convertValue(Object value) {
+        if (value instanceof Number) {
+            return (Number) value;
+        }
+        return 0;
     }
 
     /**
