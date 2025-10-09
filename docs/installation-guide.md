@@ -1,6 +1,6 @@
 # Installation Guide
 
-qubership-nifi service can be started in docker (or compatible) container runtime with support of `docker compose` command.
+qubership-nifi service can be started in Docker (or compatible) container runtime with support of `docker compose` command.
 
 Sections below describe typical startup configurations:
 1. plain - service without any authentication with plain (HTTP) communications
@@ -9,8 +9,8 @@ Sections below describe typical startup configurations:
 ## Prerequisites
 
 Make sure you have the following tools installed:
-1. Docker - any version of Docker Engine or any compatible docker container runtime.
-2. Docker Compose - any version of Docker Compose or any compatible docker container runtime.
+1. Docker - any version of Docker Engine or any compatible Docker container runtime.
+2. Docker Compose - any version of Docker Compose or any compatible Docker container runtime.
 
 ## Running qubership-nifi in plain mode
 

@@ -25,7 +25,7 @@ The report file obtained as a result of the upgrade advisor operation contains t
 
 Ensure you have the following tools installed:
 1. Bash – a command shell for running the script.
-2. jq – a command-line utility for processing JSON data in Bash. You can download jq [here](https://jqlang.org/download/).
+2. jq – a command-line utility for processing JSON data in Bash. You can download jq from [official site](https://jqlang.org/download/).
 
 ### Usage with Bash
 

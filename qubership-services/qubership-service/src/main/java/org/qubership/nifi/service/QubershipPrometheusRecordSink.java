@@ -37,7 +37,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.eclipse.jetty.server.Server;
 import org.apache.nifi.serialization.WriteResult;
@@ -65,11 +65,11 @@ import java.util.stream.Stream;
 
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 

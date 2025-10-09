@@ -50,6 +50,11 @@ import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
 import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,6 +74,9 @@ import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricN
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.QUEUED_COUNT_PG_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ACTIVE_THREAD_COUNT_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.BULLETIN_CNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_COUNT_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_BYTES_PG_METRIC_NAME;
 import static org.apache.nifi.reporting.ComponentType.REPORTING_TASK;
 import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
@@ -81,6 +89,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
 
     private static final String PROCESS_GROUP_ID_TAG = "group_id";
 
+    /**
+     * Processor time threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESSOR_TIME_THRESHOLD = new PropertyDescriptor.Builder()
             .name("processor-time-threshold")
             .displayName("Processor time threshold")
@@ -91,6 +102,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    /**
+     * Connection queue threshold property descriptor.
+     */
     public static final PropertyDescriptor CONNECTION_QUEUE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("connection-queue-threshold")
             .displayName("Connection queue threshold")
@@ -101,6 +115,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    /**
+     * Process group level threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESS_GROUP_LEVEL_THRESHOLD = new PropertyDescriptor.Builder()
             .name("pg-level-threshold")
             .displayName("Process group level threshold")
@@ -170,6 +187,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         pgLevelThreshold = context.getProperty(PROCESS_GROUP_LEVEL_THRESHOLD).asInteger();
         //JVM Metrics should be bind only when meter registry is created/recreated:
         registerGaugesForJvmMetric();
+        //NiFi Jvm metrics
+        registerGaugesForNiFiJvmMetric();
     }
 
     /**
@@ -206,6 +225,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             registerGaugesForTopProcessGroups(processGroupBulletin, processGroupComponentCount,
                     controllerStatus.getProcessGroupStatus());
             registerGaugesForProcessGroups(controllerStatus, processGroupsStatus);
+            processGroupsStatus.put(controllerStatus.getId(), controllerStatus);
+            registerNiFiGaugesForTopProcessGroups(controllerStatus);
         } catch (RuntimeException ex) {
             if (logger != null) {
                 logger.error("Unexpected exception occurred : ", ex);
@@ -537,6 +558,48 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
     }
 
+    private void registerNiFiGaugesForTopProcessGroups(ProcessGroupStatus topProcessGroup) {
+        final String topPgId = topProcessGroup.getId();
+
+        Gauge.builder(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName(), () -> {
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Integer activeThreadCount = procGroup .getActiveThreadCount();
+                    return activeThreadCount == null ? 0 : activeThreadCount;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+
+        Gauge.builder(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName(), () -> {
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Long queuedContentSize = procGroup.getQueuedContentSize();
+                    return queuedContentSize == null ? 0 : queuedContentSize;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+
+        Gauge.builder(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName(), () -> {
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Integer queuedCount = procGroup.getQueuedCount();
+                    return queuedCount == null ? 0 : queuedCount;
+                })
+                .tag("namespace", getNamespace())
+                .tag("hostname", getHostname())
+                .tag("instance", getInstance())
+                .tag("component_type", "RootProcessGroup")
+                .tag("component_id", topProcessGroup.getId())
+                .tag("component_name", topProcessGroup.getName())
+                .register(getMeterRegistry());
+    }
 
     private void registerGaugesForProcessGroups(ProcessGroupStatus topProcessGroup,
                                                 Map<String, ProcessGroupStatus> processGroupsStatus) {
@@ -624,6 +687,80 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         jvmCompilationMetrics.bindTo(getMeterRegistry());
         jvmHeapPressureMetrics.bindTo(getMeterRegistry());
         jvmInfoMetrics.bindTo(getMeterRegistry());
+    }
+
+    private void registerGaugesForNiFiJvmMetric() {
+        List<Tag> tagsList = List.of(
+                Tag.of("instance", getInstance()),
+                Tag.of("hostname", getHostname()),
+                Tag.of("namespace", getNamespace())
+        );
+        new ThreadStatesGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "count".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst()
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi_jvm_thread_count", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new JvmAttributeGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "uptime".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst()
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi_jvm_uptime", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new MemoryUsageGaugeSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .filter(entry -> "heap.usage".equals(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(com.codahale.metrics.Gauge.class::isInstance)
+                .map(com.codahale.metrics.Gauge.class::cast)
+                .findFirst()
+                .ifPresent(gauge ->
+                        Gauge.builder("nifi_jvm_heap_usage", () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry())
+                );
+        new GarbageCollectorMetricSet()
+                .getMetrics()
+                .entrySet()
+                .stream()
+                .forEach(entry -> {
+                    String name = entry.getKey();
+                    Object metric = entry.getValue();
+
+                    if (metric instanceof com.codahale.metrics.Gauge) {
+                        com.codahale.metrics.Gauge<?> gauge = (com.codahale.metrics.Gauge<?>) metric;
+                        String metricName = "nifi_jvm_gc_" + name.replace(" ", "_").toLowerCase();
+
+                        Gauge.builder(metricName, () -> convertValue(gauge.getValue()))
+                                .tags(tagsList)
+                                .register(getMeterRegistry());
+                    }
+                });
+    }
+
+    private static Number convertValue(Object value) {
+        if (value instanceof Number) {
+            return (Number) value;
+        }
+        return 0;
     }
 
     /**
