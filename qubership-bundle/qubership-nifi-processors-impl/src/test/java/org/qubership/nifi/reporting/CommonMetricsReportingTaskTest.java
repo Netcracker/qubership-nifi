@@ -18,6 +18,8 @@ package org.qubership.nifi.reporting;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +45,12 @@ public class CommonMetricsReportingTaskTest {
 
     private CommonMetricsReportingTask createTask() {
         commonMetricsReportingTask = new CommonMetricsReportingTask();
+        ReportingInitializationContext initCtx = mock(ReportingInitializationContext.class);
+        try {
+            commonMetricsReportingTask.initialize(initCtx);
+        } catch (InitializationException e) {
+            throw new RuntimeException(e);
+        }
         //task.setHostname(TEST_HOSTNAME);
         return commonMetricsReportingTask;
     }
