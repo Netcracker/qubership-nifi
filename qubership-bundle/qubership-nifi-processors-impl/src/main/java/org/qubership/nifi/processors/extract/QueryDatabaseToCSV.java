@@ -69,6 +69,9 @@ import java.util.Map;
 })
 public class QueryDatabaseToCSV extends AbstractProcessor {
 
+    /**
+     * Database Connection Pooling Service property descriptor.
+     */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the database.")
@@ -76,6 +79,9 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Custom Query property descriptor.
+     */
     public static final PropertyDescriptor CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("custom-query")
             .displayName("Custom Query")
@@ -85,6 +91,9 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * CSV Format property descriptor.
+     */
     public static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
             .name("csv-format")
             .displayName("CSV Format")
@@ -96,6 +105,9 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .allowableValues(CSVFormat.Predefined.values())
             .build();
 
+    /**
+     * Write By Batch property descriptor.
+     */
     public static final PropertyDescriptor WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("write-by-batch")
             .displayName("Write By Batch")
@@ -106,6 +118,9 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    /**
+     * Batch Size property descriptor.
+     */
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
             .displayName("Batch Size")
@@ -116,6 +131,9 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Fetch Size property descriptor.
+     */
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("fetch-size")
             .displayName("Fetch Size")
@@ -127,11 +145,17 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Success relationship.
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
+    /**
+     * Failure relationship.
+     */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed."

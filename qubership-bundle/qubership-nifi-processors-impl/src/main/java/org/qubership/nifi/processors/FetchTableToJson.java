@@ -75,6 +75,9 @@ public class FetchTableToJson extends AbstractProcessor {
     private static final String ATTR_FETCH_ID = "fetch.id";
     private static final String EXTRACTION_ERROR = "extraction.error";
 
+    /**
+     * Database Connection Pooling Service property descriptor.
+     */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor
             .Builder()
             .name("Database Connection Pooling Service")
@@ -83,6 +86,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Batch Size property descriptor.
+     */
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.
             Builder()
             .name("batch-size")
@@ -94,7 +100,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(
                     ExpressionLanguageScope.ENVIRONMENT)
             .build();
-
+    /**
+     * Fetch Size property descriptor.
+     */
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("fetch-size")
             .displayName("Fetch Size")
@@ -106,6 +114,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Columns to Return property descriptor.
+     */
     public static final PropertyDescriptor COLUMN_NAMES = new PropertyDescriptor.Builder()
             .name("columns-to-return")
             .displayName("Columns To Return")
@@ -119,6 +130,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Table Name property descriptor.
+     */
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
             .name("table")
             .displayName("Table Name")
@@ -129,6 +143,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Custom Query property descriptor.
+     */
     public static final PropertyDescriptor CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("custom-query")
             .displayName("Custom Query")
@@ -138,6 +155,9 @@ public class FetchTableToJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Write By Batch property descriptor.
+     */
     public static final PropertyDescriptor WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("write-by-batch")
             .displayName("Write By Batch")
@@ -148,11 +168,17 @@ public class FetchTableToJson extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
+    /**
+     * Success relationship.
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully created FlowFile from SQL query result set.")
             .build();
 
+    /**
+     * Failure relationship.
+     */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("This relationship is only used when SQL query execution (using an incoming FlowFile) failed."
@@ -160,6 +186,9 @@ public class FetchTableToJson extends AbstractProcessor {
                     + "If no incoming connection(s) are specified, this relationship is unused.")
             .build();
 
+    /**
+     * Count relationship.
+     */
     public static final Relationship REL_TOTAL_COUNT = new Relationship.Builder()
             .name("count")
             .description("One FlowFile per request with attributes:"

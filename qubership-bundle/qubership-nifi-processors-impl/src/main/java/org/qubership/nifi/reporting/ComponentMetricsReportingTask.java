@@ -38,6 +38,9 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
 public class ComponentMetricsReportingTask
         extends AbstractInfluxDbReportingTask {
+    /**
+     * Processor time threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESSOR_TIME_THRESHOLD = new PropertyDescriptor.Builder()
             .name("processor-time-threshold")
             .displayName("Processor time threshold")
@@ -48,6 +51,9 @@ public class ComponentMetricsReportingTask
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    /**
+     * Connection queue threshold property descriptor.
+     */
     public static final PropertyDescriptor CONNECTION_QUEUE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("connection-queue-threshold")
             .displayName("Connection queue threshold")

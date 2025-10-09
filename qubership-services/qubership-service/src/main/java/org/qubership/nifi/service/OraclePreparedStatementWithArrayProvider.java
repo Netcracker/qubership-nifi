@@ -47,6 +47,9 @@ public class OraclePreparedStatementWithArrayProvider
         extends AbstractPreparedStatementProvider
         implements PreparedStatementProvider {
 
+    /**
+     * Schema Name property descriptor.
+     */
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("dbSchema")
             .displayName("Schema Name")
@@ -56,6 +59,9 @@ public class OraclePreparedStatementWithArrayProvider
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Character Array Type property descriptor.
+     */
     public static final PropertyDescriptor CHAR_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("array-type")
             .displayName("Char Array Type")
@@ -66,6 +72,9 @@ public class OraclePreparedStatementWithArrayProvider
             .required(false)
             .build();
 
+    /**
+     * Numeric Array Type property descriptor.
+     */
     public static final PropertyDescriptor NUM_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("num-array-type")
             .displayName("Numeric Array Type")

@@ -51,11 +51,17 @@ import org.apache.commons.lang3.StringUtils;
 @CapabilityDescription("Backups all FlowFile attributes by adding prefix to their names.")
 public class BackupAttributes extends AbstractProcessor {
 
+    /**
+     * Success relationship.
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully processed FlowFile")
             .build();
 
+    /**
+     * Prefix Attribute property descriptor.
+     */
     public static final PropertyDescriptor PREFIX_ATTR = new PropertyDescriptor.Builder()
             .name("prefix-attr")
             .displayName("Prefix Attribute")
@@ -66,6 +72,9 @@ public class BackupAttributes extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Excluded Attributes property descriptor.
+     */
     public static final PropertyDescriptor EXCLUDED_ATTRS = new PropertyDescriptor.Builder()
             .name("excluded-attrs-regex")
             .displayName("Excluded Attributes")
@@ -76,7 +85,13 @@ public class BackupAttributes extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * List of all supported property descriptors.
+     */
     protected List<PropertyDescriptor> descriptors;
+    /**
+     * Set of all supported relationships.
+     */
     protected Set<Relationship> relationships;
 
     private String prefixAttr = "source.id";

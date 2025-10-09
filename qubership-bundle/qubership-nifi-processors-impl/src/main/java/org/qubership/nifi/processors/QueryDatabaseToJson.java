@@ -60,6 +60,9 @@ import static org.qubership.nifi.NiFiUtils.readJsonNodeFromFlowFile;
 public class QueryDatabaseToJson extends AbstractSingleQueryDatabaseToJson {
 
 
+    /**
+     * Query property descriptor.
+     */
     public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
             .name("db-fetch-sql-query")
             .displayName("Query")
@@ -69,7 +72,9 @@ public class QueryDatabaseToJson extends AbstractSingleQueryDatabaseToJson {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
+    /**
+     * Path property descriptor.
+     */
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("path")
             .displayName("Path")
