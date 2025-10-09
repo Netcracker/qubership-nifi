@@ -215,8 +215,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             registerGaugesForBulletins(bulletinSummaries);
             registerGaugesForTopProcessGroups(processGroupBulletin, processGroupComponentCount,
                     controllerStatus.getProcessGroupStatus());
-            registerNiFiGaugesForTopProcessGroups(controllerStatus);
             registerGaugesForProcessGroups(controllerStatus, processGroupsStatus);
+            processGroupsStatus.put(controllerStatus.getId(), controllerStatus);
+            registerNiFiGaugesForTopProcessGroups(controllerStatus);
         } catch (RuntimeException ex) {
             if (logger != null) {
                 logger.error("Unexpected exception occurred : ", ex);
@@ -549,8 +550,11 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     }
 
     private void registerNiFiGaugesForTopProcessGroups(ProcessGroupStatus topProcessGroup) {
+        final String topPgId = topProcessGroup.getId();
+
         Gauge.builder(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName(), () -> {
-                    Integer activeThreadCount = topProcessGroup.getActiveThreadCount();
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Integer activeThreadCount = procGroup .getActiveThreadCount();
                     return activeThreadCount == null ? 0 : activeThreadCount;
                 })
                 .tag("namespace", getNamespace())
@@ -562,7 +566,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .register(getMeterRegistry());
 
         Gauge.builder(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName(), () -> {
-                    Long queuedContentSize = topProcessGroup.getQueuedContentSize();
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Long queuedContentSize = procGroup.getQueuedContentSize();
                     return queuedContentSize == null ? 0 : queuedContentSize;
                 })
                 .tag("namespace", getNamespace())
@@ -574,7 +579,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .register(getMeterRegistry());
 
         Gauge.builder(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName(), () -> {
-                    Integer queuedCount = topProcessGroup.getQueuedCount();
+                    ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
+                    Integer queuedCount = procGroup.getQueuedCount();
                     return queuedCount == null ? 0 : queuedCount;
                 })
                 .tag("namespace", getNamespace())
@@ -688,9 +694,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .map(Map.Entry::getValue)
                 .filter(com.codahale.metrics.Gauge.class::isInstance)
                 .map(com.codahale.metrics.Gauge.class::cast)
-                .findFirst() // если нужен только один gauge
+                .findFirst()
                 .ifPresent(gauge ->
-                        Gauge.builder("nifi.jvm.threads.count", () -> convertValue(gauge.getValue()))
+                        Gauge.builder("nifi_jvm_threads_count", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
                                 .register(getMeterRegistry())
                 );
@@ -704,7 +710,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .map(com.codahale.metrics.Gauge.class::cast)
                 .findFirst()
                 .ifPresent(gauge ->
-                        Gauge.builder("nifi.jvm.uptime", () -> convertValue(gauge.getValue()))
+                        Gauge.builder("nifi_jvm_uptime", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
                                 .register(getMeterRegistry())
                 );
@@ -718,7 +724,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .map(com.codahale.metrics.Gauge.class::cast)
                 .findFirst()
                 .ifPresent(gauge ->
-                        Gauge.builder("nifi.jvm.heap.usage", () -> convertValue(gauge.getValue()))
+                        Gauge.builder("nifi_jvm_heap_usage", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
                                 .register(getMeterRegistry())
                 );
@@ -732,7 +738,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
 
                     if (metric instanceof com.codahale.metrics.Gauge) {
                         com.codahale.metrics.Gauge<?> gauge = (com.codahale.metrics.Gauge<?>) metric;
-                        String metricName = "nifi.jvm.gc." + name.replace(" ", "_").toLowerCase();
+                        String metricName = "nifi_jvm_gc_" + name.replace(" ", "_").toLowerCase();
 
                         Gauge.builder(metricName, () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
