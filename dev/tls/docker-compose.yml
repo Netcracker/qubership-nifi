@@ -38,7 +38,7 @@ services:
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
   qubership-nifi:
-    image: ghcr.io/netcracker/nifi:latest
+    image: ghcr.io/netcracker/qubership-nifi:latest
     container_name: qubership-nifi
     depends_on:
       qubership-nifi-toolkit:
@@ -68,7 +68,7 @@ services:
       - CONSUL_CONFIG_JAVA_OPTIONS=
     restart: unless-stopped
   qubership-nifi-registry:
-    image: ghcr.io/netcracker/nifi-registry:latest
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest
     container_name: qubership-nifi-registry
     depends_on:
       qubership-nifi-toolkit:

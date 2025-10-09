@@ -16,7 +16,7 @@ services:
       - NIFI_WEB_HTTPS_PORT=
     container_name: local-nifi
   nifi-registry:
-    image: ghcr.io/netcracker/nifi-registry:latest
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest
     ports:
       - 127.0.0.1:18080:18080
     environment:

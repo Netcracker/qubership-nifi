@@ -49,7 +49,7 @@ services:
     container_name: local-nifi
     restart: unless-stopped
   nifi-registry:
-    image: ghcr.io/netcracker/nifi-registry:latest
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
