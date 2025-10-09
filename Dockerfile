@@ -121,9 +121,9 @@ USER 10001:0
 WORKDIR $NIFI_HOME
 
 VOLUME ${NIFI_HOME}/conf \
-       ${NIFI_HOME}/logs \
-       ${NIFI_HOME}/run \
-       ${NIFI_HOME}/work
+        ${NIFI_HOME}/logs \
+        ${NIFI_HOME}/run \
+        ${NIFI_HOME}/work
 
 EXPOSE 8080 8443 10000 8000
 ENTRYPOINT ["../scripts/start.sh"]
