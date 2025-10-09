@@ -92,7 +92,9 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && mkdir -p $NIFI_HOME/work \
     && chmod 774 $NIFI_HOME/work \
     && mkdir -p $NIFI_HOME/extensions \
-    && chmod 775 $NIFI_HOME/extensions
+    && chmod 775 $NIFI_HOME/extensions \
+    && mkdir -p $NIFI_HOME/python_extensions \
+    && chmod 775 $NIFI_HOME/python_extensions
 
 COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
 COPY --chown=10001:0 ./scripts $NIFI_HOME/scripts/
@@ -118,10 +120,10 @@ COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubers
 USER 10001:0
 WORKDIR $NIFI_HOME
 
-VOLUME ${NIFI_HOME}/conf
-VOLUME ${NIFI_HOME}/logs
-VOLUME ${NIFI_HOME}/run
-VOLUME ${NIFI_HOME}/work
+VOLUME ${NIFI_HOME}/conf \
+       ${NIFI_HOME}/logs \
+       ${NIFI_HOME}/run \
+       ${NIFI_HOME}/work
 
 EXPOSE 8080 8443 10000 8000
 ENTRYPOINT ["../scripts/start.sh"]
