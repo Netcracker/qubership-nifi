@@ -11,6 +11,7 @@ runs:
   steps:
     - name: Prepare env
       shell: bash
+      id: prepare-env
       run: |
         echo "Preparing env..."
         . .github/workflows/sh/nifi-lib.sh
