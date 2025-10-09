@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-bulk-redis-service</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>qubership-nifi-bulk-redis-nar</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
     <properties>
