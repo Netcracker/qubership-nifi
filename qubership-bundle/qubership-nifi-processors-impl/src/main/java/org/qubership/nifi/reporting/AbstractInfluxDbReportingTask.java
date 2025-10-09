@@ -266,27 +266,6 @@ public abstract class AbstractInfluxDbReportingTask
     }
 
     /**
-     * Gets namespace used to run nifi service.
-     * @return namespace
-     */
-    protected String getNamespace() {
-        return System.getenv("NAMESPACE");
-    }
-
-    /**
-     * Gets hostname used to run nifi service.
-     * @return hostname
-     */
-    protected String getHostname() {
-        try {
-            return InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException ex) {
-            getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
-            return "cloud-data-migration-nifi";
-        }
-    }
-
-    /**
      * Creating a connection to Influx.
      *
      * @param username
