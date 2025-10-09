@@ -350,14 +350,14 @@ setup_env_before_tests() {
         generate_tls_passwords
         create_docker_env_file
     fi
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "upgrade-test" ]]; then
+    if [[ "$runMode" == "oidc" ]]; then
         create_global_vars_file
     fi
     mkdir -p ./temp-vol/tls-cert/
     mkdir -p ./temp-vol/tls-cert/ca/
     mkdir -p ./temp-vol/tls-cert/nifi/
     mkdir -p ./temp-vol/tls-cert/nifi-registry/
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]] || [[ "$runMode" == "upgrade-test" ]]; then
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
     if [[ "$runMode" == "cluster"* ]]; then
@@ -372,7 +372,7 @@ setup_env_before_tests() {
     fi
     chmod -R 777 ./temp-vol
     #generate keycloak certificates:
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]] || [[ "$runMode" == "upgrade-test" ]]; then
+    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
 }

@@ -14,7 +14,7 @@ services:
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
   nifi:
-    image: local-nifi:test
+    image: ${NIFI_IMAGE:-local-nifi}:${NIFI_IMAGE_TAG:-test}
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
