@@ -250,7 +250,6 @@
                     <linkXRef>true</linkXRef>
                     <includeTests>true</includeTests>
                     <failurePriority>2</failurePriority>
-                    <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
                 </configuration>
                 <executions>
                     <execution>
