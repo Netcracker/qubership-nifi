@@ -191,8 +191,9 @@ fi
 # Setup NiFi to use Python
 uncomment "nifi.python.command" "${nifi_props_file}"
 prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+# Use ./extensions for new NARs
 # Setup NiFi to scan for new NARs in nar_extensions
-prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
+# prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
 
 #Update configuration from 1.x version to 2.x
 bash "${scripts_dir}/update_flow_json.sh"
@@ -289,7 +290,7 @@ if [ "${NIFI_REG_NAR_PROVIDER_ENABLED}" == "true" ]; then
     {
         echo ""
         echo "#default nifi registry nar provider"
-        echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryNarProvider'
+        echo 'nifi.nar.library.provider.default-nifi-registry.implementation=org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider'
         echo 'nifi.nar.library.provider.default-nifi-registry.url=https://cloud-data-migration-nifi-registry:8080'
         echo ""
     } >> "${NIFI_HOME}"/conf/nifi.properties
