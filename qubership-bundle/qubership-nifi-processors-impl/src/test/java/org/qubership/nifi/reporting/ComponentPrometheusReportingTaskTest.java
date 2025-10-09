@@ -581,7 +581,7 @@ public class ComponentPrometheusReportingTaskTest {
     @Test
     public void registerNiFiJvmMetrics() throws Exception {
         //check that NiFi JVM metrics are present:
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_threads_count").
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
                 gauges().size());
         assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
                 gauges().size());
@@ -590,7 +590,7 @@ public class ComponentPrometheusReportingTaskTest {
         //and start again:
         task.onScheduled(configurationContext);
         //check that NiFi JVM metrics are present after restart:
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_threads_count").
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
                 gauges().size());
         assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
                 gauges().size());

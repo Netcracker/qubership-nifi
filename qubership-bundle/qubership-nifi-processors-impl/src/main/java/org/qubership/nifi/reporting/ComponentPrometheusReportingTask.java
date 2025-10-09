@@ -89,6 +89,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
 
     private static final String PROCESS_GROUP_ID_TAG = "group_id";
 
+    /**
+     * Processor time threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESSOR_TIME_THRESHOLD = new PropertyDescriptor.Builder()
             .name("processor-time-threshold")
             .displayName("Processor time threshold")
@@ -99,6 +102,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    /**
+     * Connection queue threshold property descriptor.
+     */
     public static final PropertyDescriptor CONNECTION_QUEUE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("connection-queue-threshold")
             .displayName("Connection queue threshold")
@@ -109,6 +115,9 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    /**
+     * Process group level threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESS_GROUP_LEVEL_THRESHOLD = new PropertyDescriptor.Builder()
             .name("pg-level-threshold")
             .displayName("Process group level threshold")
@@ -696,7 +705,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .map(com.codahale.metrics.Gauge.class::cast)
                 .findFirst()
                 .ifPresent(gauge ->
-                        Gauge.builder("nifi_jvm_threads_count", () -> convertValue(gauge.getValue()))
+                        Gauge.builder("nifi_jvm_thread_count", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
                                 .register(getMeterRegistry())
                 );
