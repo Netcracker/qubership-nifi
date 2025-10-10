@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jdk as base
+FROM alpine/java:21-jre as base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -20,7 +20,7 @@ USER root
 RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
-    curl=8.12.1-r0
+    curl=8.14.1-r2
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
