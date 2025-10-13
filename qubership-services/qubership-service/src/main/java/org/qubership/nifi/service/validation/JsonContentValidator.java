@@ -41,13 +41,16 @@ import java.util.Set;
 @CapabilityDescription("Provides validate method to check the JSON against a given schema.")
 public class JsonContentValidator extends AbstractControllerService implements ContentValidator {
 
+    /**
+     * Schema property descriptor.
+     */
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
             .description("Validation Json Schema.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     /**

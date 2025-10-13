@@ -52,35 +52,47 @@ import static org.qubership.nifi.NiFiUtils.readJsonNodeFromFlowFile;
 @SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"JSON", "DB"})
-@CapabilityDescription("Executes custom query to fetch rows from table and merge them with the main JSON object which is in the content of incoming FlowFile. \n" +
-        "The Path property supports JsonPath syntax to find source id attributes in the main object. The main and queried objects are merged by join key properties.\n" +
-        "You can specify where exactly to insert queried objects and by what key with path to insert and key to insert properties.")
+@CapabilityDescription("Executes custom query to fetch rows from table and merge them with the main JSON object \n"
+        + "which is in the content of incoming FlowFile. \n"
+        + " The Path property supports JsonPath syntax to find source id attributes in the main object. \n"
+        + " The main and queried objects are merged by join key properties.\n"
+        + "You can specify where exactly to insert queried objects and by what key with path \n"
+        + " to insert and key to insert properties.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets mime.type = application/json"),
         @WritesAttribute(attribute = "extraction.error", description = "Sets to error stacktrace, in case of exception")
 })
 public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJson {
 
-
+    /**
+     * SQL query property descriptor.
+     */
     public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
             .name("db-fetch-sql-query")
             .displayName("Query")
-            .description("A custom SQL query used to retrieve data. Instead of building a SQL query from "
-                    + "other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement.")
+            .description("A custom SQL query used to retrieve data. Instead of building a SQL query from other"
+                    + " properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Path property descriptor.
+     */
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("path")
             .displayName("Path")
-            .description("A JsonPath expression that specifies path to source id attribute inside the array in the incoming FlowFile.")
+            .description("A JsonPath expression that specifies path to source id attribute inside the array"
+                    + " in the incoming FlowFile.")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Join Key Parent with Child property descriptor.
+     */
     public static final PropertyDescriptor JOIN_KEY_PARENT_WITH_CHILD = new PropertyDescriptor.Builder()
             .name("join-key-parent-with-child")
             .displayName("Join Key Parent With Child")
@@ -90,6 +102,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Join Key Child With Parent property descriptor.
+     */
     public static final PropertyDescriptor JOIN_KEY_CHILD_WITH_PARENT = new PropertyDescriptor.Builder()
             .name("Join Key Child With Parent")
             .displayName("Join Key Child With Parent")
@@ -99,31 +114,40 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Key to Insert property descriptor.
+     */
     public static final PropertyDescriptor KEY_TO_INSERT = new PropertyDescriptor.Builder()
             .name("key-to-insert")
             .displayName("Key To Insert")
             .description("A key that is used to insert the queried object in the main object.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Path to insert property descriptor.
+     */
     public static final PropertyDescriptor PATH_TO_INSERT = new PropertyDescriptor.Builder()
             .name("path-to-insert")
             .displayName("Path To Insert")
             .description("A key that uses to insert queried objects in the objects that will come in the input JSON")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    /**
+     * Clean up policy property descriptor.
+     */
     public static final PropertyDescriptor CLEAN_UP_POLICY = new PropertyDescriptor.Builder()
             .name("clean-up-policy")
             .displayName("Clean Up Policy")
-            .description("Defines cleanup policy for keys used in join:\n" +
-                    "- TARGET: remove parent key\n" +
-                    "- SOURCE: remove child key\n" +
-                    "- NONE: don't remove any keys\n")
+            .description("Defines cleanup policy for keys used in join:\n"
+                    + "- TARGET: remove parent key\n"
+                    + "- SOURCE: remove child key\n"
+                    + "- NONE: don't remove any keys\n")
             .required(false)
             .allowableValues("NONE", "SOURCE", "TARGET")
             .defaultValue("NONE")
@@ -131,6 +155,9 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
 
     private List<PropertyDescriptor> propDescriptors;
 
+    /**
+     * Constructor for class QueryDatabaseToJsonWithMerge.
+     */
     public QueryDatabaseToJsonWithMerge() {
         final List<PropertyDescriptor> pds = new ArrayList<>(super.getSupportedPropertyDescriptors());
         pds.add(SQL_QUERY);
@@ -144,11 +171,22 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
         this.propDescriptors = Collections.unmodifiableList(pds);
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) {
         FlowFile flowFile = session.get();
 
-        if (flowFile == null) return;
+        if (flowFile == null) {
+            return;
+        }
 
         String path = getEvaluatedValue(PATH, context);
         String joinKeySourceWithTarget = getEvaluatedValue(JOIN_KEY_PARENT_WITH_CHILD, context, flowFile);
@@ -166,8 +204,8 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
                 .joinKeyChildWithParent(joinKeyTargetWithSource)
                 .keyToInsert(keyToInsert)
                 .isNeedToCleanTarget(
-                        cleanUpPolicy == CleanUpPolicy.TARGET ||
-                                cleanUpPolicy == CleanUpPolicy.BOTH
+                        cleanUpPolicy == CleanUpPolicy.TARGET
+                                || cleanUpPolicy == CleanUpPolicy.BOTH
                 )
                 .build();
 
@@ -197,22 +235,24 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
                                                             .pathToInsert(pathToInsert)
                                                             .insertionContext(insertionContext)
                                                             .nodes((ArrayNode) batch)
-                                                            .isArray(context.getProperty(BATCH_SIZE).asInteger() !=1)
+                                                            .isArray(context.getProperty(BATCH_SIZE).asInteger() != 1)
                                                             .build()
                                             );
                                         } catch (NodeToInsertNotFoundException | KeyNodeNotExistsException e) {
-                                            throw new ProcessException("There is an error to merge queried data with incoming", e);
+                                            throw new ProcessException("There is an error to merge queried"
+                                                    + " data with incoming", e);
                                         }
                                     },
                                     getLogger());
                 }
 
-                if (cleanUpPolicy == CleanUpPolicy.SOURCE || cleanUpPolicy == CleanUpPolicy.BOTH)
+                if (cleanUpPolicy == CleanUpPolicy.SOURCE || cleanUpPolicy == CleanUpPolicy.BOTH) {
                     jsonHelper.cleanUp(path, joinKeySourceWithTarget);
+                }
 
                 FlowFile ff = writeResultToFlowFile(jsonHelper.getJsonNode(), session, flowFile);
                 session.putAttribute(ff, CoreAttributes.MIME_TYPE.key(), "application/json");
-                session.transfer(ff,REL_SUCCESS);
+                session.transfer(ff, REL_SUCCESS);
 
                 session.getProvenanceReporter().fetch(flowFile, con.getMetaData().getURL());
             } finally {
@@ -230,6 +270,12 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
         }
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;

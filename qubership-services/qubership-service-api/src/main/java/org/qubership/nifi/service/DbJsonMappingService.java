@@ -28,50 +28,66 @@ import java.util.Map;
 
 public interface DbJsonMappingService extends ControllerService {
 
+    /**
+     * Business Entity type property descriptor.
+     */
     PropertyDescriptor BE_TYPE = new PropertyDescriptor.Builder()
             .name("be-type")
             .displayName("Business Entity type")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Source System property descriptor.
+     */
     PropertyDescriptor SOURCE_SYSTEM = new PropertyDescriptor.Builder()
             .name("source-system")
             .displayName("Source System")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(Validator.VALID)
             .build();
 
 
     /**
      * Gets DB to JSON mapping table based on controller service parameters.
+     * @return DB to JSON mapping table
      */
     DBToJsonMappingTable db2Json();
     /**
-     * Looks up DB to JSON mapping table based on FlowFile attributes. Attributes must contain be.type = Business Entity (BE) type.
+     * Looks up DB to JSON mapping table based on FlowFile attributes.
+     * Attributes must contain be.type = Business Entity (BE) type.
+     * @param attributes List of FlowFile attributes
+     * @return DBToJsonMappingTable object
      */
     DBToJsonMappingTable db2Json(Map<String, String> attributes);
 
 
     /**
      * Gets JSON to DB mapping based on controller service parameters.
+     * @return JsonToDBGraph object
      */
     JsonToDBGraph json2DB();
 
     /**
-     * Looks up JSON to DB mapping based on FlowFile attributes. Attributes must contain be.type = Business Entity (BE) type.
+     * Looks up JSON to DB mapping based on FlowFile attributes.
+     * Attributes must contain be.type = Business Entity (BE) type.
+     * @param attributes List of FlowFile attributes
+     * @return JsonToDBGraph object
      */
     JsonToDBGraph json2DB(Map<String, String> attributes);
 
     /**
      * Gets Business Entity (BE) type associated with this controller service.
+     * @return Business Entity (BE) type
      */
     String getBeType();
 
     /**
      * Gets Source System associated with this controller service.
+     * @return Source System
      */
     String getSourceSystem();
 

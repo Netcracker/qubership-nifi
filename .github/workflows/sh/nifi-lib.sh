@@ -350,7 +350,7 @@ setup_env_before_tests() {
         generate_tls_passwords
         create_docker_env_file
     fi
-    if [ "$runMode" == "oidc" ]; then
+    if [[ "$runMode" == "oidc" ]]; then
         create_global_vars_file
     fi
     mkdir -p ./temp-vol/tls-cert/

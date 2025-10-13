@@ -69,7 +69,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write' ]
+        run-mode: [ 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write', 'upgrade-oidc' ]
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -78,10 +78,11 @@ jobs:
         run: |
           mkdir -p ./test-results/
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
+          persist-credentials: false
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -94,8 +95,13 @@ jobs:
         with:
           run-mode: 'tls'
           error-mode: '${{ matrix.run-mode }}'
+      - name: Run test for upgrade test = ${{ matrix.run-mode }}
+        if: ${{ startsWith(matrix.run-mode, 'upgrade-') }}
+        uses: ./.github/actions/run-upgrade-test
+        with:
+          run-mode: '${{ matrix.run-mode }}'
       - name: Run tests with mode = ${{ matrix.run-mode }}
-        if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' }}
+        if: ${{ matrix.run-mode != 'tls-consul-read' && matrix.run-mode != 'tls-consul-write' && matrix.run-mode != 'upgrade-oidc' }}
         uses: ./.github/actions/run-nifi-tests-generic
         with:
           run-mode: '${{ matrix.run-mode }}'
@@ -131,7 +137,7 @@ jobs:
           fi
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: nifi-autotests-${{ matrix.run-mode }}-logs
           path: |

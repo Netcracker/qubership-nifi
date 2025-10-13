@@ -37,23 +37,28 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @CapabilityDescription("Sends components (Processors, Connections) metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
 public class ComponentMetricsReportingTask
-        extends AbstractInfluxDbReportingTask
-{
+        extends AbstractInfluxDbReportingTask {
+    /**
+     * Processor time threshold property descriptor.
+     */
     public static final PropertyDescriptor PROCESSOR_TIME_THRESHOLD = new PropertyDescriptor.Builder()
             .name("processor-time-threshold")
             .displayName("Processor time threshold")
-            .description("Minimal processing time for processor to be included in monitoring.\n" +
-                         "Limits data volume collected in InfluxDB.")
+            .description("Minimal processing time for processor to be included in monitoring.\n"
+                    + "Limits data volume collected in InfluxDB.")
             .defaultValue("150 sec")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
-    
+
+    /**
+     * Connection queue threshold property descriptor.
+     */
     public static final PropertyDescriptor CONNECTION_QUEUE_THRESHOLD = new PropertyDescriptor.Builder()
             .name("connection-queue-threshold")
             .displayName("Connection queue threshold")
-            .description("Minimal connection usage % relative to backPressureObjectThreshold.\n" +
-                         "Limits data volume collected in InfluxDB.")
+            .description("Minimal connection usage % relative to backPressureObjectThreshold.\n"
+                    + "Limits data volume collected in InfluxDB.")
             .defaultValue("80")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -61,15 +66,27 @@ public class ComponentMetricsReportingTask
     //
     private long processorTimeThreshold;
 
-    public void setProcessorTimeThreshold(long processorTimeThreshold) {
-        this.processorTimeThreshold = processorTimeThreshold;
+    /**
+     * Sets processor run time threshold.
+     * @param processorTimeThresholdValue new processor run time threshold.
+     */
+    public void setProcessorTimeThreshold(long processorTimeThresholdValue) {
+        this.processorTimeThreshold = processorTimeThresholdValue;
     }
 
-    public void setConnectionQueueThreshold(double connectionQueueThreshold) {
-        this.connectionQueueThreshold = connectionQueueThreshold;
+    /**
+     * Sets connection queue size threshold.
+     * @param connectionQueueThresholdValue new processor time threshold.
+     */
+    public void setConnectionQueueThreshold(double connectionQueueThresholdValue) {
+        this.connectionQueueThreshold = connectionQueueThresholdValue;
     }
     private double connectionQueueThreshold;
 
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     @Override
     protected List<PropertyDescriptor> initProperties() {
         List<PropertyDescriptor> allProps = super.initProperties();
@@ -78,23 +95,31 @@ public class ComponentMetricsReportingTask
         return allProps;
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @Override
     public void onScheduled(ConfigurationContext context) {
         super.onScheduled(context);
         processorTimeThreshold = context.getProperty(PROCESSOR_TIME_THRESHOLD).asTimePeriod(TimeUnit.NANOSECONDS);
-        connectionQueueThreshold = context.getProperty(CONNECTION_QUEUE_THRESHOLD).asDouble()/100;
+        connectionQueueThreshold = context.getProperty(CONNECTION_QUEUE_THRESHOLD).asDouble() / 100;
     }
-    
-    
-    
-    private void getAllEligibleStatuses(ProcessGroupStatus pgStatus, List<ConnectionStatus> connections, List<ProcessorStatus> processors) {
+
+
+
+    private void getAllEligibleStatuses(
+            ProcessGroupStatus pgStatus,
+            List<ConnectionStatus> connections,
+            List<ProcessorStatus> processors
+    ) {
         if (pgStatus == null) {
             return;
         }
         //add connections:
         Collection<ConnectionStatus> newConnections = pgStatus.getConnectionStatus();
         if (newConnections != null) {
-            newConnections.stream().filter((s) -> 
+            newConnections.stream().filter((s) ->
                     (s.getQueuedCount() > s.getBackPressureObjectThreshold() * connectionQueueThreshold)).
                 forEach((s) -> {
                     connections.add(s);
@@ -103,8 +128,8 @@ public class ComponentMetricsReportingTask
         //add processors:
         Collection<ProcessorStatus> newProcessors = pgStatus.getProcessorStatus();
         if (newProcessors != null) {
-            newProcessors.stream().filter((s) -> 
-                    (s.getProcessingNanos()> processorTimeThreshold)).
+            newProcessors.stream().filter((s) ->
+                    (s.getProcessingNanos() > processorTimeThreshold)).
                 forEach((s) -> {
                     processors.add(s);
             });
@@ -117,9 +142,8 @@ public class ComponentMetricsReportingTask
             });
         }
     }
-    
-    private void reportConnectionMetrics(long reportTime, StringBuilder res, ConnectionStatus st)
-    {
+
+    private void reportConnectionMetrics(long reportTime, StringBuilder res, ConnectionStatus st) {
         res.append("nifi_connections_monitoring,namespace=").append(escapeTagValue(namespace))
            .append(",connection_uuid=").append(escapeTagValue(st.getId()))
            .append(",hostname=").append(hostname)
@@ -134,9 +158,8 @@ public class ComponentMetricsReportingTask
            .append(",backPressureBytesThreshold=").append(st.getBackPressureBytesThreshold())
            .append(" ").append(reportTime).append("\n");
     }
-    
-    private void reportProcessorMetrics(long reportTime, StringBuilder res, ProcessorStatus st)
-    {
+
+    private void reportProcessorMetrics(long reportTime, StringBuilder res, ProcessorStatus st) {
         res.append("nifi_processors_monitoring,namespace=").append(escapeTagValue(namespace))
            .append(",processor_uuid=").append(escapeTagValue(st.getId()))
            .append(",hostname=").append(hostname)
@@ -152,7 +175,13 @@ public class ComponentMetricsReportingTask
            .append(",bytesSent=").append(st.getBytesSent())
            .append(" ").append(reportTime).append("\n");
     }
-    
+
+    /**
+     * Creating a message for Influx.
+     *
+     * @param context
+     * @return
+     */
     @Override
     public String createInfluxMessage(ReportingContext context) {
         ProcessGroupStatus controllerStatus = context.getEventAccess().getControllerStatus();
@@ -160,7 +189,7 @@ public class ComponentMetricsReportingTask
         List<ProcessorStatus> processors = new ArrayList<>();
         //start with root process group:
         getAllEligibleStatuses(controllerStatus, connections, processors);
-        
+
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
@@ -172,7 +201,7 @@ public class ComponentMetricsReportingTask
         processors.forEach((s) -> {
             reportProcessorMetrics(reportTime, result, s);
         });
-        
+
         return result.toString().trim();
     }
 }

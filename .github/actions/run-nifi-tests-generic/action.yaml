@@ -118,7 +118,7 @@ runs:
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
-        collection-name: 'NiFi_E2E_API_Tests.postman_collection.json'
+        collection-name: 'NiFi_E2E_API_Tests_NiFi_2.x.postman_collection.json'
         env-name: ${{ inputs.run-mode != 'plain' && 'NiFi_AT_TLS.json.postman_environment' || 'NiFi_AT.json.postman_environment' }}
         results-dir: '${{ inputs.run-mode }}'
         short-name: 'e2e'

@@ -31,12 +31,12 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Writer;
 import java.net.InetAddress;
@@ -50,17 +50,41 @@ import java.util.List;
  */
 public abstract class AbstractPrometheusReportingTask extends AbstractReportingTask implements ReportingTask {
 
+    /**
+     * HTTP server.
+     */
     protected Server httpServer;
+    /**
+     * Meter Registry.
+     */
     protected PrometheusMeterRegistry meterRegistry;
 
+    /**
+     * List of property descriptors.
+     */
     protected List<PropertyDescriptor> propertyDescriptors;
 
+    /**
+     * K8s namespace.
+     */
     protected String namespace;
+    /**
+     * NiFi hostname.
+     */
     protected String hostname;
+    /**
+     * NiFi instance identifier.
+     */
     protected String instance;
+    /**
+     * Port to expose metrics on.
+     */
     protected int port;
 
 
+    /**
+     * Server Port property descriptor.
+     */
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
             .displayName("Server Port")

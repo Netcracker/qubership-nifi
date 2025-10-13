@@ -40,10 +40,11 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.InfluxDBIOException;
 
-public abstract class AbstractInfluxDbReportingTask 
-        extends AbstractReportingTask 
-{
-    
+public abstract class AbstractInfluxDbReportingTask
+        extends AbstractReportingTask {
+    /**
+     * Character Set property descriptor.
+     */
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("influxdb-charset")
             .displayName("Character Set")
@@ -53,6 +54,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
+    /**
+     * Influx DB URL property descriptor.
+     */
     public static final PropertyDescriptor INFLUX_DB_URL = new PropertyDescriptor.Builder()
             .name("influxdb-url")
             .displayName("InfluxDB URL")
@@ -62,6 +66,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
+    /**
+     * Connection timeout property descriptor.
+     */
     public static final PropertyDescriptor INFLUX_DB_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Connection timeout")
             .description("The maximum time for establishing connection to the InfluxDB")
@@ -71,6 +78,9 @@ public abstract class AbstractInfluxDbReportingTask
             .sensitive(false)
             .build();
 
+    /**
+     * Database Name property descriptor.
+     */
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
             .name("influxdb-dbname")
             .displayName("Database Name")
@@ -80,6 +90,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Username property descriptor.
+     */
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("influxdb-username")
             .displayName("Username")
@@ -88,6 +101,9 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    /**
+     * Password property descriptor.
+     */
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("influxdb-password")
             .displayName("Password")
@@ -97,6 +113,9 @@ public abstract class AbstractInfluxDbReportingTask
             .sensitive(true)
             .build();
 
+    /**
+     * Max size of records property descriptor.
+     */
     public static final PropertyDescriptor MAX_RECORDS_SIZE = new PropertyDescriptor.Builder()
             .name("influxdb-max-records-size")
             .displayName("Max size of records")
@@ -106,21 +125,43 @@ public abstract class AbstractInfluxDbReportingTask
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    /**
+     * Retention Policy property descriptor.
+     */
     public static final PropertyDescriptor RETENTION_POLICY = new PropertyDescriptor.Builder()
             .name("influxdb-retention-policy")
             .displayName("Retention Policy")
             .description("Retention policy for the saving the records")
             .defaultValue("monitor")
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final AllowableValue CONSISTENCY_LEVEL_ALL = new AllowableValue("ALL", "All", "Return success when all nodes have responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_ANY = new AllowableValue("ANY", "Any", "Return success when any nodes have responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_ONE = new AllowableValue("ONE", "One", "Return success when one node has responded with write success");
-    public static final AllowableValue CONSISTENCY_LEVEL_QUORUM = new AllowableValue("QUORUM", "Quorum", "Return success when a majority of nodes have responded with write success");
+    /**
+     * Consistency level All.
+     */
+    public static final AllowableValue CONSISTENCY_LEVEL_ALL = new AllowableValue("ALL",
+            "All", "Return success when all nodes have responded with write success");
+    /**
+     * Consistency level Any.
+     */
+    public static final AllowableValue CONSISTENCY_LEVEL_ANY = new AllowableValue("ANY",
+            "Any", "Return success when any nodes have responded with write success");
+    /**
+     * Consistency level One.
+     */
+    public static final AllowableValue CONSISTENCY_LEVEL_ONE = new AllowableValue("ONE",
+            "One", "Return success when one node has responded with write success");
+    /**
+     * Consistency level Quorum.
+     */
+    public static final AllowableValue CONSISTENCY_LEVEL_QUORUM = new AllowableValue("QUORUM",
+            "Quorum", "Return success when a majority of nodes have responded with write success");
 
+    /**
+     * Consistency Level property descriptor.
+     */
     public static final PropertyDescriptor CONSISTENCY_LEVEL = new PropertyDescriptor.Builder()
             .name("influxdb-consistency-level")
             .displayName("Consistency Level")
@@ -128,18 +169,44 @@ public abstract class AbstractInfluxDbReportingTask
             .required(true)
             .defaultValue(CONSISTENCY_LEVEL_ONE.getValue())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY, CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
+            .allowableValues(CONSISTENCY_LEVEL_ONE, CONSISTENCY_LEVEL_ANY,
+                    CONSISTENCY_LEVEL_ALL, CONSISTENCY_LEVEL_QUORUM)
             .build();
-    
+
+    /**
+     * InfluxDB instance.
+     */
     protected InfluxDB influxDB;
+    /**
+     * Consistency level.
+     */
     protected String consistencyLevel;
+    /**
+     * Database name.
+     */
     protected String database;
+    /**
+     * Retention policy.
+     */
     protected String retentionPolicy;
+    /**
+     * K8s namespace.
+     */
     protected String namespace;
+    /**
+     * NiFi hostname.
+     */
     protected String hostname;
+    /**
+     * List of all supported property descriptors.
+     */
     protected List<PropertyDescriptor> propertyDescriptors;
-    
-    
+
+
+    /**
+     * Initializes list of property descriptors supported by this reporting task.
+     * @return list of property descriptors
+     */
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(DB_NAME);
@@ -154,6 +221,9 @@ public abstract class AbstractInfluxDbReportingTask
         return prop;
     }
 
+    /**
+     * Initializes reporting task's property descriptors.
+     */
     @Override
     protected void init(ReportingInitializationContext config) {
         final List<PropertyDescriptor> prop = initProperties();
@@ -165,6 +235,10 @@ public abstract class AbstractInfluxDbReportingTask
         return propertyDescriptors;
     }
 
+    /**
+     * Initializes reporting task before it's started.
+     * @param context reporting context
+     */
     @OnScheduled
     @SuppressWarnings(value = "unchecked")
     public void onScheduled(final ConfigurationContext context) {
@@ -174,8 +248,7 @@ public abstract class AbstractInfluxDbReportingTask
         namespace = System.getenv("NAMESPACE");
         try {
             hostname = InetAddress.getLocalHost().getHostName();
-        }
-        catch (UnknownHostException ex) {
+        } catch (UnknownHostException ex) {
             getLogger().warn("Error while getting host name {}", new Object[]{ex.getLocalizedMessage()}, ex);
             hostname = "cloud-data-migration-nifi";
         }
@@ -192,6 +265,15 @@ public abstract class AbstractInfluxDbReportingTask
         getLogger().info("InfluxDB connection created for host {}", new Object[]{influxDbUrl});
     }
 
+    /**
+     * Creating a connection to Influx.
+     *
+     * @param username
+     * @param password
+     * @param influxDbUrl
+     * @param connectionTimeout
+     * @return InfluxDB object
+     */
     protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder().connectTimeout(connectionTimeout, TimeUnit.SECONDS);
         if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
@@ -201,6 +283,9 @@ public abstract class AbstractInfluxDbReportingTask
         }
     }
 
+    /**
+     * Stops Influx server and releases all resources.
+     */
     @OnStopped
     public void close() {
         if (getLogger().isDebugEnabled()) {
@@ -212,6 +297,10 @@ public abstract class AbstractInfluxDbReportingTask
         }
     }
 
+    /**
+     * This method is periodically called to update metrics in meter registry.
+     * @param context  reporting context
+     */
     @Override
     public void onTrigger(ReportingContext context) {
         try {
@@ -222,25 +311,52 @@ public abstract class AbstractInfluxDbReportingTask
             writeToInfluxDB(consistencyLevel, database, retentionPolicy, influxDbMessage);
         } catch (InfluxDBIOException exception) {
             if (exception.getCause() instanceof SocketTimeoutException) {
-                getLogger().error("Failed to insert into influxDB due SocketTimeoutException to {} and retrying", new Object[]{exception.getLocalizedMessage()}, exception);
+                getLogger().error("Failed to insert into influxDB due SocketTimeoutException to {} and retrying",
+                        new Object[]{exception.getLocalizedMessage()}, exception);
             } else {
-                getLogger().error("Failed to insert into influxDB due to {}", new Object[]{exception.getLocalizedMessage()}, exception);
+                getLogger().error("Failed to insert into influxDB due to {}",
+                        new Object[]{exception.getLocalizedMessage()}, exception);
             }
         } catch (Exception exception) {
-            getLogger().error("Failed to insert into influxDB due to {}", new Object[]{exception.getLocalizedMessage()}, exception);
+            getLogger().error("Failed to insert into influxDB due to {}",
+                    new Object[]{exception.getLocalizedMessage()}, exception);
         }
     }
 
+    /**
+     * Create Influx message.
+     *
+     * @param context
+     * @return Influx message
+     */
     public abstract String createInfluxMessage(ReportingContext context);
-    
+
+    /**
+     * Method for escaping tag value.
+     *
+     * @param str
+     * @return tag value
+     */
     protected String escapeTagValue(String str) {
         return escapeKeysOrTagValue(str);
     }
-    
+
+    /**
+     * Method for escaping keys.
+     *
+     * @param str
+     * @return key
+     */
     protected String escapeKey(String str) {
         return escapeKeysOrTagValue(str);
     }
 
+    /**
+     * Method for escaping keys or tag value.
+     *
+     * @param str
+     * @return keys or tag value
+     */
     protected String escapeKeysOrTagValue(String str) {
         if (str == null) {
             return null;
@@ -248,7 +364,13 @@ public abstract class AbstractInfluxDbReportingTask
         //In tag keys, tag values, and field keys, you must escape: space, comma, equal siqn:
         return str.replaceAll(" ", "\\\\ ").replaceAll("=", "\\\\=").replaceAll(",", "\\\\,");
     }
-    
+
+    /**
+     * Method for escaping field value.
+     *
+     * @param str
+     * @return field value
+     */
     protected String escapeFieldValue(String str) {
         if (str == null) {
             return null;
@@ -257,8 +379,26 @@ public abstract class AbstractInfluxDbReportingTask
         return str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"");
     }
 
-    protected void writeToInfluxDB(String consistencyLevel, String database, String retentionPolicy, String records) {
-        influxDB.write(database, retentionPolicy, InfluxDB.ConsistencyLevel.valueOf(consistencyLevel), records);
+    /**
+     * Write message to Influx.
+     *
+     * @param consistencyLevelValue
+     * @param databaseValue
+     * @param retentionPolicyValue
+     * @param records
+     */
+    protected void writeToInfluxDB(
+            String consistencyLevelValue,
+            String databaseValue,
+            String retentionPolicyValue,
+            String records
+    ) {
+        influxDB.write(
+                databaseValue,
+                retentionPolicyValue,
+                InfluxDB.ConsistencyLevel.valueOf(consistencyLevelValue),
+                records
+        );
     }
-    
+
 }

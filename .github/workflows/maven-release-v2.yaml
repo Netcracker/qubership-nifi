@@ -1,5 +1,4 @@
 ---
-
 # This workflow is used to build and publish a Maven project to a Maven repository (GitHub packages or Maven Central).
 # It has a dry run stage to check the build process without actually publishing the artifacts.
 # The workflow is triggered manually and allows the user to specify the version type (major, minor, patch), Maven profile, and additional Maven arguments.
@@ -18,7 +17,7 @@
 # - `GH_BUMP_VERSION_APP_ID`: The GitHub App ID used for authentication.
 # - `GH_BUMP_VERSION_APP_KEY`: The private key for the GitHub App used for authentication.
 # The workflow also requires the https://github.com/Netcracker/.github/blob/main/config/examples/release-drafter-config.yml config file to create a GitHub release.
-# Please prepare project's pom.xml file according to https://github.com/netcracker/qubership-workflow-hub/blob/main/docs/maven-publish-pom-preparation_doc.md
+# Please prepare project's pom.xml file according to https://github.com/netcracker/.github/blob/main/docs/maven-publish-pom-preparation_doc.md
 # to be able to use this workflow.
 
 name: Maven release
@@ -29,43 +28,45 @@ on:
   workflow_dispatch:
     inputs:
       version-type:
-        description: 'Version type to release'
+        description: "Version type to release"
         type: choice
         options:
-          - 'major'
-          - 'minor'
-          - 'patch'
+          - "major"
+          - "minor"
+          - "patch"
         required: true
-        default: 'patch'
+        default: "patch"
       profile:
-        description: 'Maven profile to use'
+        description: "Maven profile to use"
         type: choice
         options:
-          - 'github'
-          - 'central'
+          - "github"
+          - "central"
         required: false
-        default: 'central'
+        default: "central"
       mvn-args:
-        description: 'Additional maven arguments to pass (e.g. -DskipTests=true -Dmaven.javadoc.skip=true)'
+        description: "Additional maven arguments to pass (e.g. -DskipTests=true -Dmaven.javadoc.skip=true)"
         required: false
-        default: ''
+        default: ""
         type: string
       build-docker:
-        description: 'Build Docker image'
+        description: "Build Docker image"
         required: false
         default: false
         type: boolean
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
   dry-run-build:
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.3
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@de43c4115d6d3b1547060e7ef2a137aa9ab60fc1 #v1.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -78,24 +79,27 @@ jobs:
           maven-password: ${{ inputs.profile == 'github' && secrets.GITHUB_TOKEN || secrets.MAVEN_PASSWORD }}
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          dry-run: 'true'
+          dry-run: "true"
   deploy:
-    needs: dry-run-build
     if: ${{ needs.dry-run-build.result == 'success' }}
+    permissions:
+      contents: write
+      packages: write
+    needs: dry-run-build
+    runs-on: ubuntu-latest
     outputs:
       release-version: ${{ steps.build-and-publish.outputs.release-version }}
-    runs-on: ubuntu-latest
     steps:
       # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule
       - name: "Prepare app token"
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
         id: app-token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
           private-key: ${{ secrets.GH_BUMP_VERSION_APP_KEY }}
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@v1.0.3
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@de43c4115d6d3b1547060e7ef2a137aa9ab60fc1 #v1.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -108,20 +112,26 @@ jobs:
           maven-password: ${{ inputs.profile == 'github' && secrets.GITHUB_TOKEN || secrets.MAVEN_PASSWORD }}
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
-          dry-run: 'false'
+          dry-run: "false"
+
       - name: Upload all Maven target directories
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ github.event.repository.name }}
-          path: '**/target'
+          path: "${{ github.event.repository.name }}/**/target"
+
   check-dockerfile:
     if: ${{ github.event.inputs.build-docker == 'true' }}
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     needs: [deploy]
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
       - name: "Check Dockerfile existence"
         id: check_dockerfile
         shell: bash
@@ -138,24 +148,27 @@ jobs:
   docker-build:
     if: ${{ github.event.inputs.build-docker == 'true' && needs.check-dockerfile.outputs.dockerfile_exists == 'exists' }}
     permissions:
-      contents: write
+      contents: read
       packages: write
     runs-on: ubuntu-latest
     needs: [check-dockerfile, deploy]
     steps:
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@main
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@b3bf0caa5f3a96a979d0913c04d7aa59cdc11775 #v1.0.6
         with:
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
+          download-artifact-path: "."
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
   github-release:
-    needs: [deploy]
     if: ${{ needs.deploy.result == 'success' }}
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@v1.0.3
+    permissions:
+      contents: write
+    needs: [deploy]
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@v1.0.5
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true

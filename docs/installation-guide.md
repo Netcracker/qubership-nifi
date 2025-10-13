@@ -1,6 +1,6 @@
 # Installation Guide
 
-qubership-nifi service can be started in docker (or compatible) container runtime with support of `docker compose` command.
+qubership-nifi service can be started in Docker (or compatible) container runtime with support of `docker compose` command.
 
 Sections below describe typical startup configurations:
 1. plain - service without any authentication with plain (HTTP) communications
@@ -9,8 +9,8 @@ Sections below describe typical startup configurations:
 ## Prerequisites
 
 Make sure you have the following tools installed:
-1. Docker - any version of Docker Engine or any compatible docker container runtime.
-2. Docker Compose - any version of Docker Compose or any compatible docker container runtime.
+1. Docker - any version of Docker Engine or any compatible Docker container runtime.
+2. Docker Compose - any version of Docker Compose or any compatible Docker container runtime.
 
 ## Running qubership-nifi in plain mode
 
@@ -28,7 +28,7 @@ To start qubership-nifi in plain (unencrypted) mode, do the following:
    | PATH_TO_LOCAL_VOLUME       | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<ul><li>nifi-registry/ - for storing NiFi Registry's data</li><li>nifi/conf/ - for storing nifi flow configuration</li></ul> |
    | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                       |
 
-3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/nifi:latest` is used
+3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
 
 ### Accessing NiFi UI in plain mode
@@ -55,7 +55,7 @@ To start qubership-nifi in TLS mode, do the following:
     | KEYSTORE_PASSWORD_NIFI_REG | Y        |         | Defines password for qubership-nifi-registry keystore with server certificates. It'll be created during the first run.                                                                                                                                               |
     | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                                                                                |
 
-3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/nifi:latest` is used
+3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
 
 ### Accessing NiFi UI in TLS mode

@@ -1,0 +1,160 @@
+{
+    "info": {
+        "_postman_id": "5e083e82-2776-4bc3-be87-d90839f31a81",
+        "name": "NiFi_Upgrade_Restore_Test",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get Id of E2E_Flow",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get Id of E2E_Flow\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    var processGroups = jsonData.processGroups;\r",
+                            "    var result = false;\r",
+                            "    for (var i = 0; i < processGroups.length; i++) {\r",
+                            "        var pg = processGroups[i]\r",
+                            "        if (pg.component.name == \"E2E_Flow\") {\r",
+                            "            pm.environment.set(\"nifi.upgrade.e2e.process.group.id\", pg.component.id);\r",
+                            "            result = true;\r",
+                            "            break;\r",
+                            "        }\r",
+                            "    }\r",
+                            "    pm.expect(result).to.eql(true);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "protocolProfileBehavior": {
+                "disableBodyPruning": true
+            },
+            "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "process-groups",
+                        "root",
+                        "process-groups"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get id of E2E_Test process group",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Get id of E2E_Test process group\", function () {\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    var processGroups = jsonData.processGroupFlow.flow.processGroups;\r",
+                            "    var result = false;\r",
+                            "    for (var i = 0; i < processGroups.length; i++) {\r",
+                            "        var pg = processGroups[i]\r",
+                            "        if (pg.component.name == \"E2E_Test\") {\r",
+                            "            pm.environment.set(\"nifi.upgrade.e2e.test.pg.id\", pg.component.id);\r",
+                            "            result = true;\r",
+                            "            break;\r",
+                            "        }\r",
+                            "    }\r",
+                            "    pm.expect(result).to.eql(true);\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nifi.upgrade.e2e.process.group.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "process-groups",
+                        "{{nifi.upgrade.e2e.process.group.id}}"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Check artifact for JoltTransformJSON",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {\r",
+                            "    pm.response.to.have.status(200);\r",
+                            "});\r",
+                            "pm.test(\"Check artifact for JoltTransformJSON\", function () {\r",
+                            "    let expArtifact = \"nifi-standard-nar\";\r",
+                            "    var jsonData = pm.response.json();\r",
+                            "    var processors = jsonData.processGroupFlow.flow.processors;\r",
+                            "    var result = false;\r",
+                            "    for (var i = 0; i < processors.length; i++) {\r",
+                            "        var pg = processors[i]\r",
+                            "        if (pg.component.name == \"JoltTransformJSON\") {\r",
+                            "            pm.expect(pg.component.bundle.artifact).to.equal(expArtifact);\r",
+                            "        }\r",
+                            "    }\r",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nifi.upgrade.e2e.test.pg.id}}",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "process-groups",
+                        "{{nifi.upgrade.e2e.test.pg.id}}"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}

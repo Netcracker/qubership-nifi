@@ -61,6 +61,9 @@ import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricN
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.BULLETIN_COUNT_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.QUEUED_BYTES_PG_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.COMPONENT_COUNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_COUNT_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_BYTES_PG_METRIC_NAME;
 
 public class ComponentPrometheusReportingTaskTest {
 
@@ -75,7 +78,7 @@ public class ComponentPrometheusReportingTaskTest {
     public void setUp() throws Exception {
         task = new MockComponentPrometheusReportingTask();
         componentLogger = new MockComponentLog("reporting-task-id", task);
-        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null);
+        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
         task.initProperties();
         initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);
@@ -262,6 +265,9 @@ public class ComponentPrometheusReportingTaskTest {
         topProcessGroup.setName("Nifi Flow");
         List<ProcessGroupStatus> childPg = createTestPG();
         topProcessGroup.setProcessGroupStatus(childPg);
+        topProcessGroup.setActiveThreadCount(23);
+        topProcessGroup.setQueuedCount(2000);
+        topProcessGroup.setQueuedContentSize(5_000_000_000L);
         return topProcessGroup;
     }
 
@@ -530,6 +536,32 @@ public class ComponentPrometheusReportingTaskTest {
     }
 
     @Test
+    public void registerNiFiMetricsForTopProcessGroupComponents() throws InitializationException, IOException {
+        mockBulletinRepository = mock(MockBulletinRepository.class);
+        reportingContext = mock(ReportingContext.class);
+        EventAccess eventAccess = mock(EventAccess.class);
+        ProcessGroupStatus processGroupStatus = createTopProcessGroup();
+        when(reportingContext.getBulletinRepository()).thenReturn(mockBulletinRepository);
+        when(eventAccess.getControllerStatus()).thenReturn(processGroupStatus);
+        when(reportingContext.getEventAccess()).thenReturn(eventAccess);
+        task.registerMetrics(reportingContext);
+        assertEquals(1, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
+
+
+        assertEquals(23, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
+                tags("component_id", "rootId").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(2000, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).
+                tags("component_id", "rootId").
+                gauge().measure().iterator().next().getValue());
+        assertEquals(5_000_000_000L, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).
+                tags("component_id", "rootId").
+                gauge().measure().iterator().next().getValue());
+    }
+
+    @Test
     public void registerJvmMetrics() throws Exception {
         //check that JVM metrics are present:
         assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
@@ -542,6 +574,25 @@ public class ComponentPrometheusReportingTaskTest {
         //check that JVM metrics are present after restart:
         assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
+                gauges().size());
+    }
+
+
+    @Test
+    public void registerNiFiJvmMetrics() throws Exception {
+        //check that NiFi JVM metrics are present:
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
+                gauges().size());
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
+                gauges().size());
+        //stop task:
+        task.onShutDown();
+        //and start again:
+        task.onScheduled(configurationContext);
+        //check that NiFi JVM metrics are present after restart:
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
+                gauges().size());
+        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
                 gauges().size());
     }
 

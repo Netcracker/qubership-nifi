@@ -16,21 +16,63 @@
 
 package org.qubership.nifi.reporting.metrics.component;
 
+/**
+ * Enum for process group metric names.
+ */
 public enum ProcessGroupMetricName {
 
+    /**
+     * nc_nifi_pg_component_count metric.
+     */
     COMPONENT_COUNT_METRIC_NAME("nc_nifi_pg_component_count"),
+    /**
+     * nc_nifi_pg_bulletin_count metric.
+     */
     BULLETIN_COUNT_METRIC_NAME("nc_nifi_pg_bulletin_count"),
+    /**
+     * nc_nifi_pg_bulletin_cnt metric.
+     */
     BULLETIN_CNT_METRIC_NAME("nc_nifi_pg_bulletin_cnt"),
+    /**
+     * nc_nifi_pg_active_thread_count metric.
+     */
     ACTIVE_THREAD_COUNT_METRIC_NAME("nc_nifi_pg_active_thread_count"),
+    /**
+     * nc_nifi_pg_queued_count metric.
+     */
     QUEUED_COUNT_PG_METRIC_NAME("nc_nifi_pg_queued_count"),
-    QUEUED_BYTES_PG_METRIC_NAME("nc_nifi_pg_queued_bytes");
+    /**
+     * nc_nifi_pg_queued_bytes metric.
+     */
+    QUEUED_BYTES_PG_METRIC_NAME("nc_nifi_pg_queued_bytes"),
+
+    /**
+     * nifi_amount_threads_active metric.
+     */
+    ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME("nifi_amount_threads_active"),
+    /**
+     * nifi_amount_items_queued metric.
+     */
+    ROOT_QUEUED_COUNT_PG_METRIC_NAME("nifi_amount_items_queued"),
+    /**
+     * nifi_size_content_queued_total metric.
+     */
+    ROOT_QUEUED_BYTES_PG_METRIC_NAME("nifi_size_content_queued_total");
 
     private final String name;
 
-    ProcessGroupMetricName(String name) {
-        this.name = name;
+    /**
+     * Create instance of ProcessGroupMetricName enum.
+     * @param metricName metric name.
+     */
+    ProcessGroupMetricName(final String metricName) {
+        this.name = metricName;
     }
 
+    /**
+     * Get metric name.
+     * @return name
+     */
     public String getName() {
         return name;
     }
