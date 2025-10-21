@@ -31,7 +31,7 @@ wait_for_service() {
     tlsArgs=""
     if [ "${isTls}" == "true" ]; then
         echo "Using TLS mode..."
-        echo "Waiting for service to be available on port 8080 with timeout = $timeout"
+        echo "Waiting for service to be available on port $servicePort with timeout = $timeout"
         serviceUrl="https://$serviceHost:$servicePort$apiUrlToCheck"
         echo "Client keystore: $tlsClientKeystore (p12), ca cert = $tlsAdditionalCAs"
         tlsArgs=" --cert '$tlsClientKeystore:$tlsClientPassword' --cert-type P12 --cacert $tlsAdditionalCAs"
@@ -256,20 +256,26 @@ wait_nifi_reg_container() {
     local clientKeystore="$9"
     local clientPassword="${10}"
     local apiUrl='/nifi-registry-api/config'
+
     echo "Sleep for $initialWait seconds..."
     sleep "$initialWait"
     echo "Waiting for nifi registry on $hostName:$portNum (TLS = $useTls, url = $apiUrl) to start..."
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
         "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi registry not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
-        docker logs -n 500 "$containerName" >./nifi_registry_log_tmp.lst
+        docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 >./nifi_registry_log_tmp.lst
         cat ./nifi_registry_log_tmp.lst
         echo "Wait failed, nifi registry not available" >"./test-results/$resultsDir/failed_nifi_registry_wait.lst"
         mv ./nifi_registry_log_tmp.lst "./test-results/$resultsDir/nifi_registry_log_after_wait.log"
+        echo "| Wait for nifi registry container start         | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+        return 1
     fi
+    echo "| Wait for nifi registry container start         | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    return 0
 }
 
 generate_tls_passwords() {
