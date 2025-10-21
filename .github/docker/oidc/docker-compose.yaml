@@ -59,6 +59,7 @@ services:
         condition: service_started
     volumes:
       - tls-cert-reg:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:18080:18080
     environment:
@@ -77,6 +78,17 @@ services:
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
     container_name: local-nifi-registry
     hostname: nifi-registry
+    labels:
+      - "autoheal=true" # Label for autoheal to monitor
+    healthcheck:
+      interval: 15s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+      test:
+        - "CMD"
+        - "bash"
+        - "/opt/nifi-registry/scripts/ready.sh"
     restart: unless-stopped
   consul:
     image: hashicorp/consul:1.20
@@ -125,6 +137,13 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     container_name: postgresql
     hostname: postgresql
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal:latest
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 volumes:
   tls-scripts:
     driver: local
