@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jre AS base
+FROM alpine/java:21-jre@sha256:a0433ecc16a0a9e389e216753019cc97f69f0973aecfadaf357d31838078bab5 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -21,7 +21,7 @@ RUN apk add --no-cache \
     jq=1.7.1-r0 \
     bash=5.2.26-r0 \
     curl=8.14.1-r2 \
-    python3=3.12.11-r0 \
+    python3=3.12.12-r0 \
     py3-pip=24.0-r2
 
 ENV NIFI_BASE_DIR=/opt/nifi
@@ -47,7 +47,7 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:2.5.0 AS nifi
+FROM apache/nifi:2.5.0@sha256:3f9a22fda8a9bd8a13e2ed1009ce484ccaca781feb7b21b3ef73d57562867295 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 
