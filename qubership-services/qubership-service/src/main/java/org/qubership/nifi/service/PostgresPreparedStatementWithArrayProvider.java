@@ -38,8 +38,8 @@ import java.util.List;
  */
 @Tags({"properties"})
 @CapabilityDescription("Provides a prepared statement service.")
-public class PostgresPreparedStatementWithArrayProvider 
-        extends AbstractPreparedStatementProvider 
+public class PostgresPreparedStatementWithArrayProvider
+        extends AbstractPreparedStatementProvider
         implements PreparedStatementProvider {
 
     public static final PropertyDescriptor CHAR_ARRAY_TYPE = new PropertyDescriptor.Builder()
@@ -50,7 +50,7 @@ public class PostgresPreparedStatementWithArrayProvider
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
             .build();
-    
+
     public static final PropertyDescriptor NUMERIC_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("numeric-array-type")
             .displayName("Numeric Array Type")
@@ -79,14 +79,15 @@ public class PostgresPreparedStatementWithArrayProvider
     public void onEnable(ConfigurationContext context) {
         this.charArrayType = context.getProperty(CHAR_ARRAY_TYPE).getValue();
         this.numArrayType = context.getProperty(NUMERIC_ARRAY_TYPE).getValue();
-    }     
+    }
 
+    @SuppressWarnings("java:S2095")
     @Override
     public PreparedStatement createPreparedStatement(String query, ProcessContext context, Collection<String> ids, Connection con, DBElementType type, int numberOfBinds, int bindsOffset) throws SQLException {
         PreparedStatement result = con.prepareStatement(query);
         String arrayType = getArrayType(type);
         Object[] idArray = convertArray(ids, type);
-        
+
         for (int cnt = bindsOffset+1; cnt < bindsOffset+numberOfBinds+1; cnt++) {
             result.setArray(cnt, con.createArrayOf(arrayType, idArray));
         }

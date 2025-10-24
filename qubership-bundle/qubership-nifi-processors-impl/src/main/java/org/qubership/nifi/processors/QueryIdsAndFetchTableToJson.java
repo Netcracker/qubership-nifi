@@ -434,21 +434,6 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return context.getProperty(IDS_DBCP_SERVICE).asControllerService(DBCPService.class);
     }
 
-    private PreparedStatement createPreparedStatement(
-            Connection con,
-            ProcessContext context,
-            List<String> id) throws SQLException {
-        if (id.size() != 0) {
-            return getStatementProducer().createPreparedStatement(
-                    query,
-                    context,
-                    id,
-                    con
-            );
-        }
-        return con.prepareStatement(query);
-    }
-
     private long[] fetchTableToJson(
             String fetchId,
             Map<String, String> attributes,
@@ -461,7 +446,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         long totalBatchCount = 0;
         try (
                 Connection connection = createConnection(context);
-                PreparedStatement preparedStatement = createPreparedStatement(connection, context, id);
+                PreparedStatement preparedStatement =  id.isEmpty() ? connection.prepareStatement(query) :
+                        getStatementProducer().createPreparedStatement(query, context, id, connection);
         ) {
             String dbUrl = connection.getMetaData().getURL();
             String finalFetchId = fetchId;

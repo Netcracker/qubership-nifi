@@ -19,6 +19,7 @@ package org.qubership.nifi.reporting;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
+import jakarta.servlet.ServletException;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -210,7 +211,8 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
          * @param resp http response
          */
         @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
+        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
+                throws IOException {
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.setContentType(TextFormat.CONTENT_TYPE_004);
 
@@ -219,7 +221,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
                 writer.flush();
             } catch (IOException e) {
                 getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
+                throw e;
             }
         }
     }

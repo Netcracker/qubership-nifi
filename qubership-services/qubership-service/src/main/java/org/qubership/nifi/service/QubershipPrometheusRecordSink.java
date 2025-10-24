@@ -436,7 +436,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private final class PrometheusServlet extends HttpServlet {
 
         @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
+        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.setContentType(TextFormat.CONTENT_TYPE_004);
 
@@ -445,7 +445,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 writer.flush();
             } catch (IOException e) {
                 getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
+                throw e;
             }
         }
     }

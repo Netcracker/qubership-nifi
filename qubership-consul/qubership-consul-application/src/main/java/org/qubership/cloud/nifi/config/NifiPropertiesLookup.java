@@ -44,15 +44,22 @@ import java.time.format.DateTimeFormatter;
 public class NifiPropertiesLookup implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(NifiPropertiesLookup.class);
-
-    @Autowired
     private PropertiesManager propertiesManager;
-
-    @Autowired
     private XmlConfigValidator xmlConfigValidator;
 
     @Value("${config.notify-completion.path}")
     private String path;
+
+    /**
+     * Default constructor.
+     * @param pm instance of PropertiesManager to use
+     * @param validator instance of XmlConfigValidator to use
+     */
+    @Autowired
+    public NifiPropertiesLookup(final PropertiesManager pm, final XmlConfigValidator validator) {
+        this.propertiesManager = pm;
+        this.xmlConfigValidator = validator;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(NifiPropertiesLookup.class, args);
@@ -67,7 +74,7 @@ public class NifiPropertiesLookup implements CommandLineRunner {
         //System.exit(0);
 
     }
-    
+
     private void notifyCompletionToStartScript() {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
