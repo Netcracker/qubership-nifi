@@ -436,16 +436,24 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private final class PrometheusServlet extends HttpServlet {
 
         @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
+        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
             resp.setStatus(HttpServletResponse.SC_OK);
             resp.setContentType(TextFormat.CONTENT_TYPE_004);
-
             try (Writer writer = resp.getWriter()) {
                 TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
                 writer.flush();
             } catch (IOException e) {
                 getLogger().error("Error while scraping metrics {}", e);
-                throw e;
+                //reset response and write error response:
+                resp.reset();
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                resp.setContentType("application/text");
+                try (Writer writer = resp.getWriter()) {
+                    writer.write("Failed to write metrics in response. See logs for more details.");
+                    writer.flush();
+                } catch (IOException ex) {
+                    getLogger().error("Error while writing error response {}", ex);
+                }
             }
         }
     }

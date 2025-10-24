@@ -17,6 +17,10 @@
 package org.qubership.nifi.service;
 
 import io.micrometer.core.instrument.Meter;
+import io.prometheus.client.exporter.common.TextFormat;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -27,6 +31,7 @@ import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +41,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,6 +52,9 @@ public class QubershipPrometheusRecordSinkTest {
 
     private QubershipPrometheusRecordSink recordSink;
     private TestRunner runner;
+    private static final String SERVER_PORT = "9092";
+    private static final String SERVER_URL = "http://localhost:" + SERVER_PORT + "/metrics";
+    private OkHttpClient client;
 
     @BeforeEach
     public void setup() throws Exception {
@@ -53,14 +62,24 @@ public class QubershipPrometheusRecordSinkTest {
         runner = TestRunners.newTestRunner(TestProcessorRecordSink.class);
         runner.setValidateExpressionUsage(false);
         runner.addControllerService(MockQubershipPrometheusRecordSink.class.getSimpleName(), recordSink);
-        runner.setProperty(recordSink, QubershipPrometheusRecordSink.METRICS_ENDPOINT_PORT, "9092");
+        runner.setProperty(recordSink, QubershipPrometheusRecordSink.METRICS_ENDPOINT_PORT, SERVER_PORT);
         runner.setProperty(recordSink, QubershipPrometheusRecordSink.INSTANCE_ID, "test-instance-id");
         runner.assertValid(recordSink);
+        //
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        builder.connectTimeout(5, TimeUnit.SECONDS);
+        builder.readTimeout(5, TimeUnit.SECONDS);
+        client = builder.build();
+        runner.enableControllerService(recordSink);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testSendData() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field11", RecordFieldType.INT.getDataType()),
                 new RecordField("field12", RecordFieldType.INT.getDataType()),
@@ -97,12 +116,21 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
+        //test endpoint:
+        Request request = new Request.Builder().url(SERVER_URL).get().build();
+        try (Response resp = client.newCall(request).execute()) {
+            assertTrue(resp.isSuccessful());
+            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
+            String responseBody = resp.body().string();
+            assertTrue(responseBody.contains("field11{field2=\"value12\",field3=\"value13\",hostname=\"test-hostname\","
+                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\",}"));
+            assertTrue(responseBody.contains("field12{field2=\"value12\",field3=\"value13\",hostname=\"test-hostname\","
+                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\",}"));
+        }
     }
 
     @Test
     public void testSendDataWithNullValue() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field11", RecordFieldType.INT.getDataType()),
                 new RecordField("field12", RecordFieldType.INT.getDataType()),
@@ -138,12 +166,10 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testWithNullMetricName() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field11", RecordFieldType.INT.getDataType()),
                 new RecordField("field12", RecordFieldType.INT.getDataType()),
@@ -174,12 +200,10 @@ public class QubershipPrometheusRecordSinkTest {
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(1, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testWithNullLabelValues() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field11", RecordFieldType.INT.getDataType()),
                 new RecordField("field12", RecordFieldType.INT.getDataType()),
@@ -214,12 +238,10 @@ public class QubershipPrometheusRecordSinkTest {
         assertEquals(2, recordSink.meterRegistry.getMeters().size());
         assertEquals(6, recordSink.meterRegistry.getMeters().get(1).measure().iterator().next().getValue());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testChangeValue() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
                 new RecordField("field2", RecordFieldType.STRING.getDataType()),
@@ -272,14 +294,11 @@ public class QubershipPrometheusRecordSinkTest {
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(1, recordSink.meterRegistry.getMeters().size());
         assertEquals(15, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
-
-        runner.disableControllerService(recordSink);
     }
 
 
     @Test
     public void testSendDataWithDifSchema() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> recordFields1 = Arrays.asList(
                 new RecordField("field1", RecordFieldType.INT.getDataType()),
                 new RecordField("field2", RecordFieldType.STRING.getDataType()),
@@ -328,11 +347,11 @@ public class QubershipPrometheusRecordSinkTest {
         List<Meter> content = recordSink.meterRegistry.getMeters();
         assertFalse(recordSink.meterRegistry.getMeters().get(0).getId().toString().
                 equals(recordSink.meterRegistry.getMeters().get(1).getId().toString()));
-        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testClearData() throws Exception {
+        runner.disableControllerService(recordSink);
         runner.setProperty(recordSink, recordSink.CLEAR_METRICS, "Yes");
         runner.enableControllerService(recordSink);
         List<RecordField> recordFields = Arrays.asList(
@@ -367,11 +386,11 @@ public class QubershipPrometheusRecordSinkTest {
         assertNotNull(recordSink.meterRegistry.getMeters());
         runner.disableControllerService(recordSink);
         assertEquals(0, recordSink.meterRegistry.getMeters().size());
+        runner.enableControllerService(recordSink);
     }
 
     @Test
     public void testSendCounterMetric() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Counter")
@@ -412,12 +431,10 @@ public class QubershipPrometheusRecordSinkTest {
                 + "tag(namespace=test-namespace)]}").
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(25.0, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
     }
 
     @Test
     public void testIncrementCounterMetric() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.INT.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Counter")
@@ -472,13 +489,11 @@ public class QubershipPrometheusRecordSinkTest {
                 + "tag(namespace=test-namespace)]}").
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
         assertEquals(50.0, recordSink.meterRegistry.getMeters().get(0).measure().iterator().next().getValue());
-        runner.disableControllerService(recordSink);
     }
 
 
     @Test
     public void testSendSummaryMetric() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Summary"),
@@ -524,13 +539,12 @@ public class QubershipPrometheusRecordSinkTest {
                 + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
                 + "tag(namespace=test-namespace)]}").
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
-        assertEquals(101.512, recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
-        runner.disableControllerService(recordSink);
+        assertEquals(101.512,
+                recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
     }
 
     @Test
     public void testIncrementSummaryMetric() throws Exception {
-        runner.enableControllerService(recordSink);
         List<RecordField> childRecordFields = Arrays.asList(
                 new RecordField("value", RecordFieldType.DOUBLE.getDataType()),
                 new RecordField("type", RecordFieldType.STRING.getDataType(), "Summary"),
@@ -590,7 +604,7 @@ public class QubershipPrometheusRecordSinkTest {
                 + "tag(instance=test-namespace_test-hostname),tag(integration_name=MyIntegration),"
                 + "tag(namespace=test-namespace)]}").
                 equals(recordSink.meterRegistry.getMeters().get(0).getId().toString()));
-        assertEquals(203.024, recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
-        runner.disableControllerService(recordSink);
+        assertEquals(203.024,
+                recordSink.meterRegistry.get("integration_execution_duration").summary().totalAmount());
     }
 }
