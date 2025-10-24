@@ -14,12 +14,13 @@ import java.io.Writer;
  * Servlet for exposing prometheus metrics.
  */
 public class PrometheusServlet extends HttpServlet {
-    private final PrometheusMeterRegistry meterRegistry;
-    private final ComponentLog log;
+    private final transient PrometheusMeterRegistry meterRegistry;
+    private final transient ComponentLog log;
 
     /**
      * Default constructor.
      * @param mr meter registry
+     * @param logger component logger
      */
     public PrometheusServlet(final PrometheusMeterRegistry mr, final ComponentLog logger) {
         this.meterRegistry = mr;
@@ -27,7 +28,7 @@ public class PrometheusServlet extends HttpServlet {
     }
 
     /**
-     * Handles get requests for the server. Gets metrics in prometheus format.
+     * Handles GET requests for the server. Gets metrics in prometheus format.
      * @param req http request
      * @param resp http response
      */
