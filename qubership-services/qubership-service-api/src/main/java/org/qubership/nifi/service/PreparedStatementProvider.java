@@ -30,7 +30,7 @@ import java.util.Collection;
 public interface PreparedStatementProvider extends ControllerService {
 
     /**
-     * Creates PreparedStatement with specified query and sets ids as string array parameter
+     * Creates PreparedStatement with specified query and sets ids as string array parameter.
      * @param query SQL query
      * @param context NiFI ProcessContext to use
      * @param ids a collection of ids
@@ -65,7 +65,7 @@ public interface PreparedStatementProvider extends ControllerService {
 
 
     /**
-     * Creates PreparedStatement with specified query and sets ids as string array parameter specified number of times
+     * Creates PreparedStatement with specified query and sets ids as string array parameter specified number of times.
      * @param query SQL query
      * @param context NiFI ProcessContext to use
      * @param ids a collection of ids
@@ -85,7 +85,8 @@ public interface PreparedStatementProvider extends ControllerService {
     ) throws SQLException;
 
     /**
-     * Creates PreparedStatement with specified query and sets ids as array parameter with specified element type specified number of times.
+     * Creates PreparedStatement with specified query and sets ids as array parameter
+     * with specified element type specified number of times.
      * @param query SQL query
      * @param context NiFI ProcessContext to use
      * @param ids a collection of ids

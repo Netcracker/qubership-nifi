@@ -99,11 +99,13 @@ public class PostgresPreparedStatementWithArrayProvider
     }
 
     /**
-     * Creates PreparedStatement with specified query and sets ids as string array parameter specified number of times
+     * Creates PreparedStatement with specified query and sets ids as array parameter
+     * with specified element type specified number of times.
      * @param query SQL query
      * @param context NiFI ProcessContext to use
      * @param ids a collection of ids
      * @param con Connection to DB
+     * @param type type of array element to convert to
      * @param numberOfBinds number of binds to add
      * @param bindsOffset offset for binds indexes
      * @return PreparedStatement
