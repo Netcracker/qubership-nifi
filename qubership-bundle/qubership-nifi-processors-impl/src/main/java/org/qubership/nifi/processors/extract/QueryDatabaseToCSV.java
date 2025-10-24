@@ -51,7 +51,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Clob;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.Set;
 import java.util.List;
 import java.util.HashSet;
@@ -247,7 +246,8 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
                                                     if (cellValue instanceof String) {
                                                         printer.print(String.valueOf(cellValue));
                                                     } else if (cellValue instanceof Clob) {
-                                                        Reader characterStream = ((Clob) cellValue).getCharacterStream();
+                                                        Reader characterStream =
+                                                                ((Clob) cellValue).getCharacterStream();
                                                         StringWriter sw = new StringWriter();
                                                         IOUtils.copy(characterStream, sw);
                                                         printer.print(sw.toString());

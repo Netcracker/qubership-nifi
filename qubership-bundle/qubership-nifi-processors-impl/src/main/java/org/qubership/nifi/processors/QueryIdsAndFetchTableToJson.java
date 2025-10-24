@@ -446,8 +446,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         long totalBatchCount = 0;
         try (
                 Connection connection = createConnection(context);
-                PreparedStatement preparedStatement =  id.isEmpty() ? connection.prepareStatement(query) :
-                        getStatementProducer().createPreparedStatement(query, context, id, connection);
+                PreparedStatement preparedStatement =  id.isEmpty() ? connection.prepareStatement(query)
+                        : getStatementProducer().createPreparedStatement(query, context, id, connection);
         ) {
             String dbUrl = connection.getMetaData().getURL();
             String finalFetchId = fetchId;

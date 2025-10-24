@@ -42,6 +42,9 @@ public class PostgresPreparedStatementWithArrayProvider
         extends AbstractPreparedStatementProvider
         implements PreparedStatementProvider {
 
+    /**
+     * Char Array Type Property Descriptor.
+     */
     public static final PropertyDescriptor CHAR_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("array-type")
             .displayName("Char Array Type")
@@ -51,6 +54,9 @@ public class PostgresPreparedStatementWithArrayProvider
             .required(false)
             .build();
 
+    /**
+     * Numeric Array Type Property Descriptor.
+     */
     public static final PropertyDescriptor NUMERIC_ARRAY_TYPE = new PropertyDescriptor.Builder()
             .name("numeric-array-type")
             .displayName("Numeric Array Type")
@@ -62,6 +68,9 @@ public class PostgresPreparedStatementWithArrayProvider
 
     private List<PropertyDescriptor> propDescriptors;
 
+    /**
+     * Default constructor.
+     */
     public PostgresPreparedStatementWithArrayProvider() {
         final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(CHAR_ARRAY_TYPE);
@@ -70,25 +79,46 @@ public class PostgresPreparedStatementWithArrayProvider
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
+    /**
+     * Gets list of supported property descriptors.
+     * @return a list of property descriptors.
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propDescriptors;
     }
 
+    /**
+     * Initializes controller service: reads properties from context before use.
+     * @param context configuration context
+     */
     @OnEnabled
     public void onEnable(ConfigurationContext context) {
         this.charArrayType = context.getProperty(CHAR_ARRAY_TYPE).getValue();
         this.numArrayType = context.getProperty(NUMERIC_ARRAY_TYPE).getValue();
     }
 
+    /**
+     * Creates PreparedStatement with specified query and sets ids as string array parameter specified number of times
+     * @param query SQL query
+     * @param context NiFI ProcessContext to use
+     * @param ids a collection of ids
+     * @param con Connection to DB
+     * @param numberOfBinds number of binds to add
+     * @param bindsOffset offset for binds indexes
+     * @return PreparedStatement
+     * @throws SQLException
+     */
     @SuppressWarnings("java:S2095")
     @Override
-    public PreparedStatement createPreparedStatement(String query, ProcessContext context, Collection<String> ids, Connection con, DBElementType type, int numberOfBinds, int bindsOffset) throws SQLException {
+    public PreparedStatement createPreparedStatement(String query, ProcessContext context, Collection<String> ids,
+                                                     Connection con, DBElementType type, int numberOfBinds,
+                                                     int bindsOffset) throws SQLException {
         PreparedStatement result = con.prepareStatement(query);
         String arrayType = getArrayType(type);
         Object[] idArray = convertArray(ids, type);
 
-        for (int cnt = bindsOffset+1; cnt < bindsOffset+numberOfBinds+1; cnt++) {
+        for (int cnt = bindsOffset + 1; cnt < bindsOffset + numberOfBinds + 1; cnt++) {
             result.setArray(cnt, con.createArrayOf(arrayType, idArray));
         }
         return result;
