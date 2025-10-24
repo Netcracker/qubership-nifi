@@ -14,8 +14,8 @@ import java.io.Writer;
  * Servlet for exposing prometheus metrics.
  */
 public class PrometheusServlet extends HttpServlet {
-    private PrometheusMeterRegistry meterRegistry;
-    private ComponentLog log;
+    private final PrometheusMeterRegistry meterRegistry;
+    private final ComponentLog log;
 
     /**
      * Default constructor.
