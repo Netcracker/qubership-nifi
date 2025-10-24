@@ -82,6 +82,7 @@
 
     <modules>
         <module>qubership-nifi-common</module>
+        <module>qubership-nifi-utils</module>
         <module>qubership-nifi-bundle-common</module>
         <module>qubership-services</module>
         <module>qubership-nifi-bulk-redis-service</module>
