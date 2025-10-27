@@ -62,7 +62,7 @@
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
         <spring.version>6.1.1</spring.version>
         <spring.security.version>5.8.5</spring.security.version>
-        <logback.version>1.5.18</logback.version>
+        <logback.version>1.5.19</logback.version>
         <slf4j.version>2.0.17</slf4j.version>
         <jedis.version>6.0.0</jedis.version>
         <hikari.cp.version>5.1.0</hikari.cp.version>
@@ -82,7 +82,6 @@
 
     <modules>
         <module>qubership-nifi-common</module>
-        <module>qubership-nifi-utils</module>
         <module>qubership-nifi-bundle-common</module>
         <module>qubership-services</module>
         <module>qubership-nifi-bulk-redis-service</module>

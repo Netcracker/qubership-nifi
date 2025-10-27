@@ -81,7 +81,7 @@
         </dependency>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
-            <artifactId>qubership-nifi-utils</artifactId>
+            <artifactId>qubership-nifi-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
