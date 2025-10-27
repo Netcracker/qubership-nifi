@@ -74,11 +74,11 @@ public class PrometheusServletTest {
         private double value;
         private long waitDelay;
 
-        ValueHolder(double initialValue) {
+        ValueHolder(final double initialValue) {
             this(initialValue, 0);
         }
 
-        ValueHolder(double initialValue, long newWaitDelay) {
+        ValueHolder(final double initialValue, final long newWaitDelay) {
             this.value = initialValue;
             this.waitDelay = newWaitDelay;
         }

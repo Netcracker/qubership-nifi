@@ -7,7 +7,7 @@ public class TestLoggerWrapper
         implements ComponentLog {
     private Logger logger;
 
-    public TestLoggerWrapper(Logger mainLogger) {
+    public TestLoggerWrapper(final Logger mainLogger) {
         this.logger = mainLogger;
     }
 
