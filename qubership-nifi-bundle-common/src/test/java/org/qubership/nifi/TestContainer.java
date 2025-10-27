@@ -6,6 +6,7 @@ public class TestContainer {
     private boolean isEnabled;
 
     public TestContainer() {
+        //Default empty constructor.
     }
 
     public String getName() {
