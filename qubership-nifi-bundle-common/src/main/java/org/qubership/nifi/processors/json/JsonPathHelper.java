@@ -39,19 +39,31 @@ import static com.jayway.jsonpath.Option.ALWAYS_RETURN_LIST;
 
 public class JsonPathHelper {
 
+    /**
+     * JsonNode configuration with ALWAYS_RETURN_LIST option.
+     */
     public static final Configuration JACKSON_ALL_AS_LIST_CONFIGURATION = Configuration.builder()
             .options(ALWAYS_RETURN_LIST)
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .build();
 
+    /**
+     * Default JsonNode configuration.
+     */
     public static final Configuration DEFAULT_JACKSON_CONFIGURATION = Configuration.defaultConfiguration()
             .jsonProvider(new JacksonJsonNodeJsonProvider());
 
+    /**
+     * JsonNode configuration with SUPPRESS_EXCEPTIONS option.
+     */
     public static final Configuration CONFIGURATION_SUPPRESS_EXCEPTIONS = Configuration.builder()
             .options(Option.SUPPRESS_EXCEPTIONS)
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .build();
 
+    /**
+     * JsonNode configuration with AS_PATH_LIST option.
+     */
     public static final Configuration CONFIGURATION_GET_PATH_LIST_OF_ATTRIBUTE = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .options(Option.AS_PATH_LIST)
@@ -76,11 +88,7 @@ public class JsonPathHelper {
      * @param input input JSON
      */
     public JsonPathHelper(final JsonNode input) {
-        this.json =
-                JsonPath.parse(
-                        input,
-                        JACKSON_ALL_AS_LIST_CONFIGURATION
-                );
+        this.json = JsonPath.parse(input, JACKSON_ALL_AS_LIST_CONFIGURATION);
     }
 
     /**
@@ -90,11 +98,7 @@ public class JsonPathHelper {
      * @param configuration parser configuration
      */
     public JsonPathHelper(final JsonNode input, final Configuration configuration) {
-        this.json =
-                JsonPath.parse(
-                        input,
-                        configuration
-                );
+        this.json = JsonPath.parse(input, configuration);
     }
 
     /**
@@ -111,7 +115,6 @@ public class JsonPathHelper {
         for (JsonNode node : resultNodes) {
             result.add(node.asText());
         }
-
         return result;
     }
 
@@ -128,7 +131,6 @@ public class JsonPathHelper {
         for (JsonNode node : resultNodes) {
             result.add(node.asText());
         }
-
         return result;
     }
 
@@ -158,7 +160,7 @@ public class JsonPathHelper {
     }
 
     private boolean isValuesPresent(ArrayNode array) {
-        return array == null || array.size() == 0;
+        return array == null || array.isEmpty();
     }
 
     /**
@@ -202,7 +204,7 @@ public class JsonPathHelper {
     public ArrayNode readNodesByPath(String path) throws NodeToInsertNotFoundException {
         ArrayNode result = json.read(path);
 
-        if (result.size() == 0) {
+        if (result.isEmpty()) {
             throw new NodeToInsertNotFoundException("The path to objects is wrong: + " + path);
         }
 
@@ -280,23 +282,21 @@ public class JsonPathHelper {
     private void mergeValues(JsonMergeContext context) throws NodeToInsertNotFoundException {
         final ArrayNode nodesInWhichInsert = readNodesByPath(context.getPathToInsert());
 
-        context
-                .getNodes()
-                .forEach(
-                        value -> nodesInWhichInsert.forEach(
-                                node -> {
-                                    if (node.isObject()) {
-                                        if (context.isArray()) {
-                                            ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
-                                        } else {
-                                            ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
-                                        }
-                                    } else if (node.isArray()) {
-                                        ((ArrayNode) node).add(value);
-                                    }
+        context.getNodes().forEach(
+                value -> nodesInWhichInsert.forEach(
+                        node -> {
+                            if (node.isObject()) {
+                                if (context.isArray()) {
+                                    ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
+                                } else {
+                                    ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
                                 }
-                        )
-                );
+                            } else if (node.isArray()) {
+                                ((ArrayNode) node).add(value);
+                            }
+                        }
+                )
+        );
     }
 
     /**

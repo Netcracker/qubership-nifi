@@ -94,7 +94,7 @@ public class NifiPropertiesLookupTest {
     }
 
     @Test
-    public void testPropertiesLoadOnStart() throws Exception {
+    public void testPropertiesLoadOnStart() {
         Assertions.assertTrue(Files.exists(Paths.get(".", "conf", "logback.xml")));
         Assertions.assertTrue(Files.exists(Paths.get(".", "conf", "nifi.properties")));
         Assertions.assertTrue(Files.exists(Paths.get(".", "conf", "custom.properties")));

@@ -335,6 +335,36 @@ public class JsonPathHelperTest {
     }
 
     @Test
+    public void testExtractOneIdByPathWoKey() {
+        List<String> actual = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode().add(
+                        createContact(1, "Contact1")
+                )
+        ).extractValuesByKey(DEFAULT_PATH + "." + DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET);
+
+        Assertions.assertIterableEquals(
+                Collections.singletonList("1"),
+                actual
+        );
+    }
+
+    @Test
+    public void testExtractSeveralIdsByPathWoKey() {
+        List<String> actual = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode()
+                        .add(createContact(1, "Contact1"))
+                        .add(createContact(2, "Contact2"))
+                        .add(createContact(3, "Contact3"))
+                        .add(createContact(4, "Contact4"))
+        ).extractValuesByKey(DEFAULT_PATH + "." + DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET);
+
+        Assertions.assertIterableEquals(
+                Arrays.asList("1", "2", "3", "4"),
+                actual
+        );
+    }
+
+    @Test
     public void testMergeWhenParentRefersToChild() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         String keyToJoinSourceWithTarget = "productId";
         String keyToJoinTargetWithSource = "id";
