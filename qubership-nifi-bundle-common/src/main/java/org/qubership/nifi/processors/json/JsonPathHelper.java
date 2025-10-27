@@ -63,6 +63,7 @@ public class JsonPathHelper {
 
     /**
      * Gets JSON document.
+     *
      * @return JSON document
      */
     public DocumentContext getJson() {
@@ -71,6 +72,7 @@ public class JsonPathHelper {
 
     /**
      * Create instance of JsonPathHelper.
+     *
      * @param input input JSON
      */
     public JsonPathHelper(final JsonNode input) {
@@ -83,7 +85,8 @@ public class JsonPathHelper {
 
     /**
      * Creates instance of JsonPathHelper.
-     * @param input input JSON
+     *
+     * @param input         input JSON
      * @param configuration parser configuration
      */
     public JsonPathHelper(final JsonNode input, final Configuration configuration) {
@@ -96,8 +99,9 @@ public class JsonPathHelper {
 
     /**
      * Extracts values from input JSON using specified JSON path and key.
+     *
      * @param path JSON path
-     * @param key key to use in addition to path to find values
+     * @param key  key to use in addition to path to find values
      * @return a list of values
      */
     public List<String> extractValuesByKey(String path, String key) {
@@ -113,6 +117,7 @@ public class JsonPathHelper {
 
     /**
      * Extracts values from input JSON using specified JSON path.
+     *
      * @param path JSON path
      * @return a list of values
      */
@@ -129,6 +134,7 @@ public class JsonPathHelper {
 
     /**
      * Merges JSONs in accordance with supplied context.
+     *
      * @param context JSON merge context that defines how and what to merge
      * @throws NodeToInsertNotFoundException
      * @throws KeyNodeNotExistsException
@@ -157,7 +163,8 @@ public class JsonPathHelper {
 
     /**
      * Converts array node to map of JSON nodes with key from specified attribute.
-     * @param key attribute to use as Map key
+     *
+     * @param key   attribute to use as Map key
      * @param nodes input array node
      * @return map of keys and JSON nodes
      * @throws KeyNodeNotExistsException
@@ -187,6 +194,7 @@ public class JsonPathHelper {
 
     /**
      * Reads array node by JSON path.
+     *
      * @param path JSON path
      * @return array node
      * @throws NodeToInsertNotFoundException
@@ -293,8 +301,9 @@ public class JsonPathHelper {
 
     /**
      * Removes JSON node under specified path.
+     *
      * @param path JSON path
-     * @param key key within JSON path to remove
+     * @param key  key within JSON path to remove
      */
     public void cleanUp(String path, String key) {
         json.delete(path + JSON_PATH_DELIMITER + key);
@@ -302,6 +311,7 @@ public class JsonPathHelper {
 
     /**
      * Get JSON as JsonNode.
+     *
      * @return JsonNode
      */
     public JsonNode getJsonNode() {
