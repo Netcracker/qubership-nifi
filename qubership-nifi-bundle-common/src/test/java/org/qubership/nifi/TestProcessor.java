@@ -1,6 +1,8 @@
 package org.qubership.nifi;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -16,6 +18,20 @@ import java.util.List;
 import java.util.Set;
 
 public class TestProcessor extends AbstractProcessor {
+
+    /**
+     * Test Property property descriptor.
+     */
+    public static final PropertyDescriptor TEST_PROP = new PropertyDescriptor.Builder()
+            .name("test-prop")
+            .displayName("Test Property")
+            .description("Test property")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .sensitive(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     /**
      * Success relationship.
      */
@@ -44,6 +60,7 @@ public class TestProcessor extends AbstractProcessor {
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptorsList = new ArrayList<>();
+        descriptorsList.add(TEST_PROP);
         this.descriptors = Collections.unmodifiableList(descriptorsList);
 
         final Set<Relationship> relationshipList = new HashSet<>();
