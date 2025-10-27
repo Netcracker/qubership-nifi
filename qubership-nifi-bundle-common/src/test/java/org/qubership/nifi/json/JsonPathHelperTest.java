@@ -65,7 +65,7 @@ public class JsonPathHelperTest {
         expected.put(expectedObject.get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(),
                 Collections.singletonList(expectedObject));
 
-        JsonPathHelper helper = new JsonPathHelper(input);
+        JsonPathHelper helper = new JsonPathHelper(input, JsonPathHelper.JACKSON_ALL_AS_LIST_CONFIGURATION);
         Assertions.assertEquals(
                 expected,
                 helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET,
