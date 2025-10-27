@@ -133,6 +133,37 @@ public class JsonPathHelperTest {
         );
     }
 
+    @Test
+    public void testSourceArrayWithOneObjectAndNullValue()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+        ArrayNode expected = JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1"));
+
+        JsonMergeContext context =
+                JsonMergeContext
+                        .builder()
+                        .path(DEFAULT_PATH)
+                        .insertionContext(
+                                InsertionContext
+                                        .builder()
+                                        .joinKeyParentWithChild(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET)
+                                        .joinKeyChildWithParent(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET)
+                                        .keyToInsert(DEFAULT_KEY_TO_INSERT)
+                                        .build()
+                        )
+                        .nodes(null)
+                        .build();
+
+        JsonPathHelper extractor = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1"))
+        );
+        extractor.merge(context);
+
+        Assertions.assertEquals(
+                expected,
+                extractor.getJsonNode()
+        );
+    }
+
     private ObjectNode createContact(int id, String name) {
         return JsonNodeFactory.instance
                 .objectNode()

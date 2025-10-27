@@ -96,6 +96,16 @@ public class NiFiUtilsTest {
     }
 
     @Test
+    public void testExtractEmptyContent() {
+        ProcessSession session = tr.getProcessSessionFactory().createSession();
+        FlowFile ff = createFlowFile(session, null);
+        String content = NiFiUtils.extractContent(session, ff);
+        Assertions.assertNotNull(content);
+        Assertions.assertEquals("", content);
+    }
+
+
+    @Test
     public void testGetEvaluatedValueWithFF() {
         ProcessSession session = tr.getProcessSessionFactory().createSession();
         tr.setProperty(TestProcessor.TEST_PROP, "${attr1}_${attr2}");
