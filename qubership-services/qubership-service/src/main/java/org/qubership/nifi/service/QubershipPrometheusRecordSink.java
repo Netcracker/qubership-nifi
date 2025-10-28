@@ -20,7 +20,6 @@ import org.qubership.nifi.service.recordSink.MetricCompositeKey;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -49,7 +48,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 
 
 import java.io.IOException;
-import java.io.Writer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -68,9 +66,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import org.qubership.nifi.utils.servlet.PrometheusServlet;
 
 import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 
@@ -172,7 +168,8 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             prometheusServer = new Server(metricsEndpointPort);
             ServletContextHandler servletContextHandler = new ServletContextHandler();
             servletContextHandler.setContextPath("/");
-            servletContextHandler.addServlet(new ServletHolder(new PrometheusServlet()), "/metrics");
+            servletContextHandler.addServlet(new ServletHolder(
+                    new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
             prometheusServer.setHandler(servletContextHandler);
             prometheusServer.start();
         } catch (Exception e) {
@@ -439,22 +436,4 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         }
         return false;
     }
-
-    private class PrometheusServlet extends HttpServlet {
-
-        @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.setContentType(TextFormat.CONTENT_TYPE_004);
-
-            try (Writer writer = resp.getWriter()) {
-                TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
-                writer.flush();
-            } catch (IOException e) {
-                getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
-            }
-        }
-    }
-
 }

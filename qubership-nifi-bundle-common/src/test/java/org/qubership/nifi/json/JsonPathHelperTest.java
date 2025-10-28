@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.processors;
+package org.qubership.nifi.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +30,11 @@ import org.qubership.nifi.processors.json.exception.KeyNodeNotExistsException;
 import org.qubership.nifi.processors.json.exception.NodeToInsertNotFoundException;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -44,54 +48,62 @@ public class JsonPathHelperTest {
     private static final String DEFAULT_KEY_TO_JOIN_TARGET_WITH_SOURCE = PARENT_ID_KEY;
     private static final String DEFAULT_KEY_TO_INSERT = "products";
 
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
     public void extractOneObject() throws IOException, NodeToInsertNotFoundException, KeyNodeNotExistsException {
-        JsonNode input = mapper.readTree("[\n" +
-                "    {\n" +
-                "        \"id\": \"1\",\n" +
-                "        \"name\": \"Customer1\"\n" +
-                "    }\n" +
-                "]");
+        JsonNode input = MAPPER.readTree("""
+                [
+                    {
+                        "id": "1",
+                        "name": "Customer1"
+                    }
+                ]""");
 
         Map<String, List<JsonNode>> expected = new HashMap<>();
         JsonNode expectedObject = input.get(0);
-        expected.put(expectedObject.get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(), Collections.singletonList(expectedObject));
+        expected.put(expectedObject.get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(),
+                Collections.singletonList(expectedObject));
 
-        JsonPathHelper helper = new JsonPathHelper(input);
+        JsonPathHelper helper = new JsonPathHelper(input, JsonPathHelper.JACKSON_ALL_AS_LIST_CONFIGURATION);
         Assertions.assertEquals(
                 expected,
-                helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET, helper.readNodesByPath(DEFAULT_PATH)).asMap()
+                helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET,
+                        helper.readNodesByPath(DEFAULT_PATH)).asMap()
         );
     }
 
     @Test
     public void extractTwoObjects() throws IOException, KeyNodeNotExistsException, NodeToInsertNotFoundException {
-        JsonNode input = mapper.readTree("[\n" +
-                "    {\n" +
-                "        \"id\": \"1\",\n" +
-                "        \"name\": \"Customer1\"\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"id\": \"2\",\n" +
-                "        \"name\": \"Customer2\"\n" +
-                "    }\n" +
-                "]");
+        JsonNode input = MAPPER.readTree("""
+                [
+                    {
+                        "id": "1",
+                        "name": "Customer1"
+                    },
+                    {
+                        "id": "2",
+                        "name": "Customer2"
+                    }
+                ]""");
 
         Map<String, List<JsonNode>> expected = new HashMap<>();
-        expected.put(input.get(0).get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(), Collections.singletonList(input.get(0)));
-        expected.put(input.get(1).get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(), Collections.singletonList(input.get(1)));
+        expected.put(input.get(0).get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(),
+                Collections.singletonList(input.get(0)));
+        expected.put(input.get(1).get(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET).asText(),
+                Collections.singletonList(input.get(1)));
 
         JsonPathHelper helper = new JsonPathHelper(input);
         Assertions.assertEquals(
                 expected,
-                helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET, helper.readNodesByPath(DEFAULT_PATH)).asMap()
+                helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET,
+                        helper.readNodesByPath(DEFAULT_PATH)).asMap()
         );
     }
 
     @Test
-    public void testSourceArrayWithOneObjectAndEmptyValue() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testSourceArrayWithOneObjectAndEmptyValue()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ArrayNode expected = JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1"));
 
         JsonMergeContext context =
@@ -121,6 +133,37 @@ public class JsonPathHelperTest {
         );
     }
 
+    @Test
+    public void testSourceArrayWithOneObjectAndNullValue()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+        ArrayNode expected = JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1"));
+
+        JsonMergeContext context =
+                JsonMergeContext
+                        .builder()
+                        .path(DEFAULT_PATH)
+                        .insertionContext(
+                                InsertionContext
+                                        .builder()
+                                        .joinKeyParentWithChild(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET)
+                                        .joinKeyChildWithParent(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET)
+                                        .keyToInsert(DEFAULT_KEY_TO_INSERT)
+                                        .build()
+                        )
+                        .nodes(null)
+                        .build();
+
+        JsonPathHelper extractor = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1"))
+        );
+        extractor.merge(context);
+
+        Assertions.assertEquals(
+                expected,
+                extractor.getJsonNode()
+        );
+    }
+
     private ObjectNode createContact(int id, String name) {
         return JsonNodeFactory.instance
                 .objectNode()
@@ -137,7 +180,8 @@ public class JsonPathHelperTest {
     }
 
     @Test
-    public void testSourceArrayWithOneObjectAndOneValue() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testSourceArrayWithOneObjectAndOneValue()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ObjectNode childNode = createProduct(11, 1, "Product11");
 
         ArrayNode expected = JsonNodeFactory.instance.arrayNode().add(
@@ -169,7 +213,8 @@ public class JsonPathHelperTest {
                         )
                         .build();
 
-        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1")));
+        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().
+                add(createContact(1, "Contact1")));
         extractor.merge(context);
 
         Assertions.assertEquals(
@@ -179,7 +224,8 @@ public class JsonPathHelperTest {
     }
 
     @Test
-    public void testSourceArrayWithOneObjectAndTwoValues() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testSourceArrayWithOneObjectAndTwoValues()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ObjectNode childNodeOne = createProduct(11, 1, "Product11");
         ObjectNode childNodeTwo = createProduct(22, 1, "Product22");
 
@@ -214,7 +260,8 @@ public class JsonPathHelperTest {
                         )
                         .build();
 
-        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1")));
+        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().
+                add(createContact(1, "Contact1")));
         extractor.merge(context);
 
         Assertions.assertEquals(
@@ -224,7 +271,8 @@ public class JsonPathHelperTest {
     }
 
     @Test
-    public void testSourceArrayWithTwoObjectsAndFourValues() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testSourceArrayWithTwoObjectsAndFourValues()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ObjectNode childNodeOne = createProduct(11, 1, "Product11");
         ObjectNode childNodeTwo = createProduct(22, 1, "Product22");
         ObjectNode childNodeThree = createProduct(33, 2, "Product33");
@@ -318,6 +366,36 @@ public class JsonPathHelperTest {
     }
 
     @Test
+    public void testExtractOneIdByPathWoKey() {
+        List<String> actual = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode().add(
+                        createContact(1, "Contact1")
+                )
+        ).extractValuesByKey(DEFAULT_PATH + "." + DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET);
+
+        Assertions.assertIterableEquals(
+                Collections.singletonList("1"),
+                actual
+        );
+    }
+
+    @Test
+    public void testExtractSeveralIdsByPathWoKey() {
+        List<String> actual = new JsonPathHelper(
+                JsonNodeFactory.instance.arrayNode()
+                        .add(createContact(1, "Contact1"))
+                        .add(createContact(2, "Contact2"))
+                        .add(createContact(3, "Contact3"))
+                        .add(createContact(4, "Contact4"))
+        ).extractValuesByKey(DEFAULT_PATH + "." + DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET);
+
+        Assertions.assertIterableEquals(
+                Arrays.asList("1", "2", "3", "4"),
+                actual
+        );
+    }
+
+    @Test
     public void testMergeWhenParentRefersToChild() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         String keyToJoinSourceWithTarget = "productId";
         String keyToJoinTargetWithSource = "id";
@@ -365,7 +443,8 @@ public class JsonPathHelperTest {
     }
 
     @Test
-    public void testMergeWhenParentRefersToChildCleanUpChildKey() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testMergeWhenParentRefersToChildCleanUpChildKey()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ObjectNode expectedChild = createProduct(11, 1, "Product11");
         expectedChild.remove(DEFAULT_KEY_TO_JOIN_TARGET_WITH_SOURCE);
 
@@ -399,7 +478,8 @@ public class JsonPathHelperTest {
                         )
                         .build();
 
-        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1")));
+        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().
+                add(createContact(1, "Contact1")));
         extractor.merge(context);
 
         Assertions.assertEquals(
@@ -425,7 +505,8 @@ public class JsonPathHelperTest {
         assertThrows(NodeToInsertNotFoundException.class, () -> {
             ArrayNode emptyInput = JsonNodeFactory.instance.arrayNode();
             JsonPathHelper helper = new JsonPathHelper(emptyInput);
-            helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET, helper.readNodesByPath(DEFAULT_PATH));
+            helper.convertObjectNodesToMap(DEFAULT_KEY_TO_JOIN_SOURCE_WITH_TARGET,
+                    helper.readNodesByPath(DEFAULT_PATH));
 
         });
     }
@@ -489,7 +570,8 @@ public class JsonPathHelperTest {
     }
 
     @Test
-    public void testSourceArrayWithOneObjectAndOneValueAndCustomPath() throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
+    public void testSourceArrayWithOneObjectAndOneValueAndCustomPath()
+            throws NodeToInsertNotFoundException, KeyNodeNotExistsException {
         ObjectNode childNode = createProduct(11, 1, "Product11");
 
         ArrayNode expected = JsonNodeFactory.instance
@@ -517,7 +599,8 @@ public class JsonPathHelperTest {
                         )
                         .build();
 
-        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().add(createContact(1, "Contact1")));
+        JsonPathHelper extractor = new JsonPathHelper(JsonNodeFactory.instance.arrayNode().
+                add(createContact(1, "Contact1")));
         extractor.merge(context);
 
         Assertions.assertEquals(

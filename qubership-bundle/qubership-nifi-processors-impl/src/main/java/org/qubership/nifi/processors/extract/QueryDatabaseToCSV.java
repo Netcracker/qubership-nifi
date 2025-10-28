@@ -40,9 +40,23 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.io.*;
-import java.sql.*;
-import java.util.*;
+import java.io.OutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.BufferedOutputStream;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Clob;
+import java.sql.Blob;
+import java.util.Set;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Map;
 
 @SideEffectFree
 @Tags({"CSV", "DB", "Database", "Query"})
@@ -167,59 +181,64 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             boolean originalAutocommit = con.getAutoCommit();
             //to allow PostgreSQL to use cursors, we have to set autocommit to false:
             con.setAutoCommit(false);
-            try (PreparedStatement ps = createPreparedStatement(con);
-                ResultSet rs = ps.executeQuery();) {
-                final int columnCount = rs.getMetaData().getColumnCount();
-                final CSVFormat localCsvFormat = csvFormat.withHeader(rs);
+            try (PreparedStatement ps = con.prepareStatement(query)) {
+                ps.setFetchSize(fetchSize);
+                try (ResultSet rs = ps.executeQuery()) {
+                    final int columnCount = rs.getMetaData().getColumnCount();
+                    final CSVFormat localCsvFormat = csvFormat.withHeader(rs);
 
-                while (rs.next()) {
-                    FlowFile ff = session.write(session.putAllAttributes(session.create(), attributes),
-                            new OutputStreamCallback() {
-                                @SneakyThrows
-                                @Override
-                                public void process(OutputStream out) throws IOException {
-                                    int rowCount = 0;
-                                    try (CSVPrinter printer = new CSVPrinter(
-                                            new PrintWriter(new BufferedOutputStream(out)), 
-                                            localCsvFormat)) {
-                                        do {
-                                            for (int i = 1; i <= columnCount; ++i) {
-                                                Object cellValue = rs.getObject(i);
-                                                if (cellValue instanceof String) {
-                                                    printer.print(String.valueOf(cellValue));
-                                                } else if (cellValue instanceof Clob) {
-                                                    Reader characterStream = ((Clob) cellValue).getCharacterStream();
-                                                    StringWriter sw = new StringWriter();
-                                                    IOUtils.copy(characterStream, sw);
-                                                    printer.print(sw.toString());
-                                                } else if (cellValue instanceof Blob) {
-                                                    Blob blob = (Blob) cellValue;
-                                                    int len = (int) blob.length();
-                                                    byte[] bytes = blob.getBytes(1, len);
-                                                    printer.print(Hex.encodeHexString(bytes));
-                                                } else {
-                                                    printer.print(cellValue);
+                    while (rs.next()) {
+                        FlowFile ff = session.write(session.putAllAttributes(session.create(), attributes),
+                                new OutputStreamCallback() {
+                                    @SneakyThrows
+                                    @Override
+                                    public void process(OutputStream out) throws IOException {
+                                        int rowCount = 0;
+                                        try (CSVPrinter printer = new CSVPrinter(
+                                                new PrintWriter(new BufferedOutputStream(out)),
+                                                localCsvFormat)) {
+                                            do {
+                                                for (int i = 1; i <= columnCount; ++i) {
+                                                    Object cellValue = rs.getObject(i);
+                                                    if (cellValue instanceof String) {
+                                                        printer.print(String.valueOf(cellValue));
+                                                    } else if (cellValue instanceof Clob) {
+                                                        Reader characterStream =
+                                                                ((Clob) cellValue).getCharacterStream();
+                                                        StringWriter sw = new StringWriter();
+                                                        IOUtils.copy(characterStream, sw);
+                                                        printer.print(sw.toString());
+                                                    } else if (cellValue instanceof Blob) {
+                                                        Blob blob = (Blob) cellValue;
+                                                        int len = (int) blob.length();
+                                                        byte[] bytes = blob.getBytes(1, len);
+                                                        printer.print(Hex.encodeHexString(bytes));
+                                                    } else {
+                                                        printer.print(cellValue);
+                                                    }
                                                 }
-                                            }
-                                            printer.println();
-                                            rowCount++;
+                                                printer.println();
+                                                rowCount++;
 
-                                            if (batchSize != 0 && rowCount == batchSize) {
+                                                if (batchSize != 0 && rowCount == batchSize) {
+                                                    printer.flush();
+                                                    rowCount = 0;
+                                                    break;
+                                                }
+                                            } while (rs.next());
+
+                                            if (rowCount > 0) {
                                                 printer.flush();
-                                                rowCount = 0;
-                                                break;
                                             }
-                                        } while (rs.next());
-
-                                        if (rowCount > 0) {
-                                            printer.flush();
                                         }
                                     }
-                                }
-                            });
-                    session.getProvenanceReporter().fetch(ff, dbUrl);
-                    session.transfer(ff, REL_SUCCESS);
-                    if (isWriteByBatch) session.commit();
+                                });
+                        session.getProvenanceReporter().fetch(ff, dbUrl);
+                        session.transfer(ff, REL_SUCCESS);
+                        if (isWriteByBatch) {
+                            session.commit();
+                        }
+                    }
                 }
             } finally {
                 try {
@@ -237,7 +256,7 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             );
             session.transfer(exFlowFile, REL_FAILURE);
 
-            getLogger().error("An exception occurs during the QueryDatabaseToCSV processing", e);
+            getLogger().error("An exception occurred during the QueryDatabaseToCSV processing", e);
         }
     }
 
@@ -260,12 +279,6 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
 
     private Connection createConnection(ProcessContext context) {
         return getDbcpService(context).getConnection(Collections.emptyMap());
-    }
-
-    private PreparedStatement createPreparedStatement(Connection con) throws SQLException {
-        PreparedStatement ps = con.prepareStatement(query);
-        ps.setFetchSize(fetchSize);
-        return ps;
     }
 
     private DBCPService getDbcpService(ProcessContext context) {

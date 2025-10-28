@@ -38,44 +38,65 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 
+/**
+ * Main application class.
+ */
 @SpringBootApplication
 @EnableAutoConfiguration
 @ComponentScan(basePackages = "org.qubership.cloud.nifi.config")
 public class NifiPropertiesLookup implements CommandLineRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(NifiPropertiesLookup.class);
-
-    @Autowired
+    private static final Logger LOG = LoggerFactory.getLogger(NifiPropertiesLookup.class);
     private PropertiesManager propertiesManager;
-
-    @Autowired
     private XmlConfigValidator xmlConfigValidator;
 
     @Value("${config.notify-completion.path}")
     private String path;
 
+    /**
+     * Default constructor.
+     * @param pm instance of PropertiesManager to use
+     * @param validator instance of XmlConfigValidator to use
+     */
+    @Autowired
+    public NifiPropertiesLookup(final PropertiesManager pm, final XmlConfigValidator validator) {
+        this.propertiesManager = pm;
+        this.xmlConfigValidator = validator;
+    }
+
+    /**
+     * Main entry point to application.
+     * @param args startup arguments
+     */
     public static void main(String[] args) {
         SpringApplication.run(NifiPropertiesLookup.class, args);
     }
 
+    /**
+     * Runs main application functions: creates nifi properties file and checks XML configurations for errors
+     * and restores them from backup, if necessary.
+     * @param args
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws TransformerException
+     * @throws SAXException
+     */
     @Override
-    public void run(String... args) throws IOException, ParserConfigurationException, TransformerException, SAXException {
+    public void run(String... args)
+            throws IOException, ParserConfigurationException, TransformerException, SAXException {
         propertiesManager.generateNifiProperties();
         xmlConfigValidator.validate();
         notifyCompletionToStartScript();
-        //WA to stop TokenUpdater thread:
-        //System.exit(0);
-
     }
-    
+
     private void notifyCompletionToStartScript() {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             Path fPath = Paths.get(path + "initial-config-completed.txt");
             Files.write(fPath, timestamp.getBytes());
-            log.info("Consul App completion file created:{} ", fPath.toAbsolutePath());
+            LOG.info("Consul App completion file created:{} ", fPath.toAbsolutePath());
         } catch (Exception e) {
-            log.error("Error while creating completion file for consul app",e);
+            LOG.error("Error while creating completion file for consul app", e);
         }
     }
 }

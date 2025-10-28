@@ -299,7 +299,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     }
 
                 } catch (SQLException e) {
-                    throw new ProcessException("Database problem during execution of " + this.getClass().getName(), e);
+                    throw new ProcessException("An exception has occurred during ids fetch from DB", e);
                 }
             } else {
                 totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
@@ -320,7 +320,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     EXTRACTION_ERROR,
                     ExceptionUtils.getStackTrace(ex)
             );
-            getLogger().error("An exception occured during the QueryIdsAndFetchTableToJson processing", ex);
+            getLogger().error("An exception occurred during the QueryIdsAndFetchTableToJson processing", ex);
             session.transfer(exFlowFile, REL_FAILURE);
         }
     }
@@ -345,25 +345,14 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return context.getProperty(IDS_DBCP_SERVICE).asControllerService(DBCPService.class);
     }
 
-    private PreparedStatement createPreparedStatement(Connection con, ProcessContext context, List<String> id) throws SQLException {
-        if(id.size() != 0){
-            return getStatementProducer().createPreparedStatement(
-                    query,
-                    context,
-                    id,
-                    con
-            );
-        }
-        return con.prepareStatement(query);
-    }
-
     private long[] fetchTableToJson(String fetchId, Map<String, String> attributes, ProcessSession session, ProcessContext context, FlowFile invocationFile, List<String> id) throws SQLException {
         long[] totalCount = new long[2];
         long totalRowCount = 0;
         long totalBatchCount = 0;
         try (
                 Connection connection = createConnection(context);
-                PreparedStatement preparedStatement = createPreparedStatement(connection,context,id);
+                PreparedStatement preparedStatement =  id.isEmpty() ? connection.prepareStatement(query)
+                        : getStatementProducer().createPreparedStatement(query, context, id, connection);
         ) {
             String dbUrl = connection.getMetaData().getURL();
             String finalFetchId = fetchId;
