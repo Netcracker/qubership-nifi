@@ -32,22 +32,39 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.*;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.REL_FAILURE;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.REL_SUCCESS;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.BATCH_SIZE;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.CUSTOM_QUERY;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.DBCP_SERVICE;
+import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.WRITE_BY_BATCH;
 
 public class QueryDatabaseToCSVTest {
     private final static String DB_LOCATION = "target/db_ldt";
     private TestRunner testRunner;
     private Connection connection;
-    private static final String TABLE_NAME = "TEST_TABLE";
-    private static final String TABLE_NAME2 = "TEST_TABLE2";
+    private final static String TABLE_NAME = "TEST_TABLE";
+    private final static String TABLE_NAME2 = "TEST_TABLE2";
 
     @BeforeEach
     public void init() throws InitializationException, ClassNotFoundException, SQLException {
@@ -170,7 +187,6 @@ public class QueryDatabaseToCSVTest {
         compareFileContents(actContent, Paths.get(getClass().getResource("queryToCSVwithTextTypes.csv").toURI()));
     }
 
-
     private void compareErrorAttributes(MockFlowFile ff, String key, String value) {
         Map<String, String> attr = ff.getAttributes();
         String actualValue = attr.get(key);
@@ -192,7 +208,8 @@ public class QueryDatabaseToCSVTest {
     private void initDBDataWithComplexTypes() throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute("create table " + TABLE_NAME2
-                    + " (id integer not null, val1 integer, textval1 varchar(127), textval2 clob(32k), binval1 blob(32k))");
+                    + " (id integer not null, val1 integer, "
+                    + "textval1 varchar(127), textval2 clob(32k), binval1 blob(32k))");
         }
 
         try (PreparedStatement prSt = connection.prepareStatement("INSERT INTO " + TABLE_NAME2
@@ -228,7 +245,7 @@ public class QueryDatabaseToCSVTest {
         return testRunner.getFlowFilesForRelationship(relationship);
     }
 
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private final class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
         @Override
         public String getIdentifier() {
             return "dbcp";

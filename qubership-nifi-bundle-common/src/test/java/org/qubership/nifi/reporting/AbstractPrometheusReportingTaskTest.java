@@ -63,7 +63,8 @@ public class AbstractPrometheusReportingTaskTest {
     public void setUp() throws Exception {
         environmentVariables.set("NAMESPACE", "local");
         task = new TestPrometheusReportingTask();
-        ConfigurationContext configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
+        ConfigurationContext configurationContext =
+                new MockConfigurationContext(initReportingTaskProperties(), null, null);
         task.initProperties();
         ReportingInitializationContext initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);

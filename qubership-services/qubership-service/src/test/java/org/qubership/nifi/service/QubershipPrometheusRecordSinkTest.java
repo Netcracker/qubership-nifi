@@ -32,6 +32,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -76,6 +77,11 @@ public class QubershipPrometheusRecordSinkTest {
     @AfterEach
     public void tearDown() {
         runner.disableControllerService(recordSink);
+        try {
+            recordSink.onShutDown();
+        } catch (Exception e) {
+            Assertions.fail("Failed to shutdown recordSink", e);
+        }
     }
 
     @Test
