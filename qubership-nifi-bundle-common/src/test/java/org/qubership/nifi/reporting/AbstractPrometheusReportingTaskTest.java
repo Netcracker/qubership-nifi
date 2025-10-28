@@ -26,8 +26,6 @@ import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
-import org.apache.nifi.util.MockBulletinRepository;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +50,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(SystemStubsExtension.class)
 public class AbstractPrometheusReportingTaskTest {
 
-    private ReportingInitializationContext initializationContext;
     private ReportingContext reportingContext;
-    private MockComponentLog componentLogger;
     private TestPrometheusReportingTask task;
-    private ConfigurationContext configurationContext;
-    private MockBulletinRepository mockBulletinRepository;
     private static final String SERVER_URL = "http://localhost:9192/metrics";
     private OkHttpClient client;
     private String expectedHostname;
@@ -69,10 +63,9 @@ public class AbstractPrometheusReportingTaskTest {
     public void setUp() throws Exception {
         environmentVariables.set("NAMESPACE", "local");
         task = new TestPrometheusReportingTask();
-        componentLogger = new MockComponentLog("reporting-task-id", task);
-        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
+        ConfigurationContext configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
         task.initProperties();
-        initializationContext = new MockReportingInitializationContext();
+        ReportingInitializationContext initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);
         task.onScheduled(configurationContext);
         //
