@@ -387,7 +387,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     }
 
                 } catch (SQLException e) {
-                    throw new ProcessException("Database problem during execution of " + this.getClass().getName(), e);
+                    throw new ProcessException("An exception has occurred during ids fetch from DB", e);
                 }
             } else {
                 totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
@@ -409,7 +409,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     EXTRACTION_ERROR,
                     ExceptionUtils.getStackTrace(ex)
             );
-            getLogger().error("An exception occured during the QueryIdsAndFetchTableToJson processing", ex);
+            getLogger().error("An exception occurred during the QueryIdsAndFetchTableToJson processing", ex);
             session.transfer(exFlowFile, REL_FAILURE);
         }
     }

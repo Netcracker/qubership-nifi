@@ -300,7 +300,7 @@ public class QueryDatabaseToCSV extends AbstractProcessor {
             );
             session.transfer(exFlowFile, REL_FAILURE);
 
-            getLogger().error("An exception occurs during the QueryDatabaseToCSV processing", e);
+            getLogger().error("An exception occurred during the QueryDatabaseToCSV processing", e);
         }
     }
 

@@ -60,11 +60,11 @@ import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.DBCP_SERV
 import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.WRITE_BY_BATCH;
 
 public class QueryDatabaseToCSVTest {
-    private final static String DB_LOCATION = "target/db_ldt";
+    private static final String DB_LOCATION = "target/db_ldt";
     private TestRunner testRunner;
     private Connection connection;
-    private final static String TABLE_NAME = "TEST_TABLE";
-    private final static String TABLE_NAME2 = "TEST_TABLE2";
+    private static final String TABLE_NAME = "TEST_TABLE";
+    private static final String TABLE_NAME2 = "TEST_TABLE2";
 
     @BeforeEach
     public void init() throws InitializationException, ClassNotFoundException, SQLException {
