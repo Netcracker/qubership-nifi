@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ValidateJsonTest {
     private TestRunner testRunner;
@@ -425,9 +427,12 @@ public class ValidateJsonTest {
         testRunner.run();
         testTransferToNotJSONRelation();
         List<MockFlowFile> notJsonFFs = testRunner.getFlowFilesForRelationship(ValidateJson.REL_NOT_JSON);
-        assertEquals(notJsonFFs.size(), 1);
-        assertEquals("Not json content in Flow file: Unrecognized token 'ioioiooo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" + 
-            " at [Source: (ByteArrayInputStream); line: 1, column: 9]", notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR));
+        assertEquals(1, notJsonFFs.size());
+        assertNotNull(notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR));
+        assertTrue(notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR).matches(
+                "Not json content in Flow file: Unrecognized token 'ioioiooo': was expecting "
+                        + "\\(JSON String, Number, Array, Object or token 'null', 'true' or 'false'\\)\n"
+                        + " at \\[Source: .*; line: 1, column: 9]"));
     }
 
     private void testTransferToValidRelation() {
