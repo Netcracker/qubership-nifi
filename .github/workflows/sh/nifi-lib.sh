@@ -313,6 +313,9 @@ create_docker_env_file() {
     export CONSUL_READ_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
     echo "CONSUL_READ_TOKEN=$CONSUL_READ_TOKEN" >>./docker.env
+    REDIS_PASSWORD=$(generate_random_hex_password 8 4)
+    export REDIS_PASSWORD
+    echo "REDIS_PASSWORD=$REDIS_PASSWORD" >>./docker.env
 }
 
 create_docker_env_file_plain() {
@@ -325,7 +328,8 @@ create_global_vars_file() {
     echo "Generating file with global vars for newman..."
     gitDir="$(pwd)"
     tmp=$(mktemp)
-    jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pass") | .value) = $pass' \
+    jq --arg pass "$DB_PASSWORD" --arg redisPass "$REDIS_PASSWORD" \
+        '(.values[] | select(.key == "global.db.pass") | .value) = $pass | (.values[] | select(.key == "global.redis.pass") | .value) = $redisPass' \
         "${gitDir}/.github/collections/Global_Vars.postman_globals.json" >"$tmp" &&
         mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
 }
@@ -375,6 +379,10 @@ setup_env_before_tests() {
         mkdir -p ./temp-vol/nifi-2/per-conf/
     else
         mkdir -p ./temp-vol/nifi/per-conf/
+        mkdir -p ./temp-vol/nifi/extensions/
+        echo "Copying test NARs to extensions directory"
+        cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
+            ./temp-vol/nifi/extensions/
     fi
     chmod -R 777 ./temp-vol
     #generate keycloak certificates:
