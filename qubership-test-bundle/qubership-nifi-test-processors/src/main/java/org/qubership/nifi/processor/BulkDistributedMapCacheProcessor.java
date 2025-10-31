@@ -53,6 +53,8 @@ public class BulkDistributedMapCacheProcessor
      */
     public static final  Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("FlowFiles that failed to process").build();
+    private static final String GET_AND_PUT_IF_ABSENT_OPERATION = "getAndPutIfAbsent";
+    private static final String REMOVE_OPERATION = "remove";
 
     private List<PropertyDescriptor> propertyDescriptors;
     private Set<Relationship> relationships;
@@ -134,9 +136,9 @@ public class BulkDistributedMapCacheProcessor
         JsonNode json = NiFiUtils.readJsonNodeFromFlowFile(session, flowFile);
         Map<String, String> getAndPutIfAbsentResult = null;
         //getAndPutIfAbsent
-        if (json.has("getAndPutIfAbsent")) {
+        if (json.has(GET_AND_PUT_IF_ABSENT_OPERATION)) {
             //getAndPutIfAbsent operation:
-            JsonNode op = json.get("getAndPutIfAbsent");
+            JsonNode op = json.get(GET_AND_PUT_IF_ABSENT_OPERATION);
             Map<String, String> keysAndValues = new HashMap<>();
             for (Iterator<Map.Entry<String, JsonNode>> it = op.fields(); it.hasNext();) {
                 Map.Entry<String, JsonNode> entry = it.next();
@@ -151,9 +153,9 @@ public class BulkDistributedMapCacheProcessor
         }
         Long removeResult = null;
         //remove
-        if (json.has("remove")) {
+        if (json.has(REMOVE_OPERATION)) {
             //remove operation:
-            JsonNode op = json.get("remove");
+            JsonNode op = json.get(REMOVE_OPERATION);
             ArrayNode removeArray = (ArrayNode) op;
             List<String> keysList = new ArrayList<>();
             for (JsonNode elem : removeArray) {
@@ -171,12 +173,12 @@ public class BulkDistributedMapCacheProcessor
         if (getAndPutIfAbsentResult != null) {
             //getAndPutIfAbsent done
             ObjectNode opNode = MAPPER.valueToTree(getAndPutIfAbsentResult);
-            rootNode.putIfAbsent("getAndPutIfAbsent", opNode);
+            rootNode.putIfAbsent(GET_AND_PUT_IF_ABSENT_OPERATION, opNode);
             resultAdded = true;
         }
         if (removeResult != null) {
             //remove done
-            rootNode.put("remove", removeResult);
+            rootNode.put(REMOVE_OPERATION, removeResult);
             resultAdded = true;
         }
         if (resultAdded) {
