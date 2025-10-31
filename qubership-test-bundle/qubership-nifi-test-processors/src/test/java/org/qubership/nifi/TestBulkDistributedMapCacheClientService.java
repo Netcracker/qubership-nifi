@@ -71,7 +71,9 @@ public class TestBulkDistributedMapCacheClientService
     }
 
     @Override
-    public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+    public <K, V> boolean putIfAbsent(K key, V value,
+                                      Serializer<K> keySerializer, Serializer<V> valueSerializer)
+            throws IOException {
         String stringKey = convertValueToString(key, keySerializer);
         String stringValue = convertValueToString(value, valueSerializer);
         boolean isPresent = CACHE.containsKey(stringKey);
