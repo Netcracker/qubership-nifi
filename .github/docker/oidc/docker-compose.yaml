@@ -23,12 +23,15 @@ services:
       postgresql:
         condition: service_started
     volumes:
+      - nifi-ext:/opt/nifi/nifi-current/extensions
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
+      - 127.0.0.1:9892:9892
+      - 127.0.0.1:12981:12981
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
@@ -105,8 +108,8 @@ services:
       KC_HTTPS_PORT: 8443
       KC_HTTP_ENABLED: false
     ports:
-      - 28080:8080
-      - 28443:8443
+      - 127.0.0.1:28080:8080
+      - 127.0.0.1:28443:8443
     command:
       - start-dev
       - "--import-realm"
@@ -117,7 +120,7 @@ services:
   postgresql:
     image: postgres:16.8
     ports:
-      - "5430:5432"
+      - "127.0.0.1:5430:5432"
     volumes:
       - pg-db:/var/lib/postgresql/data/pgdata
     environment:
@@ -125,6 +128,16 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     container_name: postgresql
     hostname: postgresql
+  redis:
+    image: redis:8.2.2
+    ports:
+      - "127.0.0.1:26379:6379"
+    container_name: redis
+    hostname: redis
+    environment:
+      - REDIS_PASSWORD=$REDIS_PASSWORD
+    command:
+      - "--requirepass $REDIS_PASSWORD"
 volumes:
   tls-scripts:
     driver: local
@@ -162,6 +175,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/nifi/per-conf/
+  nifi-ext:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi/extensions/
   pg-db:
     driver: local
     driver_opts:

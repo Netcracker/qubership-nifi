@@ -89,6 +89,7 @@
         <module>qubership-nifi-lookup-services</module>
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
+        <module>qubership-test-bundle</module>
     </modules>
 
     <reporting>
