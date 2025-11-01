@@ -339,44 +339,43 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     boolean originalAutocommit = idsConnection.getAutoCommit();
                     //to allow PostgreSQL to use cursors, we have to set autocommit to false:
                     idsConnection.setAutoCommit(false);
-                    try (
-                            PreparedStatement idsPreparedStatement = createIdsPreparedStatement(idsConnection);
-                            ResultSet idsResultSet = idsPreparedStatement.executeQuery();
-                    ) {
-                        int rowCount = 0;
-                        if (idsResultSet.isBeforeFirst()) {
-                            if (context.getProperty(PS_PROVIDER_SERVICE).asControllerService()
-                                    .toString().contains("Oracle")) {
-                                query = query.replace("#SOURCE_IDS#", ORACLE_CONDITION);
-                            } else {
-                                query = query.replace("#SOURCE_IDS#", POSTGRES_CONDITION);
-                            }
-                            while (idsResultSet.next()) {
-                                id.add(idsResultSet.getString("source_id"));
-                                rowCount++;
+                    try (PreparedStatement idsPreparedStatement = idsConnection.prepareStatement(idsQuery)) {
+                        idsPreparedStatement.setFetchSize(idsFetchSize);
+                        try (ResultSet idsResultSet = idsPreparedStatement.executeQuery()) {
+                            int rowCount = 0;
+                            if (idsResultSet.isBeforeFirst()) {
+                                if (context.getProperty(PS_PROVIDER_SERVICE).asControllerService()
+                                        .toString().contains("Oracle")) {
+                                    query = query.replace("#SOURCE_IDS#", ORACLE_CONDITION);
+                                } else {
+                                    query = query.replace("#SOURCE_IDS#", POSTGRES_CONDITION);
+                                }
+                                while (idsResultSet.next()) {
+                                    id.add(idsResultSet.getString("source_id"));
+                                    rowCount++;
 
-                                if (isIdsWriteByBatch && rowCount == idsBatchSize) {
-                                    rowCount = 0;
+                                    if (isIdsWriteByBatch && rowCount == idsBatchSize) {
+                                        rowCount = 0;
+                                        totalCount = fetchTableToJson(fetchId, attributes, session, context,
+                                                invocationFile, id);
+                                        totalRowCount = totalRowCount + totalCount[0];
+                                        totalBatchCount = totalBatchCount + totalCount[1];
+                                        id = new ArrayList<>();
+                                    }
+                                }
+                                if (rowCount > 0) {
                                     totalCount = fetchTableToJson(fetchId, attributes, session, context,
                                             invocationFile, id);
                                     totalRowCount = totalRowCount + totalCount[0];
                                     totalBatchCount = totalBatchCount + totalCount[1];
-                                    id = new ArrayList<>();
                                 }
-
-                            }
-                            if (rowCount > 0) {
+                            } else {
+                                query = query.replace("#SOURCE_IDS#", EMPTY_CONDITION);
                                 totalCount = fetchTableToJson(fetchId, attributes, session, context,
                                         invocationFile, id);
                                 totalRowCount = totalRowCount + totalCount[0];
                                 totalBatchCount = totalBatchCount + totalCount[1];
                             }
-                        } else {
-                            query = query.replace("#SOURCE_IDS#", EMPTY_CONDITION);
-                            totalCount = fetchTableToJson(fetchId, attributes, session, context,
-                                    invocationFile, id);
-                            totalRowCount = totalRowCount + totalCount[0];
-                            totalBatchCount = totalBatchCount + totalCount[1];
                         }
                     } finally {
                         try {
@@ -385,9 +384,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                             idsConnection.setAutoCommit(originalAutocommit);
                         }
                     }
-
                 } catch (SQLException e) {
-                    throw new ProcessException("Database problem during execution of " + this.getClass().getName(), e);
+                    throw new ProcessException("An exception has occurred during ids fetch from DB", e);
                 }
             } else {
                 totalCount = fetchTableToJson(fetchId, attributes, session, context, invocationFile, id);
@@ -409,7 +407,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
                     EXTRACTION_ERROR,
                     ExceptionUtils.getStackTrace(ex)
             );
-            getLogger().error("An exception occured during the QueryIdsAndFetchTableToJson processing", ex);
+            getLogger().error("An exception occurred during the QueryIdsAndFetchTableToJson processing", ex);
             session.transfer(exFlowFile, REL_FAILURE);
         }
     }
@@ -434,21 +432,6 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         return context.getProperty(IDS_DBCP_SERVICE).asControllerService(DBCPService.class);
     }
 
-    private PreparedStatement createPreparedStatement(
-            Connection con,
-            ProcessContext context,
-            List<String> id) throws SQLException {
-        if (id.size() != 0) {
-            return getStatementProducer().createPreparedStatement(
-                    query,
-                    context,
-                    id,
-                    con
-            );
-        }
-        return con.prepareStatement(query);
-    }
-
     private long[] fetchTableToJson(
             String fetchId,
             Map<String, String> attributes,
@@ -461,7 +444,8 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         long totalBatchCount = 0;
         try (
                 Connection connection = createConnection(context);
-                PreparedStatement preparedStatement = createPreparedStatement(connection, context, id);
+                PreparedStatement preparedStatement =  id.isEmpty() ? connection.prepareStatement(query)
+                        : getStatementProducer().createPreparedStatement(query, context, id, connection);
         ) {
             String dbUrl = connection.getMetaData().getURL();
             String finalFetchId = fetchId;
@@ -511,12 +495,6 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
         totalCount[0] = totalRowCount;
         totalCount[1] = totalBatchCount;
         return totalCount;
-    }
-
-    private PreparedStatement createIdsPreparedStatement(Connection con) throws SQLException {
-        PreparedStatement ps = con.prepareStatement(idsQuery);
-        ps.setFetchSize(idsFetchSize);
-        return ps;
     }
 
     /**

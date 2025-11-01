@@ -42,6 +42,13 @@
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-processors-impl</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <!--lombok is not needed in runtime-->
+                <exclusion>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

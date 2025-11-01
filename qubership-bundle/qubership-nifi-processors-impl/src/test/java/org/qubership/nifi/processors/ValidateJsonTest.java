@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ValidateJsonTest {
     private TestRunner testRunner;
@@ -95,9 +97,9 @@ public class ValidateJsonTest {
         Set<Relationship> relationships = testRunner.getProcessContext().getAvailableRelationships();
         Assertions.assertEquals(3, relationships.size());
         relationships.forEach(r -> Assertions.assertTrue(
-                r.getName().equals("valid") ||
-                        r.getName().equals("invalid") ||
-                        r.getName().equals("not_json")));
+                r.getName().equals("valid")
+                        || r.getName().equals("invalid")
+                        || r.getName().equals("not_json")));
     }
 
 
@@ -183,85 +185,85 @@ public class ValidateJsonTest {
 
     @Test
     public void testInvalidMonitoringRequest() {
-        testRunner.setProperty(ValidateJson.SCHEMA, "{\n" +
-                "   \"title\":\"Check Monitoring Request\",\n" +
-                "   \"required\":[\n" +
-                "      \"entities\",\n" +
-                "      \"newStatus\"\n" +
-                "   ],\n" +
-                "   \"properties\":{\n" +
-                "      \"entities\":{\n" +
-                "         \"type\":\"array\",\n" +
-                "         \"items\":{\n" +
-                "            \"type\":\"object\",\n" +
-                "            \"required\":[\n" +
-                "               \"businessEntityType\",\n" +
-                "               \"sourceId\"\n" +
-                "            ],\n" +
-                "            \"properties\":{\n" +
-                "               \"businessEntityType\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"enum\":[\n" +
-                "                     \"Customer\",\n" +
-                "                     \"Organization\",\n" +
-                "                     \"Individual\",\n" +
-                "                     \"PartyRole\",\n" +
-                "                     \"PartyInteraction\",\n" +
-                "                     \"ProductHierarchy\",\n" +
-                "                     \"AllCustomerProducts\"\n" +
-                "                  ]\n" +
-                "               },\n" +
-                "               \"sourceId\":{\n" +
-                "                  \"type\":\"string\"\n" +
-                "               },\n" +
-                "               \"_sourceTimeStamp\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"format\":\"date-time\"\n" +
-                "               }\n" +
-                "            }\n" +
-                "         }\n" +
-                "      },\n" +
-                "      \"newStatus\":{\n" +
-                "         \"type\":\"string\",\n" +
-                "         \"enum\":[\n" +
-                "            \"Prepared\",\n" +
-                "            \"Ingested\",\n" +
-                "            \"In Progress\",\n" +
-                "            \"Processed Successfully\",\n" +
-                "            \"Processed with Errors\",\n" +
-                "            \"Processed with Warnings\",\n" +
-                "            \"Rolled back\",\n" +
-                "            \"Failed to rollback\",\n" +
-                "            \"Extracted\",\n" +
-                "            \"Transformed\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"requestId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"sessionId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      }\n" +
-                "   }\n" +
-                "}");
-        testRunner.enqueue("{\n" +
-                "   \"entities\":\n" +
-                "\t\t{\n" +
-                "\t\t \"businessEntityType\":\"Customer\",\n" +
-                "\t\t \"sourceId\":\"New_Update_Processor_4\",\n" +
-                "\t\t \"_sourceTimeStamp\":\"2018-01-31T09:40:15.581Z\"\n" +
-                "\t\t}\n" +
-                "   ,\n" +
-                "   \"newStatus\":\"In Progress\",\n" +
-                "   \"sessionId\": \"12\",\n" +
-                "   \"requestId\": \"12\"\n" +
-                "}");
+        testRunner.setProperty(ValidateJson.SCHEMA, """
+                {
+                   "title":"Check Monitoring Request",
+                   "required":[
+                      "entities",
+                      "newStatus"
+                   ],
+                   "properties":{
+                      "entities":{
+                         "type":"array",
+                         "items":{
+                            "type":"object",
+                            "required":[
+                               "businessEntityType",
+                               "sourceId"
+                            ],
+                            "properties":{
+                               "businessEntityType":{
+                                  "type":"string",
+                                  "enum":[
+                                     "Customer",
+                                     "Organization",
+                                     "Individual",
+                                     "PartyRole",
+                                     "PartyInteraction",
+                                     "ProductHierarchy",
+                                     "AllCustomerProducts"
+                                  ]
+                               },
+                               "sourceId":{
+                                  "type":"string"
+                               },
+                               "_sourceTimeStamp":{
+                                  "type":"string",
+                                  "format":"date-time"
+                               }
+                            }
+                         }
+                      },
+                      "newStatus":{
+                         "type":"string",
+                         "enum":[
+                            "Prepared",
+                            "Ingested",
+                            "In Progress",
+                            "Processed Successfully",
+                            "Processed with Errors",
+                            "Processed with Warnings",
+                            "Rolled back",
+                            "Failed to rollback",
+                            "Extracted",
+                            "Transformed"
+                         ]
+                      },
+                      "requestId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      },
+                      "sessionId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      }
+                   }
+                }""");
+        testRunner.enqueue("""
+                {
+                    "entities": {
+                        "businessEntityType":"Customer",
+                        "sourceId":"New_Update_Processor_4",
+                        "_sourceTimeStamp":"2018-01-31T09:40:15.581Z"
+                    },
+                    "newStatus":"In Progress",
+                    "sessionId": "12",
+                    "requestId": "12"
+                }""");
         testRunner.run();
         List<MockFlowFile> invalidFlows = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID);
         Assertions.assertEquals(1, invalidFlows.size());
@@ -269,165 +271,171 @@ public class ValidateJsonTest {
 
     @Test
     public void testMonitoringRequestWithGarbage() {
-        testRunner.setProperty(ValidateJson.SCHEMA, "{\n" +
-                "   \"title\":\"Check Monitoring Request\",\n" +
-                "   \"required\":[\n" +
-                "      \"entities\",\n" +
-                "      \"newStatus\"\n" +
-                "   ],\n" +
-                "   \"properties\":{\n" +
-                "      \"entities\":{\n" +
-                "         \"type\":\"array\",\n" +
-                "         \"items\":{\n" +
-                "            \"type\":\"object\",\n" +
-                "            \"required\":[\n" +
-                "               \"businessEntityType\",\n" +
-                "               \"sourceId\"\n" +
-                "            ],\n" +
-                "            \"properties\":{\n" +
-                "               \"businessEntityType\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"enum\":[\n" +
-                "                     \"Customer\",\n" +
-                "                     \"Organization\",\n" +
-                "                     \"Individual\",\n" +
-                "                     \"PartyRole\",\n" +
-                "                     \"PartyInteraction\",\n" +
-                "                     \"ProductHierarchy\",\n" +
-                "                     \"AllCustomerProducts\"\n" +
-                "                  ]\n" +
-                "               },\n" +
-                "               \"sourceId\":{\n" +
-                "                  \"type\":\"string\"\n" +
-                "               },\n" +
-                "               \"_sourceTimeStamp\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"format\":\"date-time\"\n" +
-                "               }\n" +
-                "            }\n" +
-                "         }\n" +
-                "      },\n" +
-                "      \"newStatus\":{\n" +
-                "         \"type\":\"string\",\n" +
-                "         \"enum\":[\n" +
-                "            \"Prepared\",\n" +
-                "            \"Ingested\",\n" +
-                "            \"In Progress\",\n" +
-                "            \"Processed Successfully\",\n" +
-                "            \"Processed with Errors\",\n" +
-                "            \"Processed with Warnings\",\n" +
-                "            \"Rolled back\",\n" +
-                "            \"Failed to rollback\",\n" +
-                "            \"Extracted\",\n" +
-                "            \"Transformed\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"requestId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"sessionId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      }\n" +
-                "   }\n" +
-                "}");
-        testRunner.enqueue("{\n" +
-                "   \"entities\":\n" +
-                "\t\t[{\n" +
-                "\t\t \"businessEntityType\":\"Customer\",\n" +
-                "\t\t \"sourceId\":\"New_Update_Processor_4\",\n" +
-                "\t\t \"_sourceTimeStamp\":\"2018-01-31T09:40:15.581Z\"\n" +
-                "\t\t}]\n" +
-                "   ,\n" +
-                "   \"newStatus\":\"In Progress\",\n" +
-                "   \"sessionId\": \"12\",\n" +
-                "   \"requestId\": \"12\"\n" +
-                "}ioioiooo");
+        testRunner.setProperty(ValidateJson.SCHEMA, """
+                {
+                   "title":"Check Monitoring Request",
+                   "required":[
+                      "entities",
+                      "newStatus"
+                   ],
+                   "properties":{
+                      "entities":{
+                         "type":"array",
+                         "items":{
+                            "type":"object",
+                            "required":[
+                               "businessEntityType",
+                               "sourceId"
+                            ],
+                            "properties":{
+                               "businessEntityType":{
+                                  "type":"string",
+                                  "enum":[
+                                     "Customer",
+                                     "Organization",
+                                     "Individual",
+                                     "PartyRole",
+                                     "PartyInteraction",
+                                     "ProductHierarchy",
+                                     "AllCustomerProducts"
+                                  ]
+                               },
+                               "sourceId":{
+                                  "type":"string"
+                               },
+                               "_sourceTimeStamp":{
+                                  "type":"string",
+                                  "format":"date-time"
+                               }
+                            }
+                         }
+                      },
+                      "newStatus":{
+                         "type":"string",
+                         "enum":[
+                            "Prepared",
+                            "Ingested",
+                            "In Progress",
+                            "Processed Successfully",
+                            "Processed with Errors",
+                            "Processed with Warnings",
+                            "Rolled back",
+                            "Failed to rollback",
+                            "Extracted",
+                            "Transformed"
+                         ]
+                      },
+                      "requestId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      },
+                      "sessionId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      }
+                   }
+                }""");
+        testRunner.enqueue("""
+                {
+                   "entities":
+                \t\t[{
+                \t\t "businessEntityType":"Customer",
+                \t\t "sourceId":"New_Update_Processor_4",
+                \t\t "_sourceTimeStamp":"2018-01-31T09:40:15.581Z"
+                \t\t}]
+                   ,
+                   "newStatus":"In Progress",
+                   "sessionId": "12",
+                   "requestId": "12"
+                }ioioiooo""");
         testRunner.run();
         testTransferToNotJSONRelation();
     }
 
     @Test
     public void testNotJson() {
-        testRunner.setProperty(ValidateJson.SCHEMA, "{\n" +
-                "   \"title\":\"Check Monitoring Request\",\n" +
-                "   \"required\":[\n" +
-                "      \"entities\",\n" +
-                "      \"newStatus\"\n" +
-                "   ],\n" +
-                "   \"properties\":{\n" +
-                "      \"entities\":{\n" +
-                "         \"type\":\"array\",\n" +
-                "         \"items\":{\n" +
-                "            \"type\":\"object\",\n" +
-                "            \"required\":[\n" +
-                "               \"businessEntityType\",\n" +
-                "               \"sourceId\"\n" +
-                "            ],\n" +
-                "            \"properties\":{\n" +
-                "               \"businessEntityType\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"enum\":[\n" +
-                "                     \"Customer\",\n" +
-                "                     \"Organization\",\n" +
-                "                     \"Individual\",\n" +
-                "                     \"PartyRole\",\n" +
-                "                     \"PartyInteraction\",\n" +
-                "                     \"ProductHierarchy\",\n" +
-                "                     \"AllCustomerProducts\"\n" +
-                "                  ]\n" +
-                "               },\n" +
-                "               \"sourceId\":{\n" +
-                "                  \"type\":\"string\"\n" +
-                "               },\n" +
-                "               \"_sourceTimeStamp\":{\n" +
-                "                  \"type\":\"string\",\n" +
-                "                  \"format\":\"date-time\"\n" +
-                "               }\n" +
-                "            }\n" +
-                "         }\n" +
-                "      },\n" +
-                "      \"newStatus\":{\n" +
-                "         \"type\":\"string\",\n" +
-                "         \"enum\":[\n" +
-                "            \"Prepared\",\n" +
-                "            \"Ingested\",\n" +
-                "            \"In Progress\",\n" +
-                "            \"Processed Successfully\",\n" +
-                "            \"Processed with Errors\",\n" +
-                "            \"Processed with Warnings\",\n" +
-                "            \"Rolled back\",\n" +
-                "            \"Failed to rollback\",\n" +
-                "            \"Extracted\",\n" +
-                "            \"Transformed\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"requestId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      },\n" +
-                "      \"sessionId\":{\n" +
-                "         \"type\":[\n" +
-                "            \"string\",\n" +
-                "            \"null\"\n" +
-                "         ]\n" +
-                "      }\n" +
-                "   }\n" +
-                "}");
+        testRunner.setProperty(ValidateJson.SCHEMA, """
+                {
+                   "title":"Check Monitoring Request",
+                   "required":[
+                      "entities",
+                      "newStatus"
+                   ],
+                   "properties":{
+                      "entities":{
+                         "type":"array",
+                         "items":{
+                            "type":"object",
+                            "required":[
+                               "businessEntityType",
+                               "sourceId"
+                            ],
+                            "properties":{
+                               "businessEntityType":{
+                                  "type":"string",
+                                  "enum":[
+                                     "Customer",
+                                     "Organization",
+                                     "Individual",
+                                     "PartyRole",
+                                     "PartyInteraction",
+                                     "ProductHierarchy",
+                                     "AllCustomerProducts"
+                                  ]
+                               },
+                               "sourceId":{
+                                  "type":"string"
+                               },
+                               "_sourceTimeStamp":{
+                                  "type":"string",
+                                  "format":"date-time"
+                               }
+                            }
+                         }
+                      },
+                      "newStatus":{
+                         "type":"string",
+                         "enum":[
+                            "Prepared",
+                            "Ingested",
+                            "In Progress",
+                            "Processed Successfully",
+                            "Processed with Errors",
+                            "Processed with Warnings",
+                            "Rolled back",
+                            "Failed to rollback",
+                            "Extracted",
+                            "Transformed"
+                         ]
+                      },
+                      "requestId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      },
+                      "sessionId":{
+                         "type":[
+                            "string",
+                            "null"
+                         ]
+                      }
+                   }
+                }""");
         testRunner.enqueue("ioioiooo");
         testRunner.run();
         testTransferToNotJSONRelation();
         List<MockFlowFile> notJsonFFs = testRunner.getFlowFilesForRelationship(ValidateJson.REL_NOT_JSON);
-        assertEquals(notJsonFFs.size(), 1);
-        assertEquals("Not json content in Flow file: Unrecognized token 'ioioiooo': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" + 
-            " at [Source: (ByteArrayInputStream); line: 1, column: 9]", notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR));
+        assertEquals(1, notJsonFFs.size());
+        assertNotNull(notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR));
+        assertTrue(notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR).matches(
+                "Not json content in Flow file: Unrecognized token 'ioioiooo': was expecting "
+                        + "\\(JSON String, Number, Array, Object or token 'null', 'true' or 'false'\\)\n"
+                        + " at \\[Source: .*; line: 1, column: 9]"));
     }
 
     private void testTransferToValidRelation() {

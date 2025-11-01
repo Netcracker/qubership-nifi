@@ -18,7 +18,6 @@ package org.qubership.nifi.reporting;
 
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -34,11 +33,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.Writer;
+import org.qubership.nifi.utils.servlet.PrometheusServlet;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -141,7 +137,8 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
             httpServer = new Server(port);
             ServletContextHandler servletContextHandler = new ServletContextHandler();
             servletContextHandler.setContextPath("/");
-            servletContextHandler.addServlet(new ServletHolder(new PrometheusServlet()), "/metrics");
+            servletContextHandler.addServlet(new ServletHolder(
+                    new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
             httpServer.setHandler(servletContextHandler);
 
             httpServer.start();
@@ -201,28 +198,6 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      * @param context reporting context
      */
     public abstract void registerMetrics(ReportingContext context);
-
-    protected class PrometheusServlet extends HttpServlet {
-
-        /**
-         * Handles get requests for the server. Gets metrics in prometheus format.
-         * @param req http request
-         * @param resp http response
-         */
-        @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.setContentType(TextFormat.CONTENT_TYPE_004);
-
-            try (Writer writer = resp.getWriter()) {
-                TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
-                writer.flush();
-            } catch (IOException e) {
-                getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
-            }
-        }
-    }
 
     /**
      * Gets meter registry.

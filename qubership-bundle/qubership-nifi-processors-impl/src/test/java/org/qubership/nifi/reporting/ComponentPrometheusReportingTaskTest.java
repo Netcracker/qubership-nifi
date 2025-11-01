@@ -16,6 +16,10 @@
 
 package org.qubership.nifi.reporting;
 
+import io.prometheus.client.exporter.common.TextFormat;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
@@ -42,6 +46,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.qubership.nifi.reporting.metrics.component.ConnectionMetricName;
 import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.CONNECTION_QUEUE_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESSOR_TIME_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESS_GROUP_LEVEL_THRESHOLD;
@@ -73,6 +79,8 @@ public class ComponentPrometheusReportingTaskTest {
     private ComponentPrometheusReportingTask task;
     private ConfigurationContext configurationContext;
     private MockBulletinRepository mockBulletinRepository;
+    private static final String SERVER_URL = "http://localhost:9192/metrics";
+    private OkHttpClient client;
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -83,6 +91,11 @@ public class ComponentPrometheusReportingTaskTest {
         initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);
         task.onScheduled(configurationContext);
+        //
+        OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        builder.connectTimeout(5, TimeUnit.SECONDS);
+        builder.readTimeout(5, TimeUnit.SECONDS);
+        client = builder.build();
     }
 
     @AfterEach
@@ -559,6 +572,18 @@ public class ComponentPrometheusReportingTaskTest {
         assertEquals(5_000_000_000L, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).
                 tags("component_id", "rootId").
                 gauge().measure().iterator().next().getValue());
+
+        //test endpoint:
+        Request request = new Request.Builder().url(SERVER_URL).get().build();
+        try (Response resp = client.newCall(request).execute()) {
+            String responseBody = resp.body() != null ? resp.body().string() : null;
+            assertTrue(resp.isSuccessful());
+            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
+            assertTrue(responseBody.contains("nifi_amount_items_queued{component_id=\"rootId\","
+                    + "component_name=\"Nifi Flow\",component_type=\"RootProcessGroup\","
+                    + "hostname=\"test-hostname\",instance=\"test-namespace_test-hostname\","
+                    + "namespace=\"test-namespace\",} 2000.0"));
+        }
     }
 
     @Test
