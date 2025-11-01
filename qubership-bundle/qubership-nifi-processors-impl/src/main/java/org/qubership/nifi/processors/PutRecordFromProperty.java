@@ -25,7 +25,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RetryableIOException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.RecordField;
@@ -33,7 +32,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.record.sink.RecordSinkService;
-import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 import static org.qubership.nifi.NiFiUtils.MAPPER;
@@ -46,11 +44,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @SupportsBatching
 //TODO: description, dynamic properties description
@@ -132,6 +128,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
             .displayName("")
             .description("")
             .dependsOn(METRIC_TYPE, "staticJson")
+            .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
@@ -248,7 +245,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
 
         if (context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue() != null) {
             jsonDynamicPropertyExist = true;
-            jsonDynamicPropertySet = Arrays.stream(context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue().split(","))
+            jsonDynamicPropertySet = Arrays.stream(
+                    context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue().split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toSet());
@@ -295,52 +293,131 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 String dynamicPropertyValue = entry.getValue();
                 if (jsonDynamicPropertyExist && jsonDynamicPropertySet.contains(dynamicPropertyName)) {
                     try {
-                        JsonNode jsonDynamicPropertyValue = MAPPER.readTree(dynamicPropertyValue);
-                        if (!jsonDynamicPropertyValue.isObject()) {
+                        JsonNode jsonValue = MAPPER.readTree(dynamicPropertyValue);
+                        if (!jsonValue.isObject()) {
                             throw new IllegalArgumentException("Json must be an object");
                         }
                         List<RecordField> jsonRecordfield = new ArrayList<>();
-                        jsonDynamicPropertyValue.fields().forEachRemaining( jsonField -> {
+                        Map<String, Object> nestedFieldValues = new HashMap<>();
+                        jsonValue.fields().forEachRemaining( jsonField -> {
                             String fieldName = jsonField.getKey();
                             JsonNode value = jsonField.getValue();
                             if (value.isArray()) {
-                                throw new IllegalArgumentException("Json must not contain array");
+                                double[] doubles = new double[value.size()];
+                                int i = 0;
+                                for (JsonNode element : value) {
+                                    if (!element.isNumber()) {
+                                        throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
+                                    }
+                                    doubles[i++] = element.asDouble();
+                                }
+                                jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
+                                nestedFieldValues.put(fieldName, doubles);
                             } else if (value.isObject()) {
                                 throw new IllegalArgumentException("Json must not contain object");
                             } else if (value.isNumber()) {
                                 jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
-                                fieldValues.put(fieldName, value.asDouble());
+                                nestedFieldValues.put(fieldName, value.asDouble());
                             } else if (value.isTextual()) {
                                 jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
-                                fieldValues.put(fieldName, value.asText());
+                                nestedFieldValues.put(fieldName, value.asText());
                             } else if (value.isBoolean()) {
                                 jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.BOOLEAN.getDataType()));
-                                fieldValues.put(fieldName, value.asBoolean());
+                                nestedFieldValues.put(fieldName, value.asBoolean());
                             }
                         });
                         RecordSchema nestedSchema = new SimpleRecordSchema(jsonRecordfield);
+                        MapRecord jsonRecord = new MapRecord(
+                                nestedSchema,
+                                nestedFieldValues,
+                                true,
+                                true);
+                        fieldValues.put(dynamicPropertyName, jsonRecord);
                         RecordField nestedRecordField = new RecordField(
                                 dynamicPropertyName,
                                 RecordFieldType.RECORD.getRecordDataType(nestedSchema)
                         );
                         allFields.add(nestedRecordField);
-
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);
                     }
                 } else {
-                    if(DataTypeUtils.isDoubleTypeCompatible(dynamicPropertyValue)) {
-                        allFields.add(new RecordField(dynamicPropertyName, RecordFieldType.DOUBLE.getDataType()));
-                        fieldValues.put(dynamicPropertyName, listDynamicProperty.get(dynamicPropertyName));
-                    } else {
-                        allFields.add(new RecordField(dynamicPropertyName, RecordFieldType.STRING.getDataType()));
-                        fieldValues.put(dynamicPropertyName, listDynamicProperty.get(dynamicPropertyName));
-                    }
+                    allFields.add(new RecordField(dynamicPropertyName,
+                            DataTypeUtils.isDoubleTypeCompatible(dynamicPropertyValue) ?
+                                    RecordFieldType.DOUBLE.getDataType() :
+                                    RecordFieldType.STRING.getDataType())
+                    );
+                    fieldValues.put(dynamicPropertyName, listDynamicProperty.get(dynamicPropertyName));
                 }
             }
 
             mainRecordSchema = new SimpleRecordSchema(allFields);
+            recordSet = new ListRecordSet(mainRecordSchema, Arrays.asList(
+                    new MapRecord(mainRecordSchema, fieldValues, true, true)
+            ));
+        } else {
+            String staticJson = context.getProperty(STATIC_JSON_OBJECT).evaluateAttributeExpressions(flowFile).getValue();
+            try {
+                JsonNode staticJsonNode = MAPPER.readTree(staticJson);
+                if (staticJsonNode.isArray()) {
+                    throw new IllegalArgumentException("Static json cannot be an array");
+                }
+                staticJsonNode.fields().forEachRemaining( jsonNodeEntry -> {
+                    String metricName = jsonNodeEntry.getKey();
+                    JsonNode node = jsonNodeEntry.getValue();
+                    if (!node.isObject()) {
+                        throw new IllegalArgumentException("Static json cannot be an array");
+                    }
+                    if (!node.has("value") && !node.has("type")) {
+                        throw new IllegalArgumentException("Static json must contain the value and type attributes.");
+                    }
+                    List<RecordField> staticJsonRecordfield = new ArrayList<>();
+                    Map<String, Object> staticNestedFieldValues = new HashMap<>();
+                    node.fields().forEachRemaining( childJsonObject -> {
+                        String fieldName = childJsonObject.getKey();
+                        JsonNode value = childJsonObject.getValue();
+                        if (value.isArray()) {
+                            Double[] doubles = new Double[value.size()];
+                            int i = 0;
+                            for (JsonNode element : value) {
+                                if (!element.isNumber()) {
+                                    throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
+                                }
+                                doubles[i++] = element.asDouble();
+                            }
+                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
+                            staticNestedFieldValues.put(fieldName, doubles);
+                        } else if (value.isObject()) {
+                            throw new IllegalArgumentException("Json must not contain object");
+                        } else if (value.isNumber()) {
+                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
+                            staticNestedFieldValues.put(fieldName, value.asDouble());
+                        } else if (value.isTextual()) {
+                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+                            staticNestedFieldValues.put(fieldName, value.asText());
+                        } else if (value.isBoolean()) {
+                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.BOOLEAN.getDataType()));
+                            staticNestedFieldValues.put(fieldName, value.asBoolean());
+                        }
+                    });
+                    RecordSchema nestedSchema = new SimpleRecordSchema(staticJsonRecordfield);
+                    MapRecord jsonRecord = new MapRecord(
+                            nestedSchema,
+                            staticNestedFieldValues,
+                            true,
+                            true);
+                    fieldValues.put(metricName, jsonRecord);
+                    RecordField nestedRecordField = new RecordField(
+                            metricName,
+                            RecordFieldType.RECORD.getRecordDataType(nestedSchema)
+                    );
+                    allFields.add(nestedRecordField);
+                });
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
 
+            mainRecordSchema = new SimpleRecordSchema(allFields);
             recordSet = new ListRecordSet(mainRecordSchema, Arrays.asList(
                     new MapRecord(mainRecordSchema, fieldValues, true, true)
             ));

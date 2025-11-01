@@ -13,8 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.qubership.nifi.processors.PutRecordFromProperty.LIST_JSON_DYNAMIC_PROPERTY;
-import static org.qubership.nifi.processors.PutRecordFromProperty.RECORD_SINK;
+import static org.qubership.nifi.processors.PutRecordFromProperty.*;
 
 public class PutRecordFromPropertyTest {
 
@@ -75,7 +74,37 @@ public class PutRecordFromPropertyTest {
         testRunner.run();
         List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
         assertEquals(1, result.size());
-        //assertEquals(1, recordSink.meterRegistry.getMeters().size());
+        assertEquals(0, recordSink.meterRegistry.getMeters().size());
+    }
+
+    @Test
+    public void testStaticJson() throws Exception {
+        String staticJsonObject = "{\n" +
+                "    \"request_duration_seconds\": {\n" +
+                "        \"type\": \"Summary\",\n" +
+                "        \"quantiles\": [\n" +
+                "            0.05, 0.12, 0.18, 0.45\n" +
+                "        ],\n" +
+                "        \"value\": ${value},\n" +
+                "        \"method\": \"${method}\",\n" +
+                "        \"endpoint\": \"${endpoint}\",\n" +
+                "        \"timestamp\": \"${status}\"\n" +
+                "    }\n" +
+                "}";
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("value", "1200");
+        attrs.put("endpoint", "/api/data");
+        attrs.put("method", "GET");
+        attrs.put("status", "200");
+
+        testRunner.setProperty(METRIC_TYPE, STATIC_JSON);
+        testRunner.setProperty(STATIC_JSON_OBJECT, staticJsonObject);
+        testRunner.enqueue("", attrs);
+        testRunner.run();
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        assertEquals(1, result.size());
+        assertEquals(1, recordSink.meterRegistry.getMeters().size());
     }
 
 }
