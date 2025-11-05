@@ -44,7 +44,7 @@ qubership-nifi-registry is not clustered and all cluster nodes must connect to t
 Build process requires the following tools:
 1. Java - JDK 17 or JDK 21
 2. Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
-3. Docker - any version of Docker Engine or any compatible docker container runtime.
+3. Docker - any version of Docker Engine or any compatible Docker container runtime.
 
 ### Project build
 
@@ -53,7 +53,7 @@ To execute maven build, run:
 mvn clean install
 ```
 
-Once maven build is completed, you can execute docker build. To do that, run:
+Once maven build is completed, you can execute Docker build. To do that, run:
 ```shell
 docker build .
 ```
