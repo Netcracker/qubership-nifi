@@ -194,8 +194,8 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     /**
-     * Initializes reporting task before it's started.
-     * @param context reporting context
+     * Initializes controller service before it's started.
+     * @param context configuration context
      */
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
@@ -328,11 +328,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     private synchronized Counter createCounter(String metricName, List<Tag> tagsList) {
-        Counter counter = Counter.builder(metricName)
+        return Counter.builder(metricName)
                     .tags(tagsList)
                     .register(meterRegistry);
-
-        return counter;
     }
 
     private synchronized DistributionSummary createSummary(String metricName, Record metricRecord, List<Tag> tagsList) {
@@ -353,14 +351,12 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             statisticExpiry = Duration.parse(metricRecord.getAsString("statisticExpiry"));
         }
 
-        DistributionSummary distributionSummary = DistributionSummary.builder(metricName)
+        return DistributionSummary.builder(metricName)
                     .tags(tagsList)
                     .distributionStatisticBufferLength(metricRecord.getAsInt("statisticBufferLength"))
                     .distributionStatisticExpiry(statisticExpiry)
                     .publishPercentiles(publishPercentiles)
                     .register(meterRegistry);
-
-        return distributionSummary;
     }
 
     private Number getMetricValue(MetricCompositeKey metricCompositeKey) {
@@ -368,9 +364,15 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     private Number convertNum(org.apache.nifi.serialization.record.Record record, String name) {
-        Number num = null;
+        return record.getSchema().getField(name)
+                .map(recordField -> convertNum(record, recordField)).orElse(null);
+    }
 
-        switch (record.getSchema().getDataType(name).get().getFieldType()) {
+    private Number convertNum(org.apache.nifi.serialization.record.Record record, RecordField field) {
+        Number num = null;
+        String name = field.getFieldName();
+
+        switch (field.getDataType().getFieldType()) {
             case INT:
                 num = record.getAsInt(name);
                 break;
@@ -384,7 +386,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 num = record.getAsDouble(name);
                 break;
             case DECIMAL:
-                if (record.getSchema().getDataType(name).get().getFieldType() == DOUBLE) {
+                if (field.getDataType().getFieldType() == DOUBLE) {
                     num = record.getAsDouble(name);
                 } else {
                     num = record.getAsFloat(name);

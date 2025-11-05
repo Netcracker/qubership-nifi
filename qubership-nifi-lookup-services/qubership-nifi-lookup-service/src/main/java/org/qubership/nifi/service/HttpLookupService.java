@@ -16,7 +16,10 @@
 
 package org.qubership.nifi.service;
 
-import okhttp3.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,36 +38,58 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
-
 import org.apache.nifi.serialization.record.Record;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * Controller service to lookup up values within some service with HTTP API.
+ */
 @Tags({"rest", "lookup", "json", "http"})
-@CapabilityDescription("Sends HTTP GET request with specified URL and headers (set up via dynamic properties) to look up values. \n" +
-        "\n" +
-        "If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records. \n" +
-        "\n" +
-        "Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.")
+@CapabilityDescription(
+        "Sends HTTP GET request with specified URL and headers "
+        + "(set up via dynamic PROPERTY_DESCRIPTORS) to look up values. \n"
+        + "\n"
+        + "If the response status code is 2xx, the response body is parsed with Record Reader "
+        + "and returned as array of records. \n"
+        + "\n"
+        + "Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.")
 @DynamicProperties({
-        @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the " +
-                "name as the header name and the value as the header value.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        @DynamicProperty(name = "*", value = "*",
+                description = "All dynamic PROPERTY_DESCRIPTORS are added as HTTP headers with the "
+                + "name as the header name and the value as the header value.",
+                expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 })
-public class HttpLookupService extends AbstractControllerService implements LookupService<List<org.apache.nifi.serialization.record.Record>> {
+public class HttpLookupService extends AbstractControllerService
+        implements LookupService<List<Record>> {
+    /**
+     * URL property descriptor.
+     */
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
             .name("http-lookup-url")
             .displayName("URL")
-            .description("The URL to send request to. Expression language is supported and evaluated against both the lookup key/value pairs and FlowFile attributes.")
+            .description("The URL to send request to. Expression language is supported "
+                    + "and evaluated against both the lookup key/value pairs and FlowFile attributes.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
+    /**
+     * Record Reader property descriptor.
+     */
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("http-lookup-record-reader")
             .displayName("Record Reader")
@@ -74,6 +99,9 @@ public class HttpLookupService extends AbstractControllerService implements Look
             .required(true)
             .build();
 
+    /**
+     * Connection Timeout property descriptor.
+     */
     public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("http-lookup-connection-timeout")
             .displayName("Connection Timeout")
@@ -83,6 +111,9 @@ public class HttpLookupService extends AbstractControllerService implements Look
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    /**
+     * Read Timeout property descriptor.
+     */
     public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
             .name("http-lookup-read-timeout")
             .displayName("Read Timeout")
@@ -92,30 +123,33 @@ public class HttpLookupService extends AbstractControllerService implements Look
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
 
     private volatile RecordReaderFactory readerFactory;
     private volatile OkHttpClient client;
     private volatile Map<String, PropertyValue> headers;
     private volatile PropertyValue urlTemplate;
 
-    private static final List<Integer> SUCCESS_CODES = Arrays.asList(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
+    private static final Set<Integer> SUCCESS_CODES = Set.of(200, 201, 202, 203, 204, 205, 206, 207, 208, 226);
 
     static {
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(URL);
-        props.add(RECORD_READER);
-        props.add(PROP_CONNECT_TIMEOUT);
-        props.add(PROP_READ_TIMEOUT);
-
-        properties = Collections.unmodifiableList(props);
+        PROPERTY_DESCRIPTORS = List.of(URL, RECORD_READER, PROP_CONNECT_TIMEOUT, PROP_READ_TIMEOUT);
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * @return PropertyDescriptor objects this component currently supports
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
+    /**
+     * Returns a dynamic PropertyDescriptors type that this component supports.
+     * @param propertyDescriptorName name of property descriptor
+     * @return PropertyDescriptor object this component currently supports
+     */
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
@@ -126,15 +160,20 @@ public class HttpLookupService extends AbstractControllerService implements Look
                 .build();
     }
 
-
+    /**
+     * Initializes controller service before it's started.
+     * @param context configuration context
+     */
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
 
-        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
         client = builder.build();
 
@@ -155,13 +194,30 @@ public class HttpLookupService extends AbstractControllerService implements Look
         }
     }
 
+    /**
+     * Looks up Record list using specified coordinates.
+     * @param coordinates a map with coordinates that should be used for lookup
+     * @return the list of Records generated as lookup result
+     * @throws LookupFailureException
+     */
     @Override
-    public Optional<List<org.apache.nifi.serialization.record.Record>> lookup(Map<String, Object> coordinates) throws LookupFailureException {
+    public Optional<List<Record>> lookup(Map<String, Object> coordinates)
+            throws LookupFailureException {
         return lookup(coordinates, null);
     }
 
+    /**
+     *
+     * Looks up Record list using specified coordinates.
+     * @param coordinates a map with coordinates that should be used for lookup
+     * @param context a map with additional lookup context
+     * @return the list of Records generated as lookup result
+     * @throws LookupFailureException
+     */
     @Override
-    public Optional<List<org.apache.nifi.serialization.record.Record>> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+    public Optional<List<org.apache.nifi.serialization.record.Record>> lookup(Map<String, Object> coordinates,
+                                                                              Map<String, String> context)
+            throws LookupFailureException {
 
         final Map<String, String> attributesAndCoordinates = mergeMaps(coordinates, context);
 
@@ -179,13 +235,10 @@ public class HttpLookupService extends AbstractControllerService implements Look
             }
 
             final ResponseBody responseBody = response.body();
-            if (responseBody == null) {
-                return Optional.empty();
-            }
 
             final List<org.apache.nifi.serialization.record.Record> records;
-            try (final InputStream is = responseBody.byteStream();
-                 final InputStream bufferedIn = new BufferedInputStream(is)) {
+            try (InputStream is = responseBody.byteStream();
+                InputStream bufferedIn = new BufferedInputStream(is)) {
                 records = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 
@@ -196,17 +249,28 @@ public class HttpLookupService extends AbstractControllerService implements Look
         }
     }
 
+    /**
+     * Get value type for this lookup service.
+     * @return Record class
+     */
     @Override
     public Class<?> getValueType() {
         return org.apache.nifi.serialization.record.Record.class;
     }
 
+    /**
+     * Get set of required keys for this lookup service.
+     * @return set of required keys
+     */
     @Override
     public Set<String> getRequiredKeys() {
         return Collections.emptySet();
     }
 
-    private List<org.apache.nifi.serialization.record.Record> handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private List<org.apache.nifi.serialization.record.Record> handleResponse(InputStream is,
+                                                                             long inputLength,
+                                                                             Map<String, String> context)
+            throws SchemaNotFoundException, MalformedRecordException, IOException {
         try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
             List<org.apache.nifi.serialization.record.Record> records = new ArrayList<>();
             org.apache.nifi.serialization.record.Record record;
@@ -225,17 +289,30 @@ public class HttpLookupService extends AbstractControllerService implements Look
 
         if (headers != null) {
             for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
-                request = request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(attributesAndCoordinates).getValue());
+                request = request.addHeader(header.getKey(), header.getValue().
+                        evaluateAttributeExpressions(attributesAndCoordinates).getValue());
             }
         }
 
         return request.build();
     }
 
+    /**
+     * Executes HTTP request.
+     * @param request HTTP request
+     * @return HTTP response
+     * @throws IOException
+     */
     protected Response executeRequest(Request request) throws IOException {
         return client.newCall(request).execute();
     }
 
+    /**
+     * Merges maps with coordinates and context into single map.
+     * @param coordinates lookup coordinates
+     * @param context lookup context
+     * @return map with both coordinates and lookup context
+     */
     protected Map<String, String> mergeMaps(Map<String, Object> coordinates, Map<String, String> context) {
         Map<String, String> converted = coordinates.entrySet().stream()
                 .filter(e -> e.getValue() != null)
