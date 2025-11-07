@@ -32,6 +32,7 @@ services:
       - 127.0.0.1:8091:8091
       - 127.0.0.1:9892:9892
       - 127.0.0.1:12981:12981
+      - 127.0.0.1:9192:9192
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
