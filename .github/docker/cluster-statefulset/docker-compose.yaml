@@ -17,10 +17,14 @@ services:
     image: zookeeper:3.9.3
     ports:
       - 127.0.0.1:2181:2181
+      - 127.0.0.1:2182:2182
+    volumes:
+      - tls-cert:/opt/zookeeper/ssl
+      - zk-configuration:/conf
     hostname: zookeeper
     environment:
       ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+      ZOO_SERVERS: server.1=zookeeper:2888:3888
   qubership-nifi-0:
     image: local-nifi:test
     depends_on:
@@ -54,13 +58,14 @@ services:
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
       - NIFI_CLUSTER_IS_NODE=true
-      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - ZOOKEEPER_ADDRESS=zookeeper:2182
       - NIFI_ZK_ROOT_NODE=/local/nifi
       - MICROSERVICE_NAME=qubership-nifi
       - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
+      - ZOOKEEPER_SSL_ENABLED=true
     container_name: local-nifi
     hostname: qubership-nifi-0
     restart: unless-stopped
@@ -97,13 +102,14 @@ services:
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
       - NIFI_CLUSTER_IS_NODE=true
-      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - ZOOKEEPER_ADDRESS=zookeeper:2182
       - NIFI_ZK_ROOT_NODE=/local/nifi
       - MICROSERVICE_NAME=qubership-nifi
       - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
+      - ZOOKEEPER_SSL_ENABLED=true
     container_name: qubership-nifi-1
     hostname: qubership-nifi-1
     restart: unless-stopped
@@ -140,13 +146,14 @@ services:
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
       - NIFI_CLUSTER_IS_NODE=true
-      - ZOOKEEPER_ADDRESS=zookeeper:2181
+      - ZOOKEEPER_ADDRESS=zookeeper:2182
       - NIFI_ZK_ROOT_NODE=/local/nifi
       - MICROSERVICE_NAME=qubership-nifi
       - NIFI_CLUSTER_NODE_PROTOCOL_PORT=8082
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
+      - ZOOKEEPER_SSL_ENABLED=true
     container_name: qubership-nifi-2
     hostname: qubership-nifi-2
     restart: unless-stopped
@@ -252,7 +259,7 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/workflows/sh/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
   tls-cert:
     driver: local
     driver_opts:
@@ -318,4 +325,10 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/keycloak/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/keycloak/
+  zk-configuration:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/zookeeper/
