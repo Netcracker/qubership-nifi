@@ -144,7 +144,12 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
     info "ZOOKEEPER_SSL_ENABLED = true"
     prop_replace 'nifi.zookeeper.client.secure' "true"
     #use keystore w/o any keys to work w/o client auth (ssl.clientAuth = none):
-    prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs/truststore.p12"
+    if [[ "$NIFI_CLUSTER_IS_NODE" == "true" && "$IS_STATEFUL_SET" == "true" ]]; then
+        numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
+        prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs-$numberNode/truststore.p12"
+    else
+        prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs/truststore.p12"
+    fi
     prop_replace 'nifi.zookeeper.security.keystoreType' "PKCS12"
     prop_replace 'nifi.zookeeper.security.keystorePasswd' "$TRUSTSTORE_PASSWORD"
     if [ -z "${CERTIFICATE_FILE_PASSWORD}" ]; then
