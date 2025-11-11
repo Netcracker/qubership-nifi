@@ -95,6 +95,103 @@
             ]
         },
         {
+            "name": "Create Reporting Tasks",
+            "item": [
+                {
+                    "name": "Create Reporting Tasks",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains created reporting task\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.reportingTasks[0].component.name).to.eql(\"ComponentPrometheusReportingTask\");\r",
+                                    "    pm.environment.set(\"reporting.task.id\", jsonData.reportingTasks[0].id);\r",
+                                    "    pm.environment.set(\"reporting.task.version\", jsonData.reportingTasks[0].revision.version);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"disconnectedNodeAcknowledged\": false,\r\n    \"reportingTaskSnapshot\": {\r\n        \"reportingTasks\": [\r\n            {\r\n                \"name\": \"ComponentPrometheusReportingTask\",\r\n                \"type\": \"org.qubership.nifi.reporting.ComponentPrometheusReportingTask\",\r\n                \"bundle\": {\r\n                    \"group\": \"org.qubership.nifi\",\r\n                    \"artifact\": \"migration-nifi-processors-open\",\r\n                    \"version\": \"2.0.0\"\r\n                },\r\n                \"scheduledState\": \"RUNNING\",\r\n                \"schedulingPeriod\": \"30 secs\",\r\n                \"schedulingStrategy\": \"TIMER_DRIVEN\",\r\n                \"defaultSchedulingPeriod\": {\r\n                    \"TIMER_DRIVEN\": \"0 sec\",\r\n                    \"CRON_DRIVEN\": \"* * * * * ?\"\r\n                },\r\n                \"properties\": {\r\n                    \"port\": \"9192\",\r\n                    \"processor-time-threshold\": \"150 sec\",\r\n                    \"connection-queue-threshold\": \"80\",\r\n                    \"pg-level-threshold\": \"2\"\r\n                },\r\n                \"propertyDescriptors\": {\r\n                    \"port\": {\r\n                        \"name\": \"port\",\r\n                        \"displayName\": \"Server Port\",\r\n                        \"description\": \"\",\r\n                        \"defaultValue\": \"9192\",\r\n                        \"required\": true,\r\n                        \"sensitive\": false,\r\n                        \"dynamic\": false,\r\n                        \"supportsEl\": false,\r\n                        \"expressionLanguageScope\": \"Not Supported\",\r\n                        \"dependencies\": []\r\n                    },\r\n                    \"processor-time-threshold\": {\r\n                        \"name\": \"processor-time-threshold\",\r\n                        \"displayName\": \"Processor time threshold\",\r\n                        \"description\": \"Minimal processing time for processor to be included in monitoring.\\nLimits data volume collected in Prometheus.\",\r\n                        \"defaultValue\": \"150 sec\",\r\n                        \"required\": true,\r\n                        \"sensitive\": false,\r\n                        \"dynamic\": false,\r\n                        \"supportsEl\": false,\r\n                        \"expressionLanguageScope\": \"Not Supported\",\r\n                        \"dependencies\": []\r\n                    },\r\n                    \"connection-queue-threshold\": {\r\n                        \"name\": \"connection-queue-threshold\",\r\n                        \"displayName\": \"Connection queue threshold\",\r\n                        \"description\": \"Minimal connection usage % relative to backPressureObjectThreshold.\\nLimits data volume collected in Prometheus.\",\r\n                        \"defaultValue\": \"80\",\r\n                        \"required\": true,\r\n                        \"sensitive\": false,\r\n                        \"dynamic\": false,\r\n                        \"supportsEl\": false,\r\n                        \"expressionLanguageScope\": \"Not Supported\",\r\n                        \"dependencies\": []\r\n                    },\r\n                    \"pg-level-threshold\": {\r\n                        \"name\": \"pg-level-threshold\",\r\n                        \"displayName\": \"Process group level threshold\",\r\n                        \"description\": \"Maximum depth of process group to report in monitoring.\\nLimits data volume collected in Prometheus.\",\r\n                        \"defaultValue\": \"2\",\r\n                        \"required\": true,\r\n                        \"sensitive\": false,\r\n                        \"dynamic\": false,\r\n                        \"supportsEl\": false,\r\n                        \"expressionLanguageScope\": \"Not Supported\",\r\n                        \"dependencies\": []\r\n                    }\r\n                }\r\n            }\r\n        ]\r\n    }\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/controller/reporting-tasks/import",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "controller",
+                                "reporting-tasks",
+                                "import"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Start reporting task ComponentPrometheusReportingTask",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "    pm.environment.set(\"reporting.task.started.ts\", new Date().getTime());\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"revision\": {\r\n        \"version\": \"{{reporting.task.version}}\"\r\n    },\r\n    \"state\": \"RUNNING\",\r\n    \"disconnectedNodeAcknowledged\": false\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/reporting-tasks/{{reporting.task.id}}/run-status",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "reporting-tasks",
+                                "{{reporting.task.id}}",
+                                "run-status"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "Configure Controller Services",
             "item": [
                 {
@@ -413,313 +510,6 @@
                             "path": [
                                 "test-prepare",
                                 "db"
-                            ]
-                        }
-                    },
-                    "response": []
-                }
-            ]
-        },
-        {
-            "name": "migration-nifi-processors",
-            "item": [
-                {
-                    "name": "QueryDatabaseToCSV",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is text and contains CSV lines\", function () {\r",
-                                    "    var textData = pm.response.text();\r",
-                                    "    pm.expect(textData).to.contains(\"1,Some Name 1,Some longer text description 1\");\r",
-                                    "    pm.expect(textData).to.contains(\"2,Some Name 2,Some longer text description 2\");\r",
-                                    "    pm.expect(textData).to.contains(\"3,Some Name 3,Some longer text description 3\");\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToCSV",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "QueryDatabaseToCSV"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "BackupAttributes",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/BackupAttributes",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "BackupAttributes"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "FetchTableToJson",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is JSON and contains array with 3 elements\", function () {\r",
-                                    "    var jsonData = pm.response.json();\r",
-                                    "    pm.expect(jsonData.length).to.eql(3);\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "GET",
-                        "header": [],
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/FetchTableToJson",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "FetchTableToJson"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "QueryDatabaseToJson",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
-                                    "    var jsonData = pm.response.json();\r",
-                                    "    pm.expect(jsonData.length).to.eql(2);\r",
-                                    "    pm.expect(jsonData[0].id).to.eql(\"1\");\r",
-                                    "    pm.expect(jsonData[0].name).to.eql(\"Some Name 1\");\r",
-                                    "    pm.expect(jsonData[0].description).to.eql(\"Some longer text description 1\");\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToJson",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "QueryDatabaseToJson"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "QueryDatabaseToJsonWithMerge",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
-                                    "    var jsonData = pm.response.json();\r",
-                                    "    pm.expect(jsonData.length).to.eql(2);\r",
-                                    "    pm.expect(jsonData[0].sourceId).to.eql(1);\r",
-                                    "    pm.expect(jsonData[0].entity[0].name).to.eql(\"Some Name 1\");\r",
-                                    "    pm.expect(jsonData[0].entity[0].description).to.eql(\"Some longer text description 1\");\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToJsonWithMerge",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "QueryDatabaseToJsonWithMerge"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "QueryIdsAndFetchTableToJson",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
-                                    "    var jsonData = pm.response.json();\r",
-                                    "    pm.expect(jsonData.length).to.eql(2);\r",
-                                    "    pm.expect(jsonData[0].id).to.eql(\"1\");\r",
-                                    "    pm.expect(jsonData[0].name).to.eql(\"Some Name 1\");\r",
-                                    "    pm.expect(jsonData[0].description).to.eql(\"Some longer text description 1\");\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryIdsAndFetchTableToJson",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "QueryIdsAndFetchTableToJson"
-                            ]
-                        }
-                    },
-                    "response": []
-                },
-                {
-                    "name": "ValidateJson",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test(\"Status code is 200\", function () {\r",
-                                    "    pm.response.to.have.status(200);\r",
-                                    "});\r",
-                                    "\r",
-                                    "pm.test(\"Response is JSON and contains object from request\", function () {\r",
-                                    "    var jsonData = pm.response.json();\r",
-                                    "    pm.expect(jsonData.orderId).to.eql(1);\r",
-                                    "    pm.expect(jsonData.price).to.eql(123);\r",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\r\n    \"sourceId\": \"1\",\r\n    \"entityType\": \"Order\",\r\n    \"orderId\": 1,\r\n    \"orderName\": \"Order name 1\",\r\n    \"price\": 123,\r\n    \"salesDate\": \"2024-10-30T12:00:00Z\",\r\n    \"status\": \"In Progress\"\r\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
-                        "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/ValidateJson",
-                            "host": [
-                                "{{nifi.nar-test.url}}"
-                            ],
-                            "path": [
-                                "test-nars",
-                                "migration-nifi-processors",
-                                "ValidateJson"
                             ]
                         }
                     },
@@ -1277,6 +1067,378 @@
                                 "test-nars",
                                 "qubership-service",
                                 "JsonContentValidator"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "migration-nifi-processors",
+            "item": [
+                {
+                    "name": "QueryDatabaseToCSV",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is text and contains CSV lines\", function () {\r",
+                                    "    var textData = pm.response.text();\r",
+                                    "    pm.expect(textData).to.contains(\"1,Some Name 1,Some longer text description 1\");\r",
+                                    "    pm.expect(textData).to.contains(\"2,Some Name 2,Some longer text description 2\");\r",
+                                    "    pm.expect(textData).to.contains(\"3,Some Name 3,Some longer text description 3\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToCSV",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "QueryDatabaseToCSV"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "BackupAttributes",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/BackupAttributes",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "BackupAttributes"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "FetchTableToJson",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains array with 3 elements\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.length).to.eql(3);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/FetchTableToJson",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "FetchTableToJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QueryDatabaseToJson",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.length).to.eql(2);\r",
+                                    "    pm.expect(jsonData[0].id).to.eql(\"1\");\r",
+                                    "    pm.expect(jsonData[0].name).to.eql(\"Some Name 1\");\r",
+                                    "    pm.expect(jsonData[0].description).to.eql(\"Some longer text description 1\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToJson",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "QueryDatabaseToJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QueryDatabaseToJsonWithMerge",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.length).to.eql(2);\r",
+                                    "    pm.expect(jsonData[0].sourceId).to.eql(1);\r",
+                                    "    pm.expect(jsonData[0].entity[0].name).to.eql(\"Some Name 1\");\r",
+                                    "    pm.expect(jsonData[0].entity[0].description).to.eql(\"Some longer text description 1\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryDatabaseToJsonWithMerge",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "QueryDatabaseToJsonWithMerge"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QueryIdsAndFetchTableToJson",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains array with 2 elements\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.length).to.eql(2);\r",
+                                    "    pm.expect(jsonData[0].id).to.eql(\"1\");\r",
+                                    "    pm.expect(jsonData[0].name).to.eql(\"Some Name 1\");\r",
+                                    "    pm.expect(jsonData[0].description).to.eql(\"Some longer text description 1\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[\r\n    {\r\n        \"sourceId\": 1\r\n    },\r\n    {\r\n        \"sourceId\": 2\r\n    }\r\n]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/QueryIdsAndFetchTableToJson",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "QueryIdsAndFetchTableToJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "ValidateJson",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is JSON and contains object from request\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.orderId).to.eql(1);\r",
+                                    "    pm.expect(jsonData.price).to.eql(123);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"sourceId\": \"1\",\r\n    \"entityType\": \"Order\",\r\n    \"orderId\": 1,\r\n    \"orderName\": \"Order name 1\",\r\n    \"price\": 123,\r\n    \"salesDate\": \"2024-10-30T12:00:00Z\",\r\n    \"status\": \"In Progress\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/ValidateJson",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "ValidateJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "migration-nifi-processors (reporting tasks)",
+            "item": [
+                {
+                    "name": "ComponentPrometheusReportingTask_getMetrics",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is text and contains metric lines\", function () {\r",
+                                    "    var textData = pm.response.text();\r",
+                                    "    pm.expect(textData).to.matches(/.*nifi_amount_threads_active.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nifi_jvm_uptime.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nifi_jvm_heap_usage.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nifi_amount_items_queued.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nifi_size_content_queued_total.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_count.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_bytes.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*jvm_buffer_total_capacity_bytes.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*jvm_classes_loaded_classes.*namespace=\\\"local\\\".*/);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "let reportingTaskStarted = pm.environment.get(\"reporting.task.started.ts\");\r",
+                                    "let currentTime = new Date().getTime();\r",
+                                    "console.log(\"reportingTaskStarted = \" + reportingTaskStarted + \"; currentTime = \" + currentTime + \"; diff = \" + (currentTime - reportingTaskStarted))\r",
+                                    "if (currentTime - reportingTaskStarted < 30000) {\r",
+                                    "    setTimeout(() => {\r",
+                                    "        //retry after timeout\r",
+                                    "        postman.setNextRequest(\"ComponentPrometheusReportingTask_getMetrics\");\r",
+                                    "    }, currentTime - reportingTaskStarted);\r",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.c.reporting.task.url}}/metrics",
+                            "host": [
+                                "{{nifi.c.reporting.task.url}}"
+                            ],
+                            "path": [
+                                "metrics"
                             ]
                         }
                     },

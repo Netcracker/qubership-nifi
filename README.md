@@ -10,12 +10,12 @@ Compared with Apache NiFi it supports:
 5. reporting tasks for additional monitoring of NiFi processes.
 
 ## Status
-![Unit tests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml/badge.svg)
-![Autotests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml/badge.svg)
-![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=coverage)
-![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=ncloc)
-![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=alert_status)
-![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=vulnerabilities)
+[![Unit tests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml)
+[![Autotests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=coverage)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=ncloc)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=alert_status)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=vulnerabilities)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
 
 ## Overview
 
@@ -44,7 +44,7 @@ qubership-nifi-registry is not clustered and all cluster nodes must connect to t
 Build process requires the following tools:
 1. Java - JDK 17 or JDK 21
 2. Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
-3. Docker - any version of Docker Engine or any compatible docker container runtime.
+3. Docker - any version of Docker Engine or any compatible Docker container runtime.
 
 ### Project build
 
@@ -53,7 +53,7 @@ To execute maven build, run:
 mvn clean install
 ```
 
-Once maven build is completed, you can execute docker build. To do that, run:
+Once maven build is completed, you can execute Docker build. To do that, run:
 ```shell
 docker build .
 ```

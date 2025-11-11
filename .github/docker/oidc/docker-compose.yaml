@@ -32,6 +32,7 @@ services:
       - 127.0.0.1:8091:8091
       - 127.0.0.1:9892:9892
       - 127.0.0.1:12981:12981
+      - 127.0.0.1:9192:9192
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
@@ -163,7 +164,7 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/workflows/sh/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
   tls-cert:
     driver: local
     driver_opts:
@@ -211,4 +212,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/keycloak/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/keycloak/

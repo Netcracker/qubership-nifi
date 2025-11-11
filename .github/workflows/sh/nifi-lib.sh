@@ -284,10 +284,12 @@ generate_tls_passwords() {
     KEYSTORE_PASSWORD_NIFI=$(generate_random_password 8 4 3)
     KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_password 8 4 3)
     KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4)
+    ZK_TLS_PASS=$(generate_random_hex_password 8 4)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
     export KEYSTORE_PASSWORD_NIFI_REG
     export KEYCLOAK_TLS_PASS
+    export ZK_TLS_PASS
 }
 
 create_docker_env_file() {
@@ -316,6 +318,8 @@ create_docker_env_file() {
     REDIS_PASSWORD=$(generate_random_hex_password 8 4)
     export REDIS_PASSWORD
     echo "REDIS_PASSWORD=$REDIS_PASSWORD" >>./docker.env
+    export ZK_TLS_PASS
+    echo "ZK_TLS_PASS=$ZK_TLS_PASS" >>./docker.env
 }
 
 create_docker_env_file_plain() {
@@ -336,9 +340,9 @@ create_global_vars_file() {
 
 generate_add_nifi_certs() {
     keytool -genkeypair -alias keycloakCA -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
-        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -dname "CN=keycloakCA" -ext bc:c
-    keytool -genkeypair -alias keycloakServer -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
-        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -dname "CN=keycloak" -signer keycloakCA -signerkeypass \
+        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=keycloakCA" -ext bc:c
+    keytool -genkeypair  -alias keycloakServer -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
+        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=keycloak" -signer keycloakCA -signerkeypass \
         "$KEYCLOAK_TLS_PASS" -ext SAN=dns:keycloak,dns:localhost
     keytool -importkeystore -srckeystore ./temp-vol/tls-cert/keycloak.p12 -destkeystore ./temp-vol/tls-cert/keycloak-server.p12 -srcstoretype PKCS12 \
         -deststoretype PKCS12 -srcstorepass "$KEYCLOAK_TLS_PASS" -deststorepass "$KEYCLOAK_TLS_PASS" -srcalias \
@@ -347,6 +351,44 @@ generate_add_nifi_certs() {
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer
     keytool -importcert -keystore ./temp-vol/tls-cert/keycloak-server.p12 -storetype PKCS12 -storepass "$KEYCLOAK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer -alias keycloak-ca-cer -noprompt
+}
+
+generate_zookeeper_certs() {
+    keytool -genkeypair -alias zkCA -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zkCA" -ext bc:c
+    keytool -genkeypair -alias zkServer1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    keytool -genkeypair -alias zkQuorum1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-server.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkServer1 -destalias zkServer1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkQuorum1 -destalias zkQuorum1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    keytool -exportcert -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" -alias zkCA -rfc \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-server.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-truststore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+}
+
+prepare_zookeeper_configuration() {
+    if [ -n "$ZK_TLS_PASS" ]; then
+        sed -i "s/^ssl.quorum.keyStore.password=.*$/ssl.quorum.keyStore.password=$ZK_TLS_PASS/" \
+            ./.github/configuration/zookeeper/zoo.cfg
+        sed -i "s/^ssl.quorum.trustStore.password=.*$/ssl.quorum.trustStore.password=$ZK_TLS_PASS/" \
+            ./.github/configuration/zookeeper/zoo.cfg
+        sed -i "s/^ssl.trustStore.password=.*$/ssl.trustStore.password=$ZK_TLS_PASS/" \
+            ./.github/configuration/zookeeper/zoo.cfg
+        sed -i "s/^ssl.keyStore.password=.*$/ssl.keyStore.password=$ZK_TLS_PASS/" \
+            ./.github/configuration/zookeeper/zoo.cfg
+    fi
 }
 
 setup_env_before_tests() {
@@ -377,6 +419,8 @@ setup_env_before_tests() {
         mkdir -p ./temp-vol/nifi-0/per-conf/
         mkdir -p ./temp-vol/nifi-1/per-conf/
         mkdir -p ./temp-vol/nifi-2/per-conf/
+        #generate zookeeper certificates:
+        generate_zookeeper_certs
     else
         mkdir -p ./temp-vol/nifi/per-conf/
         mkdir -p ./temp-vol/nifi/extensions/
@@ -388,6 +432,10 @@ setup_env_before_tests() {
     #generate keycloak certificates:
     if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
+    fi
+    #set up passwords for zoo.cfg:
+    if [[ "$runMode" == "cluster-statefulset" ]]; then
+        prepare_zookeeper_configuration
     fi
 }
 
