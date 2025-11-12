@@ -7,10 +7,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -264,12 +261,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         if (!jsonValue.isObject()) {
                             throw new IllegalArgumentException("Json must be an object");
                         }
-                        boolean hasChildObject = checkHasChildObject(jsonValue);
                         List<RecordField> jsonRecordField = new ArrayList<>();
                         Map<String, Object> nestedFieldValues = new HashMap<>();
-
                         processJsonNode(jsonRecordField, nestedFieldValues, jsonValue);
-
                         RecordSchema nestedSchema = new SimpleRecordSchema(jsonRecordField);
                         MapRecord jsonRecord = new MapRecord(
                                 nestedSchema,
@@ -362,11 +356,13 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 session.getProvenanceReporter().send(flowFile, recordSinkURL, transmissionMillis);
             }
         } catch (RetryableIOException rioe) {
-            getLogger().warn("Error during transmission of records due to {}, routing to retry", rioe.getMessage(), rioe);
+            getLogger().warn("Error during transmission of records due to {},"
+                    + " routing to retry", rioe.getMessage(), rioe);
             session.transfer(flowFile, REL_RETRY);
             return;
         } catch (IOException exception) {
-            getLogger().error("Error during transmission of records due to {}, routing to failure", exception.getMessage(), exception);
+            getLogger().error("Error during transmission of records due to {},"
+                    + " routing to failure", exception.getMessage(), exception);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -374,20 +370,25 @@ public class PutRecordFromProperty extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void processJsonNode(List<RecordField> jsonRecordField, Map<String, Object> nestedFieldValues, JsonNode jsonValue) {
-        jsonValue.fields().forEachRemaining( jsonField -> {
+    private void processJsonNode(
+            List<RecordField> jsonRecordField,
+            Map<String, Object> nestedFieldValues,
+            JsonNode jsonValue) {
+        jsonValue.fields().forEachRemaining(jsonField -> {
             String fieldName = jsonField.getKey();
             JsonNode value = jsonField.getValue();
             if (value.isArray()) {
-                double[] doubles = new double[value.size()];
+                Double[] doubles = new Double[value.size()];
                 int i = 0;
                 for (JsonNode element : value) {
                     if (!element.isNumber()) {
-                        throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
+                        throw new IllegalArgumentException("Array in Json must contain only elements"
+                                + " of the numeric type.");
                     }
                     doubles[i++] = element.asDouble();
                 }
-                jsonRecordField.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
+                jsonRecordField.add(new RecordField(
+                        fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
                 nestedFieldValues.put(fieldName, doubles);
             } else if (value.isObject()) {
                 throw new IllegalArgumentException("Json must not contain object");
