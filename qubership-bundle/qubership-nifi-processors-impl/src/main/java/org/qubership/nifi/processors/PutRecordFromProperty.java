@@ -61,42 +61,6 @@ public class PutRecordFromProperty extends AbstractProcessor {
 
     private Set<String> jsonDynamicPropertySet;
 
-    public static final AllowableValue DYNAMIC_PROPERTY = new AllowableValue("dynamicProperty",
-            "Dynamic Property", "Get record from a dynamic properties");
-    public static final AllowableValue STATIC_JSON = new AllowableValue("staticJson",
-            "Static Json", "Get record from a static json property");
-
-    private static final Validator LIST_JSON_DYNAMIC_PROPERTY_VALIDATOR = new Validator() {
-        private final Validator LJDP_RE_VALIDATOR = StandardValidators.createRegexValidator(
-                0,
-                Integer.MAX_VALUE,
-                true);
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                final AttributeExpression.ResultType resultType = context.newExpressionLanguageCompiler()
-                        .getResultType(input);
-                if (!resultType.equals(AttributeExpression.ResultType.STRING)) {
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(false)
-                            .explanation("Expected property to to return type " + AttributeExpression.ResultType.STRING
-                                    + " but expression returns type " + resultType)
-                            .build();
-                }
-                return new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input)
-                        .valid(true)
-                        .explanation("Property returns type " + AttributeExpression.ResultType.STRING)
-                        .build();
-            }
-
-            return LJDP_RE_VALIDATOR.validate(subject, input, context);
-        }
-    };
-
     public static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
             .name("put-record-sink")
             .displayName("Record Destination Service")
@@ -106,28 +70,31 @@ public class PutRecordFromProperty extends AbstractProcessor {
             .required(true)
             .build();
 
-    public static final PropertyDescriptor METRIC_TYPE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
             .name("metric-type")
             .displayName("Metric type")
             .description("")
             .required(true)
-            .allowableValues(DYNAMIC_PROPERTY, STATIC_JSON)
-            .defaultValue("dynamicProperty")
+            .allowableValues(
+                    SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue(),
+                    SourceTypeValues.JSON_PROPERTY.getAllowableValue()
+            )
+            .defaultValue(SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue())
             .build();
 
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
-            .displayName("")
+            .displayName("List Json Dynamic Property")
             .description("")
-            .addValidator(LIST_JSON_DYNAMIC_PROPERTY_VALIDATOR)
+            .addValidator(ListJsonDynamicPropertyValidator.getInstance())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    public static final PropertyDescriptor STATIC_JSON_OBJECT = new PropertyDescriptor.Builder()
-            .name("")
-            .displayName("")
+    public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
+            .name("json-property-object")
+            .displayName("Json Property")
             .description("")
-            .dependsOn(METRIC_TYPE, "staticJson")
+            .dependsOn(SOURCE_TYPE, "jsonProperty")
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -181,9 +148,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(RECORD_SINK);
-        prop.add(METRIC_TYPE);
+        prop.add(SOURCE_TYPE);
         prop.add(LIST_JSON_DYNAMIC_PROPERTY);
-        prop.add(STATIC_JSON_OBJECT);
+        prop.add(JSON_PROPERTY_OBJECT);
         this.descriptors = Collections.unmodifiableList(prop);
 
         final Set<Relationship> rel = new HashSet<>();
@@ -240,8 +207,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws JsonProcessingException {
         recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
-
-        useDynamicProperty = "dynamicProperty".equals(context.getProperty(METRIC_TYPE).getValue());
+        useDynamicProperty = SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue().getValue()
+                .equals(context.getProperty(SOURCE_TYPE).getValue());
 
         if (context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue() != null) {
             jsonDynamicPropertyExist = true;
@@ -297,36 +264,13 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         if (!jsonValue.isObject()) {
                             throw new IllegalArgumentException("Json must be an object");
                         }
-                        List<RecordField> jsonRecordfield = new ArrayList<>();
+                        boolean hasChildObject = checkHasChildObject(jsonValue);
+                        List<RecordField> jsonRecordField = new ArrayList<>();
                         Map<String, Object> nestedFieldValues = new HashMap<>();
-                        jsonValue.fields().forEachRemaining( jsonField -> {
-                            String fieldName = jsonField.getKey();
-                            JsonNode value = jsonField.getValue();
-                            if (value.isArray()) {
-                                double[] doubles = new double[value.size()];
-                                int i = 0;
-                                for (JsonNode element : value) {
-                                    if (!element.isNumber()) {
-                                        throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
-                                    }
-                                    doubles[i++] = element.asDouble();
-                                }
-                                jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
-                                nestedFieldValues.put(fieldName, doubles);
-                            } else if (value.isObject()) {
-                                throw new IllegalArgumentException("Json must not contain object");
-                            } else if (value.isNumber()) {
-                                jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
-                                nestedFieldValues.put(fieldName, value.asDouble());
-                            } else if (value.isTextual()) {
-                                jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
-                                nestedFieldValues.put(fieldName, value.asText());
-                            } else if (value.isBoolean()) {
-                                jsonRecordfield.add(new RecordField(fieldName, RecordFieldType.BOOLEAN.getDataType()));
-                                nestedFieldValues.put(fieldName, value.asBoolean());
-                            }
-                        });
-                        RecordSchema nestedSchema = new SimpleRecordSchema(jsonRecordfield);
+
+                        processJsonNode(jsonRecordField, nestedFieldValues, jsonValue);
+
+                        RecordSchema nestedSchema = new SimpleRecordSchema(jsonRecordField);
                         MapRecord jsonRecord = new MapRecord(
                                 nestedSchema,
                                 nestedFieldValues,
@@ -343,11 +287,11 @@ public class PutRecordFromProperty extends AbstractProcessor {
                     }
                 } else {
                     allFields.add(new RecordField(dynamicPropertyName,
-                            DataTypeUtils.isDoubleTypeCompatible(dynamicPropertyValue) ?
-                                    RecordFieldType.DOUBLE.getDataType() :
-                                    RecordFieldType.STRING.getDataType())
+                            DataTypeUtils.isDoubleTypeCompatible(dynamicPropertyValue)
+                                    ? RecordFieldType.DOUBLE.getDataType()
+                                    : RecordFieldType.STRING.getDataType())
                     );
-                    fieldValues.put(dynamicPropertyName, listDynamicProperty.get(dynamicPropertyName));
+                    fieldValues.put(dynamicPropertyName, dynamicPropertyValue);
                 }
             }
 
@@ -356,51 +300,31 @@ public class PutRecordFromProperty extends AbstractProcessor {
                     new MapRecord(mainRecordSchema, fieldValues, true, true)
             ));
         } else {
-            String staticJson = context.getProperty(STATIC_JSON_OBJECT).evaluateAttributeExpressions(flowFile).getValue();
+            String staticJson = context.getProperty(JSON_PROPERTY_OBJECT)
+                    .evaluateAttributeExpressions(flowFile).getValue();
             try {
                 JsonNode staticJsonNode = MAPPER.readTree(staticJson);
                 if (staticJsonNode.isArray()) {
                     throw new IllegalArgumentException("Static json cannot be an array");
                 }
-                staticJsonNode.fields().forEachRemaining( jsonNodeEntry -> {
-                    String metricName = jsonNodeEntry.getKey();
-                    JsonNode node = jsonNodeEntry.getValue();
-                    if (!node.isObject()) {
-                        throw new IllegalArgumentException("Static json cannot be an array");
-                    }
-                    if (!node.has("value") && !node.has("type")) {
-                        throw new IllegalArgumentException("Static json must contain the value and type attributes.");
-                    }
-                    List<RecordField> staticJsonRecordfield = new ArrayList<>();
+                boolean hasChildObject = checkHasChildObject(staticJsonNode);
+                staticJsonNode.fields().forEachRemaining(jsonNodeEntry -> {
+                    List<RecordField> staticJsonRecordField = new ArrayList<>();
                     Map<String, Object> staticNestedFieldValues = new HashMap<>();
-                    node.fields().forEachRemaining( childJsonObject -> {
-                        String fieldName = childJsonObject.getKey();
-                        JsonNode value = childJsonObject.getValue();
-                        if (value.isArray()) {
-                            Double[] doubles = new Double[value.size()];
-                            int i = 0;
-                            for (JsonNode element : value) {
-                                if (!element.isNumber()) {
-                                    throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
-                                }
-                                doubles[i++] = element.asDouble();
-                            }
-                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
-                            staticNestedFieldValues.put(fieldName, doubles);
-                        } else if (value.isObject()) {
-                            throw new IllegalArgumentException("Json must not contain object");
-                        } else if (value.isNumber()) {
-                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
-                            staticNestedFieldValues.put(fieldName, value.asDouble());
-                        } else if (value.isTextual()) {
-                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
-                            staticNestedFieldValues.put(fieldName, value.asText());
-                        } else if (value.isBoolean()) {
-                            staticJsonRecordfield.add(new RecordField(fieldName, RecordFieldType.BOOLEAN.getDataType()));
-                            staticNestedFieldValues.put(fieldName, value.asBoolean());
+                    String metricName;
+
+                    if (hasChildObject) {
+                        metricName = jsonNodeEntry.getKey();
+                        JsonNode node = jsonNodeEntry.getValue();
+                        if (!node.isObject()) {
+                            throw new IllegalArgumentException("Static json cannot be an array");
                         }
-                    });
-                    RecordSchema nestedSchema = new SimpleRecordSchema(staticJsonRecordfield);
+                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, node);
+                    } else {
+                        metricName = jsonNodeEntry.getKey();
+                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, staticJsonNode);
+                    }
+                    RecordSchema nestedSchema = new SimpleRecordSchema(staticJsonRecordField);
                     MapRecord jsonRecord = new MapRecord(
                             nestedSchema,
                             staticNestedFieldValues,
@@ -449,4 +373,47 @@ public class PutRecordFromProperty extends AbstractProcessor {
 
         session.transfer(flowFile, REL_SUCCESS);
     }
+
+    private void processJsonNode(List<RecordField> jsonRecordField, Map<String, Object> nestedFieldValues, JsonNode jsonValue) {
+        jsonValue.fields().forEachRemaining( jsonField -> {
+            String fieldName = jsonField.getKey();
+            JsonNode value = jsonField.getValue();
+            if (value.isArray()) {
+                double[] doubles = new double[value.size()];
+                int i = 0;
+                for (JsonNode element : value) {
+                    if (!element.isNumber()) {
+                        throw new IllegalArgumentException("Array in Json must contain only elements of the numeric type.");
+                    }
+                    doubles[i++] = element.asDouble();
+                }
+                jsonRecordField.add(new RecordField(fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
+                nestedFieldValues.put(fieldName, doubles);
+            } else if (value.isObject()) {
+                throw new IllegalArgumentException("Json must not contain object");
+            } else if (value.isNumber()) {
+                jsonRecordField.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
+                nestedFieldValues.put(fieldName, value.asDouble());
+            } else if (value.isTextual()) {
+                jsonRecordField.add(new RecordField(fieldName, RecordFieldType.STRING.getDataType()));
+                nestedFieldValues.put(fieldName, value.asText());
+            } else if (value.isBoolean()) {
+                jsonRecordField.add(new RecordField(fieldName, RecordFieldType.BOOLEAN.getDataType()));
+                nestedFieldValues.put(fieldName, value.asBoolean());
+            }
+        });
+    }
+
+    public boolean checkHasChildObject(JsonNode node) {
+        java.util.Iterator<java.util.Map.Entry<String, JsonNode>> fieldsIterator = node.fields();
+        while (fieldsIterator.hasNext()) {
+            java.util.Map.Entry<String, JsonNode> fieldEntry = fieldsIterator.next();
+            JsonNode childNode = fieldEntry.getValue();
+            if (childNode.isObject()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }
