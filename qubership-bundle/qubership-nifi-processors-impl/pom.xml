@@ -191,7 +191,7 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>4.2.37</version>
+            <version>${metrics.dropwizard.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -202,7 +202,7 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>4.2.37</version>
+            <version>${metrics.dropwizard.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
