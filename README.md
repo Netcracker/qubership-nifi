@@ -10,7 +10,7 @@ Compared with Apache NiFi it supports:
 5. reporting tasks for additional monitoring of NiFi processes.
 
 ## Status
-[![Unit tests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build-and-test.yml)
+[![Build status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build.yaml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build.yaml)
 [![Autotests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=coverage)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=ncloc)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
