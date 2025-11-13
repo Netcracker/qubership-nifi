@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
+      - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -27,6 +28,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
+      - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -59,7 +61,7 @@ permissions:
 
 jobs:
   mvn:
-    uses: ./.github/workflows/maven-build-and-test.yml
+    uses: ./.github/workflows/maven-build.yaml
     with:
       java-version: ${{ github.event.inputs.java-version || '21' }}
       artifact-id: 'qubership-nifi-local-build'
