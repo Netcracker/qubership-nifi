@@ -68,9 +68,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
-            .name("metric-type")
-            .displayName("Metric type")
-            .description("")
+            .name("source-type")
+            .displayName("Source type")
+            .description("The type of source that will be used to create the Record")
             .required(true)
             .allowableValues(
                     SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue(),
@@ -82,7 +82,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
             .displayName("List Json Dynamic Property")
-            .description("")
+            .description("List of dynamic properties that contain json objects")
             .addValidator(ListJsonDynamicPropertyValidator.getInstance())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
@@ -90,8 +90,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
             .displayName("Json Property")
-            .description("")
-            .dependsOn(SOURCE_TYPE, "jsonProperty")
+            .description("A complex json object for generating a Summary or Counter type Record")
+            .dependsOn(SOURCE_TYPE, SourceTypeValues.JSON_PROPERTY.getAllowableValue())
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
