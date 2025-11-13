@@ -16,7 +16,6 @@
 
 package org.qubership.nifi.reporting;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -26,9 +25,15 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
+import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class CommonMetricsReportingTaskTest {
@@ -56,127 +61,160 @@ public class CommonMetricsReportingTaskTest {
     }
 
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsCommon() {
-        VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
-
+    private MemoryMXBean createTestMemoryMXBeanCommon() {
+        MemoryMXBean memoryMXBean = mock(MemoryMXBean.class);
+        MemoryUsage heapMemoryUsage = mock(MemoryUsage.class);
         //preparing test data
-        when(virtualMachineMetrics.heapMax()).thenReturn(5120.0);
-        when(virtualMachineMetrics.heapUsage()).thenReturn(5120.0);
-        when(virtualMachineMetrics.heapCommitted()).thenReturn(5120.0);
-        when(virtualMachineMetrics.uptime()).thenReturn((long) 5);
-        when(virtualMachineMetrics.daemonThreadCount()).thenReturn(5);
-        when(virtualMachineMetrics.threadCount()).thenReturn(50);
-
-        return  virtualMachineMetrics;
+        when(memoryMXBean.getHeapMemoryUsage()).thenReturn(heapMemoryUsage);
+        when(heapMemoryUsage.getMax()).thenReturn(5120L);
+        when(heapMemoryUsage.getUsed()).thenReturn(5120L);
+        when(heapMemoryUsage.getCommitted()).thenReturn(5120L);
+        return memoryMXBean;
     }
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsThread() {
-        VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
-
+    private ThreadMXBean createTestThreadMXBeanCommon() {
+        ThreadMXBean threadMXBean = mock(ThreadMXBean.class);
         //preparing test data
-        Map<Thread.State, Double> map = new HashMap<>();
-        map.put(Thread.State.WAITING, 4.0);
+        when(threadMXBean.getDaemonThreadCount()).thenReturn(5);
+        when(threadMXBean.getThreadCount()).thenReturn(50);
 
-        when(virtualMachineMetrics.threadCount()).thenReturn(1);
-        when(virtualMachineMetrics.threadStatePercentages()).thenReturn(map);
-
-        return  virtualMachineMetrics;
+        return  threadMXBean;
     }
 
-    private VirtualMachineMetrics createTestVirtualMachineMetricsGC() {
-        VirtualMachineMetrics virtualMachineMetrics = mock(VirtualMachineMetrics.class);
-        VirtualMachineMetrics.GarbageCollectorStats garbageCollectorStats =
-                mock(VirtualMachineMetrics.GarbageCollectorStats.class);
-
+    private RuntimeMXBean createTestRuntimeMXBeanCommon() {
+        RuntimeMXBean runtimeMXBean = mock(RuntimeMXBean.class);
         //preparing test data
-        Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = new HashMap<>();
+        when(runtimeMXBean.getUptime()).thenReturn(5L);
 
-        map.put("G1YoungGeneration", garbageCollectorStats);
-        map.put("G1OldGeneration", garbageCollectorStats);
-
-        when(virtualMachineMetrics.garbageCollectors()).thenReturn(map);
-
-        return  virtualMachineMetrics;
+        return runtimeMXBean;
     }
 
-    private String getExpectedNifiCommonMetricks(long reportTime) {
-        StringBuilder result = new StringBuilder();
-        result.append("nifi_common_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.hostname)
-                .append(" activeThreadCount=").append(1)
-                .append(",heapMax=").append(5.0)
-                .append(",heapUsed=").append(25600.0)
-                .append(",heapCommited=").append(5.0)
-                .append(",uptime=").append(5)
-                .append(",jvmDaemonThreadCount=").append(5)
-                .append(",jvmThreadTotalCount=").append(50)
-                .append(" ").append(reportTime).append("\n");
-        return result.toString();
+    private ThreadMXBean createTestThreadMxBean() {
+        ThreadMXBean threadMXBean = mock(ThreadMXBean.class);
+
+        //preparing test data
+        long[] ids = new long[]{1, 2, 3, 4};
+        ThreadInfo info = mock(ThreadInfo.class);
+        ThreadInfo[] infos = new ThreadInfo[]{info, info, info, info};
+        when(info.getThreadState()).thenReturn(Thread.State.WAITING);
+
+        when(threadMXBean.getThreadCount()).thenReturn(1);
+        when(threadMXBean.getAllThreadIds()).thenReturn(ids);
+        when(threadMXBean.getThreadInfo(ids, 0)).thenReturn(infos);
+
+        return threadMXBean;
+    }
+
+    private List<GarbageCollectorMXBean> createTestGCMxBeans() {
+        List<GarbageCollectorMXBean> garbageCollectorMXBeans = new ArrayList<>();
+        GarbageCollectorMXBean g1Young = mock(GarbageCollectorMXBean.class);
+        when(g1Young.getName()).thenReturn("G1YoungGeneration");
+        when(g1Young.getCollectionCount()).thenReturn(0L);
+        when(g1Young.getCollectionTime()).thenReturn(0L);
+        GarbageCollectorMXBean g1Old = mock(GarbageCollectorMXBean.class);
+        when(g1Old.getName()).thenReturn("G1OldGeneration");
+        when(g1Old.getCollectionCount()).thenReturn(0L);
+        when(g1Old.getCollectionTime()).thenReturn(0L);
+        garbageCollectorMXBeans.add(g1Young);
+        garbageCollectorMXBeans.add(g1Old);
+
+        return garbageCollectorMXBeans;
+    }
+
+    private String getExpectedNifiCommonMetrics(long reportTime) {
+        return "nifi_common_metrics,namespace=" + namespace
+                + ",hostname=" + commonMetricsReportingTask.hostname
+                + " activeThreadCount=" + 1
+                + ",heapMax=" + 5.0
+                + ",heapUsed=" + 25600.0
+                + ",heapCommited=" + 5.0
+                + ",uptime=" + 5
+                + ",jvmDaemonThreadCount=" + 5
+                + ",jvmThreadTotalCount=" + 50
+                + " " + reportTime + "\n";
     }
 
     private String getExpectedNiFiThreadsMetric(long reportTime) {
-        StringBuilder result = new StringBuilder();
-        result.append("nifi_thread_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.hostname)
-                .append(",threadState=").append("WAITING")
-                .append(" threadCount=").append(4.0)
-                .append(" ").append(reportTime).append("\n");
-        return result.toString();
+        return "nifi_thread_metrics,namespace=" + namespace
+                + ",hostname=" + commonMetricsReportingTask.hostname
+                + ",threadState=" + Thread.State.WAITING
+                + " threadCount=" + 4.0
+                + " " + reportTime + "\n";
+    }
+
+    private String getExpectedNiFiThreadsMetricEmpty(long reportTime, Thread.State state) {
+        return "nifi_thread_metrics,namespace=" + namespace
+                + ",hostname=" + commonMetricsReportingTask.hostname
+                + ",threadState=" + state.toString()
+                + " threadCount=" + 0.0
+                + " " + reportTime + "\n";
     }
 
     private String getExpectedNifiGcMetrics(long reportTime) {
-        StringBuilder result = new StringBuilder();
-        result.append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.hostname)
-                .append(",gcStatType=").append("G1YoungGeneration")
-                .append("  gcRuns=").append(0)
-                .append(",gcTime=").append(0)
-                .append(" ").append(reportTime).append("\n")
-                .append("nifi_gc_metrics,namespace=").append(namespace)
-                .append(",hostname=").append(commonMetricsReportingTask.hostname)
-                .append(",gcStatType=").append("G1OldGeneration")
-                .append("  gcRuns=").append(0)
-                .append(",gcTime=").append(0)
-                .append(" ").append(reportTime).append("\n");
-        return result.toString();
+        return "nifi_gc_metrics,namespace=" + namespace
+                + ",hostname=" + commonMetricsReportingTask.hostname
+                + ",gcStatType=" + "G1YoungGeneration"
+                + "  gcRuns=" + 0
+                + ",gcTime=" + 0
+                + " " + reportTime + "\n"
+                + "nifi_gc_metrics,namespace=" + namespace
+                + ",hostname=" + commonMetricsReportingTask.hostname
+                + ",gcStatType=" + "G1OldGeneration"
+                + "  gcRuns=" + 0
+                + ",gcTime=" + 0
+                + " " + reportTime + "\n";
     }
 
     @Test
-    public void testCreateInfluxMessageNifiCommonMetricks() {
+    public void testCreateInfluxMessageNifiCommonMetrics() {
         CommonMetricsReportingTask testTask = createTask();
         ProcessGroupStatus pg = createTestPG();
-        VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsCommon();
+        MemoryMXBean memoryMXBean = createTestMemoryMXBeanCommon();
+        RuntimeMXBean runtimeMXBean = createTestRuntimeMXBeanCommon();
+        ThreadMXBean threadMXBean = createTestThreadMXBeanCommon();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        testTask.reportNifiCommonMetricks(reportTime, result, virtualMachineMetrics, pg);
+        testTask.reportNifiCommonMetricks(reportTime, result,
+                memoryMXBean, runtimeMXBean, threadMXBean, pg);
 
-        Assertions.assertEquals(getExpectedNifiCommonMetricks(reportTime), result.toString());
+        Assertions.assertEquals(getExpectedNifiCommonMetrics(reportTime), result.toString());
     }
 
     @Test
     public void testCreateInfluxMessageNiFiThreadsMetric() {
         CommonMetricsReportingTask testTask = createTask();
-        VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsThread();
+        ThreadMXBean threadMXBean = createTestThreadMxBean();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        testTask.reportNifiThreadMetrics(reportTime, result, virtualMachineMetrics);
+        testTask.reportNifiThreadMetrics(reportTime, result, threadMXBean);
 
-        Assertions.assertEquals(getExpectedNiFiThreadsMetric(reportTime), result.toString());
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.toString().contains(getExpectedNiFiThreadsMetric(reportTime)));
+        Assertions.assertTrue(result.toString().contains(
+                getExpectedNiFiThreadsMetricEmpty(reportTime, Thread.State.NEW)));
+        Assertions.assertTrue(result.toString().contains(
+                getExpectedNiFiThreadsMetricEmpty(reportTime, Thread.State.BLOCKED)));
+        Assertions.assertTrue(result.toString().contains(
+                getExpectedNiFiThreadsMetricEmpty(reportTime, Thread.State.TIMED_WAITING)));
+        Assertions.assertTrue(result.toString().contains(
+                getExpectedNiFiThreadsMetricEmpty(reportTime, Thread.State.RUNNABLE)));
+        Assertions.assertTrue(result.toString().contains(
+                getExpectedNiFiThreadsMetricEmpty(reportTime, Thread.State.TERMINATED)));
     }
 
     @Test
     public void testCreateInfluxMessageNifiGcMetrics() {
         CommonMetricsReportingTask testTask = createTask();
-        VirtualMachineMetrics virtualMachineMetrics = createTestVirtualMachineMetricsGC();
+        List<GarbageCollectorMXBean> gcBeans = createTestGCMxBeans();
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
-        testTask.reportGcMetrics(reportTime, result, virtualMachineMetrics);
+        testTask.reportGcMetrics(reportTime, result, gcBeans);
 
         Assertions.assertEquals(getExpectedNifiGcMetrics(reportTime), result.toString());
     }
