@@ -354,40 +354,88 @@ generate_add_nifi_certs() {
 }
 
 generate_zookeeper_certs() {
+    #Zookeeper CA:
     keytool -genkeypair -alias zkCA -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
         -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zkCA" -ext bc:c
+    #Zookeeper server key pair:
     keytool -genkeypair -alias zkServer1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
         -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
         "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    #Zookeeper server quorum key pair:
     keytool -genkeypair -alias zkQuorum1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
         -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
         "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    #NiFi client key pair 0:
+    keytool -genkeypair -alias zkNiFiClient0 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-0" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-0,dns:nifi
+    #NiFi client key pair 1:
+    keytool -genkeypair -alias zkNiFiClient1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-1" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-1,dns:nifi
+    #NiFi client key pair 2:
+    keytool -genkeypair -alias zkNiFiClient2 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-2" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-2,dns:nifi
+
+    #Copy server certificate to separate keystore:
     keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-server.p12 -srcstoretype PKCS12 \
         -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
         zkServer1 -destalias zkServer1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy server quorum certificate to separate keystore:
     keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -srcstoretype PKCS12 \
         -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
         zkQuorum1 -destalias zkQuorum1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-0.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient0 -destalias zkNiFiClient0 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-1.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient1 -destalias zkNiFiClient1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-2.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient2 -destalias zkNiFiClient2 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Export CA certificate:
     keytool -exportcert -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" -alias zkCA -rfc \
         -file ./temp-vol/tls-cert/ca/zk-ca.cer
+    #Import CA certificate into server keystore:
     keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-server.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into server quorum keystore:
     keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into truststore:
     keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-truststore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into nifi client keystores:
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-0.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-1.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-2.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
 }
 
 prepare_zookeeper_configuration() {
     if [ -n "$ZK_TLS_PASS" ]; then
         sed -i "s/^ssl.quorum.keyStore.password=.*$/ssl.quorum.keyStore.password=$ZK_TLS_PASS/" \
-            ./.github/configuration/zookeeper/zoo.cfg
+            ./temp-vol/zk-conf/zoo.cfg
         sed -i "s/^ssl.quorum.trustStore.password=.*$/ssl.quorum.trustStore.password=$ZK_TLS_PASS/" \
-            ./.github/configuration/zookeeper/zoo.cfg
+            ./temp-vol/zk-conf/zoo.cfg
         sed -i "s/^ssl.trustStore.password=.*$/ssl.trustStore.password=$ZK_TLS_PASS/" \
-            ./.github/configuration/zookeeper/zoo.cfg
+            ./temp-vol/zk-conf/zoo.cfg
         sed -i "s/^ssl.keyStore.password=.*$/ssl.keyStore.password=$ZK_TLS_PASS/" \
-            ./.github/configuration/zookeeper/zoo.cfg
+            ./temp-vol/zk-conf/zoo.cfg
+        #if client config available, change it as well:
+        if [ -f ./temp-vol/zk-conf/client.cfg ]; then
+            sed -i "s/^zookeeper.ssl.keyStore.password=.*$/zookeeper.ssl.keyStore.password=$ZK_TLS_PASS/" \
+                ./temp-vol/zk-conf/client.cfg
+            sed -i "s/^zookeeper.ssl.trustStore.password=.*$/zookeeper.ssl.trustStore.password=$ZK_TLS_PASS/" \
+                ./temp-vol/zk-conf/client.cfg
+        fi
     fi
 }
 
@@ -409,6 +457,20 @@ setup_env_before_tests() {
     mkdir -p ./temp-vol/tls-cert/ca/
     mkdir -p ./temp-vol/tls-cert/nifi/
     mkdir -p ./temp-vol/tls-cert/nifi-registry/
+    if [[ "$runMode" == "cluster"* ]]; then
+        mkdir -p ./temp-vol/zk-conf/
+        echo "Copying zookeeper configuration files..."
+        #no-acl scenario:
+        if [[ "$runMode" == "cluster-statefulset" ]]; then
+            #copy all configuration files:
+            cp ./.github/configuration/zookeeper/*.* ./temp-vol/zk-conf/
+        fi
+        #acl scenario:
+        if [[ "$runMode" == "cluster-statefulset-acl" ]]; then
+            #copy all configuration files:
+            cp ./.github/configuration/zookeeper-acl/*.* ./temp-vol/zk-conf/
+        fi
+    fi
     if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
