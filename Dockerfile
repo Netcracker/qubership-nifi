@@ -49,7 +49,7 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:2.5.0@sha256:3f9a22fda8a9bd8a13e2ed1009ce484ccaca781feb7b21b3ef73d57562867295 AS nifi
+FROM apache/nifi:2.6.0@sha256:81a6217fe9c8fcbd6bdf2a9609f0068ea0a8a49e3477bf9a196e51b208486324 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 
