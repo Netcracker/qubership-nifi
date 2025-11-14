@@ -495,8 +495,8 @@ setup_env_before_tests() {
     if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
-    #set up passwords for zoo.cfg:
-    if [[ "$runMode" == "cluster-statefulset" ]]; then
+    #set up passwords for zoo.cfg and client.cfg:
+    if [[ "$runMode" == "cluster-statefulset"* ]]; then
         prepare_zookeeper_configuration
     fi
 }
