@@ -58,7 +58,7 @@ import java.util.stream.Collectors;
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES))
 public class PutRecordFromProperty extends AbstractProcessor {
 
-    private AtomicReference<RecordSinkService> recordSinkServiceAtomicReference = new AtomicReference<>();
+    private final AtomicReference<RecordSinkService> recordSinkServiceAtomicReference = new AtomicReference<>();
 
     private boolean useDynamicProperty;
     private boolean jsonDynamicPropertyExist = false;
@@ -261,18 +261,16 @@ public class PutRecordFromProperty extends AbstractProcessor {
      */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        RecordSinkService recordSinkService = recordSinkServiceAtomicReference.get();
-
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
+        RecordSinkService recordSinkService = recordSinkServiceAtomicReference.get();
         final StopWatch stopWatch = new StopWatch(true);
         RecordSchema mainRecordSchema;
         Map<String, Object> fieldValues = new HashMap<>();
         List<RecordField> allFields = new ArrayList<>();
         RecordSet recordSet = null;
-
         if (useDynamicProperty) {
             Map<String, String> dynamicPropertiesMap = new HashMap<>();
             try {
@@ -355,15 +353,13 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         );
                         allFields.add(staticNestedRecordField);
                     } else {
-                        allFields.add(new RecordField(staticFieldName,
-                                staticValue.isNumber()
-                                        ? RecordFieldType.DOUBLE.getDataType()
-                                        : RecordFieldType.STRING.getDataType())
-                        );
-                        fieldValues.put(staticFieldName,
-                                staticValue.isNumber()
-                                        ? staticValue.asDouble()
-                                        : staticValue.asText());
+                        if (staticValue.isNumber()) {
+                            allFields.add(new RecordField(staticFieldName, RecordFieldType.DOUBLE.getDataType()));
+                            fieldValues.put(staticFieldName, staticValue.asDouble());
+                        } else {
+                            allFields.add(new RecordField(staticFieldName, RecordFieldType.STRING.getDataType()));
+                            fieldValues.put(staticFieldName, staticValue.asText());
+                        }
                     }
                 });
             } catch (JsonProcessingException e) {
