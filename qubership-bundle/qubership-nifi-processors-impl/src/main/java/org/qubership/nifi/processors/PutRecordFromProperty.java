@@ -3,6 +3,8 @@ package org.qubership.nifi.processors;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -43,34 +45,51 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @SupportsBatching
-//TODO: description, dynamic properties description
 @Tags({"record", "put", "sink"})
-@CapabilityDescription("")
+@CapabilityDescription("Generating records and sending them to a destination specified by a"
+        + " Record Destination Service (i.e., record sink)")
+@DynamicProperties(@DynamicProperty(name = "*", value = "*",
+        description = "Dynamic PROPERTY_DESCRIPTORS are used as the data source for creating a Record. "
+                + "Primitives (String, Double) or JSON can be used as input.",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES))
 public class PutRecordFromProperty extends AbstractProcessor {
 
-    private volatile RecordSinkService recordSinkService;
+    private AtomicReference<RecordSinkService> recordSinkServiceAtomicReference = new AtomicReference<>();
 
     private boolean useDynamicProperty;
     private boolean jsonDynamicPropertyExist = false;
 
     private Set<String> jsonDynamicPropertySet;
 
+    private static final Validator LIST_VALIDATOR = StandardValidators.createListValidator(
+            true,
+            true,
+            StandardValidators.NON_EMPTY_VALIDATOR
+    );
+
+    /**
+     * Record sink property descriptor.
+     */
     public static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
             .name("put-record-sink")
             .displayName("Record Destination Service")
-            .description("Specifies the Controller Service to use for writing out the query result records "
-                    + "to some destination.")
+            .description("The Controller Service which is used to send the result Record to some destination.")
             .identifiesControllerService(RecordSinkService.class)
             .required(true)
             .build();
 
+    /**
+     * Source type property descriptor.
+     */
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
             .name("source-type")
             .displayName("Source type")
-            .description("The type of source that will be used to create the Record")
+            .description("The source type that will be used to create the record. "
+                    + "The record source can be a Dynamic Processor Property or a 'Json Property' property.")
             .required(true)
             .allowableValues(
                     SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue(),
@@ -79,18 +98,24 @@ public class PutRecordFromProperty extends AbstractProcessor {
             .defaultValue(SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue())
             .build();
 
+    /**
+     * List json dynamic properties property descriptor.
+     */
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
             .displayName("List Json Dynamic Property")
-            .description("List of dynamic properties that contain json objects")
-            .addValidator(ListJsonDynamicPropertyValidator.getInstance())
+            .description("Comma-separated list of dynamic properties that contain json objects")
+            .addValidator(LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Json property descriptor.
+     */
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
-            .displayName("Json Property")
-            .description("A complex json object for generating a Summary or Counter type Record")
+                .displayName("Json Property")
+            .description("A complex json object for generating Record")
             .dependsOn(SOURCE_TYPE, SourceTypeValues.JSON_PROPERTY.getAllowableValue())
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -180,6 +205,11 @@ public class PutRecordFromProperty extends AbstractProcessor {
         return descriptors;
     }
 
+    /**
+     * Returns a dynamic PropertyDescriptors type that this component supports.
+     * @param propertyDescriptorName name of property descriptor
+     * @return PropertyDescriptor object this component currently supports
+     */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
@@ -203,7 +233,10 @@ public class PutRecordFromProperty extends AbstractProcessor {
      */
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws JsonProcessingException {
-        recordSinkService = context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class);
+        recordSinkServiceAtomicReference.set(
+                context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class)
+        );
+
         useDynamicProperty = SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue().getValue()
                 .equals(context.getProperty(SOURCE_TYPE).getValue());
 
@@ -228,6 +261,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
      */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
+        RecordSinkService recordSinkService = recordSinkServiceAtomicReference.get();
+
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -239,11 +274,11 @@ public class PutRecordFromProperty extends AbstractProcessor {
         RecordSet recordSet = null;
 
         if (useDynamicProperty) {
-            Map<String, String> listDynamicProperty = new HashMap<>();
+            Map<String, String> dynamicPropertiesMap = new HashMap<>();
             try {
                 for (PropertyDescriptor propertyDescriptor : context.getProperties().keySet()) {
                     if (propertyDescriptor.isDynamic()) {
-                        listDynamicProperty.put(propertyDescriptor.getDisplayName(),
+                        dynamicPropertiesMap.put(propertyDescriptor.getDisplayName(),
                                 context.getProperty(propertyDescriptor)
                                         .evaluateAttributeExpressions(flowFile).getValue());
                     }
@@ -252,14 +287,15 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 throw new ProcessException("An error occurred while evaluating attribute expressions.");
             }
 
-            for (Map.Entry<String, String> entry : listDynamicProperty.entrySet()) {
+            for (Map.Entry<String, String> entry : dynamicPropertiesMap.entrySet()) {
                 String dynamicPropertyName = entry.getKey();
                 String dynamicPropertyValue = entry.getValue();
                 if (jsonDynamicPropertyExist && jsonDynamicPropertySet.contains(dynamicPropertyName)) {
                     try {
                         JsonNode jsonValue = MAPPER.readTree(dynamicPropertyValue);
                         if (!jsonValue.isObject()) {
-                            throw new IllegalArgumentException("Json must be an object");
+                            throw new ProcessException("Json specified in Dynamic Property - " + dynamicPropertyName
+                                    + " must be an object.");
                         }
                         List<RecordField> jsonRecordField = new ArrayList<>();
                         Map<String, Object> nestedFieldValues = new HashMap<>();
@@ -277,7 +313,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         );
                         allFields.add(nestedRecordField);
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
+                        throw new ProcessException("An error occurred while parsing json. Please check the provided"
+                                + " json - " + dynamicPropertyValue + " and try again. Error: " + e.getMessage());
                     }
                 } else {
                     allFields.add(new RecordField(dynamicPropertyName,
@@ -288,59 +325,59 @@ public class PutRecordFromProperty extends AbstractProcessor {
                     fieldValues.put(dynamicPropertyName, dynamicPropertyValue);
                 }
             }
-
             mainRecordSchema = new SimpleRecordSchema(allFields);
-            recordSet = new ListRecordSet(mainRecordSchema, Arrays.asList(
-                    new MapRecord(mainRecordSchema, fieldValues, true, true)
-            ));
         } else {
             String staticJson = context.getProperty(JSON_PROPERTY_OBJECT)
                     .evaluateAttributeExpressions(flowFile).getValue();
             try {
                 JsonNode staticJsonNode = MAPPER.readTree(staticJson);
                 if (staticJsonNode.isArray()) {
-                    throw new IllegalArgumentException("Static json cannot be an array");
+                    throw new ProcessException("The Json specified in 'Json Property' cannot be an array.");
                 }
-                boolean hasChildObject = checkHasChildObject(staticJsonNode);
                 staticJsonNode.fields().forEachRemaining(jsonNodeEntry -> {
-                    List<RecordField> staticJsonRecordField = new ArrayList<>();
-                    Map<String, Object> staticNestedFieldValues = new HashMap<>();
-                    String metricName;
-
-                    if (hasChildObject) {
-                        metricName = jsonNodeEntry.getKey();
-                        JsonNode node = jsonNodeEntry.getValue();
-                        if (!node.isObject()) {
-                            throw new IllegalArgumentException("Static json cannot be an array");
-                        }
-                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, node);
+                    RecordField staticNestedRecordField;
+                    String staticFieldName = jsonNodeEntry.getKey();
+                    JsonNode staticValue = jsonNodeEntry.getValue();
+                    if (staticValue.isObject()) {
+                        List<RecordField> staticJsonRecordField = new ArrayList<>();
+                        Map<String, Object> staticNestedFieldValues = new HashMap<>();
+                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, staticValue);
+                        RecordSchema staticNestedSchema = new SimpleRecordSchema(staticJsonRecordField);
+                        MapRecord staticJsonRecord = new MapRecord(
+                                staticNestedSchema,
+                                staticNestedFieldValues,
+                                true,
+                                true);
+                        fieldValues.put(staticFieldName, staticJsonRecord);
+                        staticNestedRecordField = new RecordField(
+                                staticFieldName,
+                                RecordFieldType.RECORD.getRecordDataType(staticNestedSchema)
+                        );
+                        allFields.add(staticNestedRecordField);
                     } else {
-                        metricName = jsonNodeEntry.getKey();
-                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, staticJsonNode);
+                        allFields.add(new RecordField(staticFieldName,
+                                staticValue.isNumber()
+                                        ? RecordFieldType.DOUBLE.getDataType()
+                                        : RecordFieldType.STRING.getDataType())
+                        );
+                        fieldValues.put(staticFieldName,
+                                staticValue.isNumber()
+                                        ? staticValue.asDouble()
+                                        : staticValue.asText());
                     }
-                    RecordSchema nestedSchema = new SimpleRecordSchema(staticJsonRecordField);
-                    MapRecord jsonRecord = new MapRecord(
-                            nestedSchema,
-                            staticNestedFieldValues,
-                            true,
-                            true);
-                    fieldValues.put(metricName, jsonRecord);
-                    RecordField nestedRecordField = new RecordField(
-                            metricName,
-                            RecordFieldType.RECORD.getRecordDataType(nestedSchema)
-                    );
-                    allFields.add(nestedRecordField);
                 });
             } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
+                throw new ProcessException("An error occurred while parsing json. "
+                        + "Please check the provided json and try again. Error message: " + e.getMessage());
             }
-
             mainRecordSchema = new SimpleRecordSchema(allFields);
-            recordSet = new ListRecordSet(mainRecordSchema, Arrays.asList(
-                    new MapRecord(mainRecordSchema, fieldValues, true, true)
-            ));
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Current RecordSchema: {}", mainRecordSchema.toString());
+            }
         }
-
+        recordSet = new ListRecordSet(mainRecordSchema, Arrays.asList(
+                new MapRecord(mainRecordSchema, fieldValues, true, true)
+        ));
         try {
             WriteResult writeResult = recordSinkService.sendData(
                     recordSet,
@@ -366,7 +403,6 @@ public class PutRecordFromProperty extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
-
         session.transfer(flowFile, REL_SUCCESS);
     }
 
@@ -382,8 +418,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 int i = 0;
                 for (JsonNode element : value) {
                     if (!element.isNumber()) {
-                        throw new IllegalArgumentException("Array in Json must contain only elements"
-                                + " of the numeric type.");
+                        throw new ProcessException("An array in JSON must contain only numeric elements."
+                                + "The element " + element + " in the array " + value + "in the field " + fieldName
+                                + " is not numeric.");
                     }
                     doubles[i++] = element.asDouble();
                 }
@@ -391,7 +428,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         fieldName, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.DOUBLE.getDataType())));
                 nestedFieldValues.put(fieldName, doubles);
             } else if (value.isObject()) {
-                throw new IllegalArgumentException("Json must not contain object");
+                throw new ProcessException("Json must not contain nested objects. The field - "
+                        + fieldName + " is an object - " + value);
             } else if (value.isNumber()) {
                 jsonRecordField.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
                 nestedFieldValues.put(fieldName, value.asDouble());
@@ -403,18 +441,6 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 nestedFieldValues.put(fieldName, value.asBoolean());
             }
         });
-    }
-
-    public boolean checkHasChildObject(JsonNode node) {
-        java.util.Iterator<java.util.Map.Entry<String, JsonNode>> fieldsIterator = node.fields();
-        while (fieldsIterator.hasNext()) {
-            java.util.Map.Entry<String, JsonNode> fieldEntry = fieldsIterator.next();
-            JsonNode childNode = fieldEntry.getValue();
-            if (childNode.isObject()) {
-                return true;
-            }
-        }
-        return false;
     }
 
 }
