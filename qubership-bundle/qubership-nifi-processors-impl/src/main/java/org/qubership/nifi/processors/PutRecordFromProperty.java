@@ -53,8 +53,12 @@ import java.util.stream.Collectors;
 @CapabilityDescription("Generating records and sending them to a destination specified by a"
         + " Record Destination Service (i.e., record sink)")
 @DynamicProperties(@DynamicProperty(name = "*", value = "*",
-        description = "Dynamic PROPERTY_DESCRIPTORS are used as the data source for creating a Record. "
-                + "Primitives (String, Double) or JSON can be used as input.",
+        description = "The processor's dynamic property is used as the data source for generating a Record."
+                + "For scalar values, a key-value pair is used, where the key is a String and "
+                + "the value is either a String or a Double. In the case of a String-String pair, the pair is"
+                + " interpreted as a label. For composite values, the value can be a flat JSON object"
+                + " (without nested structures) containing only simple type fields and, "
+                + "if necessary, arrays of numeric values (number).",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES))
 public class PutRecordFromProperty extends AbstractProcessor {
 
@@ -352,6 +356,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                                 RecordFieldType.RECORD.getRecordDataType(staticNestedSchema)
                         );
                         allFields.add(staticNestedRecordField);
+                    } else if (staticValue.isArray()) {
+                        throw new ProcessException("The field - " + staticFieldName + " cannot contain an array.");
                     } else {
                         if (staticValue.isNumber()) {
                             allFields.add(new RecordField(staticFieldName, RecordFieldType.DOUBLE.getDataType()));
