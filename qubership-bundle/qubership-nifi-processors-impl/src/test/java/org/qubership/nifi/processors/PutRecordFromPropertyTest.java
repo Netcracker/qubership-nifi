@@ -78,23 +78,28 @@ public class PutRecordFromPropertyTest {
 
     @Test
     public void testComplexJsonDynamicProperty() throws Exception {
-        String jsonObject = "{\n"
-                + "\"size\": ${size},\n"
-                + "\"endpoint\": \"${endpoint}\",\n"
-                + "\"method\": \"${method}\",\n"
-                + "\"status\": \"${status}\"\n"
-                + "}";
+        String jsonObject = """
+              {
+                   "size": ${size},
+                   "endpoint": "${endpoint}",
+                   "method": "${method}",
+                   "success": ${success},
+                   "status": "${status}"
+               }
+              """;
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("size", "700.0");
         attrs.put("endpoint", "/api/data");
         attrs.put("method", "GET");
+        attrs.put("success", "true");
         attrs.put("status", "200");
 
         List<RecordField> fieldsTypes = new ArrayList<>();
         fieldsTypes.add(new RecordField("size", RecordFieldType.DOUBLE.getDataType()));
         fieldsTypes.add(new RecordField("endpoint", RecordFieldType.STRING.getDataType()));
         fieldsTypes.add(new RecordField("method", RecordFieldType.STRING.getDataType()));
+        fieldsTypes.add(new RecordField("success", RecordFieldType.BOOLEAN.getDataType()));
         fieldsTypes.add(new RecordField("status", RecordFieldType.STRING.getDataType()));
         RecordSchema recordSchema = new SimpleRecordSchema(fieldsTypes);
 
@@ -102,6 +107,7 @@ public class PutRecordFromPropertyTest {
         fieldValues.put("size", 700.0);
         fieldValues.put("endpoint", "/api/data");
         fieldValues.put("method", "GET");
+        fieldValues.put("success", true);
         fieldValues.put("status", "200");
         MapRecord expectMapRecord = generateRecord(recordSchema, fieldValues);
 
@@ -112,23 +118,25 @@ public class PutRecordFromPropertyTest {
         List<Map<String, Object>> row = recordSink.getRows();
         List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
         assertEquals(1, result.size());
-        assertTrue(expectMapRecord.equals(row.get(0).get("response_size_bytes")));
+        assertEquals(expectMapRecord, row.get(0).get("response_size_bytes"));
     }
 
     @Test
     public void testComplexJsonProperty() throws Exception {
-        String complexJson = "{\n"
-                + "    \"request_duration_seconds\": {\n" // metric name
-                + "        \"type\": \"Summary\",\n" // record
-                + "        \"quantiles\": [\n"
-                + "            0.05, 0.12, 0.18, 0.45\n"
-                + "        ],\n"
-                + "        \"value\": ${value},\n"
-                + "        \"endpoint\": \"${endpoint}\",\n"
-                + "        \"status\": \"${status}\"\n"
-                + "    },\n"
-                + "    \"requestMethod\": \"${method}\"\n" // label
-                + "}";
+        String complexJson = """
+                {
+                     "request_duration_seconds": {
+                         "type": "Summary",
+                         "quantiles": [
+                             0.05, 0.12, 0.18, 0.45
+                         ],
+                         "value": ${value},
+                         "endpoint": "${endpoint}",
+                         "status": "${status}"
+                     },
+                     "requestMethod": "${method}"
+                 }
+              """;
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("value", "1200");
@@ -160,15 +168,17 @@ public class PutRecordFromPropertyTest {
         List<Map<String, Object>> row = recordSink.getRows();
         List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
         assertEquals(1, result.size());
-        assertTrue(expectMapRecord.equals(row.get(0).get("request_duration_seconds")));
+        assertEquals(expectMapRecord, row.get(0).get("request_duration_seconds"));
     }
 
     @Test
     public void testSimpleJsonProperty() {
-        String simpleJsonProperty = "{\n"
-                + "\"topLevelFieldName1\": 0.1,\n"
-                + "\"topLevelFieldName2\": 0.2\n"
-                + "}";
+        String simpleJsonProperty = """
+              {
+                 "topLevelFieldName1": 0.1,
+                 "topLevelFieldName2": 0.2
+              }
+              """;
 
         List<RecordField> fieldsTypes = new ArrayList<>();
         fieldsTypes.add(new RecordField("topLevelFieldName1", RecordFieldType.DOUBLE.getDataType()));
@@ -193,11 +203,13 @@ public class PutRecordFromPropertyTest {
 
     @Test
     public void testCombineDynamicPropertyAndJson() {
-        String jsonMetric = "{\n"
-                + "  \"value\": ${size},\n"
-                + "  \"label1\": \"${label1}\",\n"
-                + "  \"label2\": \"${label2}\"\n"
-                + "}";
+        String jsonMetric = """
+             {
+                  "value": ${size},
+                  "label1": "${label1}",
+                  "label2": "${label2}"
+             }
+             """;
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("attr1", "11.3");
@@ -240,20 +252,22 @@ public class PutRecordFromPropertyTest {
 
         assertEquals(expectMapRecordSimple.getValue("attr1"), row.get(0).get("attr1"));
         assertEquals(expectMapRecordSimple.getValue("attr2"), row.get(0).get("attr2"));
-        assertTrue(expectMapRecord.equals(row.get(0).get("json_metric")));
+        assertEquals(expectMapRecord, row.get(0).get("json_metric"));
     }
 
     @Test
     public void testJsonPropertyStringArray() {
-        String jsonWithArray = "{\n"
-                + "  \"name\": \"http_requests_total\",\n"
-                + "  \"value\": 12345,\n"
-                + "  \"labels\": [\n"
-                + "    \"method\",\n"
-                + "    \"endpoint\",\n"
-                + "    \"status\"\n"
-                + "  ]\n"
-                + "}";
+        String jsonWithArray = """
+              {
+                   "name": "http_requests_total",
+                   "value": 12345,
+                   "labels": [
+                       "method",
+                       "endpoint",
+                       "status"
+                   ]
+               }
+             """;
 
         testRunner.setProperty("testMetric", jsonWithArray);
         testRunner.setProperty(LIST_JSON_DYNAMIC_PROPERTY, "testMetric");
@@ -265,12 +279,14 @@ public class PutRecordFromPropertyTest {
 
     @Test
     public void testJsonPropertyInvalidJson() {
-        String invalidJson = "{\n"
-                + "\"size\": ${size},\n"
-                + "\"endpoint\": \"${endpoint}\"\n"
-                + "\"method\": \"${method}\",\n"
-                + "\"status\": \"${status}\"\n"
-                + "}";
+        String invalidJson = """
+              {
+                   "size": ${size},
+                   "endpoint": "${endpoint}"
+                   "method": "${method}",
+                   "status": "${status}"
+               }
+              """;
 
         Map<String, String> attrs = new HashMap<>();
         attrs.put("size", "35");

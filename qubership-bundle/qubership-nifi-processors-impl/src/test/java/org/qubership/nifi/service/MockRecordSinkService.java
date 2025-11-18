@@ -30,10 +30,10 @@ public class MockRecordSinkService extends AbstractControllerService implements 
         rows = new ArrayList<>();
         int numRecordsWritten = 0;
         RecordSchema recordSchema = recordSet.getSchema();
-        Record record;
-        while ((record = recordSet.next()) != null) {
+        Record currentRecord;
+        while ((currentRecord = recordSet.next()) != null) {
             Map<String, Object> row = new HashMap<>();
-            final Record finalRecord = record;
+            final Record finalRecord = currentRecord;
             recordSchema.getFieldNames().forEach((fieldName) -> {
                 Optional<DataType> dataType = recordSchema.getDataType(fieldName);
                 if (dataType.get().getFieldType() == RecordFieldType.DOUBLE) {
