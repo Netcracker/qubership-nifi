@@ -16,19 +16,26 @@
 
 package org.qubership.nifi.reporting;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 
 import java.lang.Thread.State;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.RuntimeMXBean;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +45,9 @@ import java.util.concurrent.TimeUnit;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
 public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
 
-    private volatile VirtualMachineMetrics vmMetrics;
+    private MemoryMXBean memoryMxBean;
+    private RuntimeMXBean runtimeMxBean;
+    private ThreadMXBean threadMxBean;
 
     /**
      * Initializes list of property descriptors supported by this reporting task.
@@ -57,6 +66,9 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
     @Override
     public void onScheduled(ConfigurationContext context) {
         super.onScheduled(context);
+        memoryMxBean = ManagementFactory.getMemoryMXBean();
+        runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        threadMxBean = ManagementFactory.getThreadMXBean();
     }
 
 
@@ -65,24 +77,30 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
      *
      * @param reportTime
      * @param result
-     * @param vmMetricsValue
+     * @param memoryMXBean
+     * @param runtimeMXBean
+     * @param threadMXBean
      * @param controllerStatus
      */
     public void reportNifiCommonMetricks(
             long reportTime,
             StringBuilder result,
-            VirtualMachineMetrics vmMetricsValue,
+            MemoryMXBean memoryMXBean,
+            RuntimeMXBean runtimeMXBean,
+            ThreadMXBean threadMXBean,
             ProcessGroupStatus controllerStatus
     ) {
         result.append("nifi_common_metrics,namespace=").append(escapeTagValue(namespace))
                 .append(",hostname=").append(hostname)
                 .append(" activeThreadCount=").append(controllerStatus.getActiveThreadCount())
-                .append(",heapMax=").append(vmMetricsValue.heapMax() / 1024)
-                .append(",heapUsed=").append(vmMetricsValue.heapUsage() * vmMetricsValue.heapMax() / 1024)
-                .append(",heapCommited=").append(vmMetricsValue.heapCommitted() / 1024)
-                .append(",uptime=").append(vmMetricsValue.uptime())
-                .append(",jvmDaemonThreadCount=").append(vmMetricsValue.daemonThreadCount())
-                .append(",jvmThreadTotalCount=").append(vmMetricsValue.threadCount())
+                .append(",heapMax=").append(memoryMXBean.getHeapMemoryUsage().getMax() / 1024.0)
+                .append(",heapUsed=").append(
+                        memoryMXBean.getHeapMemoryUsage().getUsed()
+                        * memoryMXBean.getHeapMemoryUsage().getMax() / 1024.0)
+                .append(",heapCommited=").append(memoryMXBean.getHeapMemoryUsage().getCommitted() / 1024.0)
+                .append(",uptime=").append(runtimeMXBean.getUptime())
+                .append(",jvmDaemonThreadCount=").append(threadMXBean.getDaemonThreadCount())
+                .append(",jvmThreadTotalCount=").append(threadMXBean.getThreadCount())
                 .append(" ").append(reportTime).append("\n");
     }
 
@@ -107,12 +125,29 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
      *
      * @param reportTime
      * @param result
-     * @param vmMetricsValue
+     * @param threadMXBean
      */
-    public void reportNifiThreadMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetricsValue) {
-        Map<State, Double> map = vmMetricsValue.threadStatePercentages();
-        for (Map.Entry<State, Double> entry : map.entrySet()) {
-            double normalizedValue = (entry.getValue() == null ? 0 : entry.getValue() * vmMetricsValue.threadCount());
+    public void reportNifiThreadMetrics(long reportTime, StringBuilder result, ThreadMXBean threadMXBean) {
+        ThreadInfo[] threadInfos = threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 0);
+        Map<State, MutableInt> threadStatesCount = new HashMap<>();
+        for (ThreadInfo info : threadInfos) {
+            MutableInt counter = threadStatesCount.get(info.getThreadState());
+            if (counter == null) {
+                //not found
+                counter = new MutableInt(1);
+                threadStatesCount.put(info.getThreadState(), counter);
+            } else {
+                counter.add(1);
+            }
+        }
+        //emulate behavior of old version of VirtualMachineMetrics
+        for (State state : State.values()) {
+            if (!threadStatesCount.containsKey(state)) {
+                threadStatesCount.put(state, null);
+            }
+        }
+        for (Map.Entry<State, MutableInt> entry : threadStatesCount.entrySet()) {
+            double normalizedValue = (entry.getValue() == null ? 0 : entry.getValue().doubleValue());
             reportNiFiThreadsMetric(reportTime, result, entry.getKey(), normalizedValue);
         }
     }
@@ -122,18 +157,17 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
      *
      * @param reportTime
      * @param result
-     * @param vmMetricsValue
+     * @param gcMxBeans
      */
-    public void reportGcMetrics(long reportTime, StringBuilder result, VirtualMachineMetrics vmMetricsValue) {
+    public void reportGcMetrics(long reportTime, StringBuilder result, List<GarbageCollectorMXBean> gcMxBeans) {
 
-        Map<String, VirtualMachineMetrics.GarbageCollectorStats> map = vmMetricsValue.garbageCollectors();
+        for (GarbageCollectorMXBean mxBean : gcMxBeans) {
 
-        for (Map.Entry<String, VirtualMachineMetrics.GarbageCollectorStats> entry : map.entrySet()) {
             result.append("nifi_gc_metrics,namespace=").append(escapeTagValue(namespace))
                     .append(",hostname=").append(hostname)
-                    .append(",gcStatType=").append(escapeTagValue(entry.getKey()))
-                    .append("  gcRuns=").append(entry.getValue().getRuns())
-                    .append(",gcTime=").append(entry.getValue().getTime(TimeUnit.MILLISECONDS))
+                    .append(",gcStatType=").append(escapeTagValue(mxBean.getName()))
+                    .append("  gcRuns=").append(mxBean.getCollectionCount())
+                    .append(",gcTime=").append(mxBean.getCollectionTime())
                     .append(" ").append(reportTime).append("\n");
         }
     }
@@ -148,18 +182,19 @@ public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
     public String createInfluxMessage(ReportingContext context) {
 
         ProcessGroupStatus controllerStatus = context.getEventAccess().getControllerStatus();
-        vmMetrics = VirtualMachineMetrics.getInstance();
+        List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory.getGarbageCollectorMXBeans();
 
         StringBuilder result = new StringBuilder();
         Instant now = Instant.now();
         long reportTime = TimeUnit.SECONDS.toNanos(now.getEpochSecond()) + now.getNano();
 
         //prepare Nifi Common Metrics data
-        reportNifiCommonMetricks(reportTime, result, vmMetrics, controllerStatus);
+        reportNifiCommonMetricks(reportTime, result, memoryMxBean,
+                runtimeMxBean, threadMxBean, controllerStatus);
         //prepare Nifi Thread Metrics
-        reportNifiThreadMetrics(reportTime, result, vmMetrics);
+        reportNifiThreadMetrics(reportTime, result, threadMxBean);
         //prepare Nifi Gc Metrics
-        reportGcMetrics(reportTime, result, vmMetrics);
+        reportGcMetrics(reportTime, result, gcMxBeans);
 
         return result.toString().trim();
     }

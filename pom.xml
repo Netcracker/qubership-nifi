@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>nifi</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.1.0-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -51,8 +51,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
-        <nifi.version>2.5.0</nifi.version>
-        <nifi.api.version>2.2.0</nifi.api.version>
+        <nifi.version>2.6.0</nifi.version>
+        <nifi.api.version>2.3.0</nifi.api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <pmd.version>3.26.0</pmd.version>
         <jacoco.version>0.8.12</jacoco.version>
@@ -66,20 +66,18 @@
         <slf4j.version>2.0.17</slf4j.version>
         <jedis.version>6.0.0</jedis.version>
         <hikari.cp.version>5.1.0</hikari.cp.version>
-        <jackson.version>2.19.1</jackson.version>
-        <jackson.databind.version>2.19.1</jackson.databind.version>
-        <caffeine.version>2.9.3</caffeine.version>
+        <jackson.version>2.20.0</jackson.version>
+        <jackson.databind.version>2.20.0</jackson.databind.version>
         <okhttp.version>5.1.0</okhttp.version>
         <okhttp.mockwebserver.version>5.1.0</okhttp.mockwebserver.version>
         <commons.lang3.version>3.18.0</commons.lang3.version>
-        <commons.text.version>1.11.0</commons.text.version>
-        <commons.io.version>2.19.0</commons.io.version>
+        <commons.io.version>2.20.0</commons.io.version>
         <postgresql.jdbc.version>42.5.5</postgresql.jdbc.version>
-        <junit.jupiter.version>5.11.1</junit.jupiter.version>
-        <json.smart.version>2.5.2</json.smart.version>
+        <junit.jupiter.version>5.13.4</junit.jupiter.version>
+        <json.smart.version>2.6.0</json.smart.version>
         <com-google-guava.version>32.1.3-jre</com-google-guava.version>
         <derby.version>10.14.2.0</derby.version>
-        <jetty.version>12.0.23</jetty.version>
+        <jetty.version>12.0.27</jetty.version>
     </properties>
 
     <modules>
