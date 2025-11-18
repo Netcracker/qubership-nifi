@@ -236,7 +236,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
      * @param context
      */
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws JsonProcessingException {
+    public void onScheduled(final ProcessContext context) {
         recordSinkServiceAtomicReference.set(
                 context.getProperty(RECORD_SINK).asControllerService(RecordSinkService.class)
         );
@@ -336,7 +336,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 if (staticJsonNode.isArray()) {
                     throw new ProcessException("The Json specified in 'Json Property' cannot be an array.");
                 }
-                staticJsonNode.fields().forEachRemaining(jsonNodeEntry -> {
+                staticJsonNode.properties().forEach(jsonNodeEntry -> {
                     RecordField staticNestedRecordField;
                     String staticFieldName = jsonNodeEntry.getKey();
                     JsonNode staticValue = jsonNodeEntry.getValue();
@@ -412,7 +412,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
             List<RecordField> jsonRecordField,
             Map<String, Object> nestedFieldValues,
             JsonNode jsonValue) {
-        jsonValue.fields().forEachRemaining(jsonField -> {
+        jsonValue.properties().forEach(jsonField -> {
             String fieldName = jsonField.getKey();
             JsonNode value = jsonField.getValue();
             if (value.isArray()) {

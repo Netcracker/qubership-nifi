@@ -20,7 +20,6 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.qubership.nifi.processors.PutRecordFromProperty.RECORD_SINK;
 import static org.qubership.nifi.processors.PutRecordFromProperty.LIST_JSON_DYNAMIC_PROPERTY;
 import static org.qubership.nifi.processors.PutRecordFromProperty.SOURCE_TYPE;
@@ -49,7 +48,7 @@ public class PutRecordFromPropertyTest {
     }
 
     @Test
-    public void testSimpleDynamicProperty() throws Exception {
+    public void testSimpleDynamicProperty() {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("testAttr1", "25.3");
         attrs.put("testAttr2", "2");
@@ -77,7 +76,7 @@ public class PutRecordFromPropertyTest {
     }
 
     @Test
-    public void testComplexJsonDynamicProperty() throws Exception {
+    public void testComplexJsonDynamicProperty() {
         String jsonObject = """
               {
                    "size": ${size},
@@ -122,7 +121,7 @@ public class PutRecordFromPropertyTest {
     }
 
     @Test
-    public void testComplexJsonProperty() throws Exception {
+    public void testComplexJsonProperty() {
         String complexJson = """
                 {
                      "request_duration_seconds": {

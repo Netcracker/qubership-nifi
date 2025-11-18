@@ -34,7 +34,7 @@ public class MockRecordSinkService extends AbstractControllerService implements 
         while ((currentRecord = recordSet.next()) != null) {
             Map<String, Object> row = new HashMap<>();
             final Record finalRecord = currentRecord;
-            recordSchema.getFieldNames().forEach((fieldName) -> {
+            recordSchema.getFieldNames().forEach(fieldName -> {
                 Optional<DataType> dataType = recordSchema.getDataType(fieldName);
                 if (dataType.get().getFieldType() == RecordFieldType.DOUBLE) {
                     row.put(fieldName, finalRecord.getAsDouble(fieldName));
