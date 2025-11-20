@@ -38,6 +38,26 @@ public class PropertiesManagerTest {
     @Autowired
     private PropertiesManager pm;
 
+
+    private static void putPropertyToConsul(String propertyName, String propertyValue) {
+        Container.ExecResult res = null;
+        try {
+            res = consul.execInContainer("consul", "kv", "put", propertyName, propertyValue);
+            LOG.debug("Result for put {} = {}",
+                    propertyName, res.getStdout());
+            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"),
+                    "Failed to put property = " + propertyName
+                            + ". Output: " + res.getStdout() + ". Error: " + res.getStderr());
+        } catch (IOException | InterruptedException e) {
+            if (res != null) {
+                LOG.error("Last command stdout = {}", res.getStdout());
+                LOG.error("Last command stderr = {}", res.getStderr());
+            }
+            LOG.error("Failed to fill initial consul data for property = {}", propertyName, e);
+            Assertions.fail("Failed to fill initial consul data for property = " + propertyName, e);
+        }
+    }
+
     @BeforeAll
     public static void initContainer() {
         List<String> consulPorts = new ArrayList<>();
@@ -48,50 +68,13 @@ public class PropertiesManagerTest {
         consul.start();
 
         //fill initial consul data:
-        Container.ExecResult res = null;
-        try {
-            res = consul.execInContainer(
-                    "consul", "kv", "put", "config/local/application/logger.org.qubership", "DEBUG");
-            LOG.debug("Result for put config/local/application/logger.org.qubership = {}", res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-            res = consul.execInContainer(
-                    "consul", "kv", "put",
-                    "config/local/application/logger.org.apache.nifi.processors", "DEBUG");
-            LOG.debug("Result for put config/local/application/logger.org.apache.nifi.processors = {}",
-                    res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-            res = consul.execInContainer(
-                    "consul", "kv", "put",
-                    "config/local/application/nifi.cluster.base-node-count", "5");
-            LOG.debug("Result for put config/local/application/nifi.cluster.base-node-count = {}",
-                    res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-            res = consul.execInContainer(
-                    "consul", "kv", "put",
-                    "config/local/application/nifi.nifi-registry.nar-provider-enabled", "true");
-            LOG.debug("Result for put config/local/application/nifi.nifi-registry.nar-provider-enabled = {}",
-                    res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-            res = consul.execInContainer(
-                    "consul", "kv", "put",
-                    "config/local/application/nifi.queue.swap.threshold", "25000");
-            LOG.debug("Result for put config/local/application/nifi.queue.swap.threshold = {}",
-                    res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-            res = consul.execInContainer(
-                    "consul", "kv", "put",
-                    "config/local/application/test.value", "true");
-            LOG.debug("Result for put config/local/application/test.value = {}",
-                    res.getStdout());
-            Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"));
-        } catch (IOException | InterruptedException e) {
-            if (res != null) {
-                LOG.error("Last command stdout = {}", res.getStdout());
-                LOG.error("Last command stderr = {}", res.getStderr());
-            }
-            LOG.error("Failed to fill initial consul data", e);
-            Assertions.fail("Failed to fill initial consul data", e);
-        }
+        putPropertyToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        putPropertyToConsul("config/local/application/logger.org.apache.nifi.processors", "DEBUG");
+        putPropertyToConsul("config/local/application/nifi.cluster.base-node-count", "5");
+        putPropertyToConsul("config/local/application/nifi.nifi-registry.nar-provider-enabled", "true");
+        putPropertyToConsul("config/local/application/nifi.queue.swap.threshold", "25000");
+        putPropertyToConsul("config/local/application/nifi.web.https.application.protocols", "http/1.1 http/1.1");
+        putPropertyToConsul("config/local/application/test.value", "true");
 
         //prepare test directories:
         try {
@@ -100,6 +83,7 @@ public class PropertiesManagerTest {
             throw new RuntimeException("Failed to create test dir", e);
         }
     }
+
 
     @Test
     public void testPropertiesLoadOnStart() throws Exception {
@@ -122,6 +106,8 @@ public class PropertiesManagerTest {
         try (InputStream in = new BufferedInputStream(new FileInputStream(nifiPropsConfig))) {
             nifiProps.load(in);
             Assertions.assertEquals("25000", nifiProps.getProperty("nifi.queue.swap.threshold"));
+            Assertions.assertEquals("http/1.1 http/1.1",
+                    nifiProps.getProperty("nifi.web.https.application.protocols"));
         } catch (IOException e) {
             Assertions.fail("Failed to read nifi.properties", e);
         }
