@@ -50,15 +50,22 @@ import java.util.stream.Collectors;
 
 @SupportsBatching
 @Tags({"record", "put", "sink"})
-@CapabilityDescription("Generating records and sending them to a destination specified by a"
-        + " Record Destination Service (i.e., record sink)")
+@CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination"
+        + " specified by a Record Destination Service (i.e., record sink). The record source is defined by the "
+        + "'Source Type' property, which can be either 'Dynamic Properties' or 'Json Property'. If 'Source Type'"
+        + " is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type "
+        + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a "
+        + "JSON value and is listed in the 'List Json Dynamic Property' property). If 'Source Type' is set to "
+        + "'Json Property', the Record is generated directly from the JSON value in the 'Json Property'.")
 @DynamicProperties(@DynamicProperty(name = "*", value = "*",
-        description = "The processor's dynamic property is used as the data source for generating a Record."
-                + "For scalar values, a key-value pair is used, where the key is a String and "
-                + "the value is either a String or a Double. In the case of a String-String pair, the pair is"
-                + " interpreted as a label. For composite values, the value can be a flat JSON object"
-                + " (without nested structures) containing only simple type fields and, "
-                + "if necessary, arrays of numeric values (number).",
+        description = "The processor’s dynamic properties serve as the data source for generating a record. "
+                + "The Dynamic Property Key defines the field name, while the value of the dynamic property determines"
+                + " both the field type and its value. If the value type is numeric, the field type is set to double, "
+                + "and the value is converted to double. If the value is in JSON format and the Dynamic Property Key "
+                + "is listed in the 'List Json Dynamic Property' property, the field type is 'Record', with the schema"
+                + " defined by the JSON structure. Otherwise, the field type is set to String. The JSON value must be"
+                + " a single, flat JSON object, where the attributes can either be scalar values or arrays of numeric"
+                + " values.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES))
 public class PutRecordFromProperty extends AbstractProcessor {
 
@@ -74,6 +81,11 @@ public class PutRecordFromProperty extends AbstractProcessor {
             true,
             StandardValidators.NON_EMPTY_VALIDATOR
     );
+
+    private static final Validator DYNAMIC_PROPERTY_VALIDATOR = StandardValidators
+            .createAttributeExpressionLanguageValidator(
+            AttributeExpression.ResultType.STRING,
+            true);
 
     /**
      * Record sink property descriptor.
@@ -108,9 +120,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
             .displayName("List Json Dynamic Property")
-            .description("Comma-separated list of dynamic properties that contain json objects")
+            .description("Comma-separated list of dynamic properties that contain JSON values")
             .addValidator(LIST_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     /**
@@ -119,7 +131,10 @@ public class PutRecordFromProperty extends AbstractProcessor {
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
                 .displayName("Json Property")
-            .description("A complex json object for generating Record")
+            .description("A complex json object for generating Record.A JSON object must have a flat structure without"
+                    + " nested objects or arrays of non-scalar types. Object keys directly correspond to attribute"
+                    + " names and are used as field names. All values must be scalar. Arrays containing only numeric"
+                    + " values are allowed.")
             .dependsOn(SOURCE_TYPE, SourceTypeValues.JSON_PROPERTY.getAllowableValue())
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -219,8 +234,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(
-                        AttributeExpression.ResultType.STRING, true))
+                .addValidator(DYNAMIC_PROPERTY_VALIDATOR)
                 .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
@@ -247,7 +261,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
         if (context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue() != null) {
             jsonDynamicPropertyExist = true;
             jsonDynamicPropertySet = Arrays.stream(
-                    context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).getValue().split(","))
+                    context.getProperty(LIST_JSON_DYNAMIC_PROPERTY).evaluateAttributeExpressions()
+                    .getValue().split(","))
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .collect(Collectors.toSet());
@@ -301,7 +316,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         }
                         List<RecordField> jsonRecordField = new ArrayList<>();
                         Map<String, Object> nestedFieldValues = new HashMap<>();
-                        processJsonNode(jsonRecordField, nestedFieldValues, jsonValue);
+                        String parentContext = "dynamic property " + dynamicPropertyName;
+                        processJsonNode(jsonRecordField, nestedFieldValues, jsonValue, parentContext);
                         RecordSchema nestedSchema = new SimpleRecordSchema(jsonRecordField);
                         MapRecord jsonRecord = new MapRecord(
                                 nestedSchema,
@@ -315,8 +331,9 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         );
                         allFields.add(nestedRecordField);
                     } catch (JsonProcessingException e) {
-                        throw new ProcessException("An error occurred while parsing json. Please check the provided"
-                                + " json - " + dynamicPropertyValue + " and try again. Error: " + e.getMessage());
+                        throw new ProcessException("An error occurred while parsing json for dynamic property - "
+                                + dynamicPropertyName + ". Please check the provided json and try again. Error: "
+                                + e.getMessage(), e);
                     }
                 } else {
                     allFields.add(new RecordField(dynamicPropertyName,
@@ -343,7 +360,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                     if (staticValue.isObject()) {
                         List<RecordField> staticJsonRecordField = new ArrayList<>();
                         Map<String, Object> staticNestedFieldValues = new HashMap<>();
-                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, staticValue);
+                        String parentContext = "attribute " + staticFieldName + " in Json Property";
+                        processJsonNode(staticJsonRecordField, staticNestedFieldValues, staticValue, parentContext);
                         RecordSchema staticNestedSchema = new SimpleRecordSchema(staticJsonRecordField);
                         MapRecord staticJsonRecord = new MapRecord(
                                 staticNestedSchema,
@@ -357,7 +375,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                         );
                         allFields.add(staticNestedRecordField);
                     } else if (staticValue.isArray()) {
-                        throw new ProcessException("The field - " + staticFieldName + " cannot contain an array.");
+                        throw new ProcessException("The JSON values specified in 'Json Property' are invalid. "
+                                + "The field " + staticFieldName + " cannot contain an array.");
                     } else {
                         if (staticValue.isNumber()) {
                             allFields.add(new RecordField(staticFieldName, RecordFieldType.DOUBLE.getDataType()));
@@ -369,8 +388,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
                     }
                 });
             } catch (JsonProcessingException e) {
-                throw new ProcessException("An error occurred while parsing json. "
-                        + "Please check the provided json and try again. Error message: " + e.getMessage());
+                throw new ProcessException("An error occurred while parsing JSON values from 'Json Property'."
+                        + "Please check the provided json and try again. Error message: " + e.getMessage(), e);
             }
             mainRecordSchema = new SimpleRecordSchema(allFields);
             if (getLogger().isDebugEnabled()) {
@@ -411,7 +430,8 @@ public class PutRecordFromProperty extends AbstractProcessor {
     private void processJsonNode(
             List<RecordField> jsonRecordField,
             Map<String, Object> nestedFieldValues,
-            JsonNode jsonValue) {
+            JsonNode jsonValue,
+            String parentContext) {
         jsonValue.properties().forEach(jsonField -> {
             String fieldName = jsonField.getKey();
             JsonNode value = jsonField.getValue();
@@ -431,7 +451,7 @@ public class PutRecordFromProperty extends AbstractProcessor {
                 nestedFieldValues.put(fieldName, doubles);
             } else if (value.isObject()) {
                 throw new ProcessException("Json must not contain nested objects. The field - "
-                        + fieldName + " is an object - " + value);
+                        + fieldName + " (within " + parentContext + ") is an object");
             } else if (value.isNumber()) {
                 jsonRecordField.add(new RecordField(fieldName, RecordFieldType.DOUBLE.getDataType()));
                 nestedFieldValues.put(fieldName, value.asDouble());

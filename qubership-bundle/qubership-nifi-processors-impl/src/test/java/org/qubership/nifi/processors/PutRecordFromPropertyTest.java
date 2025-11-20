@@ -301,6 +301,119 @@ public class PutRecordFromPropertyTest {
         });
     }
 
+    @Test
+    public void testMultipleComplexJsonDynamicProperty() {
+        String jsonDynamicProperty1 = """
+             {
+                "path": "${path}",
+                "type": "Summary",
+                "quantiles": [
+                  0.123, 0.456, 0.890
+                ],
+                "value": 123.45
+              }
+             """;
+
+        String jsonDynamicProperty2 = """
+             {
+                "job_type": "${job_type}",
+                "type": "Summary",
+                "priority": "${priority}",
+                "quantiles": [
+                   0.215, 0.782, 1.450
+                ],
+                "value": 8642.33
+              }
+             """;
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("path", "/api/users");
+        attrs.put("job_type", "email_dispatch");
+        attrs.put("priority", "high");
+
+        List<RecordField> fieldsTypes1 = new ArrayList<>();
+        fieldsTypes1.add(new RecordField("path", RecordFieldType.STRING.getDataType()));
+        fieldsTypes1.add(new RecordField("type", RecordFieldType.STRING.getDataType()));
+        fieldsTypes1.add(new RecordField("quantiles", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.DOUBLE.getDataType())));
+        fieldsTypes1.add(new RecordField("value", RecordFieldType.DOUBLE.getDataType()));
+        RecordSchema recordSchema1 = new SimpleRecordSchema(fieldsTypes1);
+
+        List<RecordField> fieldsTypes2 = new ArrayList<>();
+        fieldsTypes2.add(new RecordField("job_type", RecordFieldType.STRING.getDataType()));
+        fieldsTypes2.add(new RecordField("type", RecordFieldType.STRING.getDataType()));
+        fieldsTypes2.add(new RecordField("priority", RecordFieldType.STRING.getDataType()));
+        fieldsTypes2.add(new RecordField("quantiles", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.DOUBLE.getDataType())));
+        fieldsTypes2.add(new RecordField("value", RecordFieldType.DOUBLE.getDataType()));
+        RecordSchema recordSchema2 = new SimpleRecordSchema(fieldsTypes2);
+
+        Map<String, Object> fieldValues1 = new HashMap<>();
+        fieldValues1.put("path", "/api/users");
+        fieldValues1.put("type", "Summary");
+        fieldValues1.put("quantiles", new Double[]{0.123, 0.456, 0.890});
+        fieldValues1.put("value", 123.45);
+        MapRecord expectMapRecord1 = generateRecord(recordSchema1, fieldValues1);
+
+        Map<String, Object> fieldValues2 = new HashMap<>();
+        fieldValues2.put("job_type", "email_dispatch");
+        fieldValues2.put("type", "Summary");
+        fieldValues2.put("priority", "high");
+        fieldValues2.put("quantiles", new Double[]{0.215, 0.782, 1.450});
+        fieldValues2.put("value", 8642.33);
+        MapRecord expectMapRecord2 = generateRecord(recordSchema2, fieldValues2);
+
+        testRunner.setProperty("http_request_duration_seconds", jsonDynamicProperty1);
+        testRunner.setProperty("integration_execution_duration", jsonDynamicProperty2);
+        testRunner.setProperty(LIST_JSON_DYNAMIC_PROPERTY,
+                "http_request_duration_seconds, integration_execution_duration");
+        testRunner.enqueue("", attrs);
+        testRunner.run();
+        List<Map<String, Object>> row = recordSink.getRows();
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        assertEquals(1, result.size());
+        assertEquals(expectMapRecord1, row.get(0).get("http_request_duration_seconds"));
+        assertEquals(expectMapRecord2, row.get(0).get("integration_execution_duration"));
+    }
+
+    @Test
+    public void testComplexJsonDynamicPropertyWithEL() {
+        String json = """
+              {
+                   "size": ${size},
+                   "fullFileName": "${filename:substringBefore('_')}.${fileExtension}",
+                   "sourceEndpoint": "${sourceEndpoint}"
+               }
+              """;
+
+        Map<String, String> attrs = new HashMap<>();
+        attrs.put("size", "1400.3");
+        attrs.put("filename", "test_20_11_2025");
+        attrs.put("fileExtension", "txt");
+        attrs.put("sourceEndpoint", "/api/users");
+
+        List<RecordField> fieldsTypes = new ArrayList<>();
+        fieldsTypes.add(new RecordField("size", RecordFieldType.DOUBLE.getDataType()));
+        fieldsTypes.add(new RecordField("fullFileName", RecordFieldType.STRING.getDataType()));
+        fieldsTypes.add(new RecordField("sourceEndpoint", RecordFieldType.STRING.getDataType()));
+        RecordSchema recordSchema = new SimpleRecordSchema(fieldsTypes);
+
+        Map<String, Object> fieldValues = new HashMap<>();
+        fieldValues.put("size", 1400.3);
+        fieldValues.put("fullFileName", "test.txt");
+        fieldValues.put("sourceEndpoint", "/api/users");
+        MapRecord expectMapRecord = generateRecord(recordSchema, fieldValues);
+
+        testRunner.setProperty("file_size", json);
+        testRunner.setProperty(LIST_JSON_DYNAMIC_PROPERTY, "file_size");
+        testRunner.enqueue("", attrs);
+        testRunner.run();
+        List<Map<String, Object>> row = recordSink.getRows();
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        assertEquals(1, result.size());
+        assertEquals(expectMapRecord, row.get(0).get("file_size"));
+    }
+
     private MapRecord generateRecord(RecordSchema schema, Map<String, Object> fieldValues) {
         Map<String, Object> recordMap = new HashMap<>();
         for (Map.Entry<String, Object> valueEntry : fieldValues.entrySet()) {
