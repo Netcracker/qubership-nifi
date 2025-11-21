@@ -16,7 +16,6 @@ services:
   zookeeper:
     image: zookeeper:3.9.3
     ports:
-      - 127.0.0.1:2181:2181
       - 127.0.0.1:2182:2182
     volumes:
       - tls-cert:/opt/zookeeper/ssl
@@ -25,6 +24,19 @@ services:
     environment:
       ZOO_MY_ID: 1
       ZOO_SERVERS: server.1=zookeeper:2888:3888
+  zookeeper-initial-config:
+    image: zookeeper:3.9.3
+    depends_on:
+      zookeeper:
+        condition: service_started
+    entrypoint: /bin/bash
+    command: /tmp/tls-scripts/zk-acl-config.sh
+    volumes:
+      - tls-cert:/opt/zookeeper/ssl
+      - tls-scripts:/tmp/tls-scripts
+      - zk-configuration:/conf
+    environment:
+      ZK_TLS_PASS: ${ZK_TLS_PASS}
   qubership-nifi-0:
     image: local-nifi:test
     depends_on:
@@ -34,6 +46,10 @@ services:
         condition: service_started
       postgresql:
         condition: service_started
+      zookeeper:
+        condition: service_started
+      zookeeper-initial-config:
+        condition: service_completed_successfully
     volumes:
       - nifi-conf0:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-0:/tmp/tls-certs-0
@@ -67,6 +83,9 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
+      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-0.p12
+      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
+      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: local-nifi
     hostname: qubership-nifi-0
     restart: unless-stopped
@@ -78,6 +97,8 @@ services:
       keycloak:
         condition: service_started
       postgresql:
+        condition: service_started
+      zookeeper:
         condition: service_started
     volumes:
       - nifi-conf1:/opt/nifi/nifi-current/persistent_conf
@@ -112,6 +133,9 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
+      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-1.p12
+      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
+      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: qubership-nifi-1
     hostname: qubership-nifi-1
     restart: unless-stopped
@@ -123,6 +147,8 @@ services:
       keycloak:
         condition: service_started
       postgresql:
+        condition: service_started
+      zookeeper:
         condition: service_started
     volumes:
       - nifi-conf2:/opt/nifi/nifi-current/persistent_conf
@@ -157,6 +183,9 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
+      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-2.p12
+      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
+      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: qubership-nifi-2
     hostname: qubership-nifi-2
     restart: unless-stopped
