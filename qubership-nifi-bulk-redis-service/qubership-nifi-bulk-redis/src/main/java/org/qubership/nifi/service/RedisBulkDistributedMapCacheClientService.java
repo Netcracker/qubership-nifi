@@ -40,9 +40,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.Tuple;
+import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisStringCommands;
+import org.springframework.data.redis.core.script.DigestUtils;
 import org.springframework.data.redis.core.types.Expiration;
+import redis.clients.jedis.util.SafeEncoder;
 
 import static org.springframework.data.redis.connection.ReturnType.MULTI;
 
@@ -117,6 +120,27 @@ public class RedisBulkDistributedMapCacheClientService
         this.redisConnectionPool = null;
     }
 
+    private static final String GET_AND_PUT_IF_ABSENT_SCRIPT = "local result = {}\n"
+            + "for i in ipairs(KEYS) do\n"
+            + "  local currentValue = redis.call(\"GET\", KEYS[i])\n"
+            + "  if (not currentValue) then \n"
+            + "    redis.call(\"SET\", KEYS[i], ARGV[i])\n"
+            + "  end\n"
+            + "  result[i] = currentValue \n"
+            + "end \n"
+            + " return result";
+    private static final byte[] GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES;
+    private static final byte[] GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES;
+    static {
+        try {
+            GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_SCRIPT, STRING_SERIALIZER);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize GetAndPutIfAbsent script", e);
+        }
+        GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES =
+                SafeEncoder.encode(DigestUtils.sha1DigestAsHex(GET_AND_PUT_IF_ABSENT_SCRIPT));
+    }
+
     @Override
     public <K, V> Map<K, V> getAndPutIfAbsent(
             Map<K, V> map,
@@ -125,46 +149,63 @@ public class RedisBulkDistributedMapCacheClientService
             final Deserializer<V> valueDeserializer
     ) throws IOException {
         return withConnection(redisConnection -> {
-            do {
-                String luaScript = "local result = {}\n"
-                        + "for i in ipairs(KEYS) do\n"
-                        + "  local currentValue = redis.call(\"GET\", KEYS[i])\n"
-                        + "  if (not currentValue) then \n"
-                        + "    redis.call(\"SET\", KEYS[i], ARGV[i])\n"
-                        + "  end\n"
-                        + "  result[i] = currentValue \n"
-                        + "end \n"
-                        + " return result";
-                List<K> keys = new ArrayList<>();
-                List<V> values = new ArrayList<>();
-                map.forEach((key, value) -> {
-                    keys.add(key);
-                    values.add(value);
-                });
-                byte[][] serialisedParams = new byte[keys.size() * 2][];
-                for (int i = 0; i < keys.size(); i++) {
-                    K key = keys.get(i);
-                    serialisedParams[i] = serialize(key, keySerializer);
-                }
-                for (int i = 0; i < values.size(); i++) {
-                    V value = values.get(i);
-                    serialisedParams[i + keys.size()] = serialize(value, valueSerializer);
-                }
-                String luaScriptName = redisConnection.scriptingCommands()
-                        .scriptLoad(serialize(luaScript, STRING_SERIALIZER));
-                List<Object> oldValues = redisConnection.scriptingCommands()
-                        .evalSha(luaScriptName, MULTI, keys.size(), serialisedParams);
+            List<K> keys = new ArrayList<>();
+            int mapSize = map.size();
+            byte[][] serialisedParams = new byte[mapSize * 2][];
+            int j = 0;
+            for (Map.Entry<K, V> entry : map.entrySet()) {
+                //add key:
+                serialisedParams[j] = serialize(entry.getKey(), keySerializer);
+                //add value:
+                serialisedParams[j + mapSize] = serialize(entry.getValue(), valueSerializer);
+                keys.add(entry.getKey());
+                j++;
+            }
 
-                // execute the transaction
-                Map<K, V> res = new HashMap<>();
+            List<Object> oldValues = null;
+            try {
+                oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
+                                MULTI, keys.size(), serialisedParams);
+            } catch (Exception ex) {
+                if (exceptionContainsNoScriptError(ex)) {
+                    //script not found, load script and try again:
+                    String scriptSha =
+                            redisConnection.scriptingCommands().scriptLoad(GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES);
+                    oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
+                            MULTI, keys.size(), serialisedParams);
+                } else {
+                    //rethrow Exception
+                    throw ex;
+                }
+            }
+
+            // execute the transaction
+            Map<K, V> res = new HashMap<>();
+            if (oldValues != null) {
                 for (int i = 0; i < oldValues.size(); i++) {
                     Object oldValue = oldValues.get(i);
                     res.put(keys.get(i), oldValue == null ? null : valueDeserializer.deserialize((byte[]) oldValue));
                 }
+            }
 
-                return res;
-            } while (isEnabled());
+            return res;
         });
+    }
+
+    private static boolean exceptionContainsNoScriptError(Throwable e) {
+        if (!(e instanceof NonTransientDataAccessException)) {
+            return false;
+        }
+
+        Throwable current = e;
+        while (current != null) {
+            String exMessage = current.getMessage();
+            if (exMessage != null && exMessage.contains("NOSCRIPT")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @Override
@@ -287,7 +328,7 @@ public class RedisBulkDistributedMapCacheClientService
 
     }
 
-    private <K> byte[] serialize(final K key, final Serializer<K> keySerializer) throws IOException {
+    private static <K> byte[] serialize(final K key, final Serializer<K> keySerializer) throws IOException {
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         keySerializer.serialize(key, out);
         return out.toByteArray();
