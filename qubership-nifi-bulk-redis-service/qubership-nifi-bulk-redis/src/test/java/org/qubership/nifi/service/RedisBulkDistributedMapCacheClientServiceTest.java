@@ -205,7 +205,8 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
         Map<String, String> result1 = redisBulkDistributedMapCacheClientService
                 .getAndPutIfAbsent(stringMap1, STRING_SERIALIZER, STRING_SERIALIZER, STRING_DESERIALIZER);
         assertNull(result1.get(prop));
-        assertEquals(value1, redisBulkDistributedMapCacheClientService.get(prop, STRING_SERIALIZER, STRING_DESERIALIZER));
+        assertEquals(value1,
+                redisBulkDistributedMapCacheClientService.get(prop, STRING_SERIALIZER, STRING_DESERIALIZER));
 
         String value2 = "value-2-" + timestamp;
         Map<String, String> stringMap2 = new HashMap<>();

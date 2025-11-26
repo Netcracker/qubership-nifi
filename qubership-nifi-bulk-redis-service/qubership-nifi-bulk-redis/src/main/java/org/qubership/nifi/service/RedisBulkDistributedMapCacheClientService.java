@@ -54,6 +54,9 @@ import static org.springframework.data.redis.connection.ReturnType.MULTI;
 public class RedisBulkDistributedMapCacheClientService
         extends AbstractControllerService implements BulkDistributedMapCacheClient {
 
+    /**
+     * Redis Connection Pool Property Descriptor.
+     */
     public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("redis-connection-pool")
             .displayName("Redis Connection Pool")
@@ -61,6 +64,9 @@ public class RedisBulkDistributedMapCacheClientService
             .required(false)
             .build();
 
+    /**
+     * TTL Property Descriptor.
+     */
     public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
             .name("redis-cache-ttl")
             .displayName("TTL")
