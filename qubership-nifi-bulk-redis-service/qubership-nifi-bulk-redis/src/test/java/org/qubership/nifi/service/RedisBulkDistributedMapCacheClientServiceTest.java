@@ -1,7 +1,5 @@
 package org.qubership.nifi.service;
 
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
-import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.redis.service.RedisConnectionPoolService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.distributed.cache.client.Serializer;
@@ -19,8 +17,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -285,22 +281,6 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
         Map<String, String> bulkResult = redisBulkDistributedMapCacheClientService
                 .getAndPutIfAbsent(keyAndValue, STRING_SERIALIZER, STRING_SERIALIZER, STRING_DESERIALIZER);
         assertEquals(0, bulkResult.size());
-    }
-
-    private static final class StringSerializer implements Serializer<String> {
-        @Override
-        public void serialize(String s, OutputStream outputStream) throws SerializationException, IOException {
-            if (s != null) {
-                outputStream.write(s.getBytes(StandardCharsets.UTF_8));
-            }
-        }
-    }
-
-    private static final class StringDeserializer implements Deserializer<String> {
-        @Override
-        public String deserialize(byte[] input) throws DeserializationException, IOException {
-            return input == null ? null : new String(input, StandardCharsets.UTF_8);
-        }
     }
 
     @AfterEach
