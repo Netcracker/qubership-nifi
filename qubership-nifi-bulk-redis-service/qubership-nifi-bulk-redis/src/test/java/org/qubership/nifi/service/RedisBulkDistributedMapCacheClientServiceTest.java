@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RedisBulkDistributedMapCacheClientServiceTest {
+class RedisBulkDistributedMapCacheClientServiceTest {
     private static final String REDIS_IMAGE = "redis:7.0.12-alpine";
     private static final String REDIS_CON_STRING = "localhost:16379";
 
@@ -41,7 +41,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     private static GenericContainer<?> redis;
 
     @BeforeAll
-    public static void initContainer() {
+    static void initContainer() {
         List<String> redisPorts = new ArrayList<>();
         redisPorts.add("16379:6379");
 
@@ -55,7 +55,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
      * @throws InitializationException
      */
     @BeforeEach
-    public void setup() throws InitializationException {
+    void setup() throws InitializationException {
         testRunner = TestRunners.newTestRunner(RedisTestProcessor.class);
         redisConnectionPool = new RedisConnectionPoolService();
 
@@ -72,7 +72,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testPutAndGet() throws IOException {
+    void testPutAndGet() throws IOException {
         //prepare data for test
         long timestamp = System.currentTimeMillis();
         String prop = "testPutAndGet-redis-processor-" + timestamp;
@@ -89,7 +89,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
 
 
     @Test
-    public void testPutAndGetWithTTL() throws IOException {
+    void testPutAndGetWithTTL() throws IOException {
         //prepare data for test
         long timestamp = System.currentTimeMillis();
         String prop = "testPutAndGet-redis-processor-" + timestamp;
@@ -119,7 +119,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testRemove() throws IOException {
+    void testRemove() throws IOException {
         String prop1 = "testRemove-1";
         String value1 = "value-1";
         String prop2 = "testRemove-2";
@@ -148,7 +148,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testPutIfAbsent() throws IOException {
+    void testPutIfAbsent() throws IOException {
         String prop = "testPutIfAbsent";
         String value = "value";
 
@@ -162,7 +162,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testPutIfAbsentWithTTL() throws IOException {
+    void testPutIfAbsentWithTTL() throws IOException {
         String prop = "testPutIfAbsent";
         String value = "value";
 
@@ -190,7 +190,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsent() throws IOException {
+    void testGetAndPutIfAbsent() throws IOException {
         long timestamp = System.currentTimeMillis();
         String prop = "testGetAndPutIfAbsent-prop-" + timestamp;
         String value1 = "value-1-" + timestamp;
@@ -228,7 +228,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
 
 
     @Test
-    public void testGetAndPutIfAbsentWithUnavailableRedis() throws IOException {
+    void testGetAndPutIfAbsentWithUnavailableRedis() {
         long timestamp = System.currentTimeMillis();
         String prop1 = "testBulkGetAndPutIfAbsent-1" + timestamp;
         String prop2 = "testBulkGetAndPutIfAbsent-2" + timestamp;
@@ -250,7 +250,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testBulkGetAndPutIfAbsent() throws IOException {
+    void testBulkGetAndPutIfAbsent() throws IOException {
         long timestamp = System.currentTimeMillis();
         String prop1 = "testBulkGetAndPutIfAbsent-1" + timestamp;
         String prop2 = "testBulkGetAndPutIfAbsent-2" + timestamp;
@@ -275,8 +275,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @Test
-    public void testEmptyGetAndPutIfAbsent() throws IOException {
-        long timestamp = System.currentTimeMillis();
+    void testEmptyGetAndPutIfAbsent() throws IOException {
         Map<String, String> keyAndValue = new HashMap<>();
         Map<String, String> bulkResult = redisBulkDistributedMapCacheClientService
                 .getAndPutIfAbsent(keyAndValue, STRING_SERIALIZER, STRING_SERIALIZER, STRING_DESERIALIZER);
@@ -284,7 +283,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         if (redisConnectionPool != null) {
             redisConnectionPool.onDisabled();
         }
@@ -298,7 +297,7 @@ public class RedisBulkDistributedMapCacheClientServiceTest {
     }
 
     @AfterAll
-    public static void stopContainer() {
+    static void stopContainer() {
         redis.stop();
     }
 }

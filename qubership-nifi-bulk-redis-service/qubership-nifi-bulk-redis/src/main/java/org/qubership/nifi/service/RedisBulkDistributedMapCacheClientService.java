@@ -18,6 +18,7 @@ package org.qubership.nifi.service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -141,7 +142,7 @@ public class RedisBulkDistributedMapCacheClientService
         try {
             GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_SCRIPT, STRING_SERIALIZER);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to serialize GetAndPutIfAbsent script", e);
+            throw new UncheckedIOException("Failed to serialize GetAndPutIfAbsent script", e);
         }
         GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES =
                 SafeEncoder.encode(DigestUtils.sha1DigestAsHex(GET_AND_PUT_IF_ABSENT_SCRIPT));
@@ -167,25 +168,9 @@ public class RedisBulkDistributedMapCacheClientService
                 keys.add(entry.getKey());
                 j++;
             }
+            List<Object> oldValues = executeGetAndPutIfAbsentScript(redisConnection, keys, serialisedParams);
 
-            List<Object> oldValues = null;
-            try {
-                oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
-                                MULTI, keys.size(), serialisedParams);
-            } catch (Exception ex) {
-                if (exceptionContainsNoScriptError(ex)) {
-                    //script not found, load script and try again:
-                    String scriptSha =
-                            redisConnection.scriptingCommands().scriptLoad(GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES);
-                    oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
-                            MULTI, keys.size(), serialisedParams);
-                } else {
-                    //rethrow Exception
-                    throw ex;
-                }
-            }
-
-            // execute the transaction
+            // process results:
             Map<K, V> res = new HashMap<>();
             if (oldValues != null) {
                 for (int i = 0; i < oldValues.size(); i++) {
@@ -196,6 +181,26 @@ public class RedisBulkDistributedMapCacheClientService
 
             return res;
         });
+    }
+
+    private static <K> List<Object> executeGetAndPutIfAbsentScript(RedisConnection redisConnection,
+                                                                   List<K> keys, byte[][] serialisedParams) {
+        List<Object> oldValues = null;
+        try {
+            oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
+                            MULTI, keys.size(), serialisedParams);
+        } catch (Exception ex) {
+            if (exceptionContainsNoScriptError(ex)) {
+                //script not found, load script and try again:
+                redisConnection.scriptingCommands().scriptLoad(GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES);
+                oldValues = redisConnection.scriptingCommands().evalSha(GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES,
+                        MULTI, keys.size(), serialisedParams);
+            } else {
+                //rethrow Exception
+                throw ex;
+            }
+        }
+        return oldValues;
     }
 
     private static boolean exceptionContainsNoScriptError(Throwable e) {

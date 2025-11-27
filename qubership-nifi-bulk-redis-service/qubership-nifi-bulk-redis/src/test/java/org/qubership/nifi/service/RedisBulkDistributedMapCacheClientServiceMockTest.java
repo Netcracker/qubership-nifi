@@ -30,7 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.data.redis.connection.ReturnType.MULTI;
 
-public class RedisBulkDistributedMapCacheClientServiceMockTest {
+class RedisBulkDistributedMapCacheClientServiceMockTest {
     private TestRunner testRunner;
     private TestRedisConnectionPoolService redisConnectionPool;
     private RedisBulkDistributedMapCacheClientService redisBulkDistributedMapCacheClientService;
@@ -43,7 +43,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
      * @throws InitializationException
      */
     @BeforeEach
-    public void setup() throws InitializationException {
+    void setup() throws InitializationException {
         testRunner = TestRunners.newTestRunner(RedisTestProcessor.class);
         redisConnectionPool = new TestRedisConnectionPoolService();
 
@@ -59,7 +59,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsentWithSystemException() throws IOException {
+    void testGetAndPutIfAbsentWithSystemException() {
         long timestamp = System.currentTimeMillis();
         String prop = "testGetAndPutIfAbsent-prop-" + timestamp;
         String value1 = "value-1-" + timestamp;
@@ -74,7 +74,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsentWithNullResult() throws IOException {
+    void testGetAndPutIfAbsentWithNullResult() throws IOException {
         Map<String, String> stringMap1 = new HashMap<>();
 
         Map<String, String> result = redisBulkDistributedMapCacheClientService
@@ -84,7 +84,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsentWithTransientDataAccessException() throws IOException {
+    void testGetAndPutIfAbsentWithTransientDataAccessException() {
         long timestamp = System.currentTimeMillis();
         Map<String, String> stringMap1 = new HashMap<>();
         stringMap1.put("testGetAndPutIfAbsent-prop1-" + timestamp, "value-1-" + timestamp);
@@ -97,7 +97,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsentWithDuplicateKeyException() throws IOException {
+    void testGetAndPutIfAbsentWithDuplicateKeyException() {
         long timestamp = System.currentTimeMillis();
         Map<String, String> stringMap1 = new HashMap<>();
         stringMap1.put("testGetAndPutIfAbsent-prop1-" + timestamp, "value-1-" + timestamp);
@@ -111,7 +111,7 @@ public class RedisBulkDistributedMapCacheClientServiceMockTest {
     }
 
     @Test
-    public void testGetAndPutIfAbsentWithThrowOnClose() throws IOException {
+    void testGetAndPutIfAbsentWithThrowOnClose() throws IOException {
         Map<String, String> stringMap1 = new HashMap<>();
         redisConnectionPool.setDoThrowExceptionOnClose(true);
 
