@@ -36,7 +36,7 @@ public class ContentValidatorProcessor
     public static final PropertyDescriptor CONTENT_VALIDATOR_SERVICE = new PropertyDescriptor.Builder()
             .name("Content Validator Service")
         .description("The Controller Service that is used to validate content.")
-        .required(false)
+        .required(true)
         .identifiesControllerService(ContentValidator.class)
         .build();
 
