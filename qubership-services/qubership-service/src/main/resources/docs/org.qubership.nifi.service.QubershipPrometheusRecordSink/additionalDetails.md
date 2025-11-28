@@ -1,7 +1,7 @@
 # QubershipPrometheusRecordSink
 
-The QubershipPrometheusRecordSink is a NiFi Controller Service that exposes metrics to Prometheus. 
-The service collects metrics from incoming records and uses an embedded Jetty server to expose metrics at the `/metrics` endpoint on a configurable port. 
+The QubershipPrometheusRecordSink is a NiFi Controller Service that exposes metrics to Prometheus.
+The service collects metrics from incoming records and uses an embedded Jetty server to expose metrics at the `/metrics` endpoint on a configurable port.
 Incoming records may have different schemas; the service dynamically handles varying schemas by processing each record based on its actual fields and types at runtime.
 
 ## Field to Metric Mapping
@@ -11,11 +11,11 @@ The service maps record fields to Prometheus metrics by interpreting:
 2. Numeric (int, short, long, BigInt, double, float, decimal), boolean, and choice fields (provided they can be converted to a numeric value) as gauges.
 3. Nested record fields with specific structure as either counters or distribution summaries based on a specified `type` field. Each nested record must contain `type` and `value` fields to be processed correctly.
 
-All other field types not listed above are ignored and not included in the metrics. 
-String, numeric, and boolean fields with null values are also ignored. 
+All other field types not listed above are ignored and not included in the metrics.
+String, numeric, and boolean fields with null values are also ignored.
 Field names are used as metric names in Prometheus for numeric and nested record fields, and as label names for string fields.
 
-Incoming records may contain multiple fields; all applicable fields are processed to generate the corresponding Prometheus metrics. 
+Incoming records may contain multiple fields; all applicable fields are processed to generate the corresponding Prometheus metrics.
 Labels are applied to all metrics generated from the same record.
 
 ## Static Labels
@@ -59,6 +59,6 @@ For a distribution summary, it might look like:
     }
 }
 ```
-In this example, the distribution summary metric `response_time` records a value of 150. 
-If this metric (identified by its name `response_time` and all its labels) does not already exist, it is created with the specified percentiles and histogram settings. 
+In this example, the distribution summary metric `response_time` records a value of 150.
+If this metric (identified by its name `response_time` and all its labels) does not already exist, it is created with the specified percentiles and histogram settings.
 If the metric already exists, `publishPercentiles`, `statisticExpiry`, and `statisticBufferLength` settings are ignored.
