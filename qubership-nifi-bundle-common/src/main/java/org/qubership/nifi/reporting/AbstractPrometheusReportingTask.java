@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -33,6 +34,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 
+import org.qubership.nifi.service.ProvideMeterRegistry;
+import org.qubership.nifi.service.QubershipPrometheusRecordSink;
 import org.qubership.nifi.utils.servlet.PrometheusServlet;
 
 import java.net.InetAddress;
@@ -77,6 +80,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     protected int port;
 
+    protected ProvideMeterRegistry recordSinkService;
 
     /**
      * Server Port property descriptor.
@@ -85,9 +89,18 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
             .name("port")
             .displayName("Server Port")
             .description("")
-            .required(true)
             .defaultValue("9192")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    /**
+     * Reporting Controller Service property descriptor.
+     */
+    public static final PropertyDescriptor REPORTING_CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
+            .name("reporting-controller-service")
+            .displayName("Reporting Controller Service")
+            .description("Controller Services, which is used to provide Meter Registry")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     /**
@@ -97,6 +110,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(PORT);
+        prop.add(REPORTING_CONTROLLER_SERVICE);
         return prop;
     }
 
@@ -127,24 +141,30 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
-        meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        port = context.getProperty(PORT).asInteger();
+        recordSinkService = context.getProperty(REPORTING_CONTROLLER_SERVICE)
+                .asControllerService(ProvideMeterRegistry.class);
         namespace = getNamespace();
         hostname = getHostname();
         instance = namespace + "_" + hostname;
+        if (recordSinkService != null) {
+            meterRegistry = (PrometheusMeterRegistry) recordSinkService.getMeterRegistry();
+        } else {
+            meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+            port = context.getProperty(PORT).asInteger();
 
-        try {
-            httpServer = new Server(port);
-            ServletContextHandler servletContextHandler = new ServletContextHandler();
-            servletContextHandler.setContextPath("/");
-            servletContextHandler.addServlet(new ServletHolder(
-                    new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
-            httpServer.setHandler(servletContextHandler);
+            try {
+                httpServer = new Server(port);
+                ServletContextHandler servletContextHandler = new ServletContextHandler();
+                servletContextHandler.setContextPath("/");
+                servletContextHandler.addServlet(new ServletHolder(
+                        new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
+                httpServer.setHandler(servletContextHandler);
 
-            httpServer.start();
-        } catch (Exception e) {
-            getLogger().error("Error while starting Jetty server {}", e);
-            throw new ProcessException("Error while starting Jetty server {}", e);
+                httpServer.start();
+            } catch (Exception e) {
+                getLogger().error("Error while starting Jetty server {}", e);
+                throw new ProcessException("Error while starting Jetty server {}", e);
+            }
         }
     }
 
@@ -203,8 +223,22 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      * Gets meter registry.
      * @return meter registry
      */
+    //This method is deprecated. Use getMeterRegistryWithCs instead.
+    @Deprecated
     public PrometheusMeterRegistry getMeterRegistry() {
         return meterRegistry;
+    }
+
+    /**
+     * Gets prometheus meter registry.
+     * @return meter registry
+     */
+    public PrometheusMeterRegistry getMeterRegistryWithCs() {
+        if (recordSinkService != null) {
+            return (PrometheusMeterRegistry) recordSinkService.getMeterRegistry();
+        } else {
+            return meterRegistry;
+        }
     }
 
     /**

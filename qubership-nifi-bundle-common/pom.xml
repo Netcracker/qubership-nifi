@@ -135,6 +135,18 @@
             <version>${commons.io.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-sink-api</artifactId>
+            <version>${nifi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.qubership.nifi</groupId>
+            <artifactId>qubership-service</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <!--TEST-->
         <dependency>
             <groupId>org.apache.nifi</groupId>
