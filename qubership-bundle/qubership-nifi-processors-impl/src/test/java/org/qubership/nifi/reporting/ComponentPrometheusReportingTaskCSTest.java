@@ -12,11 +12,10 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
+
 import org.apache.nifi.util.MockBulletinRepository;
-import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.MockControllerServiceLookup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,20 +37,24 @@ import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROC
 
 public class ComponentPrometheusReportingTaskCSTest {
 
+
     private ConfigurationContext configurationContext;
     private ReportingInitializationContext initializationContext;
     private ReportingContext reportingContext;
     private ComponentPrometheusReportingTask task;
-    private MockComponentLog componentLogger;
     private QubershipPrometheusRecordSink recordSink;
     private MockBulletinRepository mockBulletinRepository;
 
+    private MockControllerServiceLookup serviceLookup;
+
     @BeforeEach
     public void setUp() throws Exception {
-        recordSink = new QubershipPrometheusRecordSink();
         task = new MockComponentPrometheusReportingTask();
-        componentLogger = new MockComponentLog("reporting-task-id", task);
-        configurationContext = new MockConfigurationContext(recordSink, initReportingTaskProperties(), null, null);
+        recordSink = new QubershipPrometheusRecordSink();
+        serviceLookup = new SimpleMockControllerServiceLookup();
+        serviceLookup.addControllerService(recordSink, "record-sink-id");
+        configurationContext = new MockConfigurationContext(recordSink, initReportingTaskProperties(),
+                serviceLookup, null);
         task.initProperties();
         initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);
