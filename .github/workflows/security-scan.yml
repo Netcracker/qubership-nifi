@@ -65,13 +65,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 
       - name: Print packages
-        run: echo '${{ steps.ghcr.outputs.packages }}' | jq '.'
+        run: echo "$OUTPUT_PACKAGES" | jq '.'
+        env:
+          OUTPUT_PACKAGES: '${{ steps.ghcr.outputs.packages }}'
 
       - name: Continue only if repo has GHCR packages
         if: ${{ steps.ghcr.outputs.has-packages == 'true' }}
         run: echo "Packages found!"
 
   security-scan-matrix:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
     needs: debug-packages
     if: ${{ inputs.image == '' || inputs.image == null }}
     strategy:
@@ -85,6 +91,10 @@ jobs:
       image: ${{ format('{0}:{1}', matrix.package.path, inputs.tag || 'latest') }}
 
   security-scan-single:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
     needs: debug-packages
     if: ${{ inputs.image != '' && inputs.image != null }}
     name: "Run Security Scan (single image)"

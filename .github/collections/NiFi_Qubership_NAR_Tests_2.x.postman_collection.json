@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "b0e01870-3b0e-445a-bdfb-35d6290995f2",
+        "_postman_id": "a5172936-97c2-4a0c-bec2-eb50674f25f8",
         "name": "NiFi_Qubership_NAR_Tests_2.x",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
@@ -1374,6 +1374,74 @@
                                 "test-nars",
                                 "migration-nifi-processors",
                                 "ValidateJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PutRecordFromProperty",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/PutRecordFromProperty",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "PutRecordFromProperty"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PutRecordFromProperty getMetrics",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is text and contains metric lines\", function () {\r",
+                                    "    var textData = pm.response.text();\r",
+                                    "    pm.expect(textData).to.matches(/.*size.*method=\\\"GET\\\".*700.3/);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.qs.sink.url}}/metrics",
+                            "host": [
+                                "{{nifi.qs.sink.url}}"
+                            ],
+                            "path": [
+                                "metrics"
                             ]
                         }
                     },

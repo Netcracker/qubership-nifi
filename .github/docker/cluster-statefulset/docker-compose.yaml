@@ -188,6 +188,7 @@ services:
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration"
+      - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry-cluster
     hostname: nifi-registry
     labels:

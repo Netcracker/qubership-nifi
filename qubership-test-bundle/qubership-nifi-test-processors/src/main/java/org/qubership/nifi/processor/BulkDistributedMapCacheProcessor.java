@@ -38,7 +38,7 @@ public class BulkDistributedMapCacheProcessor
     public static final PropertyDescriptor BULK_DISTRIBUTED_MAP_CACHE = new PropertyDescriptor.Builder()
             .name("Bulk Distributed Map Cache")
             .description("The Controller Service that is used to perform bulk operation on distributed cache.")
-            .required(false)
+            .required(true)
             .identifiesControllerService(BulkDistributedMapCacheClient.class)
             .build();
 
