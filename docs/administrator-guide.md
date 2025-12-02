@@ -123,8 +123,8 @@ A detailed description of all supported NiFi properties is available in the Apac
 qubership-nifi supports automated configuration restore from archived versions.
 
 The steps below describe the restore process:
-1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. 
-   The parameter must contain the name of the archived configuration to restore from, using the format `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`). 
+1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`.
+   The parameter must contain the name of the archived configuration to restore from, using the format `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`).
    The list of archived configuration versions is printed in the logs during service startup. Maximum number of versions listed is controlled by the `NIFI_ARCHIVE_CONF_MAX_LIST` environment variable (default is 50).
 2. Restart the qubership-nifi container.
 
