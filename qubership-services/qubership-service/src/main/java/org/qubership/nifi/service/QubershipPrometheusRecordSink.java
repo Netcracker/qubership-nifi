@@ -23,6 +23,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -67,8 +68,12 @@ import javax.servlet.http.HttpServletResponse;
 import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 
 /**
- * Controller Services which allows to expose metrics to Prometheus.
+ * Controller Service which allows to expose metrics to Prometheus.
  */
+@CapabilityDescription("A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server "
+    + " on a configurable port. Collects metrics from incoming records by treating string fields as labels, "
+    + "numeric fields as gauges, and nested records (with 'type' and 'value' fields)"
+    + " as counters or distribution summaries.")
 @Tags({"record", "send", "write", "prometheus"})
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService{
 
@@ -86,7 +91,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("prometheus-sink-metrics-endpoint-port")
             .displayName("Prometheus Metrics Endpoint Port")
-            .description("The Port where prometheus metrics can be accessed")
+            .description("The Port where prometheus metrics can be scraped from.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("9092")
@@ -96,7 +101,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("prometheus-sink-instance-id")
             .displayName("Instance ID")
-            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
+            .description("Identifier of the NiFi instance to be included in the metrics as a label.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("${hostname(true)}_${NAMESPACE}")
