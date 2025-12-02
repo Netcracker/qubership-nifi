@@ -18,10 +18,10 @@ public class TestPrometheusReportingTask
         Gauge.builder("test_metric_name001", metricValue, Pair::getLeft)
                 .tags("tag1", "tagValue1", "tag2", "tagValue2",
                         "instance", getInstance(), "hostname", getHostname(), "namespace", getNamespace())
-                .register(this.getMeterRegistryWithCs());
+                .register(this.getGenericMeterRegistry());
         Gauge.builder("test_metric_name002", metricValue, Pair::getRight)
                 .tags("tag1", "tagValue1", "tag2", "tagValue2")
-                .register(this.getMeterRegistryWithCs());
+                .register(this.getGenericMeterRegistry());
     }
 
     public MutablePair<Double, Double> getMetricValue() {

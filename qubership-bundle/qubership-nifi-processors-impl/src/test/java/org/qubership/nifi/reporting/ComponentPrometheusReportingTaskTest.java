@@ -159,7 +159,7 @@ public class ComponentPrometheusReportingTaskTest {
                 "ComponentPrometheusReportingTask", "Log Message", Severity.ERROR.name(),
                 "msg3", "NiFi/PG1", ""));
         //check that JVM metrics are present:
-        assertEquals(1, task.getMeterRegistryWithCs().find("jvm.memory.max").
+        assertEquals(1, task.getGenericMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
         when(reportingContext.getBulletinRepository()).thenReturn(mockBulletinRepository);
@@ -167,36 +167,36 @@ public class ComponentPrometheusReportingTaskTest {
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(7, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(7, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.FLOW_CONTROLLER.name(),
                         "level", Severity.INFO.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "level", Severity.WARNING.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480885",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480886",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480887",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480888",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.PROCESSOR.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480889",
                         "level", Severity.ERROR.name()).
@@ -213,12 +213,12 @@ public class ComponentPrometheusReportingTaskTest {
                 "msg2", "", ""));
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
         //recreate empty bulletin list:
         bulletinList = new ArrayList<>();
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(0, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(0, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
     }
 
     private ProcessorStatus createProcessor(String id, String name, RunStatus runStatus) {
@@ -396,50 +396,50 @@ public class ComponentPrometheusReportingTaskTest {
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(2, task.getMeterRegistryWithCs().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(2, task.getMeterRegistryWithCs().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
-        assertEquals(2, task.getMeterRegistryWithCs().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistryWithCs().find(BULLETIN_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(5, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getGenericMeterRegistry().find(BULLETIN_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(5, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
 
-        assertEquals(3, task.getMeterRegistryWithCs().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
+        assertEquals(3, task.getGenericMeterRegistry().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(25, task.getMeterRegistryWithCs().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).
+        assertEquals(25, task.getGenericMeterRegistry().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(345, task.getMeterRegistryWithCs().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).
+        assertEquals(345, task.getGenericMeterRegistry().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(BULLETIN_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(BULLETIN_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(2, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Invalid").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Disabled").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(5, task.getMeterRegistryWithCs().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
+        assertEquals(5, task.getGenericMeterRegistry().find(ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(50, task.getMeterRegistryWithCs().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).
+        assertEquals(50, task.getGenericMeterRegistry().find(QUEUED_COUNT_PG_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(4235L, task.getMeterRegistryWithCs().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).
+        assertEquals(4235L, task.getGenericMeterRegistry().find(QUEUED_BYTES_PG_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Running").
                 gauge().measure().iterator().next().getValue());
@@ -464,29 +464,29 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(topProcessGroupStatus);
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         task.registerMetrics(reportingContext);
-        assertEquals(5, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(5, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(2, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(2, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Invalid").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Running").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Disabled").
                 gauge().measure().iterator().next().getValue());
@@ -502,34 +502,34 @@ public class ComponentPrometheusReportingTaskTest {
 
         when(eventAccess.getControllerStatus()).thenReturn(topProcessGroupStatus);
         task.registerMetrics(reportingContext);
-        assertEquals(6, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(6, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Invalid").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(2, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(2, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Running").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(0, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(0, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Disabled").
                 gauge().measure().iterator().next().getValue());
 
-        assertEquals(0, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(0, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#1",
                         "runningStatus", "Disabled").
                 gauge().measure().iterator().next().getValue());
@@ -540,12 +540,12 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(topProcessGroupStatus);
         task.registerMetrics(reportingContext);
 
-        assertEquals(2, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(2, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Stopped").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find(COMPONENT_COUNT_METRIC_NAME.getName()).
+        assertEquals(1, task.getGenericMeterRegistry().find(COMPONENT_COUNT_METRIC_NAME.getName()).
                 tags("group_id", "TestPGId#2",
                         "runningStatus", "Running").
                 gauge().measure().iterator().next().getValue());
@@ -561,12 +561,12 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(processGroupStatus);
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         task.registerMetrics(reportingContext);
-        assertEquals(1, task.getMeterRegistryWithCs().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistryWithCs().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistryWithCs().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getGenericMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getGenericMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1, task.getGenericMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
 
 
-        assertEquals(23, task.getMeterRegistryWithCs().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
+        assertEquals(23, task.getGenericMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
                 tags("component_id", "rootId").
                 gauge().measure().iterator().next().getValue());
         assertEquals(2000, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).

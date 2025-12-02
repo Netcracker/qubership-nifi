@@ -1,6 +1,5 @@
 package org.qubership.nifi.reporting;
 
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.util.MockControllerServiceLookup;
 
 import java.util.HashMap;

@@ -30,13 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.qubership.nifi.reporting.AbstractPrometheusReportingTask.REPORTING_CONTROLLER_SERVICE;
+import static org.qubership.nifi.reporting.AbstractPrometheusReportingTask.METER_REGISTRY_PROVIDER;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.CONNECTION_QUEUE_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESSOR_TIME_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESS_GROUP_LEVEL_THRESHOLD;
 
 public class ComponentPrometheusReportingTaskCSTest {
-
 
     private ConfigurationContext configurationContext;
     private ReportingInitializationContext initializationContext;
@@ -114,7 +113,7 @@ public class ComponentPrometheusReportingTaskCSTest {
                 "ComponentPrometheusReportingTask", "Log Message", Severity.ERROR.name(),
                 "msg3", "NiFi/PG1", ""));
         //check that JVM metrics are present:
-        assertEquals(1, task.getMeterRegistryWithCs().find("jvm.memory.max").
+        assertEquals(1, task.getGenericMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
         when(reportingContext.getBulletinRepository()).thenReturn(mockBulletinRepository);
@@ -122,12 +121,12 @@ public class ComponentPrometheusReportingTaskCSTest {
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(7, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(7, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.FLOW_CONTROLLER.name(),
                         "level", Severity.INFO.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "level", Severity.WARNING.name()).
                 gauge().measure().iterator().next().getValue());
@@ -136,22 +135,22 @@ public class ComponentPrometheusReportingTaskCSTest {
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480885",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480886",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480887",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480888",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.PROCESSOR.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480889",
                         "level", Severity.ERROR.name()).
@@ -168,12 +167,12 @@ public class ComponentPrometheusReportingTaskCSTest {
                 "msg2", "", ""));
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(2, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
         //recreate empty bulletin list:
         bulletinList = new ArrayList<>();
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(0, task.getMeterRegistryWithCs().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(0, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
     }
 
 
@@ -182,7 +181,7 @@ public class ComponentPrometheusReportingTaskCSTest {
         properties.put(PROCESSOR_TIME_THRESHOLD, "150 sec");
         properties.put(CONNECTION_QUEUE_THRESHOLD, "70");
         properties.put(PROCESS_GROUP_LEVEL_THRESHOLD, "2");
-        properties.put(REPORTING_CONTROLLER_SERVICE, "record-sink-id");
+        properties.put(METER_REGISTRY_PROVIDER, "record-sink-id");
         return properties;
     }
 

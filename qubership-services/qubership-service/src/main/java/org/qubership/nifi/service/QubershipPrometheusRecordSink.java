@@ -74,7 +74,7 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
  */
 @Tags({"record", "send", "write", "prometheus"})
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService,
-        ProvideMeterRegistry {
+        MeterRegistryProvider {
 
     private Server prometheusServer;
     private static final List<PropertyDescriptor> PROPERTIES;

@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.reporting;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -25,7 +26,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
@@ -34,8 +34,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 
-import org.qubership.nifi.service.ProvideMeterRegistry;
-import org.qubership.nifi.service.QubershipPrometheusRecordSink;
+import org.qubership.nifi.service.MeterRegistryProvider;
 import org.qubership.nifi.utils.servlet.PrometheusServlet;
 
 import java.net.InetAddress;
@@ -80,7 +79,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     protected int port;
 
-    protected ProvideMeterRegistry recordSinkService;
+    /**
+     *
+     */
+    protected MeterRegistryProvider meterRegistryProvider;
 
     /**
      * Server Port property descriptor.
@@ -96,10 +98,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     /**
      * Reporting Controller Service property descriptor.
      */
-    public static final PropertyDescriptor REPORTING_CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
-            .name("reporting-controller-service")
-            .displayName("Reporting Controller Service")
-            .description("Controller Services, which is used to provide Meter Registry")
+    public static final PropertyDescriptor METER_REGISTRY_PROVIDER = new PropertyDescriptor.Builder()
+            .name("meter-registry-provider")
+            .displayName("Meter Registry Provider")
+            .description("Identifier of Controller Services, which is used to obtain the Meter Registry.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -110,7 +112,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(PORT);
-        prop.add(REPORTING_CONTROLLER_SERVICE);
+        prop.add(METER_REGISTRY_PROVIDER);
         return prop;
     }
 
@@ -141,13 +143,13 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
-        recordSinkService = context.getProperty(REPORTING_CONTROLLER_SERVICE)
-                .asControllerService(ProvideMeterRegistry.class);
+        meterRegistryProvider = context.getProperty(METER_REGISTRY_PROVIDER)
+                .asControllerService(MeterRegistryProvider.class);
         namespace = getNamespace();
         hostname = getHostname();
         instance = namespace + "_" + hostname;
-        if (recordSinkService != null) {
-            meterRegistry = (PrometheusMeterRegistry) recordSinkService.getMeterRegistry();
+        if (meterRegistryProvider != null) {
+            meterRegistry = (PrometheusMeterRegistry) meterRegistryProvider.getMeterRegistry();
         } else {
             meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
             port = context.getProperty(PORT).asInteger();
@@ -226,16 +228,20 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     //This method is deprecated. Use getMeterRegistryWithCs instead.
     @Deprecated
     public PrometheusMeterRegistry getMeterRegistry() {
-        return meterRegistry;
+        if (meterRegistryProvider != null) {
+            return (PrometheusMeterRegistry) meterRegistryProvider.getMeterRegistry();
+        } else {
+            return meterRegistry;
+        }
     }
 
     /**
      * Gets prometheus meter registry.
      * @return meter registry
      */
-    public PrometheusMeterRegistry getMeterRegistryWithCs() {
-        if (recordSinkService != null) {
-            return (PrometheusMeterRegistry) recordSinkService.getMeterRegistry();
+    public MeterRegistry getGenericMeterRegistry() {
+        if (meterRegistryProvider != null) {
+            return meterRegistryProvider.getMeterRegistry();
         } else {
             return meterRegistry;
         }
