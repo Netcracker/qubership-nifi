@@ -573,10 +573,10 @@ public class ComponentPrometheusReportingTaskTest {
         assertEquals(23, task.getGenericMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
                 tags("component_id", "rootId").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2000, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).
+        assertEquals(2000, task.getGenericMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).
                 tags("component_id", "rootId").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(5_000_000_000L, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).
+        assertEquals(5_000_000_000L, task.getGenericMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).
                 tags("component_id", "rootId").
                 gauge().measure().iterator().next().getValue());
 
@@ -596,7 +596,7 @@ public class ComponentPrometheusReportingTaskTest {
     @Test
     public void registerJvmMetrics() throws Exception {
         //check that JVM metrics are present:
-        assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
+        assertEquals(1, task.getGenericMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
         //stop task:
@@ -604,7 +604,7 @@ public class ComponentPrometheusReportingTaskTest {
         //and start again:
         task.onScheduled(configurationContext);
         //check that JVM metrics are present after restart:
-        assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
+        assertEquals(1, task.getGenericMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
     }
@@ -613,18 +613,18 @@ public class ComponentPrometheusReportingTaskTest {
     @Test
     public void registerNiFiJvmMetrics() throws Exception {
         //check that NiFi JVM metrics are present:
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nifi_jvm_thread_count").
                 gauges().size());
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
+        assertEquals(1, task.getGenericMeterRegistry().find("nifi_jvm_uptime").
                 gauges().size());
         //stop task:
         task.onShutDown();
         //and start again:
         task.onScheduled(configurationContext);
         //check that NiFi JVM metrics are present after restart:
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_thread_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nifi_jvm_thread_count").
                 gauges().size());
-        assertEquals(1, task.getMeterRegistry().find("nifi_jvm_uptime").
+        assertEquals(1, task.getGenericMeterRegistry().find("nifi_jvm_uptime").
                 gauges().size());
     }
 
@@ -638,48 +638,48 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(topProcessGroupStatus);
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         task.registerMetrics(reportingContext);
-        assertEquals(2, task.getMeterRegistry().
+        assertEquals(2, task.getGenericMeterRegistry().
                 find(ProcessorMetricName.TASKS_TIME_TOTAL_METRIC_NAME.getName()).gauges().size());
-        assertEquals(2, task.getMeterRegistry().
+        assertEquals(2, task.getGenericMeterRegistry().
                 find(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName()).gauges().size());
 
-        assertEquals(200_000_000_000L, task.getMeterRegistry().
+        assertEquals(200_000_000_000L, task.getGenericMeterRegistry().
                 find(ProcessorMetricName.TASKS_TIME_TOTAL_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                      "component_id", "12345").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(100, task.getMeterRegistry().
+        assertEquals(100, task.getGenericMeterRegistry().
                 find(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345").
                 gauge().measure().iterator().next().getValue());
 
 
-        assertEquals(3, task.getMeterRegistry().
+        assertEquals(3, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.QUEUED_BYTES_METRIC_NAME.getName()).gauges().size());
-        assertEquals(3, task.getMeterRegistry().
+        assertEquals(3, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.QUEUED_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(3, task.getMeterRegistry().
+        assertEquals(3, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.PERCENT_USED_BYTES_METRIC_NAME.getName()).gauges().size());
-        assertEquals(3, task.getMeterRegistry().
+        assertEquals(3, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.PERCENT_USED_COUNT_METRIC_NAME.getName()).gauges().size());
 
-        assertEquals(1073741824L, task.getMeterRegistry().
+        assertEquals(1073741824L, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.QUEUED_BYTES_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345-67890").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(8000, task.getMeterRegistry().
+        assertEquals(8000, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.QUEUED_COUNT_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345-67890").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1.0, task.getMeterRegistry().
+        assertEquals(1.0, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.PERCENT_USED_BYTES_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345-67890").
                 gauge().measure().iterator().next().getValue());
-        assertEquals(0.8, task.getMeterRegistry().
+        assertEquals(0.8, task.getGenericMeterRegistry().
                 find(ConnectionMetricName.PERCENT_USED_COUNT_METRIC_NAME.getName()).
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345-67890").

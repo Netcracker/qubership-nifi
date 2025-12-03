@@ -130,7 +130,7 @@ public class ComponentPrometheusReportingTaskCSTest {
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "level", Severity.WARNING.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480885",
                         "level", Severity.ERROR.name()).
