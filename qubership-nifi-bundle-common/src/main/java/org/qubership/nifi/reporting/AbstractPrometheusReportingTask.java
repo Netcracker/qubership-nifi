@@ -224,10 +224,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     /**
      * Gets meter registry.
      * @return meter registry
-     * @deprecated Since version 2.2.0. Use {@link #getGenericMeterRegistry()} to get a Meter Registry
+     * @deprecated Since version 2.3.0. Use {@link #getGenericMeterRegistry()} to get a Meter Registry
      * that supports the Meter Registry Provider.
      */
-    @Deprecated(since = "2.2.0", forRemoval = true)
+    @Deprecated(since = "2.3.0", forRemoval = true)
     public PrometheusMeterRegistry getMeterRegistry() {
         if (meterRegistryProvider != null) {
             return (PrometheusMeterRegistry) meterRegistryProvider.getMeterRegistry();
