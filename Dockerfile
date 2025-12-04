@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jre@sha256:a0433ecc16a0a9e389e216753019cc97f69f0973aecfadaf357d31838078bab5 AS base
+FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.0.2@sha256:028b335259ba14a32c91c11657ebff5f3c7172fd5edb26cb612fc7ec82f9c698 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
 #add jq:
 RUN apk add --no-cache \
-    jq=1.7.1-r0 \
-    bash=5.2.26-r0 \
-    curl=8.14.1-r2 \
+    jq=1.8.1-r0 \
     python3=3.12.12-r0 \
-    py3-pip=24.0-r2
+    py3-pip=25.1.1-r0
 
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
@@ -36,16 +34,16 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
     && ln -s /opt/nifi/nifi-home-dir /home/nifi \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
     && chmod 775 /opt/nifi/nifi-home-dir \
-    && chmod 664 /opt/java/openjdk/lib/security/cacerts \
+    && mkdir -p /opt/java/openjdk/lib/security \
     && mkdir -p /etc/ssl/certs/java/ \
-    && ln -s /opt/java/openjdk/lib/security/cacerts /etc/ssl/certs/java/cacerts \
+    && ln -s /app/volumes/certs/java/cacerts /opt/java/openjdk/lib/security/cacerts \
     && adduser --disabled-password \
         --gecos "" \
         --home "${NIFI_HOME}" \
         --ingroup "root" \
         --no-create-home \
         --uid 10001 \
-        nifi
+        $USER_NAME
 
 USER 10001
 
