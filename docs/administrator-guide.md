@@ -54,6 +54,7 @@ The table below describes environment variables supported by qubership-nifi.
 | NIFI_CLUSTER_NODE_PROTOCOL_PORT      | Y (if NIFI_CLUSTER_IS_NODE = true) |                | The node’s cluster protocol port. Any non-used port > 1024.                                                                                                                                                                                                |
 | NIFI_ELECTION_MAX_WAIT               | N                                  | 5 mins         | Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the nifi.cluster.flow.election.max.candidates property, the cluster will not wait this long. |
 | NIFI_WEB_PROXY_HOST                  | Y (if NIFI_CLUSTER_IS_NODE = true) |                | A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different `host[:port]` than it is bound to.                                                                       |
+| NIFI_ARCHIVE_CONF_MAX_LIST           | N                                  | 50             | Maximum number of archived NiFi configuration versions to display in logs during startup. Does not affect the number of versions retained. Setting this to a higher value may impact startup time.                                                         |
 
 ## Extension points
 
@@ -114,16 +115,19 @@ A detailed description of all supported NiFi properties is available in the Apac
 
 ## NiFi configuration restore
 
-qubership-nifi supports automated configuration restore.
+qubership-nifi supports automated configuration restore from archived versions.
 
 The steps below describe the restore process:
-1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`. The parameter must contain the name of the archived configuration to restore from, e.g., `20250115T120000+0000_flow.json.gz`. The list of archived configuration versions is printed in the logs during service startup.
+1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`.
+   The parameter must contain the name of the archived configuration to restore from, using the format `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`).
+   The list of archived configuration versions is printed in the logs during service startup. Maximum number of versions listed is controlled by the `NIFI_ARCHIVE_CONF_MAX_LIST` environment variable (default is 50).
 2. Restart the qubership-nifi container.
 
 On startup, qubership-nifi performs the following:
 1. Checks if the `nifi-restore-version` parameter is set
 2. If the parameter is set and the specified archive file does not exist, a warning is printed in the logs and normal startup continues using the current configuration.
-3. If the parameter is set and the specified archive file exists, the current configuration is moved to the archive and replaced with the specified archived version. Once complete, the `nifi-restore-version` parameter is automatically cleared in Consul.
+3. If the parameter is set and the specified archive file exists, the current configuration is moved to the archive and replaced with the specified archived version.
+   Once complete, the `nifi-restore-version` parameter is automatically cleared in Consul to prevent repeated restores on subsequent restarts.
 
 ## Cluster Configuration
 
