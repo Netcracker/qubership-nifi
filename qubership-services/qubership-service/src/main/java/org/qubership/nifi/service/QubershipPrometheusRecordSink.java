@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.service;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import org.qubership.nifi.service.recordSink.MetricCompositeKey;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.prometheus.PrometheusConfig;
@@ -443,7 +444,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
      * @return
      */
     @Override
-    public PrometheusMeterRegistry getMeterRegistry() {
+    public MeterRegistry getMeterRegistry() {
         return meterRegistry;
     }
 }
