@@ -80,7 +80,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     protected int port;
 
     /**
-     *
+     * Meter Registry Provider.
      */
     protected MeterRegistryProvider meterRegistryProvider;
 

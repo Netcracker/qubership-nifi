@@ -141,12 +141,6 @@
             <version>${nifi.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.qubership.nifi</groupId>
-            <artifactId>qubership-service-api</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-        </dependency>
         <!--TEST-->
         <dependency>
             <groupId>org.apache.nifi</groupId>
