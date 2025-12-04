@@ -113,7 +113,7 @@ public class ComponentPrometheusReportingTaskCSTest {
                 "ComponentPrometheusReportingTask", "Log Message", Severity.ERROR.name(),
                 "msg3", "NiFi/PG1", ""));
         //check that JVM metrics are present:
-        assertEquals(1, task.getGenericMeterRegistry().find("jvm.memory.max").
+        assertEquals(1, task.getMeterRegistry().find("jvm.memory.max").
                 tags("area", "nonheap", "id", "Metaspace").
                 gauges().size());
         when(reportingContext.getBulletinRepository()).thenReturn(mockBulletinRepository);
@@ -121,36 +121,36 @@ public class ComponentPrometheusReportingTaskCSTest {
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(7, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
-        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(7, task.getMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.FLOW_CONTROLLER.name(),
                         "level", Severity.INFO.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "level", Severity.WARNING.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480885",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.REPORTING_TASK.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480886",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(2, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480887",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.CONTROLLER_SERVICE.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480888",
                         "level", Severity.ERROR.name()).
                 gauge().measure().iterator().next().getValue());
-        assertEquals(1, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").
+        assertEquals(1, task.getMeterRegistry().find("nc_nifi_bulletin_count").
                 tags("component_type", ComponentType.PROCESSOR.name(),
                         "component_id", "6f6162fc-0182-1000-ffff-ffff9a480889",
                         "level", Severity.ERROR.name()).
@@ -167,12 +167,12 @@ public class ComponentPrometheusReportingTaskCSTest {
                 "msg2", "", ""));
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(2, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(2, task.getMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
         //recreate empty bulletin list:
         bulletinList = new ArrayList<>();
         when(mockBulletinRepository.findBulletins(any())).thenReturn(bulletinList);
         task.registerMetrics(reportingContext);
-        assertEquals(0, task.getGenericMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
+        assertEquals(0, task.getMeterRegistry().find("nc_nifi_bulletin_count").gauges().size());
     }
 
 

@@ -16,7 +16,6 @@
 
 package org.qubership.nifi.reporting;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -149,7 +148,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
         hostname = getHostname();
         instance = namespace + "_" + hostname;
         if (meterRegistryProvider != null) {
-            meterRegistry = (PrometheusMeterRegistry) meterRegistryProvider.getMeterRegistry();
+            meterRegistry = meterRegistryProvider.getMeterRegistry();
         } else {
             meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
             port = context.getProperty(PORT).asInteger();
@@ -222,25 +221,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     public abstract void registerMetrics(ReportingContext context);
 
     /**
-     * Gets meter registry.
-     * @return meter registry
-     * @deprecated Since version 2.3.0. Use {@link #getGenericMeterRegistry()} to get a Meter Registry
-     * that supports the Meter Registry Provider.
-     */
-    @Deprecated(since = "2.3.0", forRemoval = true)
-    public PrometheusMeterRegistry getMeterRegistry() {
-        if (meterRegistryProvider != null) {
-            return (PrometheusMeterRegistry) meterRegistryProvider.getMeterRegistry();
-        } else {
-            return meterRegistry;
-        }
-    }
-
-    /**
      * Gets prometheus meter registry.
-     * @return meter registry
+     * @return PrometheusMeterRegistry object
      */
-    public MeterRegistry getGenericMeterRegistry() {
+    public PrometheusMeterRegistry getMeterRegistry() {
         if (meterRegistryProvider != null) {
             return meterRegistryProvider.getMeterRegistry();
         } else {

@@ -336,7 +336,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("parent_id", st.getValue().getGroupId())
                     .tag("source_id", st.getValue().getSourceId())
                     .tag("destination_id", st.getValue().getDestinationId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(ConnectionMetricName.QUEUED_BYTES_METRIC_NAME.getName(), () -> {
                         ConnectionStatus con = getConnectionByKey(key);
@@ -351,7 +351,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("parent_id", st.getValue().getGroupId())
                     .tag("source_id", st.getValue().getSourceId())
                     .tag("destination_id", st.getValue().getDestinationId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(ConnectionMetricName.PERCENT_USED_COUNT_METRIC_NAME.getName(), () -> {
                         ConnectionStatus con = getConnectionByKey(key);
@@ -366,7 +366,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("parent_id", st.getValue().getGroupId())
                     .tag("source_id", st.getValue().getSourceId())
                     .tag("destination_id", st.getValue().getDestinationId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(ConnectionMetricName.PERCENT_USED_BYTES_METRIC_NAME.getName(), () -> {
                         ConnectionStatus con = getConnectionByKey(key);
@@ -381,7 +381,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("parent_id", st.getValue().getGroupId())
                     .tag("source_id", st.getValue().getSourceId())
                     .tag("destination_id", st.getValue().getDestinationId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
         }
     }
 
@@ -405,7 +405,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("component_name", st.getValue().getName())
                     .tag("component_type", "Processor")
                     .tag("parent_id", st.getValue().getGroupId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName(), () -> {
                         ProcessorStatus proc = getProcessorByKey(key);
@@ -418,7 +418,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("component_name", st.getValue().getName())
                     .tag("component_type", "Processor")
                     .tag("parent_id", st.getValue().getGroupId())
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
         }
     }
 
@@ -470,7 +470,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_path", Optional.ofNullable(groupPath).orElse(""))
                     .tag("level", Optional.ofNullable(st.getValue().getLevel()).orElse(""))
                     .tag("category", Optional.ofNullable(st.getValue().getCategory()).orElse(""))
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
 
             Counter counter = Counter.builder("nc_nifi_bulletin_cnt")
@@ -486,7 +486,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_path", Optional.ofNullable(groupPath).orElse(""))
                     .tag("level", Optional.ofNullable(st.getValue().getLevel()).orElse(""))
                     .tag("category", Optional.ofNullable(st.getValue().getCategory()).orElse(""))
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
             counter.increment(st.getValue().getCount());
         }
     }
@@ -518,7 +518,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                             .tag("group_id", key)
                             .tag("group_name", groupName)
                             .tag("runningStatus", runStatus)
-                            .register(getGenericMeterRegistry());
+                            .register(getMeterRegistry());
                 }
             });
         }
@@ -541,7 +541,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                             .tag("group_id", key)
                             .tag("group_name", groupName)
                             .tag("runningStatus", level)
-                            .register(getGenericMeterRegistry());
+                            .register(getMeterRegistry());
                 });
                 pgBulletinCount.forEach((level, count) -> {
                     Counter counter = Counter.builder(BULLETIN_CNT_METRIC_NAME.getName())
@@ -551,7 +551,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                             .tag("group_id", key)
                             .tag("group_name", groupName)
                             .tag("runningStatus", level)
-                            .register(getGenericMeterRegistry());
+                            .register(getMeterRegistry());
                     counter.increment(count);
                 });
             }
@@ -572,7 +572,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .tag("component_type", "RootProcessGroup")
                 .tag("component_id", topProcessGroup.getId())
                 .tag("component_name", topProcessGroup.getName())
-                .register(getGenericMeterRegistry());
+                .register(getMeterRegistry());
 
         Gauge.builder(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName(), () -> {
                     ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
@@ -585,7 +585,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .tag("component_type", "RootProcessGroup")
                 .tag("component_id", topProcessGroup.getId())
                 .tag("component_name", topProcessGroup.getName())
-                .register(getGenericMeterRegistry());
+                .register(getMeterRegistry());
 
         Gauge.builder(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName(), () -> {
                     ProcessGroupStatus procGroup = getProcessGroupStatusByKey(topPgId);
@@ -598,7 +598,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .tag("component_type", "RootProcessGroup")
                 .tag("component_id", topProcessGroup.getId())
                 .tag("component_name", topProcessGroup.getName())
-                .register(getGenericMeterRegistry());
+                .register(getMeterRegistry());
     }
 
     private void registerGaugesForProcessGroups(ProcessGroupStatus topProcessGroup,
@@ -624,7 +624,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_id", pgSt.getValue().getId())
                     .tag("group_name", pgSt.getValue().getName())
                     .tag("group_path", groupPath.get(pgSt.getValue().getId()))
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(QUEUED_COUNT_PG_METRIC_NAME.getName(), () -> {
                         ProcessGroupStatus procGroup = getProcessGroupStatusByKey(key);
@@ -636,7 +636,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_id", pgSt.getValue().getId())
                     .tag("group_name", pgSt.getValue().getName())
                     .tag("group_path", groupPath.get(pgSt.getValue().getId()))
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
 
             Gauge.builder(QUEUED_BYTES_PG_METRIC_NAME.getName(), () -> {
                         ProcessGroupStatus procGroup = getProcessGroupStatusByKey(key);
@@ -648,7 +648,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_id", pgSt.getValue().getId())
                     .tag("group_name", pgSt.getValue().getName())
                     .tag("group_path", groupPath.get(pgSt.getValue().getId()))
-                    .register(getGenericMeterRegistry());
+                    .register(getMeterRegistry());
         }
     }
 
@@ -680,13 +680,13 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         if (jvmInfoMetrics == null) {
             jvmInfoMetrics = new JvmInfoMetrics();
         }
-        jvmThreadMetrics.bindTo(getGenericMeterRegistry());
-        jvmMemoryMetrics.bindTo(getGenericMeterRegistry());
-        jvmGcMetrics.bindTo(getGenericMeterRegistry());
-        classLoaderMetrics.bindTo(getGenericMeterRegistry());
-        jvmCompilationMetrics.bindTo(getGenericMeterRegistry());
-        jvmHeapPressureMetrics.bindTo(getGenericMeterRegistry());
-        jvmInfoMetrics.bindTo(getGenericMeterRegistry());
+        jvmThreadMetrics.bindTo(getMeterRegistry());
+        jvmMemoryMetrics.bindTo(getMeterRegistry());
+        jvmGcMetrics.bindTo(getMeterRegistry());
+        classLoaderMetrics.bindTo(getMeterRegistry());
+        jvmCompilationMetrics.bindTo(getMeterRegistry());
+        jvmHeapPressureMetrics.bindTo(getMeterRegistry());
+        jvmInfoMetrics.bindTo(getMeterRegistry());
     }
 
     private void registerGaugesForNiFiJvmMetric() {
@@ -707,7 +707,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .ifPresent(gauge ->
                         Gauge.builder("nifi_jvm_thread_count", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
-                                .register(getGenericMeterRegistry())
+                                .register(getMeterRegistry())
                 );
         new JvmAttributeGaugeSet()
                 .getMetrics()
@@ -721,7 +721,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .ifPresent(gauge ->
                         Gauge.builder("nifi_jvm_uptime", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
-                                .register(getGenericMeterRegistry())
+                                .register(getMeterRegistry())
                 );
         new MemoryUsageGaugeSet()
                 .getMetrics()
@@ -735,7 +735,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .ifPresent(gauge ->
                         Gauge.builder("nifi_jvm_heap_usage", () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
-                                .register(getGenericMeterRegistry())
+                                .register(getMeterRegistry())
                 );
         new GarbageCollectorMetricSet()
                 .getMetrics()
@@ -751,7 +751,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
 
                         Gauge.builder(metricName, () -> convertValue(gauge.getValue()))
                                 .tags(tagsList)
-                                .register(getGenericMeterRegistry());
+                                .register(getMeterRegistry());
                     }
                 });
     }
@@ -770,14 +770,14 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
      * @param tagValue tag value
      */
     public void removeMetricFromRegistry(String metricName, String tagName, String tagValue) {
-        Collection<Gauge> gauges = getGenericMeterRegistry().find(metricName).tag(tagName, tagValue).gauges();
+        Collection<Gauge> gauges = getMeterRegistry().find(metricName).tag(tagName, tagValue).gauges();
 
         if (CollectionUtils.isEmpty(gauges)) {
             return;
         }
 
         for (Gauge gauge : gauges) {
-            getGenericMeterRegistry().remove(gauge);
+            getMeterRegistry().remove(gauge);
         }
     }
 
@@ -789,7 +789,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
      * @param level level
      */
     public void removeMetricFromRegistry(String metricName, String sourceId, String sourceType, String level) {
-        Collection<Gauge> gauges = getGenericMeterRegistry().find(metricName)
+        Collection<Gauge> gauges = getMeterRegistry().find(metricName)
                 .tag(COMPONENT_ID_TAG, sourceId)
                 .tag("component_type", sourceType)
                 .tag("level", level)
@@ -800,7 +800,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
         }
 
         for (Gauge gauge : gauges) {
-            getGenericMeterRegistry().remove(gauge);
+            getMeterRegistry().remove(gauge);
         }
     }
 
