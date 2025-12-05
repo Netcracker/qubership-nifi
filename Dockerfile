@@ -34,7 +34,6 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
     && ln -s /opt/nifi/nifi-home-dir /home/nifi \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
     && chmod 775 /opt/nifi/nifi-home-dir \
-    && mkdir -p /opt/java/openjdk/lib/security \
     && adduser --disabled-password \
         --gecos "" \
         --home "${NIFI_HOME}" \
