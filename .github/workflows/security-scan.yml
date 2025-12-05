@@ -129,7 +129,7 @@ jobs:
           echo "security_items=${security_items}" >> "$GITHUB_OUTPUT"
 
           echo "Loaded security scan configuration:"
-          echo "$security_items"
+          echo "$security_items" | jq .
 
   # security-scan-matrix:
   #   permissions:
