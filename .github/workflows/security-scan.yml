@@ -115,8 +115,8 @@ jobs:
                 | select(($sec.scan // $def.scan) == true)
                 | {
                     name: .name,
-                    image: ($root.build.registry + .name),  # registry уже с хвостовым /
-                    tag: .tags,                              # у тебя tags — строка
+                    image: ($root.build.registry + .name),
+                    tag: .tags,
                     only_high_critical: ($sec.only_high_critical // $def.only_high_critical),
                     trivy_scan:         ($sec.trivy_scan         // $def.trivy_scan),
                     grype_scan:         ($sec.grype_scan         // $def.grype_scan),
