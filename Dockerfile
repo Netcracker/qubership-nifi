@@ -35,8 +35,6 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
     && chmod 775 /opt/nifi/nifi-home-dir \
     && mkdir -p /opt/java/openjdk/lib/security \
-    && mkdir -p /etc/ssl/certs/java/ \
-    && ln -s /app/volumes/certs/java/cacerts /etc/ssl/certs/java/cacerts \
     && adduser --disabled-password \
         --gecos "" \
         --home "${NIFI_HOME}" \
