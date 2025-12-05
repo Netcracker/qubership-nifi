@@ -85,7 +85,7 @@ jobs:
       - name: Load scan configuration
         id: config
         run: |
-          echo "::set-output name=scan-configuration::$(cat .qubership/dev-docker.cfg | jq -c '.')"
+          echo "$(cat .qubership/dev-docker.cfg)"
 
   # security-scan-matrix:
   #   permissions:
