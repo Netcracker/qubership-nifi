@@ -160,7 +160,7 @@ set_configuration_version() {
 get_flow_json_version() {
     local dockerComposePath="$1"
     echo "Getting flow.json version from archive folder..."
-    CONF_VERSION=$(docker compose -f "$dockerComposePath" --env-file ./docker.env exec nifi find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
+    CONF_VERSION=$(docker compose -f "$dockerComposePath" --env-file ./docker.env exec nifi find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -print0 | xargs -0 ls -t 2>/dev/null | head -n 1 | xargs -r basename)
     export CONF_VERSION
     echo "$CONF_VERSION" >./nifi-conf-version.tmp
 }
