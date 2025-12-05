@@ -30,19 +30,27 @@ handle_error() {
     exit 1
 }
 
-info "List of available archived configuration versions:"
+# set default value for NIFI_ARCHIVE_CONF_MAX_LIST = 50, if not set
+if [ -z "$NIFI_ARCHIVE_CONF_MAX_LIST" ]; then
+    NIFI_ARCHIVE_CONF_MAX_LIST=50
+fi
+
+# listing archived configuration versions
 if [[ -d "${NIFI_HOME}"/persistent_conf/conf/archive ]]; then
     if [[ -z "$(find "${NIFI_HOME}"/persistent_conf/conf/archive -name '*.json.gz' | head -1)" ]]; then
-        info "Configuration files are missing from the directory..."
+        info "Configuration files are missing in the archive directory. Skipping listing of archived configurations."
     else
-        for filename in "${NIFI_HOME}"/persistent_conf/conf/archive/*.json.gz; do
-            name=${filename##*/}
-            fileSize=$(stat -c%s "$filename")
+        info "Listing the latest $NIFI_ARCHIVE_CONF_MAX_LIST archived configuration versions:"
+        for filename in $(find "${NIFI_HOME}"/persistent_conf/conf/archive -name '*.json.gz' | \
+                sort -r | head -n "$NIFI_ARCHIVE_CONF_MAX_LIST" | xargs stat -c%n/%s); do
+            fileSize="${filename##*/}"
+            fullFileName="${filename%/*}"
+            name="${fullFileName##*/}"
             info "Archive name: $name; size: $fileSize"
         done
     fi
 else
-    info "Directory with archived versions does not exist..."
+    info "Directory with archived versions does not exist. Skipping listing of archived configurations."
 fi
 
 info "Start process of restore NiFi configuration."
