@@ -105,6 +105,16 @@ jobs:
           fi
 
           echo "✅ $CONFIG_FILE file is valid"
+          echo "=== PER COMPONENT SECURITY ==="
+              jq '
+                .security.defaults as $def
+                | .components[]
+                | {
+                    name,
+                    security,
+                    effective_scan: (.security.scan // $def.scan)
+                  }
+              ' "$CONFIG_FILE"
 
           security_items=$(jq -c '
             . as $root
