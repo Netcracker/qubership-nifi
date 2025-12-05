@@ -85,7 +85,7 @@ jobs:
       - name: Load Docker Configuration
         id: load_component
         run: |
-          CONFIG_FILE="$GITHUB_WORKSPACE/.ci/docker-images.json"
+          CONFIG_FILE="$GITHUB_WORKSPACE/.qubership/dev-docker.cfg"
 
           # Проверяем структуру файла
           verify=$(jq '
