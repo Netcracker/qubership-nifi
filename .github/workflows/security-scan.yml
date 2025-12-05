@@ -82,10 +82,51 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Load scan configuration
-        id: config
+      - name: Load Docker Configuration
+        id: load_component
         run: |
-          echo "$(cat .qubership/dev-docker.cfg)"
+          CONFIG_FILE="$GITHUB_WORKSPACE/.ci/docker-images.json"
+
+          # Проверяем структуру файла
+          verify=$(jq '
+            def verify_structure:
+              has("build") and (.build.registry | type == "string") and
+              has("security") and (.security.defaults | type == "object") and
+              has("components") and (.components | type == "array") and
+              has("platforms") and (.platforms | type == "string");
+            verify_structure
+            | if . then true else false end
+          ' "$CONFIG_FILE")
+
+          if [ "${verify}" != "true" ]; then
+            echo "❗ $CONFIG_FILE file is invalid"
+            echo "❗ $CONFIG_FILE file is invalid" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          echo "✅ $CONFIG_FILE file is valid"
+
+          security_items=$(jq -c '
+            . as $root
+            | $root.security.defaults as $def
+            | [
+                .components[]
+                | .security as $sec
+                | select(($sec.scan // $def.scan) == true)
+                | {
+                    name: .name,
+                    image: ($root.build.registry + .name),  # registry уже с хвостовым /
+                    tag: .tags,                              # у тебя tags — строка
+                    only_high_critical: ($sec.only_high_critical // $def.only_high_critical),
+                    trivy_scan:         ($sec.trivy_scan         // $def.trivy_scan),
+                    grype_scan:         ($sec.grype_scan         // $def.grype_scan),
+                    only_fixed:         ($sec.only_fixed         // $def.only_fixed),
+                    continue_on_error:  ($sec.continue_on_error  // $def.continue_on_error)
+                  }
+              ]
+          ' "$CONFIG_FILE")
+
+          echo "security_items=${security_items}" >> "$GITHUB_OUTPUT"
 
   # security-scan-matrix:
   #   permissions:
