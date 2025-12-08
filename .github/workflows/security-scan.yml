@@ -65,7 +65,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 
       - name: Print packages
-        run: echo '${{ steps.ghcr.outputs.packages }}' | jq '.'
+        run: echo "$OUTPUT_PACKAGES" | jq '.'
+        env:
+          OUTPUT_PACKAGES: '${{ steps.ghcr.outputs.packages }}'
 
       - name: Continue only if repo has GHCR packages
         if: ${{ steps.ghcr.outputs.has-packages == 'true' }}
