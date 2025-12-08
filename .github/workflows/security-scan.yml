@@ -78,6 +78,10 @@ jobs:
           exit 1
 
   security-scan-matrix:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
     needs: debug-packages
     if: ${{ inputs.image == '' || inputs.image == null }}
     strategy:
@@ -91,6 +95,10 @@ jobs:
       image: ${{ format('{0}:{1}', matrix.package.path, inputs.tag || 'latest') }}
 
   security-scan-single:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
     needs: debug-packages
     if: ${{ inputs.image != '' && inputs.image != null }}
     name: "Run Security Scan (single image)"
