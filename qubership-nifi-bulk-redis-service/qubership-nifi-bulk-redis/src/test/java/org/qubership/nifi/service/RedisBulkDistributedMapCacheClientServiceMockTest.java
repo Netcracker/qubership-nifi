@@ -130,7 +130,6 @@ class RedisBulkDistributedMapCacheClientServiceMockTest {
     @Test
     void testContainsKeyNull() throws IOException  {
         String prop = "test-prop";
-
         assertFalse(redisBulkDistributedMapCacheClientService.containsKey(prop, STRING_SERIALIZER));
     }
 
@@ -145,11 +144,8 @@ class RedisBulkDistributedMapCacheClientServiceMockTest {
     @Test
     void testRemoveNull() throws IOException {
         String prop1 = "testRemoveNull";
-
         List<String> listKeysForRemove = new ArrayList<>();
-
         listKeysForRemove.add(prop1);
-
         long removeResult;
         removeResult = redisBulkDistributedMapCacheClientService.remove(listKeysForRemove, STRING_SERIALIZER);
         assertEquals(0, removeResult);
