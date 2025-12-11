@@ -230,8 +230,10 @@ public class RedisBulkDistributedMapCacheClientService
                 K key = keys.get(i);
                 serialisedKeys[i] = serialize(key, keySerializer);
             }
-            //final long numRemoved = redisConnection.del(serialisedKeys);
-            final long numRemoved = redisConnection.keyCommands().del(serialisedKeys);
+            Long numRemoved = redisConnection.keyCommands().del(serialisedKeys);
+            if (numRemoved == null) {
+                numRemoved = 0L;
+            }
             return numRemoved;
         });
     }
@@ -246,11 +248,12 @@ public class RedisBulkDistributedMapCacheClientService
     ) throws IOException {
         return withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            //boolean set = redisConnection.setNX(kv.getKey(), kv.getValue());
-            boolean set = redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
+            Boolean set = redisConnection.stringCommands().setNX(kv.getKey(), kv.getValue());
+            if (set == null) {
+                set = false;
+            }
 
             if (ttlValue != -1L && set) {
-                //redisConnection.expire(kv.getKey(), ttlValue);
                 redisConnection.keyCommands().expire(kv.getKey(), ttlValue);
             }
 
@@ -266,8 +269,11 @@ public class RedisBulkDistributedMapCacheClientService
     ) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
-            //return redisConnection.exists(k);
-            return redisConnection.keyCommands().exists(k);
+            Boolean exist = redisConnection.keyCommands().exists(k);
+            if (exist == null) {
+                exist = false;
+            }
+            return exist;
         });
     }
 
@@ -280,14 +286,6 @@ public class RedisBulkDistributedMapCacheClientService
     ) throws IOException {
         withConnection(redisConnection -> {
             final Tuple<byte[], byte[]> kv = serialize(key, value, keySerializer, valueSerializer);
-            /*
-            redisConnection.set(
-                    kv.getKey(),
-                    kv.getValue(),
-                    Expiration.seconds(ttlValue),
-                    RedisStringCommands.SetOption.upsert()
-            );
-            */
             redisConnection.stringCommands().set(
                     kv.getKey(),
                     kv.getValue(),
@@ -307,8 +305,7 @@ public class RedisBulkDistributedMapCacheClientService
     ) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
-            //final byte[] v = redisConnection.get(k);
-            final byte[] v = redisConnection.stringCommands().get(k);
+            byte[] v = redisConnection.stringCommands().get(k);
             return valueDeserializer.deserialize(v);
         });
     }
