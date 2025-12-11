@@ -41,6 +41,9 @@ import java.util.Set;
 @CapabilityDescription("Provides validate method to check the JSON against a given schema.")
 public class JsonContentValidator extends AbstractControllerService implements ContentValidator {
 
+    /**
+     * Schema property descriptor.
+     */
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
@@ -70,7 +73,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        String sSchema = context.getProperty(SCHEMA).getValue();
+        String sSchema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
         schemaInstance = JsonSchemaFactory.getInstance().getSchema(sSchema);
     }
 
