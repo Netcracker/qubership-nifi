@@ -2,6 +2,6 @@ package org.qubership.nifi.reporting;
 
 import org.apache.nifi.util.MockControllerServiceLookup;
 
-public class SimpleMockControllerServiceLookup
+public class TestMockControllerServiceLookup
         extends MockControllerServiceLookup {
 }

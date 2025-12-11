@@ -29,7 +29,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.util.MockConfigurationContext;
-import org.apache.nifi.util.MockControllerServiceLookup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,7 +73,7 @@ public class AbstractPrometheusReportingTaskProviderTest {
         meterRegistryProvider.initialize(csInitContext);
         meterRegistryProvider.onScheduled(csConfigurationContext);
         //
-        MockControllerServiceLookup lookup = new SimpleMockControllerServiceLookup();
+        org.apache.nifi.util.MockControllerServiceLookup lookup = new TestMockControllerServiceLookup();
         lookup.addControllerService(meterRegistryProvider, "provider-id1");
         ConfigurationContext configurationContext =
                 new MockConfigurationContext(initReportingTaskProperties(), lookup, null);
