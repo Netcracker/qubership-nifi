@@ -139,7 +139,8 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-
+        with:
+          persist-credentials: false
       - name: "Check Dockerfile existence"
         id: check_dockerfile
         shell: bash
@@ -165,7 +166,7 @@ jobs:
       - name: "Prepare Docker tags"
         if: ${{ github.event.inputs.mark-as-latest != 'true' }}
         id: meta
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
         with:
           default-template: "{{major}}.{{minor}}.{{patch}},{{major}}.{{minor}},{{major}}"
           ref: ${{ needs.deploy.outputs.release-version }}
@@ -173,11 +174,13 @@ jobs:
       - name: Set env
         if: ${{ github.event.inputs.mark-as-latest != 'true' }}
         run: |
-          echo "TAGS=${{ steps.meta.outputs.result }}" >> $GITHUB_ENV
+          echo "TAGS=$META_STEP_RESULT" >> $GITHUB_ENV
+        env:
+          META_STEP_RESULT: ${{ steps.meta.outputs.result }}
 
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
         with:
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
