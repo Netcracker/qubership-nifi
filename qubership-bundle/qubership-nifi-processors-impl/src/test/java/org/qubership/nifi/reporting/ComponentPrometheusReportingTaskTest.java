@@ -84,9 +84,13 @@ public class ComponentPrometheusReportingTaskTest {
 
     @BeforeEach
     public void setUp() throws Exception {
+
+
         task = new MockComponentPrometheusReportingTask();
+
         componentLogger = new MockComponentLog("reporting-task-id", task);
-        configurationContext = new MockConfigurationContext(initReportingTaskProperties(), null, null);
+        configurationContext = new MockConfigurationContext(initReportingTaskProperties(),
+                null, null);
         task.initProperties();
         initializationContext = new MockReportingInitializationContext();
         task.initialize(initializationContext);
@@ -558,9 +562,12 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(processGroupStatus);
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         task.registerMetrics(reportingContext);
-        assertEquals(1, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1,
+                task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1,
+                task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
+        assertEquals(1,
+                task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
 
 
         assertEquals(23, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).

@@ -14,13 +14,18 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.data.redis.RedisSystemException;
 import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisKeyCommands;
 import org.springframework.data.redis.connection.RedisScriptingCommands;
+import org.springframework.data.redis.connection.RedisStringCommands;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,6 +127,30 @@ class RedisBulkDistributedMapCacheClientServiceMockTest {
         assertEquals(0, result.size());
     }
 
+    @Test
+    void testContainsKeyNull() throws IOException  {
+        String prop = "test-prop";
+        assertFalse(redisBulkDistributedMapCacheClientService.containsKey(prop, STRING_SERIALIZER));
+    }
+
+    @Test
+    void testPutIfAbsentNull() throws IOException {
+        String prop = "test-prop";
+        String value = "test-value";
+        assertFalse(redisBulkDistributedMapCacheClientService.putIfAbsent(prop, value,
+                STRING_SERIALIZER, STRING_SERIALIZER));
+    }
+
+    @Test
+    void testRemoveNull() throws IOException {
+        String prop1 = "testRemoveNull";
+        List<String> listKeysForRemove = new ArrayList<>();
+        listKeysForRemove.add(prop1);
+        long removeResult;
+        removeResult = redisBulkDistributedMapCacheClientService.remove(listKeysForRemove, STRING_SERIALIZER);
+        assertEquals(0, removeResult);
+    }
+
     private static final class TestRedisConnectionPoolService
             extends AbstractControllerService
             implements RedisConnectionPool {
@@ -150,6 +179,18 @@ class RedisBulkDistributedMapCacheClientServiceMockTest {
             when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(3), any())).
                     thenThrow(new DuplicateKeyException(null));
             when(conn.scriptingCommands()).thenReturn(scriptingCommands);
+
+            RedisKeyCommands redisKeyCommands = mock(RedisKeyCommands.class);
+            //null exists case:
+            when(redisKeyCommands.exists(any(byte[].class))).thenReturn(null);
+            //null del case:
+            when(redisKeyCommands.del(any(byte[].class))).thenReturn(null);
+            when(conn.keyCommands()).thenReturn(redisKeyCommands);
+
+            RedisStringCommands redisStringCommands = mock(RedisStringCommands.class);
+            //null putIfAbsent case:
+            when(redisStringCommands.setNX(any(byte[].class), any(byte[].class))).thenReturn(null);
+            when(conn.stringCommands()).thenReturn(redisStringCommands);
             return conn;
         }
 

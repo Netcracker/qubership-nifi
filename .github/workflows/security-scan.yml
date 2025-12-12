@@ -57,7 +57,6 @@ jobs:
     outputs:
       packages: ${{ steps.display-config.outputs.filtered }}
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v6
 
@@ -80,6 +79,12 @@ jobs:
           echo "$FILTERED" | jq .
 
           echo "filtered=$FILTERED" >> "$GITHUB_OUTPUT"
+
+      - name: No packages found, fail the job
+        if: ${{ steps.ghcr.outputs.has-packages != 'true' }}
+        run: |
+          echo "No packages found in GHCR for this repository."
+          exit 1
 
   security-scan-matrix:
     permissions:
