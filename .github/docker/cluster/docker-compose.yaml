@@ -231,7 +231,7 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/workflows/sh/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
   tls-cert:
     driver: local
     driver_opts:
@@ -297,4 +297,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/keycloak/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/keycloak/
