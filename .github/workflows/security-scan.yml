@@ -80,11 +80,10 @@ jobs:
 
           echo "filtered=$FILTERED" >> "$GITHUB_OUTPUT"
 
-      - name: No packages found, fail the job
-        if: ${{ steps.ghcr.outputs.has-packages != 'true' }}
-        run: |
-          echo "No packages found in GHCR for this repository."
-          exit 1
+          if [ "$(echo "$FILTERED" | jq 'length')" -eq 0 ]; then
+            echo "No scan items on configuration."
+            exit 1
+          fi
 
   security-scan-matrix:
     permissions:
