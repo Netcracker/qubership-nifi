@@ -47,131 +47,71 @@ on:
         default: true
         type: boolean
   schedule:
-    - cron: "0 3 * * 0" # every Sunday at 03:00 UTC
+    - cron: "0 1 * * 0" # every Sunday at 03:00 UTC
 
 jobs:
-  # debug-packages:
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     packages: read
-  #   outputs:
-  #     packages: ${{ steps.ghcr.outputs.packages }}
-  #     has-packages: ${{ steps.ghcr.outputs.has-packages }}
-  #   steps:
-  #     - name: List GHCR packages for this repo
-  #       id: ghcr
-  #       uses: Netcracker/qubership-workflow-hub/actions/ghcr-discover-repo-packages@b6d2198c722564e250d985a99990230d85b0d686 #v2.0.3
-  #       env:
-  #         GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-
-  #     - name: Print packages
-  #       run: echo "$OUTPUT_PACKAGES" | jq '.'
-  #       env:
-  #         OUTPUT_PACKAGES: '${{ steps.ghcr.outputs.packages }}'
-
-  #     - name: Continue only if repo has GHCR packages
-  #       if: ${{ steps.ghcr.outputs.has-packages == 'true' }}
-  #       run: echo "Packages found!"
-  load-configuration:
+  debug-packages:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      packages: read
     outputs:
-      scan-configuration: ${{ steps.config.outputs.scan-configuration }}
+      packages: ${{ steps.display-config.outputs.filtered }}
     steps:
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Load Docker Configuration
-        id: load_component
+      - name: Get Configuration File
+        uses: nookyo/qubership-workflow-hub/actions/docker-config-resolver@main
+        id: config
+        with:
+          file-path: ".qubership/dev-docker.cfg"
+
+      - name: Display Resolved Configuration
+        id: display-config
+        env:
+          CONFIG_JSON: ${{ steps.config.outputs.config }}
         run: |
-          CONFIG_FILE="$GITHUB_WORKSPACE/.qubership/dev-docker.cfg"
+          set -euo pipefail
+          echo "Resolved Configuration:"
+          FILTERED=$(echo "$CONFIG_JSON" | jq -c '[.[] | select(.security_scan == true)]')
 
-          # Проверяем структуру файла
-          verify=$(jq '
-            def verify_structure:
-              has("build") and (.build.registry | type == "string") and
-              has("security") and (.security.defaults | type == "object") and
-              has("components") and (.components | type == "array") and
-              has("platforms") and (.platforms | type == "string");
-            verify_structure
-            | if . then true else false end
-          ' "$CONFIG_FILE")
+          echo "Filtered pretty:"
+          echo "$FILTERED" | jq .
 
-          if [ "${verify}" != "true" ]; then
-            echo "❗ $CONFIG_FILE file is invalid"
-            echo "❗ $CONFIG_FILE file is invalid" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
+          echo "filtered=$FILTERED" >> "$GITHUB_OUTPUT"
 
-          echo "✅ $CONFIG_FILE file is valid"
-          echo "=== PER COMPONENT SECURITY ==="
-              jq '
-                .security.defaults as $def
-                | .components[]
-                | {
-                    name,
-                    security,
-                    effective_scan: (.security.scan // $def.scan)
-                  }
-              ' "$CONFIG_FILE"
+  security-scan-matrix:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+    needs: debug-packages
+    if: ${{ inputs.image == '' || inputs.image == null }}
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.debug-packages.outputs.packages) }}
 
-          security_items=$(jq -c '
-            . as $root
-            | $root.security.defaults as $def
-            | [
-                .components[]
-                | .security as $sec
-                | select(($sec.scan // $def.scan) == true)
-                | {
-                    name: .name,
-                    image: ($root.build.registry + .name),
-                    tag: .tags,
-                    only_high_critical: ($sec.only_high_critical // $def.only_high_critical),
-                    trivy_scan:         ($sec.trivy_scan         // $def.trivy_scan),
-                    grype_scan:         ($sec.grype_scan         // $def.grype_scan),
-                    only_fixed:         ($sec.only_fixed         // $def.only_fixed),
-                    continue_on_error:  ($sec.continue_on_error  // $def.continue_on_error)
-                  }
-              ]
-          ' "$CONFIG_FILE")
+    name: "Run Security Scan (matrix)"
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+    with:
+      target: ${{ inputs.target || 'docker' }}
+      image: ${{ format('{0}:{1}', matrix.package.image, inputs.tag || matrix.package.security_tag || 'latest') }}
 
-          echo "security_items=${security_items}" >> "$GITHUB_OUTPUT"
-
-          echo "Loaded security scan configuration:"
-          echo "$security_items" | jq .
-
-  # security-scan-matrix:
-  #   permissions:
-  #     contents: read
-  #     security-events: write
-  #     packages: read
-  #   needs: debug-packages
-  #   if: ${{ inputs.image == '' || inputs.image == null }}
-  #   strategy:
-  #     matrix:
-  #       package: ${{ fromJson(needs.debug-packages.outputs.packages) }}
-
-  #   name: "Run Security Scan (matrix)"
-  #   uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@b6d2198c722564e250d985a99990230d85b0d686 #v2.0.3
-  #   with:
-  #     target: ${{ inputs.target || 'docker' }}
-  #     image: ${{ format('{0}:{1}', matrix.package.path, inputs.tag || 'latest') }}
-
-  # security-scan-single:
-  #   permissions:
-  #     contents: read
-  #     security-events: write
-  #     packages: read
-  #   needs: debug-packages
-  #   if: ${{ inputs.image != '' && inputs.image != null }}
-  #   name: "Run Security Scan (single image)"
-  #   uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@b6d2198c722564e250d985a99990230d85b0d686 #v2.0.3
-  #   with:
-  #     target: ${{ inputs.target || 'docker' }}
-  #     image: ${{ inputs.image }}
-  #     only-high-critical: ${{ inputs.only-high-critical || true }}
-  #     trivy-scan: ${{ inputs.trivy-scan || true }}
-  #     grype-scan: ${{ inputs.grype-scan || true }}
-  #     only-fixed: ${{ inputs.only-fixed || true }}
-  #     continue-on-error: ${{ inputs.continue-on-error || true }}
+  security-scan-single:
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+    needs: debug-packages
+    if: ${{ inputs.image != '' && inputs.image != null }}
+    name: "Run Security Scan (single image)"
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+    with:
+      target: ${{ inputs.target || 'docker' }}
+      image: ${{ inputs.image || format('{0}:{1}', matrix.package.image, inputs.tag || matrix.package.security_tag || 'latest') }}
+      only-high-critical: ${{ inputs.only-high-critical || matrix.package.security_only_high_critical || true }}
+      trivy-scan: ${{ inputs.trivy-scan || matrix.package.security_trivy_scan || true }}
+      grype-scan: ${{ inputs.grype-scan || matrix.package.security_qrype-scan || true }}
+      only-fixed: ${{ inputs.only-fixed || matrix.package.security_only-fixed || true }}
+      continue-on-error: ${{ inputs.continue-on-error || matrix.package.security_continue_on_error || true }}
