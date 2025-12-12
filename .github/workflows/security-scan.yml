@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Get Configuration File
-        uses: nookyo/qubership-workflow-hub/actions/docker-config-resolver@main
+        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@feature/234_security_scan_should_not_be_applied_to_old_packages
         id: config
         with:
           file-path: ".qubership/dev-docker.cfg"
