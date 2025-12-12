@@ -78,13 +78,10 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
     + "numeric fields as gauges, and nested records (with 'type' and 'value' fields)"
     + " as counters or distribution summaries.")
 @Tags({"record", "send", "write", "prometheus"})
-public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
+public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService,
+        MeterRegistryProvider {
 
     private Server prometheusServer;
-    /**
-     * Prometheus Meter Registry to use.
-     */
-    public PrometheusMeterRegistry meterRegistry;
     private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
@@ -99,6 +96,11 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private String instance;
 
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();
+
+    /**
+     * Prometheus Meter Registry to use.
+     */
+    public PrometheusMeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
     /**
      * Metrics endpoint port property descriptor.
@@ -204,7 +206,6 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
      */
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
-        meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         metricsEndpointPort = context.getProperty(METRICS_ENDPOINT_PORT).asInteger();
         clearMetrics = context.getProperty(CLEAR_METRICS).getValue().equals("Yes");
         namespace = getNamespace();
@@ -435,5 +436,14 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             return schema.getField("type").isPresent() && schema.getField("value").isPresent();
         }
         return false;
+    }
+
+    /**
+     * Method for exposing the PrometheusMeterRegistry.
+     * @return PrometheusMeterRegistry object
+     */
+    @Override
+    public PrometheusMeterRegistry getMeterRegistry() {
+        return meterRegistry;
     }
 }
