@@ -20,24 +20,24 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.qubership.nifi.processors.PutRecordFromProperty.RECORD_SINK;
-import static org.qubership.nifi.processors.PutRecordFromProperty.LIST_JSON_DYNAMIC_PROPERTY;
-import static org.qubership.nifi.processors.PutRecordFromProperty.SOURCE_TYPE;
-import static org.qubership.nifi.processors.PutRecordFromProperty.JSON_PROPERTY_OBJECT;
+import static org.qubership.nifi.processors.PutGeneratedRecord.RECORD_SINK;
+import static org.qubership.nifi.processors.PutGeneratedRecord.LIST_JSON_DYNAMIC_PROPERTY;
+import static org.qubership.nifi.processors.PutGeneratedRecord.SOURCE_TYPE;
+import static org.qubership.nifi.processors.PutGeneratedRecord.JSON_PROPERTY_OBJECT;
 
-public class PutRecordFromPropertyTest {
+public class PutGeneratedRecordTest {
 
     private TestRunner testRunner;
     private MockRecordSinkService recordSink;
 
     /**
-     * Method for initializing the PutRecordFromProperty test processor.
+     * Method for initializing the PutGeneratedRecord test processor.
      *
      * @throws InitializationException
      */
     @BeforeEach
     public void init() throws InitializationException {
-        testRunner = TestRunners.newTestRunner(PutRecordFromProperty.class);
+        testRunner = TestRunners.newTestRunner(PutGeneratedRecord.class);
 
         recordSink = new MockRecordSinkService();
         testRunner.setValidateExpressionUsage(false);
@@ -69,7 +69,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord.getValue("test_metric1"), row.get(0).get("test_metric1"));
         assertEquals(expectMapRecord.getValue("test_metric2"), row.get(0).get("test_metric2"));
@@ -115,7 +115,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord, row.get(0).get("response_size_bytes"));
     }
@@ -165,7 +165,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord, row.get(0).get("request_duration_seconds"));
     }
@@ -194,7 +194,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("");
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord.getValue("topLevelFieldName1"), row.get(0).get("topLevelFieldName1"));
         assertEquals(expectMapRecord.getValue("topLevelFieldName2"), row.get(0).get("topLevelFieldName2"));
@@ -246,7 +246,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
 
         assertEquals(expectMapRecordSimple.getValue("attr1"), row.get(0).get("attr1"));
@@ -370,7 +370,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord1, row.get(0).get("http_request_duration_seconds"));
         assertEquals(expectMapRecord2, row.get(0).get("integration_execution_duration"));
@@ -409,7 +409,7 @@ public class PutRecordFromPropertyTest {
         testRunner.enqueue("", attrs);
         testRunner.run();
         List<Map<String, Object>> row = recordSink.getRows();
-        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutRecordFromProperty.REL_SUCCESS);
+        List<MockFlowFile> result = testRunner.getFlowFilesForRelationship(PutGeneratedRecord.REL_SUCCESS);
         assertEquals(1, result.size());
         assertEquals(expectMapRecord, row.get(0).get("file_size"));
     }

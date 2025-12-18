@@ -1,6 +1,6 @@
-# PutRecordFromProperty
+# PutGeneratedRecord
 
-The PutRecordFromProperty processor generates records from FlowFile attributes and configured properties, then sends them to a specified Record Destination Service (record sink).
+The PutGeneratedRecord processor generates records from FlowFile attributes and configured properties, then sends them to a specified Record Destination Service (record sink).
 Two modes of operation are supported for generating records: `Dynamic Properties` and `Json Property`.
 
 ## Dynamic Properties
