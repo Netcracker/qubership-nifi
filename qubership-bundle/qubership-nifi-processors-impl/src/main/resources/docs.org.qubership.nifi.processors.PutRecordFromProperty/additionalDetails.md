@@ -1,51 +1,45 @@
 # PutRecordFromProperty
 
-The PutRecordFromProperty is a NiFi Processor that generate Records.
-The processor generates a record based on its property and incoming flow files and sends them to the specified Record Destination Service (i.e., record sink).
-The processor supports different configuration properties.
+The PutRecordFromProperty processor generates records from FlowFile attributes and configured properties, then sends them to a specified Record Destination Service (record sink).
+Two modes of operation are supported for generating records: `Dynamic Properties` and `Json Property`.
 
-## Dynamic properties
+## Dynamic Properties
 
-When the `Source Type` property is set to `Dynamic Properties`, the processor utilizes Dynamic Properties as the data source for record generation.
+When the `Source Type` property is set to `Dynamic Properties`, the processor uses Dynamic Properties as the data source for record generation.
 
-During record generation, the processor maps each Dynamic Property’s name to the corresponding field name in the output record and uses its value as the field’s data.
+During record generation, the processor maps each Dynamic Property name to a corresponding field name in the output record and uses its value as the field data.
 
 The processor supports Dynamic Property values of the following types:
 
-1. `Numeric`: If the Dynamic Property value is of type Numeric, it will be converted to double.
-2. `String or char`: If the Dynamic Property value is of type String, it will be used as String.
-3. `JSON`: If the Dynamic Property value is of type JSON, it will be converted to Record.
+1. **Numeric**: Numeric values are converted to double.
+2. **String**: String values are used as-is.
+3. **JSON**: JSON values are converted to nested records. The record schema is generated based on the JSON structure.
 
-If the value is a number, but needs to be used as a string, you need to surround it with quotation marks or use it in JSON format.
+Note: In `Dynamic Properties` mode, numeric values cannot be treated as strings. To use numeric values as strings, switch to `Json Property` mode instead.
 
-The processor supports the JSON dynamic property format. In this case, the property name must be specified in the `List Json Dynamic Property` field.
-The Record schema will be generated based on the JSON structure.
-The JSON value must be a single, flat JSON object, where the attributes can either be scalar values or arrays of numeric values.
+The processor supports JSON-formatted Dynamic Properties. To enable this mode, specify the property names in the `List Json Dynamic Properties` field, separated by commas if multiple properties are needed.
 
-Example Dynamic Property with simple type:
+When using JSON-formatted Dynamic Properties, the JSON value must be a single, flat JSON object with attributes that are either scalar values or arrays of numeric values.
 
-| Dynamic Property Name | Dynamic Property Value    |
-|-----------------------|---------------------------|
-| request_duration_ms   | 100                       |
-| request_method        | GET                       |
-| request_url           | <http://www.example.com/> |
+Example Dynamic Properties:
+
+| Dynamic Property Name | Dynamic Property Value           |
+|-----------------------|----------------------------------|
+| request_duration_ms   | 100                              |
+| request_method        | GET                              |
+| request_url           | `http://www.example.com/`        |
+| request_count         | `{"value": 1,"type": "Counter"}` |
+
+Note: `request_count` is an example of a JSON-formatted Dynamic Property. The processor converts it to a nested record with fields `value` (double) and `type` (string).
 
 
-Example JSON Dynamic Property:
-```json
-{
-    "value": 1,
-    "type": "Counter"
-}
-```
+## Json Property
 
-## Static JSON
+When the `Source Type` property is set to `Json Property`, the processor generates a record from the JSON defined in the `Json Property` property.
 
-If the `Source Type` property has the value `Json Property`, then the JSON from the `Json Property` property will be used to generate the record.
+The JSON value in `Json Property` must be a single JSON object. Top-level attributes can be either scalar values or nested JSON objects. Nested objects can have attributes that are scalar values or arrays of numeric values.
 
-The JSON value in `Json Property` must be a single, flat JSON object, where the attributes can either be scalar values or arrays of numeric values.
-
-Example JSON for generating a Record in the case of Static JSON:
+Example JSON for generating a record using `Json Property` mode:
 ```json
 {
     "response_count": {
