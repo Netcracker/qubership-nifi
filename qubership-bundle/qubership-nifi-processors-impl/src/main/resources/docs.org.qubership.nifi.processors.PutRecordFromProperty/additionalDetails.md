@@ -33,7 +33,7 @@ Example Dynamic Properties:
 Note: `request_count` is an example of a JSON-formatted Dynamic Property. The processor converts it to a nested record with fields `value` (double) and `type` (string).
 
 
-## Json Property
+## `Json Property`
 
 When the `Source Type` property is set to `Json Property`, the processor generates a record from the JSON defined in the `Json Property` property.
 
