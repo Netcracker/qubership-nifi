@@ -47,6 +47,7 @@ USER 10001
 FROM apache/nifi:2.6.0@sha256:81a6217fe9c8fcbd6bdf2a9609f0068ea0a8a49e3477bf9a196e51b208486324 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-cassandra-*.nar ${NIFI_HOME}/lib/
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"

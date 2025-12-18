@@ -51,5 +51,23 @@
             <artifactId>json-smart</artifactId>
             <version>${json.smart.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-cassandra-services-api-nar</artifactId>
+            <version>${nifi.cassandra.nar.version}</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-cassandra-services-nar</artifactId>
+            <version>${nifi.cassandra.nar.version}</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-cassandra-nar</artifactId>
+            <version>${nifi.cassandra.nar.version}</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 </project>

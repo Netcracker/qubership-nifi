@@ -1,0 +1,370 @@
+{
+    "info": {
+        "_postman_id": "1950f640-40c1-4659-b3af-740d72c4529a",
+        "name": "NiFi_Cassandra_NAR_Tests_2.x",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Create Process Group",
+            "item": [
+                {
+                    "name": "Import Process Group",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 201\", function () {\r",
+                                    "    pm.response.to.have.status(201);\r",
+                                    "});\r",
+                                    "pm.test(\"Response is JSON and contains created process group\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.component.name).to.eql(\"PG_for_cassandra_NARs_test\");\r",
+                                    "    pm.environment.set(\"nars.test.pg.id\", jsonData.id);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    "const uuid = pm.variables.replaceIn('{{$guid}}');\r",
+                                    "pm.environment.set(\"nifi.client.id\", uuid);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": "./nifi-resources/pg/PG_for_cassandra_NARs_test.json"
+                                },
+                                {
+                                    "key": "groupName",
+                                    "value": "PG_for_cassandra_NARs_test",
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "positionX",
+                                    "value": "601",
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "positionY",
+                                    "value": "501",
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "clientId",
+                                    "value": "{{nifi.client.id}}",
+                                    "type": "default"
+                                }
+                            ],
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups/upload",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "process-groups",
+                                "root",
+                                "process-groups",
+                                "upload"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Configure Controller Services",
+            "item": [
+                {
+                    "name": "Start Controller Services",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "    pm.environment.unset(\"polling_attempt\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"id\": \"{{nars.test.pg.id}}\",\r\n    \"state\": \"ENABLED\",\r\n    \"disconnectedNodeAcknowledged\": false\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nars.test.pg.id}}/controller-services",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "flow",
+                                "process-groups",
+                                "{{nars.test.pg.id}}",
+                                "controller-services"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Check state of Controller Service",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const responseJson = pm.response.json();\r",
+                                    "\r",
+                                    "let attempt = pm.environment.get(\"polling_attempt\") || 1;\r",
+                                    "const maxAttempts = 5;\r",
+                                    "\r",
+                                    "pm.test(`Attempt ${attempt}: Checking the status of controller services`, function () {\r",
+                                    "    const allEnabled = responseJson.controllerServices.every(service => service.component.state === \"ENABLED\");\r",
+                                    "\r",
+                                    "    if (!allEnabled && attempt < maxAttempts) {\r",
+                                    "        console.log(`Not all services are ENABLED. Retry in 5 seconds (try ${attempt + 1})`);\r",
+                                    "        pm.environment.set(\"polling_attempt\", attempt + 1);\r",
+                                    "\r",
+                                    "        setTimeout(() => {\r",
+                                    "            postman.setNextRequest(\"Check state of Controller Service\");\r",
+                                    "        }, 5000);\r",
+                                    "    } else {\r",
+                                    "        pm.expect(allEnabled).to.be.true;\r",
+                                    "        console.log(\"All controllers have ENABLED status\");\r",
+                                    "        pm.environment.unset(\"polling_attempt\");\r",
+                                    "        postman.setNextRequest(\"Starting process group\");\r",
+                                    "    }\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        },
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nars.test.pg.id}}/controller-services",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "flow",
+                                "process-groups",
+                                "{{nars.test.pg.id}}",
+                                "controller-services"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Starting process group",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"revision\": {\r\n        \"clientId\": \"{{nifi.client.id}}\",\r\n        \"version\": 1\r\n    },\r\n    \"id\": \"{{nars.test.pg.id}}\",\r\n    \"state\": \"RUNNING\",\r\n    \"disconnectedNodeAcknowledged\": false\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nars.test.pg.id}}",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "flow",
+                                "process-groups",
+                                "{{nars.test.pg.id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Prerequisites",
+            "item": [
+                {
+                    "name": "Prepare DB",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.cassandra-nar-test.url}}/test-prepare/db",
+                            "host": [
+                                "{{nifi.cassandra-nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-prepare",
+                                "db"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "nifi-cassandra-nar",
+            "item": [
+                {
+                    "name": "PutCassandraQL",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "insert into testkeyspace.test_table (identifier, test_name, test_description)\r\nvalues (1234, 'Test name 1234', 'Test description 1234')",
+                            "options": {
+                                "raw": {
+                                    "language": "text"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{nifi.cassandra-nar-test.url}}/test-nars/nifi-cassandra-nar/PutCassandraQL",
+                            "host": [
+                                "{{nifi.cassandra-nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "nifi-cassandra-nar",
+                                "PutCassandraQL"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QueryCassandra",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "pm.test(\"Response is JSON and contains 1 record\", function () {\r",
+                                    "    var jsonData = pm.response.json();\r",
+                                    "    pm.expect(jsonData.length).to.eql(1);\r",
+                                    "    pm.expect(jsonData[0].identifier).to.eql(1234);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.cassandra-nar-test.url}}/test-nars/nifi-cassandra-nar/QueryCassandra",
+                            "host": [
+                                "{{nifi.cassandra-nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "nifi-cassandra-nar",
+                                "QueryCassandra"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
