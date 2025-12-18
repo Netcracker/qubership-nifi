@@ -67,7 +67,7 @@ import java.util.stream.Collectors;
                 + " a single, flat JSON object, where the attributes can either be scalar values or arrays of numeric"
                 + " values.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES))
-public class PutRecordFromProperty extends AbstractProcessor {
+public class PutGeneratedRecord extends AbstractProcessor {
 
     private final AtomicReference<RecordSinkService> recordSinkServiceAtomicReference = new AtomicReference<>();
 
