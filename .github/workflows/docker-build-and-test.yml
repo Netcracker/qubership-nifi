@@ -71,7 +71,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'plain', 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write' ]
+        run-mode:
+        - 'plain'
+        - 'tls'
+        - 'oidc'
+        - 'cluster'
+        - 'cluster-statefulset'
+        - 'cluster-statefulset-acl'
+        - 'tls-consul-read'
+        - 'tls-consul-write'
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:

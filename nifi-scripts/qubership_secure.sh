@@ -143,15 +143,37 @@ export KEY_PASSWORD
 if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
     info "ZOOKEEPER_SSL_ENABLED = true"
     prop_replace 'nifi.zookeeper.client.secure' "true"
-    #use keystore w/o any keys to work w/o client auth (ssl.clientAuth = none):
-    if [[ "$NIFI_CLUSTER_IS_NODE" == "true" && "$IS_STATEFUL_SET" == "true" ]]; then
-        numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
-        prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs-$numberNode/truststore.p12"
+    if [[ -z "$ZOOKEEPER_CLIENT_KEYSTORE" ]]; then
+        #use keystore w/o any keys to work w/o client auth (ssl.clientAuth = none or want):
+        if [[ "$NIFI_CLUSTER_IS_NODE" == "true" && "$IS_STATEFUL_SET" == "true" ]]; then
+            numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
+            prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs-$numberNode/truststore.p12"
+        else
+            prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs/truststore.p12"
+        fi
+        prop_replace 'nifi.zookeeper.security.keystoreType' "PKCS12"
+        prop_replace 'nifi.zookeeper.security.keystorePasswd' "$TRUSTSTORE_PASSWORD"
     else
-        prop_replace 'nifi.zookeeper.security.keystore' "/tmp/tls-certs/truststore.p12"
+        #x509 authentication in Zookeeper (ssl.clientAuth = need):
+        if [ ! -f "${ZOOKEEPER_CLIENT_KEYSTORE}" ]; then
+            error "Zookeeper client keystore file specified (${ZOOKEEPER_CLIENT_KEYSTORE}) does not exist."
+            exit 1
+        fi
+        if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_TYPE}" ]; then
+            #set default:
+            info "Setting zookeeper client keystore type not set, will use default = PKCS12"
+            export ZOOKEEPER_CLIENT_KEYSTORE_TYPE="PKCS12"
+        fi
+        if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
+            error "Zookeeper client keystore password is not set."
+            exit 1
+        fi
+        #use keystore specified in environment variables:
+        info "Setting zookeeper client keystore = $ZOOKEEPER_CLIENT_KEYSTORE, type = $ZOOKEEPER_CLIENT_KEYSTORE_TYPE"
+        prop_replace 'nifi.zookeeper.security.keystore' "$ZOOKEEPER_CLIENT_KEYSTORE"
+        prop_replace 'nifi.zookeeper.security.keystoreType' "$ZOOKEEPER_CLIENT_KEYSTORE_TYPE"
+        prop_replace 'nifi.zookeeper.security.keystorePasswd' "$ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD"
     fi
-    prop_replace 'nifi.zookeeper.security.keystoreType' "PKCS12"
-    prop_replace 'nifi.zookeeper.security.keystorePasswd' "$TRUSTSTORE_PASSWORD"
     if [ -z "${CERTIFICATE_FILE_PASSWORD}" ]; then
         export CERTIFICATE_FILE_PASSWORD="changeit"
     fi
