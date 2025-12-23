@@ -127,25 +127,30 @@ public class RedisBulkDistributedMapCacheClientService
         this.redisConnectionPool = null;
     }
 
-    private static final String GET_AND_PUT_IF_ABSENT_SCRIPT = "local result = {}\n"
+    private static final String GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT = "local result = {}\n"
+            + "local ttl = tonumber(ARGV[#KEYS + 1])\n"
             + "for i in ipairs(KEYS) do\n"
             + "  local currentValue = redis.call(\"GET\", KEYS[i])\n"
             + "  if (not currentValue) then \n"
-            + "    redis.call(\"SET\", KEYS[i], ARGV[i])\n"
+            + "    if ttl and ttl > 0 then\n"
+            + "      redis.call(\"SET\", KEYS[i], ARGV[i], \"EX\", ttl)\n"
+            + "    else\n"
+            + "      redis.call(\"SET\", KEYS[i], ARGV[i])\n"
+            + "    end\n"
             + "  end\n"
             + "  result[i] = currentValue \n"
             + "end \n"
-            + " return result";
+            + "return result";
     private static final byte[] GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES;
     private static final byte[] GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES;
     static {
         try {
-            GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_SCRIPT, STRING_SERIALIZER);
+            GET_AND_PUT_IF_ABSENT_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT, STRING_SERIALIZER);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to serialize GetAndPutIfAbsent script", e);
         }
         GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES =
-                SafeEncoder.encode(DigestUtils.sha1DigestAsHex(GET_AND_PUT_IF_ABSENT_SCRIPT));
+                SafeEncoder.encode(DigestUtils.sha1DigestAsHex(GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT));
     }
 
     @Override
@@ -158,7 +163,7 @@ public class RedisBulkDistributedMapCacheClientService
         return withConnection(redisConnection -> {
             List<K> keys = new ArrayList<>();
             int mapSize = map.size();
-            byte[][] serialisedParams = new byte[mapSize * 2][];
+            byte[][] serialisedParams = new byte[mapSize * 2 + 1][];
             int j = 0;
             for (Map.Entry<K, V> entry : map.entrySet()) {
                 //add key:
@@ -168,6 +173,7 @@ public class RedisBulkDistributedMapCacheClientService
                 keys.add(entry.getKey());
                 j++;
             }
+            serialisedParams[2 * mapSize] = serialize(String.valueOf(ttlValue), STRING_SERIALIZER);
             List<Object> oldValues = executeGetAndPutIfAbsentScript(redisConnection, keys, serialisedParams);
 
             // process results:
