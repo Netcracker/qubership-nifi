@@ -81,6 +81,7 @@ public class RedisBulkDistributedMapCacheClientService
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
     private volatile RedisConnectionPool redisConnectionPool;
     private Long ttlValue;
+    private byte[] ttlValueSerialized;
 
     static {
         final List<PropertyDescriptor> props = new ArrayList<>();
@@ -109,7 +110,7 @@ public class RedisBulkDistributedMapCacheClientService
      *             if unable to create a database connection
      */
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException {
+    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
         this.redisConnectionPool = context.getProperty(REDIS_CONNECTION_POOL)
                 .asControllerService(RedisConnectionPool.class);
         this.ttlValue = context.getProperty(TTL).asTimePeriod(TimeUnit.SECONDS);
@@ -117,6 +118,8 @@ public class RedisBulkDistributedMapCacheClientService
         if (ttlValue == 0) {
             this.ttlValue = -1L;
         }
+
+        this.ttlValueSerialized = serialize(String.valueOf(ttlValue), STRING_SERIALIZER);
     }
 
     /**
@@ -173,7 +176,7 @@ public class RedisBulkDistributedMapCacheClientService
                 keys.add(entry.getKey());
                 j++;
             }
-            serialisedParams[2 * mapSize] = serialize(String.valueOf(ttlValue), STRING_SERIALIZER);
+            serialisedParams[2 * mapSize] = ttlValueSerialized;
             List<Object> oldValues = executeGetAndPutIfAbsentScript(redisConnection, keys, serialisedParams);
 
             // process results:
