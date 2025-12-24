@@ -163,7 +163,8 @@ public class RedisBulkDistributedMapCacheClientService
         GET_AND_PUT_IF_ABSENT_SCRIPT_SHA1_BYTES =
                 SafeEncoder.encode(DigestUtils.sha1DigestAsHex(GET_AND_PUT_IF_ABSENT_SCRIPT));
         try {
-            GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT, STRING_SERIALIZER);
+            GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT_BYTES = serialize(GET_AND_PUT_IF_ABSENT_WITH_TTL_SCRIPT,
+                    STRING_SERIALIZER);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to serialize GetAndPutIfAbsentWithTTL script", e);
         }
