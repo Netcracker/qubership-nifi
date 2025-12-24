@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "17f7585e-13bb-4171-a68b-827735afd70c",
+        "_postman_id": "0c97c6ef-6475-46a0-a1cd-cff453f37809",
         "name": "NiFi_Qubership_NAR_Tests_1.x",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
@@ -720,6 +720,74 @@
                                 "test-nars",
                                 "migration-nifi-processors",
                                 "ValidateJson"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PutGeneratedRecord",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    ""
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/PutGeneratedRecord",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "migration-nifi-processors",
+                                "PutGeneratedRecord"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PutGeneratedRecord getMetrics",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response is text and contains metric lines\", function () {\r",
+                                    "    var textData = pm.response.text();\r",
+                                    "    pm.expect(textData).to.matches(/.*size.*method=\\\"GET\\\".*700.3/);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.qs.sink.url}}/metrics",
+                            "host": [
+                                "{{nifi.qs.sink.url}}"
+                            ],
+                            "path": [
+                                "metrics"
                             ]
                         }
                     },
