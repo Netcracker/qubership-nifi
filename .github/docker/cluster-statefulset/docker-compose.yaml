@@ -67,9 +67,6 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
-      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-0.p12
-      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
-      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: local-nifi
     hostname: qubership-nifi-0
     restart: unless-stopped
@@ -115,9 +112,6 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
-      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-1.p12
-      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
-      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: qubership-nifi-1
     hostname: qubership-nifi-1
     restart: unless-stopped
@@ -163,9 +157,6 @@ services:
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
       - IS_STATEFUL_SET=true
       - ZOOKEEPER_SSL_ENABLED=true
-      - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-2.p12
-      - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
-      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: qubership-nifi-2
     hostname: qubership-nifi-2
     restart: unless-stopped
