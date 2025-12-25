@@ -78,7 +78,7 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
     + "numeric fields as gauges, and nested records (with 'type' and 'value' fields)"
     + " as counters or distribution summaries.")
 @Tags({"record", "send", "write", "prometheus"})
-public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService{
+public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
 
     private Server prometheusServer;
     /**

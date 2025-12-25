@@ -46,17 +46,40 @@ import java.util.List;
  */
 public abstract class AbstractPrometheusReportingTask extends AbstractReportingTask implements ReportingTask {
 
+    /**
+     * HTTP server.
+     */
     protected Server httpServer;
+    /**
+     * Meter Registry.
+     */
     protected PrometheusMeterRegistry meterRegistry;
 
+    /**
+     * List of property descriptors.
+     */
     protected List<PropertyDescriptor> propertyDescriptors;
 
+    /**
+     * K8s namespace.
+     */
     protected String namespace;
+    /**
+     * NiFi hostname.
+     */
     protected String hostname;
+    /**
+     * NiFi instance identifier.
+     */
     protected String instance;
+    /**
+     * Port to expose metrics on.
+     */
     protected int port;
 
-
+    /**
+     * Server Port property descriptor.
+     */
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
             .displayName("Server Port")
