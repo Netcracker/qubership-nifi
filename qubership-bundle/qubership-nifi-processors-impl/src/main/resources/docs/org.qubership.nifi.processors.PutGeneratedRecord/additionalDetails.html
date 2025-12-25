@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>PutGeneratedRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<p>
+    The PutGeneratedRecord processor generates records from FlowFile attributes and configured properties, then sends them to a specified Record Destination Service (record sink).
+    Two modes of operation are supported for generating records: `Dynamic Properties` and `Json Property`.
+</p>
+
+<h2>Dynamic Properties</h2>
+
+<p>
+    When the <code>Source Type</code> property is set to <code>Dynamic Properties</code>, the processor uses Dynamic Properties as the data source for record generation.
+    During record generation, the processor maps each Dynamic Property name to a corresponding field name in the output record and uses its value as the field data.
+</p>
+
+<p>
+The processor supports Dynamic Property values of the following types:
+</p>
+<ol>
+    <li><b>Numeric</b>: Numeric values are converted to double.</li>
+    <li><b>String</b>: String values are used as-is.</li>
+    <li><b>JSON</b>: JSON values are converted to nested records. The record schema is generated based on the JSON structure.</li>
+</ol>
+
+<p>
+    Note: In <code>Dynamic Properties</code> mode, numeric values cannot be treated as strings.
+    To use numeric values as strings, switch to <code>Json Property</code> mode instead.
+</p>
+<p>
+    The processor supports JSON-formatted Dynamic Properties.
+    To enable this mode, specify the property names in the <code>List Json Dynamic Properties</code> field, separated by commas if multiple properties are needed.
+    When using JSON-formatted Dynamic Properties, the JSON value must be a single, flat JSON object with attributes that are either scalar values or arrays of numeric values.
+</p>
+
+<p>
+Example Dynamic Properties:
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>Dynamic Property Name</th>
+            <th>Dynamic Property Value</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>request_duration_ms</td>
+            <td>100</td>
+        </tr>
+        <tr>
+            <td>request_method</td>
+            <td>GET</td>
+        </tr>
+        <tr>
+            <td>request_url</td>
+            <td><code>http://www.example.com/</code></td>
+        </tr>
+        <tr>
+            <td>request_count</td>
+            <td><code>{"value": 1,"type": "Counter"}</code></td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    Note: <code>request_count</code> is an example of a JSON-formatted Dynamic Property.
+    The processor converts it to a nested record with fields <code>value</code> (double) and <code>type</code> (string).
+</p>
+
+<h2><code>Json Property</code></h2>
+
+<p>
+    When the <code>Source Type</code> property is set to <code>Json Property</code>, the processor generates a record from the JSON defined in the <code>Json Property</code> property.
+</p>
+
+<p>
+    The JSON value in <code>Json Property</code> must be a single JSON object.
+    Top-level attributes can be either scalar values or nested JSON objects.
+    Nested objects can have attributes that are scalar values or arrays of numeric values.
+</p>
+
+<p>
+    Example JSON for generating a record using <code>Json Property</code> mode:
+</p>
+
+<pre>
+<code>
+{
+    "response_count": {
+        "value": 1,
+        "type": "Counter"
+    },
+    "request_duration_ms": ${flow.file.attribute.name},
+    "request_url": "${flow.file.attribute.url}",
+    "request_status_code": "${flow.file.attribute.status.code}"
+}
+</code>
+</pre>
+
+</body>
+</html>

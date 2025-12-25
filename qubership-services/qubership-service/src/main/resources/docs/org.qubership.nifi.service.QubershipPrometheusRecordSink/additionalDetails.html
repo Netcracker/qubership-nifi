@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>QubershipPrometheusRecordSink</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+
+<body>
+<p>
+    The QubershipPrometheusRecordSink is a NiFi Controller Service that exposes metrics to Prometheus.
+    The service collects metrics from incoming records and uses an embedded Jetty server to expose metrics at the <code>/metrics</code> endpoint on a configurable port.
+    Incoming records may have different schemas; the service dynamically handles varying schemas by processing each record based on its actual fields and types at runtime.
+</p>
+
+<h2>Field to Metric Mapping</h2>
+
+<p>
+    The service maps record fields to Prometheus metrics by interpreting:
+</p>
+
+<ol>
+    <li>String or char fields as labels.</li>
+    <li>Numeric (int, short, long, BigInt, double, float, decimal), boolean, and choice fields (provided they can be converted to a numeric value) as gauges.</li>
+    <li>Nested record fields with specific structure as either counters or distribution summaries based on a specified <code>type</code> field. Each nested record must contain <code>type</code> and <code>value</code> fields to be processed correctly.</li>
+</ol>
+
+<p>
+    All other field types not listed above are ignored and not included in the metrics.
+    String, numeric, and boolean fields with null values are also ignored.
+    Field names are used as metric names in Prometheus for numeric and nested record fields, and as label names for string fields.
+</p>
+
+<p>
+    Incoming records may contain multiple fields; all applicable fields are processed to generate the corresponding Prometheus metrics.
+    Labels are applied to all metrics generated from the same record.
+</p>
+
+<h2>Static Labels</h2>
+
+<p>The QubershipPrometheusRecordSink automatically adds the following static labels to all metrics:</p>
+
+<ul>
+<li><code>instance</code>: The value configured in the "Instance ID" property of the service.</li>
+<li><code>hostname</code>: The hostname of the NiFi instance, obtained as the FQDN of the localhost network interface.</li>
+<li><code>namespace</code>: The Kubernetes namespace of the NiFi instance, obtained from the <code>NAMESPACE</code> environment variable.</li>
+</ul>
+
+<p>
+If any of these labels are already present in the incoming records, their values will be overridden by the static label values.
+</p>
+
+<h2>Nested Record Structure</h2>
+
+<p>
+    Nested records intended to be interpreted as counters or distribution summaries must have the following structure:
+</p>
+<ul>
+    <li><code>type</code>: A string field indicating the metric type, either <code>Counter</code> or <code>Summary</code>.</li>
+    <li><code>value</code>: A numeric field representing the metric value.</li>
+    <li><code>publishPercentiles</code>: (optional, for Summary type) An array of numeric values indicating the percentiles to be published. The 95th percentile should be expressed as <code>0.95</code>.</li>
+    <li><code>statisticExpiry</code>: (optional, for Summary type) A string field indicating the time period over which samples are accumulated to a histogram before it is reset and rotated. The value must be in ISO-8601 duration format (e.g., "PT1M" for 1 minute).</li>
+    <li><code>statisticBufferLength</code>: (optional, for Summary type) An integer field indicating the number of histograms to keep in the ring buffer for the summary statistic.</li>
+</ul>
+
+<p>
+    For example, a nested record for a counter might look like:
+</p>
+<pre>
+<code>
+{
+    "request_count": {
+        "type": "Counter",
+        "value": 2.5
+    }
+}
+</code>
+</pre>
+
+<p>
+    This example indicates that the counter metric <code>request_count</code> should be incremented by 2.5.
+</p>
+
+<p>
+    For a distribution summary, it might look like:
+</p>
+
+<pre>
+<code>
+{
+    "response_time": {
+        "type": "Summary",
+        "value": 150,
+        "publishPercentiles": [0.5, 0.95, 0.99],
+        "statisticExpiry": "PT5M",
+        "statisticBufferLength": 5
+    }
+}
+</code>
+</pre>
+
+<p>
+    In this example, the distribution summary metric <code>response_time</code> records a value of 150.
+    If this metric (identified by its name <code>response_time</code> and all its labels) does not already exist, it is created with the specified percentiles and histogram settings.
+    If the metric already exists, <code>publishPercentiles</code>, <code>statisticExpiry</code>, and <code>statisticBufferLength</code> settings are ignored.
+</p>
+</body>
+</html>

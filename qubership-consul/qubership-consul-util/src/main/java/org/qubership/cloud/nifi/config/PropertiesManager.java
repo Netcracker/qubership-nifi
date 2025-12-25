@@ -83,9 +83,7 @@ public class PropertiesManager {
     private Properties props;
     @Value("${config.file.path}")
     private String path;
-    @Autowired
     private ConfigurableEnvironment env;
-    @Autowired
     private Environment appEnv;
 
     private static final Set<String> SKIPPED_CUSTOM_PROPERTIES = new HashSet<>();
@@ -101,6 +99,17 @@ public class PropertiesManager {
         SKIPPED_CUSTOM_PROPERTIES.add("nifi.extensions.retry.attempts");
         SKIPPED_CUSTOM_PROPERTIES.add("nifi.extensions.retry.delay");
 
+    }
+
+    /**
+     * Default constructor.
+     * @param configEnv instance of ConfigurableEnvironment to use
+     * @param applicationEnv instance of Environment to use
+     */
+    @Autowired
+    public PropertiesManager(final ConfigurableEnvironment configEnv, final Environment applicationEnv) {
+        this.env = configEnv;
+        this.appEnv = applicationEnv;
     }
 
     /**
