@@ -62,6 +62,8 @@ wait_for_service() {
             elif [ "$resp_code" != '200' ]; then
                 echo "Got response with code = $resp_code and body: "
                 cat ./temp-resp.json
+                echo "Continue waiting..."
+                res="1"
             fi
         fi
         echo ""
