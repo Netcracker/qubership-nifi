@@ -236,18 +236,18 @@ public class RedisBulkDistributedMapCacheClientService
             RedisConnection redisConnection,
             List<K> keys,
             byte[][] serialisedParams,
-            byte[] executeScripts,
-            byte[] executeScriptsSha1
+            byte[] scriptBytes,
+            byte[] scriptSha1Bytes
     ) {
         List<Object> oldValues = null;
         try {
-            oldValues = redisConnection.scriptingCommands().evalSha(executeScripts,
+            oldValues = redisConnection.scriptingCommands().evalSha(scriptSha1Bytes,
                             MULTI, keys.size(), serialisedParams);
         } catch (Exception ex) {
             if (exceptionContainsNoScriptError(ex)) {
                 //script not found, load script and try again:
-                redisConnection.scriptingCommands().scriptLoad(executeScripts);
-                oldValues = redisConnection.scriptingCommands().evalSha(executeScriptsSha1,
+                redisConnection.scriptingCommands().scriptLoad(scriptBytes);
+                oldValues = redisConnection.scriptingCommands().evalSha(scriptSha1Bytes,
                         MULTI, keys.size(), serialisedParams);
             } else {
                 //rethrow Exception
