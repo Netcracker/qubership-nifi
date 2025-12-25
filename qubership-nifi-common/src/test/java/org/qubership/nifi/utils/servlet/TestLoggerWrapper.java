@@ -22,6 +22,11 @@ public class TestLoggerWrapper
     }
 
     @Override
+    public void warn(String s, Object[] objects, Throwable throwable) {
+        logger.warn(s, objects, throwable);
+    }
+
+    @Override
     public void warn(String s) {
         logger.warn(s);
     }
@@ -39,6 +44,11 @@ public class TestLoggerWrapper
     @Override
     public void trace(String s) {
         logger.trace(s);
+    }
+
+    @Override
+    public void trace(String s, Object[] objects, Throwable throwable) {
+        logger.trace(s, objects, throwable);
     }
 
     @Override
@@ -82,6 +92,11 @@ public class TestLoggerWrapper
     }
 
     @Override
+    public void info(String s, Object[] objects, Throwable throwable) {
+        logger.info(s, objects, throwable);
+    }
+
+    @Override
     public String getName() {
         return "TestLogger";
     }
@@ -102,6 +117,11 @@ public class TestLoggerWrapper
     }
 
     @Override
+    public void error(String s, Object[] objects, Throwable throwable) {
+        logger.error(s, objects, throwable);
+    }
+
+    @Override
     public void debug(String s, Throwable throwable) {
         logger.debug(s, throwable);
     }
@@ -109,6 +129,11 @@ public class TestLoggerWrapper
     @Override
     public void debug(String s, Object... objects) {
         logger.debug(s, objects);
+    }
+
+    @Override
+    public void debug(String s, Object[] objects, Throwable throwable) {
+        logger.debug(s, objects, throwable);
     }
 
     @Override

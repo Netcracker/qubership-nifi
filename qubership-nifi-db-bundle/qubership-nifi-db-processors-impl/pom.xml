@@ -198,8 +198,8 @@
                     <artifactId>micrometer-registry-prometheus</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.eclipse.jetty.ee10</groupId>
-                    <artifactId>jetty-ee10-servlet</artifactId>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-servlet</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

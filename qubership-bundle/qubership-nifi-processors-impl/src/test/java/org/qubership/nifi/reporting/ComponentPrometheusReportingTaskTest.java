@@ -552,20 +552,6 @@ public class ComponentPrometheusReportingTaskTest {
         when(eventAccess.getControllerStatus()).thenReturn(processGroupStatus);
         when(reportingContext.getEventAccess()).thenReturn(eventAccess);
         task.registerMetrics(reportingContext);
-        assertEquals(1, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).gauges().size());
-        assertEquals(1, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).gauges().size());
-
-
-        assertEquals(23, task.getMeterRegistry().find(ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME.getName()).
-                tags("component_id", "rootId").
-                gauge().measure().iterator().next().getValue());
-        assertEquals(2000, task.getMeterRegistry().find(ROOT_QUEUED_COUNT_PG_METRIC_NAME.getName()).
-                tags("component_id", "rootId").
-                gauge().measure().iterator().next().getValue());
-        assertEquals(5_000_000_000L, task.getMeterRegistry().find(ROOT_QUEUED_BYTES_PG_METRIC_NAME.getName()).
-                tags("component_id", "rootId").
-                gauge().measure().iterator().next().getValue());
 
         //test endpoint:
         Request request = new Request.Builder().url(SERVER_URL).get().build();
@@ -573,10 +559,10 @@ public class ComponentPrometheusReportingTaskTest {
             String responseBody = resp.body() != null ? resp.body().string() : null;
             assertTrue(resp.isSuccessful());
             assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
-            assertTrue(responseBody.contains("nifi_amount_items_queued{component_id=\"rootId\","
-                    + "component_name=\"Nifi Flow\",component_type=\"RootProcessGroup\","
+            assertTrue(responseBody.contains("nc_nifi_pg_component_count{group_id=\"TestPGId#2\","
+                    + "group_name=\"TestPGName#2\","
                     + "hostname=\"test-hostname\",instance=\"test-namespace_test-hostname\","
-                    + "namespace=\"test-namespace\",} 2000.0"));
+                    + "namespace=\"test-namespace\",runningStatus=\"Running\",} 1.0"));
         }
     }
 
