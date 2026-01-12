@@ -1526,7 +1526,7 @@
                     "response": []
                 },
                 {
-                    "name": "PutRecordFromProperty",
+                    "name": "PutGeneratedRecord",
                     "event": [
                         {
                             "listen": "test",
@@ -1545,21 +1545,21 @@
                         "method": "POST",
                         "header": [],
                         "url": {
-                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/PutRecordFromProperty",
+                            "raw": "{{nifi.nar-test.url}}/test-nars/migration-nifi-processors/PutGeneratedRecord",
                             "host": [
                                 "{{nifi.nar-test.url}}"
                             ],
                             "path": [
                                 "test-nars",
                                 "migration-nifi-processors",
-                                "PutRecordFromProperty"
+                                "PutGeneratedRecord"
                             ]
                         }
                     },
                     "response": []
                 },
                 {
-                    "name": "PutRecordFromProperty getMetrics",
+                    "name": "PutGeneratedRecord getMetrics",
                     "event": [
                         {
                             "listen": "test",

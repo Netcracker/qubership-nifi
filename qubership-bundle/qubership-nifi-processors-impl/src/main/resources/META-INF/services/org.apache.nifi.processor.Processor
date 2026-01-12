@@ -3,6 +3,6 @@ org.qubership.nifi.processors.QueryDatabaseToJson
 org.qubership.nifi.processors.FetchTableToJson
 org.qubership.nifi.processors.ValidateJson
 org.qubership.nifi.processors.BackupAttributes
-org.qubership.nifi.processors.PutRecordFromProperty
+org.qubership.nifi.processors.PutGeneratedRecord
 org.qubership.nifi.processors.extract.QueryDatabaseToCSV
 org.qubership.nifi.processors.QueryIdsAndFetchTableToJson

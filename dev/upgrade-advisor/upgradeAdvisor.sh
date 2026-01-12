@@ -45,11 +45,6 @@ deprecatedComponents='{
         "issue": "The Base64EncodeContent Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use EncodeContent Processor instead of Base64EncodeContent."
     },
-    "org.apache.nifi.service.CassandraSessionProvider": {
-        "level": "Error",
-        "issue": "The CassandraSessionProvider Controller Service is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
     "org.apache.nifi.processors.cybersecurity.CompareFuzzyHash": {
         "level": "Error",
         "issue": "The CompareFuzzyHash Processor is not available in Apache NiFi 2.x.",
@@ -419,16 +414,6 @@ deprecatedComponents='{
         "issue": "The PostSlack Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use PublishSlack Processor instead of PostSlack."
     },
-    "org.apache.nifi.processors.cassandra.PutCassandraQL": {
-        "level": "Error",
-        "issue": "The PutCassandraQL Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
-    "org.apache.nifi.processors.cassandra.PutCassandraRecord": {
-        "level": "Error",
-        "issue": "The PutCassandraRecord Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
     "org.apache.nifi.processors.couchbase.PutCouchbaseKey": {
         "level": "Error",
         "issue": "The PutCouchbaseKey Processor is not available in Apache NiFi 2.x.",
@@ -568,11 +553,6 @@ deprecatedComponents='{
     "org.apache.nifi.processors.solr.PutSolrRecord": {
         "level": "Error",
         "issue": "The PutSolrRecord Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
-    "org.apache.nifi.processors.cassandra.QueryCassandra": {
-        "level": "Error",
-        "issue": "The QueryCassandra Processor is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
     },
     "org.apache.nifi.processors.enrich.QueryDNS": {

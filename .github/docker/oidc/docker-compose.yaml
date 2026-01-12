@@ -34,6 +34,7 @@ services:
       - 127.0.0.1:9893:9893
       - 127.0.0.1:12981:12981
       - 127.0.0.1:9192:9192
+      - 127.0.0.1:12971:12971
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
@@ -160,6 +161,12 @@ services:
       - REDIS_PASSWORD=$REDIS_PASSWORD
     command:
       - "--requirepass $REDIS_PASSWORD"
+  cassandra:
+    image: cassandra:5.0.6
+    ports:
+      - "127.0.0.1:7000:7000"
+      - "127.0.0.1:9042:9042"
+    hostname: cassandra
 volumes:
   tls-scripts:
     driver: local

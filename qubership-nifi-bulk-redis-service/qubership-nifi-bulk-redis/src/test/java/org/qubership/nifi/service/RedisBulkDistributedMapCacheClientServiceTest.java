@@ -282,6 +282,37 @@ class RedisBulkDistributedMapCacheClientServiceTest {
         assertEquals(0, bulkResult.size());
     }
 
+    @Test
+    void getAndPutIfAbsentWithTTL() throws IOException {
+        long timestamp = System.currentTimeMillis();
+        String prop = "testGetAndPutIfAbsentWithTTL-prop-" + timestamp;
+        String value = "value-1-" + timestamp;
+
+        Map<String, String> stringMap1 = new HashMap<>();
+        stringMap1.put(prop, value);
+
+        testRunner.disableControllerService(redisBulkDistributedMapCacheClientService);
+        testRunner.setProperty(redisBulkDistributedMapCacheClientService,
+                RedisBulkDistributedMapCacheClientService.TTL, "2 secs");
+        testRunner.enableControllerService(redisBulkDistributedMapCacheClientService);
+        testRunner.assertValid(redisBulkDistributedMapCacheClientService);
+
+        Map<String, String> result1 = redisBulkDistributedMapCacheClientService
+                .getAndPutIfAbsent(stringMap1, STRING_SERIALIZER, STRING_SERIALIZER, STRING_DESERIALIZER);
+        assertNull(result1.get(prop));
+        assertEquals(value,
+                redisBulkDistributedMapCacheClientService.get(prop, STRING_SERIALIZER, STRING_DESERIALIZER));
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            Assertions.fail("Failed to wait for 3 seconds", e);
+        }
+        //assert that value is gone after TTL:
+        assertNull(redisBulkDistributedMapCacheClientService.get(prop, STRING_SERIALIZER,
+                STRING_DESERIALIZER));
+    }
+
     @AfterEach
     void tearDown() {
         if (redisConnectionPool != null) {

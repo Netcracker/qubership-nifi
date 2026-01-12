@@ -1,3 +1,7 @@
 # Accept the risk, library needed to read old database during upgrade
 # web-console not used
 CVE-2022-45868
+
+# Cassandra-related processors located in Cassandra NARs generate Avro-schema themselves
+# and do not allow user to specify the schema, thus CVE-2024-47561 cannot be exploited in these particular libraries.
+CVE-2024-47561
