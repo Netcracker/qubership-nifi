@@ -35,7 +35,6 @@
         <metrics.dropwizard.version>4.2.37</metrics.dropwizard.version>
         <commons-codec.version>1.19.0</commons-codec.version>
         <commons-csv.version>1.8</commons-csv.version>
-        <spring-core.version>5.3.18</spring-core.version>
     </properties>
 
     <modules>
