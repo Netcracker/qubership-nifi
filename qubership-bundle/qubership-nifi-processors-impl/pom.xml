@@ -151,7 +151,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-            <version>${spring-core.version}</version>
+            <version>${spring-framework.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -227,18 +227,6 @@
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-service</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-serialization-service-api</artifactId>
-            <version>${nifi.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-sink-api</artifactId>
-            <version>${nifi.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
