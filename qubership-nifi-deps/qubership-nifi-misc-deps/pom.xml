@@ -69,5 +69,11 @@
             <version>${nifi.cassandra.nar.version}</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-2-6-nar</artifactId>
+            <version>${nifi.kafka_2_6.nar.version}</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 </project>

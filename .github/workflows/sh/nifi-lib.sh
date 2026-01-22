@@ -452,7 +452,7 @@ setup_env_before_tests() {
         generate_tls_passwords
         create_docker_env_file
     fi
-    if [[ "$runMode" == "oidc" ]]; then
+    if [[ "$runMode" == "oidc"* ]]; then
         create_global_vars_file
     fi
     mkdir -p ./temp-vol/tls-cert/
@@ -473,7 +473,7 @@ setup_env_before_tests() {
             cp ./.github/configuration/zookeeper-acl/*.* ./temp-vol/zk-conf/
         fi
     fi
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+    if [[ "$runMode" == "oidc"* ]] || [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
     if [[ "$runMode" == "cluster"* ]]; then
@@ -494,7 +494,7 @@ setup_env_before_tests() {
     fi
     chmod -R 777 ./temp-vol
     #generate keycloak certificates:
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+    if [[ "$runMode" == "oidc"* ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
     fi
     #set up passwords for zoo.cfg and client.cfg:

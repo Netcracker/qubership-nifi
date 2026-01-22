@@ -55,6 +55,7 @@
         <nifi.api.version>2.3.0</nifi.api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
+        <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
         <pmd.version>3.26.0</pmd.version>
         <jacoco.version>0.8.12</jacoco.version>
         <lombok.version>1.18.30</lombok.version>

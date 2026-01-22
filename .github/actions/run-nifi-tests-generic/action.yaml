@@ -159,11 +159,25 @@ runs:
         global-vars-file-name: "Global_Vars.postman_globals.json"
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run Cassandra NAR test
-      if: ${{ inputs.run-mode == 'oidc' }}
+      if: ${{ inputs.run-mode == 'oidc-cassandra' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:
         collection-name: 'NiFi_Cassandra_NAR_Tests_2.x.postman_collection.json'
+        env-name: ${{ inputs.run-mode != 'plain' && 'NiFi_AT_TLS.json.postman_environment' || 'NiFi_AT.json.postman_environment' }}
+        results-dir: '${{ inputs.run-mode }}'
+        short-name: 'cassandra-nars-test'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
+        global-vars-file-name: "Global_Vars.postman_globals.json"
+        docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
+    - name: Run Kafka NAR test
+      if: ${{ inputs.run-mode == 'oidc-kafka' }}
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'NiFi_Kafka_NAR_Tests_2.x.postman_collection.json'
         env-name: ${{ inputs.run-mode != 'plain' && 'NiFi_AT_TLS.json.postman_environment' || 'NiFi_AT.json.postman_environment' }}
         results-dir: '${{ inputs.run-mode }}'
         short-name: 'cassandra-nars-test'
