@@ -654,76 +654,44 @@ deprecatedComponents='{
         "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use Stateless Process Group instead of ExecuteStateless processor; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafka_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafka_2_6 Processor instead of ConsumeKafka_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafka_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The ConsumeKafka_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafka_2_6 Processor instead of ConsumeKafka_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafkaRecord_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafkaRecord_2_6 Processor instead of ConsumeKafkaRecord_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafkaRecord_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The ConsumeKafkaRecord_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafkaRecord_2_6 Processor instead of ConsumeKafkaRecord_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafka_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafka_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafka_2_6 Processor instead of PublishKafka_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafka_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The PublishKafka_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafka_2_6 Processor instead of PublishKafka_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafkaRecord_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafkaRecord_2_6 Processor instead of PublishKafkaRecord_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafkaRecord_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The PublishKafkaRecord_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafkaRecord_2_6 Processor instead of PublishKafkaRecord_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.record.sink.kafka.KafkaRecordSink_1_0": {
         "level": "Error",
