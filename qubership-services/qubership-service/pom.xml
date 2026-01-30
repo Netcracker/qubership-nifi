@@ -156,12 +156,6 @@
             <version>${jetty.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient</artifactId>
-            <version>0.10.0</version>
-            <scope>compile</scope>
-        </dependency>
 
         <!--TEST-->
         <dependency>
