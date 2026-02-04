@@ -25,6 +25,8 @@ public class MarkdownUtils {
     private static final String PROPERTIES_DESCRIPTION_REPORTING_TASK =
             "<!-- Additional reporting tasks description. DO NOT REMOVE -->";
 
+    private static final int NUMBER_OF_COLUMN = 3;
+
     private final Path templateFile;
 
     /**
@@ -39,6 +41,14 @@ public class MarkdownUtils {
         this.templateFile = templateFileValue;
     }
 
+    /**
+     * Generates or updates a markdown table in a template file with component information.
+     *
+     * @param processorRows array of component for table
+     * @param componentType the type of component table to generate; must be one of:
+     *  *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
+     * @throws IOException
+     */
     public void generateTable(String[][] processorRows, String componentType) throws IOException {
         List<String> lines = Files.readAllLines(templateFile);
 
@@ -99,7 +109,7 @@ public class MarkdownUtils {
         List<String> newTableRows = new ArrayList<>();
         if (processorRows != null) {
             for (String[] row : processorRows) {
-                if (row != null && row.length >= 3) {
+                if (row != null && row.length >= NUMBER_OF_COLUMN) {
                     String tableRow = "| " + row[0] + " | " + row[1] + " | " + row[2] + " |";
                     newTableRows.add(tableRow);
                 } else {
@@ -132,6 +142,15 @@ public class MarkdownUtils {
         Files.write(templateFile, updatedLines);
     }
 
+    /**
+     * Generates detailed property descriptions for components in markdown format
+     * and inserts them into a template file.
+     *
+     * @param componentEntityMap map of component for table
+     * @param componentType the type of component properties to generate; must be one of:
+     *                    {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
+     * @throws IOException
+     */
     public void generatePropertyDescription(
             Map<String, List<CustomComponentEntity>> componentEntityMap,
             String componentType) throws IOException {
@@ -198,8 +217,8 @@ public class MarkdownUtils {
                                     ? entity.getDefaultValueAsString() : "";
                             String allowableValuesStr = entity.getAllowableValuesAsString() != null
                                     ? entity.getAllowableValuesAsString() : "";
-                            String description = entity.getDescriptioneAsString() != null
-                                    ? entity.getDescriptioneAsString() : "";
+                            String description = entity.getDescriptionAsString() != null
+                                    ? entity.getDescriptionAsString() : "";
                             descriptionLines.add("| " + displayName + " | " + apiName + " | " + defaultValue + " | "
                                     + allowableValuesStr + " | " + description + " |");
                         } else {

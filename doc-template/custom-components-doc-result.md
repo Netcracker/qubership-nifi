@@ -76,7 +76,7 @@ Validates the content of FlowFiles against the JSON schema. The FlowFiles that a
 | Entity Type Path | be-type-path | _businessEntityType |  | A JsonPath expression that specifies path to business entity type attribute in the content of incoming FlowFile. |
 | ID Path | source-id-path | _sourceId |  | A JsonPath expression that specifies path to source ID attribute in the content of incoming FlowFile. |
 | Error Code | error-code | ME-JV-0002 |  | Validation error code. Used as identification error code when formatting an array of validation errors. |
-| Wrapper regular expression | wrapper-regex |  |  | Regular expression to define path of wrapper in aggregated business entity. If validation errors are detected and regular expression is set and matched, the wrapper path will be removed from the error path, ID of the wrapper will be replaced to ID of the business entity. |
+| Wrapper regex | wrapper-regex |  |  | Regular expression to define path of wrapper in aggregated business entity. If validation errors are detected and regular expression is set and matched, the wrapper path will be removed from the error path, ID of the wrapper will be replaced to ID of the business entity. |
 
 ### QueryDatabaseToJsonWithMerge
 
@@ -138,9 +138,9 @@ A processor that generates Records based on its properties and sends them to a d
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
 | Record Destination Service | put-record-sink |  |  | The Controller Service which is used to send the result Record to some destination. |
-| Source type | source-type | dynamicProperties | Dynamic Properties, Json Property | The source type that will be used to create the record. The record source can be a Dynamic Processor Property or a 'JSON Property' property. |
-| List Json Dynamic Property | list-json-dynamic-property |  |  | Comma-separated list of dynamic properties that contain JSON values |
-| Json Property | json-property-object |  |  | A complex json object for generating Record.A JSON object must have a flat structure without nested objects or arrays of non-scalar types. Object keys directly correspond to attribute names and are used as field names. All values must be scalar. Arrays containing only numeric values are allowed. |
+| Source type | source-type | dynamicProperties | Dynamic Properties, JSON Property | The source type that will be used to create the record. The record source can be a Dynamic Processor Property or a 'JSON Property' property. |
+| List JSON Dynamic Property | list-json-dynamic-property |  |  | Comma-separated list of dynamic properties that contain JSON values |
+| Json Property | json-property-object |  |  | A complex JSON object for generating Record.A JSON object must have a flat structure without nested objects or arrays of non-scalar types. Object keys directly correspond to attribute names and are used as field names. All values must be scalar. Arrays containing only numeric values are allowed. |
 
 
 ## Additional controller services

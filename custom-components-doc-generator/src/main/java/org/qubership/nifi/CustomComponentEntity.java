@@ -65,8 +65,9 @@ public class CustomComponentEntity {
 
 
     /**
+     * Gets default value as string.
      *
-     * @return
+     * @return string default value
      */
     public String getDefaultValueAsString() {
         if (defaultValue == null || defaultValue.isEmpty()) {
@@ -84,11 +85,11 @@ public class CustomComponentEntity {
     }
 
     /**
+     * Gets description as string.
      *
-     *
-     * @return
+     * @return string description
      */
-    public String getDescriptioneAsString() {
+    public String getDescriptionAsString() {
         if (description == null || description.isEmpty()) {
             return "";
         }
