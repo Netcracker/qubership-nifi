@@ -60,7 +60,7 @@ import java.util.TreeSet;
 @Mojo(name = "generate", requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class GenerateDoc extends AbstractMojo {
 
-    private Set<String> EXCLUDED_ARTIFACT_IDS;
+    private Set<String> excludedArtifactIds;
 
     @Component
     private DependencyGraphBuilder dependencyGraphBuilder;
@@ -87,6 +87,10 @@ public class GenerateDoc extends AbstractMojo {
             readonly = true, required = true)
     private String artifactExcludedListPath;
 
+    /**
+     *
+     * @throws MojoExecutionException
+     */
     @Override
     public void execute() throws MojoExecutionException {
         if (!"nar".equalsIgnoreCase(project.getPackaging())) {
@@ -104,7 +108,7 @@ public class GenerateDoc extends AbstractMojo {
 
         File artifactExcludedListFile = new File(topLevelBasedir, artifactExcludedListPath);
         Set<String> excludedIds = readExcludedArtifactsFromFile(artifactExcludedListFile);
-        EXCLUDED_ARTIFACT_IDS = Collections.unmodifiableSet(excludedIds);
+        excludedArtifactIds = Collections.unmodifiableSet(excludedIds);
 
         try {
             generateDocumentation(outputFile);
@@ -113,7 +117,7 @@ public class GenerateDoc extends AbstractMojo {
         }
     }
 
-    public static Set<String> readExcludedArtifactsFromFile(File configFile) {
+    private static Set<String> readExcludedArtifactsFromFile(File configFile) {
         if (configFile == null || !configFile.exists() || !configFile.isFile()) {
             System.err.println("Configuration file does not exist or is not a file: "
                     + (configFile != null ? configFile.getAbsolutePath() : "null"));
@@ -294,7 +298,6 @@ public class GenerateDoc extends AbstractMojo {
 
         getLog().debug("Found NAR dependency of " + narArtifact
                 + ", which resolved to the following artifacts: " + narDependencies);
-        
         Set<Artifact> artifactsToAdd = new HashSet<>();
         for (Artifact artifact : narDependencies) {
             if ("org.qubership.nifi".equals(artifact.getGroupId())) {
@@ -336,7 +339,7 @@ public class GenerateDoc extends AbstractMojo {
             final ProjectBuildingRequest projectRequest = createProjectBuildingRequest();
             projectRequest.setProject(mavenProject);
 
-            final ArtifactFilter excludesFilter = new ExclusionSetFilter(EXCLUDED_ARTIFACT_IDS);
+            final ArtifactFilter excludesFilter = new ExclusionSetFilter(excludedArtifactIds);
             final DependencyNode depNode = dependencyGraphBuilder.buildDependencyGraph(projectRequest, excludesFilter);
             depNode.accept(nodeVisitor);
         } catch (DependencyGraphBuilderException e) {

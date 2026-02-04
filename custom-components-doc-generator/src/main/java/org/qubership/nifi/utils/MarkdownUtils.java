@@ -27,11 +27,16 @@ public class MarkdownUtils {
 
     private final Path templateFile;
 
-    public MarkdownUtils(final Path templateFile) {
-        if (templateFile == null) {
+    /**
+     * Constructor for class MarkdownUtils.
+     *
+     * @param templateFileValue File to write
+     */
+    public MarkdownUtils(final Path templateFileValue) {
+        if (templateFileValue == null) {
             throw new IllegalArgumentException("Output file path cannot be null");
         }
-        this.templateFile = templateFile;
+        this.templateFile = templateFileValue;
     }
 
     public void generateTable(String[][] processorRows, String componentType) throws IOException {
