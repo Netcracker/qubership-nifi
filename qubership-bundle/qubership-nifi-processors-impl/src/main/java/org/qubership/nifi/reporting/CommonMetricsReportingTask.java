@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends Nifi metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
+@Deprecated(since = "2.4.0", forRemoval = true)
 public class CommonMetricsReportingTask extends AbstractInfluxDbReportingTask {
 
     private MemoryMXBean memoryMxBean;

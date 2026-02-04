@@ -36,6 +36,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends components (Processors, Connections) metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
+@Deprecated(since = "2.4.0", forRemoval = true)
 public class ComponentMetricsReportingTask
         extends AbstractInfluxDbReportingTask {
     /**
