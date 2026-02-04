@@ -3,8 +3,6 @@ package org.qubership.nifi;
 import org.apache.nifi.components.AllowableValue;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CustomComponentEntity {
@@ -85,6 +83,11 @@ public class CustomComponentEntity {
         return description;
     }
 
+    /**
+     *
+     *
+     * @return
+     */
     public String getDescriptioneAsString() {
         if (description == null || description.isEmpty()) {
             return "";
@@ -108,6 +111,11 @@ public class CustomComponentEntity {
         return allowableValues;
     }
 
+    /**
+     * Get list of allowable values in string format.
+     *
+     * @return allowable values in string format
+     */
     public String getAllowableValuesAsString() {
         if (allowableValues == null || allowableValues.isEmpty()) {
             return "";
@@ -156,6 +164,14 @@ public class CustomComponentEntity {
     public void setComponentDescription(String newComponentDescription) {
         this.componentDescription = newComponentDescription;
     }
+
+    /**
+     * Escapes HTTP and HTTPS links in a string by wrapping them with backticks.
+     *
+     * @param str the input string to process
+     * @return string with escaped HTTP links, or the original string
+     *  *         if it is {@code null}, empty, or contains no links
+     */
 
     public String escapeHttpLinks(String str) {
         if (str == null || str.isEmpty()) {

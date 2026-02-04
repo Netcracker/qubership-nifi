@@ -52,11 +52,11 @@ import java.util.stream.Collectors;
 @Tags({"record", "put", "sink"})
 @CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination"
         + " specified by a Record Destination Service (i.e., record sink). The record source is defined by the "
-        + "'Source Type' property, which can be either 'Dynamic Properties' or 'Json Property'. If 'Source Type'"
+        + "'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type'"
         + " is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type "
         + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a "
-        + "JSON value and is listed in the 'List Json Dynamic Property' property). If 'Source Type' is set to "
-        + "'Json Property', the Record is generated directly from the JSON value in the 'Json Property'.")
+        + "JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to "
+        + "'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.")
 @DynamicProperties(@DynamicProperty(name = "*", value = "*",
         description = "The processor’s dynamic properties serve as the data source for generating a record. "
                 + "The Dynamic Property Key defines the field name, while the value of the dynamic property determines"
@@ -105,7 +105,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
             .name("source-type")
             .displayName("Source type")
             .description("The source type that will be used to create the record. "
-                    + "The record source can be a Dynamic Processor Property or a 'Json Property' property.")
+                    + "The record source can be a Dynamic Processor Property or a 'JSON Property' property.")
             .required(true)
             .allowableValues(
                     SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue(),

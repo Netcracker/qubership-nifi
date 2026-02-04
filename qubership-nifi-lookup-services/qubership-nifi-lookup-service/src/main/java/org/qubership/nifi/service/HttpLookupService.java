@@ -81,7 +81,7 @@ public class HttpLookupService extends AbstractControllerService
             .name("http-lookup-url")
             .displayName("URL")
             .description("The URL to send request to. Expression language is supported "
-                    + "and evaluated against both the lookup key/value pairs and FlowFile attributes.")
+                    + "and evaluated against both the lookup key-value pairs and FlowFile attributes.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
