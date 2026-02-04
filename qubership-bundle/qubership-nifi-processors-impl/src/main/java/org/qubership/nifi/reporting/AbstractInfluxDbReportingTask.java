@@ -40,6 +40,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.InfluxDBIOException;
 
+@Deprecated(since = "2.4.0", forRemoval = true)
 public abstract class AbstractInfluxDbReportingTask
         extends AbstractReportingTask {
     /**
