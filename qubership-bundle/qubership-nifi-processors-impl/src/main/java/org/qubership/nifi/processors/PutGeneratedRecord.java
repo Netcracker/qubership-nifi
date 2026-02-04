@@ -119,7 +119,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
      */
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
-            .displayName("List Json Dynamic Property")
+            .displayName("List JSON Dynamic Property")
             .description("Comma-separated list of dynamic properties that contain JSON values")
             .addValidator(LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -131,7 +131,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
                 .displayName("Json Property")
-            .description("A complex json object for generating Record.A JSON object must have a flat structure without"
+            .description("A complex JSON object for generating Record.A JSON object must have a flat structure without"
                     + " nested objects or arrays of non-scalar types. Object keys directly correspond to attribute"
                     + " names and are used as field names. All values must be scalar. Arrays containing only numeric"
                     + " values are allowed.")
