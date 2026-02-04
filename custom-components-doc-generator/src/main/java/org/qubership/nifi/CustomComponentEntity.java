@@ -9,12 +9,6 @@ import java.util.stream.Collectors;
 
 public class CustomComponentEntity {
 
-    private static final String URL_REGEX =
-            "\\b(?:https?://|www\\d{0,3}[.]|[a-zA-Z0-9.-]+[.][a-zA-Z]{2,4}/)(?:[^\\s()<>]+|\\(([^\\s()<>]+|(\\([^\\s()"
-                    + "<>]+\\)))*\\))+(?:\\(([^\\s()<>]+|(\\([^\\s()<>]+\\)))*\\)|[^\\s`!()\\[\\]{};:'\".,<>?«»“”‘’])";
-
-    private static final Pattern URL_PATTERN = Pattern.compile(URL_REGEX);
-
     private String displayName;
     private String apiName;
     private String defaultValue;
@@ -22,40 +16,71 @@ public class CustomComponentEntity {
     private String componentDescription;
     private final List<AllowableValue> allowableValues;
 
+    /**
+     * Constructor for class CustomComponentEntity.
+     *
+     * @param displayNameValue display name value
+     * @param apiNameValue api name value
+     * @param defaultNameValue default name value
+     * @param descriptionValue description value
+     * @param allowableValuesValue allowable values value
+     * @param componentDescriptionValue component description value
+     */
     public CustomComponentEntity(
-            final String displayName,
-            final String apiName,
-            final String defaultName,
-            final String description,
-            List<AllowableValue> allowableValues,
-            final String componentDescription) {
-        this.displayName = displayName;
-        this.apiName = apiName;
-        this.defaultValue = defaultName;
-        this.description = description;
-        this.allowableValues = allowableValues;
-        this.componentDescription = componentDescription;
+            final String displayNameValue,
+            final String apiNameValue,
+            final String defaultNameValue,
+            final String descriptionValue,
+            final List<AllowableValue> allowableValuesValue,
+            final String componentDescriptionValue) {
+        this.displayName = displayNameValue;
+        this.apiName = apiNameValue;
+        this.defaultValue = defaultNameValue;
+        this.description = descriptionValue;
+        this.allowableValues = allowableValuesValue;
+        this.componentDescription = componentDescriptionValue;
     }
 
+    /**
+     * Gets display name.
+     * @return display name
+     */
     public String getDisplayName() {
         return displayName;
     }
 
+    /**
+     * Gets api name.
+     * @return api name
+     */
     public String getApiName() {
         return apiName;
     }
 
+    /**
+     * Gets default value.
+     * @return default value
+     */
     public String getDefaultValue() {
         return defaultValue;
     }
 
+
+    /**
+     *
+     * @return
+     */
     public String getDefaultValueAsString() {
         if (defaultValue == null || defaultValue.isEmpty()) {
             return "";
         }
-        return escapeUrls(defaultValue);
+        return escapeHttpLinks(defaultValue);
     }
 
+    /**
+     * Gets description.
+     * @return description
+     */
     public String getDescription() {
         return description;
     }
@@ -64,13 +89,21 @@ public class CustomComponentEntity {
         if (description == null || description.isEmpty()) {
             return "";
         }
-        return escapeUrls(description);
+        return escapeHttpLinks(description);
     }
 
+    /**
+     * Gets component description.
+     * @return component description
+     */
     public String getComponentDescription() {
         return componentDescription;
     }
 
+    /**
+     * Gets list allowable values.
+     * @return list allowable values
+     */
     public List<AllowableValue> getAllowableValues() {
         return allowableValues;
     }
@@ -84,37 +117,53 @@ public class CustomComponentEntity {
                 .collect(Collectors.joining(", "));
     }
 
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    /**
+     * Sets display name.
+     * @param newDisplayName
+     */
+    public void setDisplayName(String newDisplayName) {
+        this.displayName = newDisplayName;
     }
 
-    public void setApiName(String apiName) {
-        this.apiName = apiName;
+    /**
+     * Sets api name.
+     * @param newApiName
+     */
+    public void setApiName(String newApiName) {
+        this.apiName = newApiName;
     }
 
-    public void setDefaultValue(String defaultName) {
-        this.defaultValue = defaultName;
+    /**
+     * Sets default value.
+     * @param newDefaultName
+     */
+    public void setDefaultValue(String newDefaultName) {
+        this.defaultValue = newDefaultName;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    /**
+     * Sets description.
+     * @param newDescription
+     */
+    public void setDescription(String newDescription) {
+        this.description = newDescription;
     }
 
-    public void setComponentDescription(String componentDescription) {
-        this.componentDescription = componentDescription;
+    /**
+     * Sets component description.
+     * @param newComponentDescription
+     */
+    public void setComponentDescription(String newComponentDescription) {
+        this.componentDescription = newComponentDescription;
     }
 
-    public static String escapeUrls(String value) {
-        Matcher matcher = URL_PATTERN.matcher(value);
-        StringBuffer sb = new StringBuffer();
-
-        boolean foundUrl = false;
-        while (matcher.find()) {
-            foundUrl = true;
-            matcher.appendReplacement(sb, "`" + matcher.group() + "`");
+    public String escapeHttpLinks(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
         }
-        matcher.appendTail(sb);
 
-        return foundUrl ? sb.toString() : value;
+        String regex = "(https?://[^\\s]+)";
+
+        return str.replaceAll(regex, "`$1`");
     }
 }
