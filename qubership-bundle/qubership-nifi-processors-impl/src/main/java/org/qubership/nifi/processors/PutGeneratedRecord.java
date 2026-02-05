@@ -130,7 +130,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
      */
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
-                .displayName("Json Property")
+                .displayName("JSON Property")
             .description("A complex JSON object for generating Record.A JSON object must have a flat structure without"
                     + " nested objects or arrays of non-scalar types. Object keys directly correspond to attribute"
                     + " names and are used as field names. All values must be scalar. Arrays containing only numeric"

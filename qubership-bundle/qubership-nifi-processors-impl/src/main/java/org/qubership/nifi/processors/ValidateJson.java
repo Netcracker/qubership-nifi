@@ -129,7 +129,7 @@ public class ValidateJson extends AbstractProcessor {
             .build();
 
     private static final String WRAPPER_REGEX_PROP_NAME = "wrapper-regex";
-    private static final String WRAPPER_REGEX_PROP_DISPLAY_NAME = "Wrapper regex";
+    private static final String WRAPPER_REGEX_PROP_DISPLAY_NAME = "Wrapper regular expression";
     /**
      * Wrapper regex property descriptor.
      */
