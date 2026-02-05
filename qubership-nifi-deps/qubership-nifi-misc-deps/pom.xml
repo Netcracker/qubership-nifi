@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-deps</artifactId>
-        <version>2.3.2-SNAPSHOT</version>
+        <version>2.3.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -67,6 +67,12 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-nar</artifactId>
             <version>${nifi.cassandra.nar.version}</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-2-6-nar</artifactId>
+            <version>${nifi.kafka_2_6.nar.version}</version>
             <type>nar</type>
         </dependency>
     </dependencies>

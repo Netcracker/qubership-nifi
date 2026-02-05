@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>qubership-consul</artifactId>
     <packaging>pom</packaging>
-    <version>2.3.2-SNAPSHOT</version>
+    <version>2.3.3-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -55,7 +55,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.7</version>
+        <version>3.5.9</version>
         <relativePath />
     </parent>
 
@@ -67,12 +67,12 @@
         <jacoco.version>0.8.8</jacoco.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
         <com-google-guava.version>32.1.3-jre</com-google-guava.version>
-        <spring-cloud-consul.version>4.2.1</spring-cloud-consul.version>
-        <spring-cloud-context.version>4.2.1</spring-cloud-context.version>
+        <spring-cloud-consul.version>4.3.1</spring-cloud-consul.version>
+        <spring-cloud-context.version>4.3.1</spring-cloud-context.version>
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
         <testcontainers.version>1.20.4</testcontainers.version>
-        <nifi.version>2.5.0</nifi.version>
-        <spring-framework.version>6.2.11</spring-framework.version>
+        <nifi.version>2.6.0</nifi.version>
+        <spring-framework.version>6.2.15</spring-framework.version>
         <slf4j.version>2.0.17</slf4j.version>
     </properties>
 

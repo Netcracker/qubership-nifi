@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.0.2@sha256:028b335259ba14a32c91c11657ebff5f3c7172fd5edb26cb612fc7ec82f9c698 AS base
+FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.1.1@sha256:36217a867a92977ceb6a34b9b5bdce9f1af11050486e3da0252ce180fb107b3d AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -20,7 +20,7 @@ USER root
 RUN apk add --no-cache \
     jq=1.8.1-r0 \
     python3=3.12.12-r0 \
-    py3-pip=25.1.1-r0
+    py3-pip=25.1.1-r1
 
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
@@ -33,14 +33,7 @@ ENV HOME=${NIFI_HOME}
 RUN mkdir -p /opt/nifi/nifi-home-dir \
     && ln -s /opt/nifi/nifi-home-dir /home/nifi \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
-    && chmod 775 /opt/nifi/nifi-home-dir \
-    && adduser --disabled-password \
-        --gecos "" \
-        --home "${NIFI_HOME}" \
-        --ingroup "root" \
-        --no-create-home \
-        --uid 10001 \
-        $USER_NAME
+    && chmod 775 /opt/nifi/nifi-home-dir
 
 USER 10001
 
@@ -48,6 +41,7 @@ FROM apache/nifi:2.6.0@sha256:81a6217fe9c8fcbd6bdf2a9609f0068ea0a8a49e3477bf9a19
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-cassandra-*.nar ${NIFI_HOME}/lib/
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-kafka-*.nar ${NIFI_HOME}/lib/
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"

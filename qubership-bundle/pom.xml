@@ -21,13 +21,13 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.3.2-SNAPSHOT</version>
+        <version>2.3.3-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>org.qubership.nifi</groupId>
     <artifactId>qubership-bundle</artifactId>
-    <version>2.3.2-SNAPSHOT</version>
+    <version>2.3.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -35,7 +35,6 @@
         <metrics.dropwizard.version>4.2.37</metrics.dropwizard.version>
         <commons-codec.version>1.19.0</commons-codec.version>
         <commons-csv.version>1.8</commons-csv.version>
-        <spring-core.version>5.3.18</spring-core.version>
     </properties>
 
     <modules>

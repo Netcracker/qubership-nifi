@@ -74,6 +74,8 @@ jobs:
         run-mode:
         - 'tls'
         - 'oidc'
+        - 'oidc-cassandra'
+        - 'oidc-kafka'
         - 'cluster'
         - 'cluster-statefulset'
         - 'cluster-statefulset-acl'

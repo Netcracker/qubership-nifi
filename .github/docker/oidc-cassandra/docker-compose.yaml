@@ -162,6 +162,12 @@ services:
       - REDIS_PASSWORD=$REDIS_PASSWORD
     command:
       - "--requirepass $REDIS_PASSWORD"
+  cassandra:
+    image: cassandra:5.0.6
+    ports:
+      - "127.0.0.1:7000:7000"
+      - "127.0.0.1:9042:9042"
+    hostname: cassandra
 volumes:
   tls-scripts:
     driver: local
