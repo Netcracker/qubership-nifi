@@ -192,7 +192,8 @@ public class GenerateDoc extends AbstractMojo {
                 if (capabilityDescriptionAnnotationProc != null) {
                     String processorName = processorClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationProc.value();
-                    String[] row = {processorName, project.getArtifactId(), descriptionValue.replaceAll("\\r?\\n|\\r", "")};
+                    String[] row = {processorName, project.getArtifactId(),
+                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
                     processorRowsList.add(row);
                     if (propertyDescriptors != null) {
                         processorEntityMap.put(
@@ -219,7 +220,8 @@ public class GenerateDoc extends AbstractMojo {
                 if (capabilityDescriptionAnnotationCS != null) {
                     String controllerServiceName = controllerServiceClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationCS.value();
-                    String[] csRow = {controllerServiceName, project.getArtifactId(), descriptionValue.replaceAll("\\r?\\n|\\r", "")};
+                    String[] csRow = {controllerServiceName, project.getArtifactId(),
+                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
                     controllerServiceRowsList.add(csRow);
                     if (propertyDescriptors != null) {
                         controllerServiceEntityMap.put(controllerServiceName,
@@ -249,7 +251,8 @@ public class GenerateDoc extends AbstractMojo {
                 if (capabilityDescriptionAnnotationRT != null) {
                     String reportingTaskName = reportingTaskClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationRT.value();
-                    String[] rtRow = {reportingTaskName, project.getArtifactId(), descriptionValue.replaceAll("\\r?\\n|\\r", "")};
+                    String[] rtRow = {reportingTaskName, project.getArtifactId(),
+                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
                     reportingTaskRowsList.add(rtRow);
                     if (propertyDescriptors != null) {
                         reportingTaskEntityMap.put(reportingTaskName,
