@@ -71,7 +71,7 @@
         <spring-cloud-context.version>4.3.1</spring-cloud-context.version>
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
         <testcontainers.version>1.20.4</testcontainers.version>
-        <nifi.version>2.6.0</nifi.version>
+        <nifi.version>2.7.2</nifi.version>
         <spring-framework.version>6.2.15</spring-framework.version>
         <slf4j.version>2.0.17</slf4j.version>
     </properties>
