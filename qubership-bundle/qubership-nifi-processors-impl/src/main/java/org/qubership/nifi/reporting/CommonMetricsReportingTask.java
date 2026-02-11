@@ -41,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @deprecated Since qubership-nifi v.2.4.0. To be removed in 2.7.0.
+ */
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends Nifi metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")

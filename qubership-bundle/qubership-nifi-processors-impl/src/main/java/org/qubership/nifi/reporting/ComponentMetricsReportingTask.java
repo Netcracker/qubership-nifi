@@ -34,6 +34,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+/**
+ * @deprecated Since qubership-nifi v.2.4.0. To be removed in 2.7.0.
+ */
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends components (Processors, Connections) metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
