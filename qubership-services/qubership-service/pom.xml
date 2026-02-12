@@ -152,7 +152,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.ee11</groupId>
-            <artifactId>jetty-ee11-servlets</artifactId>
+            <artifactId>jetty-ee11-servlet</artifactId>
             <version>${jetty.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -211,12 +211,6 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty.ee11</groupId>
-            <artifactId>jetty-ee11-servlet</artifactId>
-            <version>12.1.5</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 
