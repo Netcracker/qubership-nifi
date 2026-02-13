@@ -3,6 +3,7 @@ package org.qubership.nifi.utils;
 import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.ComponentType;
 import org.qubership.nifi.CustomComponentEntity;
+import org.qubership.nifi.PropertyDescriptorEntity;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,10 +12,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
-import static org.qubership.nifi.ComponentType.PROCESSOR;
-import static org.qubership.nifi.ComponentType.REPORTING_TASK;
 
 public class MarkdownUtils {
 
@@ -36,11 +33,13 @@ public class MarkdownUtils {
     private static final String HEADER_PROCESSORS = "| Processor " + HEADER_BASE;
     private static final String HEADER_CONTROLLER_SERVICES = "| Controller Service " + HEADER_BASE;
     private static final String HEADER_REPORTING_TASKS = "| Reporting Task " + HEADER_BASE;
-    private static final String TITLE_SEPARATOR = "|------------------------|---------------------|" +
-            "--------------------|";
+    private static final String TITLE_SEPARATOR = "|----------------------|--------------------|--------------------|";
 
     private static final String PROPERTIES_DESCRIPTION_HEADER = "| Display Name                      | API Name        " +
             "    | Default Value      | Allowable Values   | Description        |";
+
+    private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
+            + "---------------|--------------------|--------------------|--------------------|";
 
     private static final int NUMBER_OF_COLUMN = 3;
 
@@ -75,14 +74,17 @@ public class MarkdownUtils {
     }
 
     /**
-     * Generates or updates a markdown table in a template file with component information.
+     * Generates or updates a Markdown table in a template file with component information.
      *
-     * @param processorRows array of component for table
+     * @param customComponentList list of component for table
      * @param componentType the type of component table to generate; must be one of:
      *  *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      * @throws IOException
      */
-    public void generateTable(String[][] processorRows, ComponentType componentType) throws IOException {
+    public void generateTable(
+            List<CustomComponentEntity> customComponentList,
+            ComponentType componentType
+    ) throws IOException {
 
         List<String> updatedLines = new ArrayList<>();
         boolean headerFound = false;
@@ -136,14 +138,16 @@ public class MarkdownUtils {
         }
 
         List<String> newTableRows = new ArrayList<>();
-        if (processorRows != null) {
-            for (String[] row : processorRows) {
-                if (row != null && row.length >= NUMBER_OF_COLUMN) {
-                    String tableRow = "| " + row[0] + " | " + row[1] + " | " + row[2] + " |";
-                    newTableRows.add(tableRow);
-                } else {
-                    getLog().error("Skipping invalid row data: " + Arrays.toString(row));
-                }
+        if (!customComponentList.isEmpty()) {
+            for (CustomComponentEntity customComponentEntity : customComponentList) {
+                String tableRow = "| "
+                        + customComponentEntity.getComponentName()
+                        + " | "
+                        + customComponentEntity.getComponentNar()
+                        + " | "
+                        + customComponentEntity.getComponentDescription().replaceAll("\\r?\\n|\\r", "")
+                        + " |";
+                newTableRows.add(tableRow);
             }
         }
 
@@ -171,17 +175,18 @@ public class MarkdownUtils {
         lines = updatedLines;
     }
 
+
     /**
      * Generates detailed property descriptions for components in markdown format
      * and inserts them into a template file.
      *
-     * @param componentEntityMap map of component for table
+     * @param customComponentList map of component for table
      * @param componentType the type of component properties to generate; must be one of:
      *                    {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      * @throws IOException
      */
     public void generatePropertyDescription(
-            Map<String, List<CustomComponentEntity>> componentEntityMap,
+            List<CustomComponentEntity> customComponentList,
             ComponentType componentType) throws IOException {
         String strTemplate = switch (componentType) {
             case PROCESSOR -> PROPERTIES_DESCRIPTION_PROCESSOR;
@@ -208,17 +213,17 @@ public class MarkdownUtils {
         }
 
         List<String> descriptionLines = new ArrayList<>();
-        if (componentEntityMap != null) {
-            for (Map.Entry<String, List<CustomComponentEntity>> entry : componentEntityMap.entrySet()) {
-                String componentName = entry.getKey();
-                List<CustomComponentEntity> entities = entry.getValue();
+        if (!customComponentList.isEmpty()) {
+            for (CustomComponentEntity customComponentEntity : customComponentList) {
+                String componentName = customComponentEntity.getComponentName();
+                List<PropertyDescriptorEntity> entities = customComponentEntity.getComponentProperties();
 
                 descriptionLines.add("### " + componentName);
                 descriptionLines.add("");
 
                 String componentDescription = null;
                 if (entities != null && !entities.isEmpty()) {
-                    CustomComponentEntity firstEntity = entities.get(0);
+                    PropertyDescriptorEntity firstEntity = entities.get(0);
                     if (firstEntity != null) {
                         componentDescription = firstEntity.getComponentDescription();
                     }
@@ -230,10 +235,10 @@ public class MarkdownUtils {
                 }
 
                 descriptionLines.add(PROPERTIES_DESCRIPTION_HEADER);
-                descriptionLines.add(TITLE_SEPARATOR);
+                descriptionLines.add(PROPERTIES_DESCRIPTION_TITLE_SEPARATOR);
 
                 if (entities != null) {
-                    for (CustomComponentEntity entity : entities) {
+                    for (PropertyDescriptorEntity entity : entities) {
                         if (entity != null) {
                             String displayName = entity.getDisplayName() != null ? entity.getDisplayName() : "";
                             String apiName = entity.getApiName() != null ? entity.getApiName() : "";

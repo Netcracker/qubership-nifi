@@ -12,8 +12,8 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Table for additional processor. DO NOT REMOVE. -->
 
-| Processor | NAR                 | Description        |
-|------------------------|---------------------|--------------------|
+| Processor  | NAR                 | Description        |
+|----------------------|--------------------|--------------------|
 | QueryDatabaseToJsonWithMerge | migration-nifi-processors-open | Executes custom query to fetch rows from table and merge them with the main JSON object which is in the content of incoming FlowFile.  The Path property supports JsonPath syntax to find source ID attributes in the main object.  The main and queried objects are merged by join key properties.You can specify where exactly to insert queried objects and by what key with path  to insert and key to insert properties. |
 | QueryDatabaseToJson | migration-nifi-processors-open | Fetches data from database table and transforms it to JSON.This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passedin select query as an array. Obtained result set will be written into output FlowFile.Expects that content of an incoming FlowFile is array of unique business entity identifiers in the JSON format. |
 | FetchTableToJson | migration-nifi-processors-open | Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and  list of columns (Columns To Return). This processor works in batched mode: it collects FlowFiles until  batch size limit is reached and then processes batch. This processor can accept incoming connections;  the behavior of the processor is different whether incoming connections are provided: -If no incoming connection(s) are specified, the processor will generate SQL queries on the specified  processor schedule. -If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed. -If incoming connection(s) are specified and a FlowFile is available to a processor task, query  will be executed when processing the next FlowFile.  |
@@ -27,6 +27,19 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 ## Additional processors properties description
 
 <!-- Additional processors properties description. DO NOT REMOVE -->
+### PutSQLRecord
+
+Executes given SQL statement using data from input records. All records within single  
+FlowFile are processed within single transaction.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Record Reader | record-reader |  |  | Record Reader |
+| SQL Statement | sql-statement |  |  | SQL statement that should be executed for each record. Statement must contains exactly the same number and types of binds as number and types of fields in RecordSchema. |
+| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database |
+| Maximum Batch Size | max-batch-size | 100 |  | Maximum number of records to include into DB batch |
+| Convert Payload | convert-payload | false | true, false | When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present in the input Record. By default is set to false. |
+
 ### PostgreSQLBulkLoader
 
 The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.
@@ -41,18 +54,45 @@ It is also possible to copy from DB to FlowFile content.
 | Copy Mode | copy-mode | to | To, From | Provides a selection of copy mode (from stdin/to stdout). |
 | Read From | read-from | file-system | File System, Content | Provides a selection of data to copy. |
 
-### PutSQLRecord
+### QueryDatabaseToJsonWithMerge
 
-Executes given SQL statement using data from input records. All records within single  
-FlowFile are processed within single transaction.
+Executes custom query to fetch rows from table and merge them with the main JSON object 
+which is in the content of incoming FlowFile. 
+ The Path property supports JsonPath syntax to find source ID attributes in the main object. 
+ The main and queried objects are merged by join key properties.
+You can specify where exactly to insert queried objects and by what key with path 
+ to insert and key to insert properties.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Record Reader | record-reader |  |  | Record Reader |
-| SQL Statement | sql-statement |  |  | SQL statement that should be executed for each record. Statement must contains exactly the same number and types of binds as number and types of fields in RecordSchema. |
-| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database |
-| Maximum Batch Size | max-batch-size | 100 |  | Maximum number of records to include into DB batch |
-| Convert Payload | convert-payload | false | true, false | When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present in the input Record. By default is set to false. |
+| Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the database. |
+| Prepared Statement Provider | prepared-statement-provider-service |  |  | The Controller Service that is used to create a prepared statement. |
+| Batch Size | internal-batch-size | 100 |  | The maximum number of rows from the result set to be saved in single FlowFile. |
+| Fetch Size | Fetch Size | 1000 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
+| Query | db-fetch-sql-query |  |  | A custom SQL query used to retrieve data. Instead of building a SQL query from other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement. |
+| Path | path |  |  | A JsonPath expression that specifies path to source ID attribute inside the array in the incoming FlowFile. |
+| Join Key Parent With Child | join-key-parent-with-child |  |  | The objects' key in the input JSON that uses to join with objects that will be queried |
+| Join Key Child With Parent | Join Key Child With Parent |  |  | The queried objects' key that uses to join with objects that will come in the input JSON |
+| Key To Insert | key-to-insert |  |  | A key that is used to insert the queried object in the main object. |
+| Path To Insert | path-to-insert |  |  | A key that uses to insert queried objects in the objects that will come in the input JSON |
+| Clean Up Policy | clean-up-policy | NONE | NONE, SOURCE, TARGET | Defines cleanup policy for keys used in join:- TARGET: remove parent key- SOURCE: remove child key- NONE: don't remove any keys |
+
+### QueryDatabaseToJson
+
+Fetches data from database table and transforms it to JSON.
+This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passed
+in select query as an array. Obtained result set will be written into output FlowFile.
+Expects that content of an incoming FlowFile is array of unique business entity 
+identifiers in the JSON format.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the database. |
+| Prepared Statement Provider | prepared-statement-provider-service |  |  | The Controller Service that is used to create a prepared statement. |
+| Batch Size | internal-batch-size | 100 |  | The maximum number of rows from the result set to be saved in single FlowFile. |
+| Fetch Size | Fetch Size | 1000 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
+| Query | db-fetch-sql-query |  |  | A custom SQL query used to retrieve data. Instead of building a SQL query from other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement. |
+| Path | path |  |  | A JsonPath expression that specifies path to source ID attribute inside the array in an incoming FlowFile. |
 
 ### FetchTableToJson
 
@@ -92,30 +132,27 @@ Array with validation errors is added to the content of FlowFile.
 | Entity Type Path | be-type-path | _businessEntityType |  | A JsonPath expression that specifies path to business entity type attribute in the content of incoming FlowFile. |
 | ID Path | source-id-path | _sourceId |  | A JsonPath expression that specifies path to source ID attribute in the content of incoming FlowFile. |
 | Error Code | error-code | ME-JV-0002 |  | Validation error code. Used as identification error code when formatting an array of validation errors. |
-| Wrapper regex | wrapper-regex |  |  | Regular expression to define path of wrapper in aggregated business entity. If validation errors are detected and regular expression is set and matched, the wrapper path will be removed from the error path, ID of the wrapper will be replaced to ID of the business entity. |
+| Wrapper regular expression | wrapper-regex |  |  | Regular expression to define path of wrapper in aggregated business entity. If validation errors are detected and regular expression is set and matched, the wrapper path will be removed from the error path, ID of the wrapper will be replaced to ID of the business entity. |
 
-### QueryDatabaseToJsonWithMerge
+### BackupAttributes
 
-Executes custom query to fetch rows from table and merge them with the main JSON object 
-which is in the content of incoming FlowFile. 
- The Path property supports JsonPath syntax to find source ID attributes in the main object. 
- The main and queried objects are merged by join key properties.
-You can specify where exactly to insert queried objects and by what key with path 
- to insert and key to insert properties.
+Backups all FlowFile attributes by adding prefix to their names.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the database. |
-| Prepared Statement Provider | prepared-statement-provider-service |  |  | The Controller Service that is used to create a prepared statement. |
-| Batch Size | internal-batch-size | 100 |  | The maximum number of rows from the result set to be saved in single FlowFile. |
-| Fetch Size | Fetch Size | 1000 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
-| Query | db-fetch-sql-query |  |  | A custom SQL query used to retrieve data. Instead of building a SQL query from other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement. |
-| Path | path |  |  | A JsonPath expression that specifies path to source ID attribute inside the array in the incoming FlowFile. |
-| Join Key Parent With Child | join-key-parent-with-child |  |  | The objects' key in the input JSON that uses to join with objects that will be queried |
-| Join Key Child With Parent | Join Key Child With Parent |  |  | The queried objects' key that uses to join with objects that will come in the input JSON |
-| Key To Insert | key-to-insert |  |  | A key that is used to insert the queried object in the main object. |
-| Path To Insert | path-to-insert |  |  | A key that uses to insert queried objects in the objects that will come in the input JSON |
-| Clean Up Policy | clean-up-policy | NONE | NONE, SOURCE, TARGET | Defines cleanup policy for keys used in join:- TARGET: remove parent key- SOURCE: remove child key- NONE: don't remove any keys |
+| Prefix Attribute | prefix-attr |  |  | FlowFile attribute to use as prefix for backup attributes |
+| Excluded Attributes | excluded-attrs-regex |  |  | Regular expression defining attributes to exclude from backup |
+
+### PutGeneratedRecord
+
+A processor that generates Records based on its properties and sends them to a destination specified by a Record Destination Service (i.e., record sink). The record source is defined by the 'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type automatically determined by the value type: string, double, or Record (if the dynamic property contains a JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to 'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Record Destination Service | put-record-sink |  |  | The Controller Service which is used to send the result Record to some destination. |
+| Source type | source-type | dynamicProperties | Dynamic Properties, JSON Property | The source type that will be used to create the record. The record source can be a Dynamic Processor Property or a 'JSON Property' property. |
+| List JSON Dynamic Property | list-json-dynamic-property |  |  | Comma-separated list of dynamic properties that contain JSON values |
+| JSON Property | json-property-object |  |  | A complex JSON object for generating Record.A JSON object must have a flat structure without nested objects or arrays of non-scalar types. Object keys directly correspond to attribute names and are used as field names. All values must be scalar. Arrays containing only numeric values are allowed. |
 
 ### QueryDatabaseToCSV
 
@@ -130,43 +167,6 @@ Fetches data from DB using specified query and transforms it to CSV in particula
 | Fetch Size | fetch-size | 10000 |  | The number of result rows to be fetched from the result set at a time.  This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
 | Write By Batch | write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
 
-### BackupAttributes
-
-Backups all FlowFile attributes by adding prefix to their names.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Prefix Attribute | prefix-attr |  |  | FlowFile attribute to use as prefix for backup attributes |
-| Excluded Attributes | excluded-attrs-regex |  |  | Regular expression defining attributes to exclude from backup |
-
-### QueryDatabaseToJson
-
-Fetches data from database table and transforms it to JSON.
-This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passed
-in select query as an array. Obtained result set will be written into output FlowFile.
-Expects that content of an incoming FlowFile is array of unique business entity 
-identifiers in the JSON format.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the database. |
-| Prepared Statement Provider | prepared-statement-provider-service |  |  | The Controller Service that is used to create a prepared statement. |
-| Batch Size | internal-batch-size | 100 |  | The maximum number of rows from the result set to be saved in single FlowFile. |
-| Fetch Size | Fetch Size | 1000 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
-| Query | db-fetch-sql-query |  |  | A custom SQL query used to retrieve data. Instead of building a SQL query from other properties, this query will be wrapped as a sub-query. Query must have no ORDER BY statement. |
-| Path | path |  |  | A JsonPath expression that specifies path to source ID attribute inside the array in an incoming FlowFile. |
-
-### PutGeneratedRecord
-
-A processor that generates Records based on its properties and sends them to a destination specified by a Record Destination Service (i.e., record sink). The record source is defined by the 'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type automatically determined by the value type: string, double, or Record (if the dynamic property contains a JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to 'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Record Destination Service | put-record-sink |  |  | The Controller Service which is used to send the result Record to some destination. |
-| Source type | source-type | dynamicProperties | Dynamic Properties, JSON Property | The source type that will be used to create the record. The record source can be a Dynamic Processor Property or a 'JSON Property' property. |
-| List JSON Dynamic Property | list-json-dynamic-property |  |  | Comma-separated list of dynamic properties that contain JSON values |
-| Json Property | json-property-object |  |  | A complex JSON object for generating Record.A JSON object must have a flat structure without nested objects or arrays of non-scalar types. Object keys directly correspond to attribute names and are used as field names. All values must be scalar. Arrays containing only numeric values are allowed. |
-
 
 ## Additional controller services
 
@@ -176,8 +176,8 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Table additional controller services. DO NOT REMOVE. -->
 
-| Controller Service | NAR                 | Description        |
-|------------------------|---------------------|--------------------|
+| Controller Service  | NAR                 | Description        |
+|----------------------|--------------------|--------------------|
 | RedisBulkDistributedMapCacheClientService | qubership-nifi-bulk-redis-nar | Provides a Redis-based distributed map cache client with bulk operation support. This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios requiring atomic bulk cache operations across multiple NiFi instances. |
 | OraclePreparedStatementWithArrayProvider | qubership-service-nar | Provides a prepared statement service. |
 | PostgresPreparedStatementWithArrayProvider | qubership-service-nar | Provides a prepared statement service. |
@@ -203,6 +203,16 @@ Otherwise (status code other than 2xx), the controller service throws exception 
 | Connection Timeout | http-lookup-connection-timeout | 5 secs |  | Max wait time for connection to remote service. |
 | Read Timeout | http-lookup-read-timeout | 15 secs |  | Max wait time for response from remote service. |
 
+### OraclePreparedStatementWithArrayProvider
+
+Provides a prepared statement service.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Schema Name | dbSchema |  |  | Owner of the array type |
+| Char Array Type | array-type | ARRAYOFSTRINGS |  | Character-based array type. |
+| Numeric Array Type | num-array-type | ARRAYOFNUMBERS |  | Numeric array type. |
+
 ### PostgresPreparedStatementWithArrayProvider
 
 Provides a prepared statement service.
@@ -211,6 +221,14 @@ Provides a prepared statement service.
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
 | Char Array Type | array-type | text |  | Character array base type. |
 | Numeric Array Type | numeric-array-type | numeric |  | Numeric array base type. |
+
+### JsonContentValidator
+
+Provides validate method to check the JSON against a given schema.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Schema | schema |  |  | Validation JSON Schema. |
 
 ### QubershipPrometheusRecordSink
 
@@ -221,24 +239,6 @@ A Record Sink service that exposes metrics to Prometheus via an embedded HTTP se
 | Prometheus Metrics Endpoint Port | prometheus-sink-metrics-endpoint-port | 9092 |  | The Port where prometheus metrics can be scraped from. |
 | Instance ID | prometheus-sink-instance-id | ${hostname(true)}_${NAMESPACE} |  | Identifier of the NiFi instance to be included in the metrics as a label. |
 | Clear Metrics on Disable | prometheus-sink-clear-metrics | No | Yes, No | If set to Yes, all metrics stored in the controller service are cleared, when the controller service is disabled. By default, metrics are not cleared. |
-
-### JsonContentValidator
-
-Provides validate method to check the JSON against a given schema.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Schema | schema |  |  | Validation JSON Schema. |
-
-### OraclePreparedStatementWithArrayProvider
-
-Provides a prepared statement service.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Schema Name | dbSchema |  |  | Owner of the array type |
-| Char Array Type | array-type | ARRAYOFSTRINGS |  | Character-based array type. |
-| Numeric Array Type | num-array-type | ARRAYOFNUMBERS |  | Numeric array type. |
 
 ### RedisBulkDistributedMapCacheClientService
 
@@ -258,8 +258,8 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Table additional reporting tasks. DO NOT REMOVE. -->
 
-| Reporting Task | NAR                 | Description        |
-|------------------------|---------------------|--------------------|
+| Reporting Task  | NAR                 | Description        |
+|----------------------|--------------------|--------------------|
 | ComponentMetricsReportingTask | migration-nifi-processors-open | Sends components (Processors, Connections) metrics to InfluxDB. |
 | CommonMetricsReportingTask | migration-nifi-processors-open | Sends Nifi metrics to InfluxDB. |
 | ComponentPrometheusReportingTask | migration-nifi-processors-open | Sends components (Processors, Connections) metrics to Prometheus. |

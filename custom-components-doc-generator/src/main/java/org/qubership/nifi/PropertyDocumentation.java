@@ -41,9 +41,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.ServiceConfigurationError;
@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
 import static org.qubership.nifi.ComponentType.PROCESSOR;
@@ -83,13 +84,11 @@ public class PropertyDocumentation extends AbstractMojo {
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
 
-    //сменить путь
-    @Parameter(property = "doc.template.file", defaultValue = "/doc-template/custom-components-doc-template.md",
+    @Parameter(property = "doc.template.file", defaultValue = "/docs/template/user-guide-template.md",
             readonly = true, required = true)
     private String outputFileTemplatePath;
 
-    //сменить путь
-    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/doc-template/documentGeneratorConfig.yaml",
+    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/docs/template/documentGeneratorConfig.yaml",
             readonly = true, required = true)
     private String artifactExcludedListPath;
 
@@ -107,19 +106,17 @@ public class PropertyDocumentation extends AbstractMojo {
         }
 
         File topLevelBasedir = session.getTopLevelProject().getBasedir();
-        File outputFile = new File(topLevelBasedir, outputFileTemplatePath);
-        if (!outputFile.exists() || !outputFile.isFile()) {
-            throw new MojoExecutionException("File specified in the parameter 'doc.template.file' does not exists."
-                    + " 'doc.template.file' = " + outputFile.getAbsolutePath());
-        }
 
         File artifactExcludedListFile = new File(topLevelBasedir, artifactExcludedListPath);
         Set<String> excludedIds = readExcludedArtifactsFromFile(artifactExcludedListFile);
         excludedArtifactIds = Collections.unmodifiableSet(excludedIds);
+        File outputFileTemplate = new File(topLevelBasedir, outputFileTemplatePath);
+        if (!outputFileTemplate.exists() || !outputFileTemplate.isFile()) {
+            throw new MojoExecutionException("File specified in the parameter 'doc.template.file' does not exists."
+                    + " 'doc.template.file' = " + outputFileTemplate.getAbsolutePath());
+        }
 
-
-        //prepareOutputFile();
-
+        File outputFile = prepareOutputFile(outputFileTemplate);
         try {
             generateDocumentation(outputFile);
         } catch (Exception e) {
@@ -127,17 +124,35 @@ public class PropertyDocumentation extends AbstractMojo {
         }
     }
 
-    private void prepareOutputFile() {
+    private File prepareOutputFile(File outputFileTemplate) {
+        if (outputFileTemplate == null || !outputFileTemplate.exists() || !outputFileTemplate.isFile()) {
+            getLog().error("Template file does not exist or is not a file: "
+                    + (outputFileTemplate != null ? outputFileTemplate.getAbsolutePath() : "null"));
+            return null;
+        }
 
+        File parentDir = outputFileTemplate.getParentFile();
+        String templateName = outputFileTemplate.getName();
+        String outputFileName = templateName.replace("-template", "");
+        File outputFile = new File(parentDir, outputFileName);
+
+        if (outputFile.exists()) {
+            getLog().debug("Output file already exists, returning existing file: "
+                    + outputFile.getAbsolutePath());
+            return outputFile;
+        }
+
+        try {
+            Files.copy(outputFileTemplate.toPath(), outputFile.toPath());
+            getLog().debug("Template copied to output file: " + outputFile.getAbsolutePath());
+            return outputFile;
+        } catch (IOException e) {
+            getLog().error("Error copying template file: " + e.getMessage());
+            return null;
+        }
     }
 
     private Set<String> readExcludedArtifactsFromFile(File configFile) {
-        if (configFile == null || !configFile.exists() || !configFile.isFile()) {
-            getLog().error("File specified in the parameter 'doc.exclude.artifact.file' does not exists. "
-                    + " 'doc.exclude.artifact.file' = " + configFile.getAbsolutePath());
-            return Collections.emptySet();
-        }
-
         Yaml yaml = new Yaml();
 
         try (InputStream inputStream = new FileInputStream(configFile)) {
@@ -197,8 +212,7 @@ public class PropertyDocumentation extends AbstractMojo {
         markdownUtils.readFile();
         try (URLClassLoader componentClassLoader = new URLClassLoader(urlsArray, parentClassLoader)) {
             ServiceLoader<Processor> processorServiceLoader = ServiceLoader.load(Processor.class, componentClassLoader);
-            Map<String, List<CustomComponentEntity>> processorEntityMap = new HashMap<>();
-            List<String[]> processorRowsList = new ArrayList<>();
+            List<CustomComponentEntity> customComponentList = new ArrayList<>();
             for (Processor processorInstance : processorServiceLoader) {
                 Class<? extends Processor> processorClass = processorInstance.getClass();
                 ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
@@ -209,26 +223,15 @@ public class PropertyDocumentation extends AbstractMojo {
                 if (capabilityDescriptionAnnotationProc != null) {
                     String processorName = processorClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationProc.value();
-                    String[] row = {processorName, project.getArtifactId(),
-                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
-                    processorRowsList.add(row);
-                    if (propertyDescriptors != null) {
-                        processorEntityMap.put(
-                                processorName, generateComponentPropertiesList(propertyDescriptors, descriptionValue)
-                        );
-                    }
+                    List<PropertyDescriptorEntity> componentProperties =
+                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                    customComponentList.add(new CustomComponentEntity(processorName, PROCESSOR, project.getArtifactId(),
+                            descriptionValue, componentProperties));
                 }
-            }
-            String[][] processorArrays = processorRowsList.toArray(new String[processorRowsList.size()][]);
-            if (processorArrays.length != 0) {
-                markdownUtils.generateTable(processorArrays, PROCESSOR);
-                markdownUtils.generatePropertyDescription(processorEntityMap, PROCESSOR);
             }
 
             ServiceLoader<ControllerService> controllerServiceServiceLoader =
                     ServiceLoader.load(ControllerService.class, componentClassLoader);
-            List<String[]> controllerServiceRowsList = new ArrayList<>();
-            Map<String, List<CustomComponentEntity>> controllerServiceEntityMap = new HashMap<>();
             for (ControllerService controllerServiceInstance : controllerServiceServiceLoader) {
                 Class<? extends ControllerService> controllerServiceClass = controllerServiceInstance.getClass();
                 CapabilityDescription capabilityDescriptionAnnotationCS =
@@ -237,26 +240,15 @@ public class PropertyDocumentation extends AbstractMojo {
                 if (capabilityDescriptionAnnotationCS != null) {
                     String controllerServiceName = controllerServiceClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationCS.value();
-                    String[] csRow = {controllerServiceName, project.getArtifactId(),
-                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
-                    controllerServiceRowsList.add(csRow);
-                    if (propertyDescriptors != null) {
-                        controllerServiceEntityMap.put(controllerServiceName,
-                                generateComponentPropertiesList(propertyDescriptors, descriptionValue));
-                    }
+                    List<PropertyDescriptorEntity> componentProperties =
+                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                    customComponentList.add(new CustomComponentEntity(controllerServiceName, CONTROLLER_SERVICE,
+                            project.getArtifactId(), descriptionValue, componentProperties));
                 }
-            }
-            String[][] controllerServiceArrays =
-                    controllerServiceRowsList.toArray(new String[controllerServiceRowsList.size()][]);
-            if (controllerServiceArrays.length != 0) {
-                markdownUtils.generateTable(controllerServiceArrays, CONTROLLER_SERVICE);
-                markdownUtils.generatePropertyDescription(controllerServiceEntityMap, CONTROLLER_SERVICE);
             }
 
             ServiceLoader<ReportingTask> reportingTaskServiceLoader =
                     ServiceLoader.load(ReportingTask.class, componentClassLoader);
-            List<String[]> reportingTaskRowsList = new ArrayList<>();
-            Map<String, List<CustomComponentEntity>> reportingTaskEntityMap = new HashMap<>();
             for (ReportingTask reportingTaskInstance : reportingTaskServiceLoader) {
                 Class<? extends ReportingTask> reportingTaskClass = reportingTaskInstance.getClass();
                 ReportingInitializationContext reportingInitializationContext =
@@ -268,37 +260,56 @@ public class PropertyDocumentation extends AbstractMojo {
                 if (capabilityDescriptionAnnotationRT != null) {
                     String reportingTaskName = reportingTaskClass.getSimpleName();
                     String descriptionValue = capabilityDescriptionAnnotationRT.value();
-                    String[] rtRow = {reportingTaskName, project.getArtifactId(),
-                            descriptionValue.replaceAll("\\r?\\n|\\r", "")};
-                    reportingTaskRowsList.add(rtRow);
-                    if (propertyDescriptors != null) {
-                        reportingTaskEntityMap.put(reportingTaskName,
-                                generateComponentPropertiesList(propertyDescriptors, descriptionValue));
-                    }
+                    List<PropertyDescriptorEntity> componentProperties =
+                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                    customComponentList.add(new CustomComponentEntity(reportingTaskName, REPORTING_TASK,
+                            project.getArtifactId(), descriptionValue, componentProperties));
                 }
             }
-            String[][] reportingTaskArrays = reportingTaskRowsList.toArray(new String[reportingTaskRowsList.size()][]);
-            if (reportingTaskArrays.length != 0) {
-                markdownUtils.generateTable(reportingTaskArrays, REPORTING_TASK);
-                markdownUtils.generatePropertyDescription(reportingTaskEntityMap, REPORTING_TASK);
+
+            List<CustomComponentEntity> processorEntities = customComponentList.stream()
+                    .filter(entity -> PROCESSOR.equals(entity.getType()))
+                    .collect(Collectors.toList());
+
+            if (!processorEntities.isEmpty()) {
+                markdownUtils.generateTable(processorEntities, PROCESSOR);
+                markdownUtils.generatePropertyDescription(processorEntities, PROCESSOR);
             }
+
+            List<CustomComponentEntity> controllerServiceEntities = customComponentList.stream()
+                    .filter(entity -> CONTROLLER_SERVICE.equals(entity.getType()))
+                    .collect(Collectors.toList());
+
+            if (!controllerServiceEntities.isEmpty()) {
+                markdownUtils.generateTable(controllerServiceEntities, CONTROLLER_SERVICE);
+                markdownUtils.generatePropertyDescription(controllerServiceEntities, CONTROLLER_SERVICE);
+            }
+
+            List<CustomComponentEntity> reportingTaskEntities = customComponentList.stream()
+                    .filter(entity -> REPORTING_TASK.equals(entity.getType()))
+                    .collect(Collectors.toList());
+
+            if (!reportingTaskEntities.isEmpty()) {
+                markdownUtils.generateTable(reportingTaskEntities, REPORTING_TASK);
+                markdownUtils.generatePropertyDescription(reportingTaskEntities, REPORTING_TASK);
+            }
+
         } catch (ServiceConfigurationError e) {
             getLog().error("ServiceConfigurationError: " + e.getMessage());
-            e.printStackTrace();
+            getLog().error("Error: ", e);
         } catch (InitializationException e) {
             throw new RuntimeException(e);
         }
-
         markdownUtils.writeToFile();
     }
 
-    private List<CustomComponentEntity> generateComponentPropertiesList(
+    private List<PropertyDescriptorEntity> generateComponentPropertiesList(
             List<PropertyDescriptor> propertyDescriptors,
             String componentDescription
     ) {
-        List<CustomComponentEntity> customComponentEntityList = new ArrayList<>();
+        List<PropertyDescriptorEntity> customComponentEntityList = new ArrayList<>();
         for (PropertyDescriptor propDesc : propertyDescriptors) {
-            customComponentEntityList.add(new CustomComponentEntity(
+            customComponentEntityList.add(new PropertyDescriptorEntity(
                     propDesc.getDisplayName(), propDesc.getName(), propDesc.getDefaultValue(),
                     propDesc.getDescription().replaceAll("\\r?\\n|\\r", ""), propDesc.getAllowableValues(),
                     componentDescription));
