@@ -7,6 +7,8 @@ import java.util.stream.Collectors;
 
 public class CustomComponentEntity {
 
+    private static final String HTTP_REGEX = "(https?://[^\\s]+)";
+
     private String displayName;
     private String apiName;
     private String defaultValue;
@@ -179,8 +181,6 @@ public class CustomComponentEntity {
             return str;
         }
 
-        String regex = "(https?://[^\\s]+)";
-
-        return str.replaceAll(regex, "`$1`");
+        return str.replaceAll(HTTP_REGEX, "`$1`");
     }
 }

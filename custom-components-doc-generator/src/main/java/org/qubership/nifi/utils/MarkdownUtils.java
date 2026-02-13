@@ -1,5 +1,7 @@
 package org.qubership.nifi.utils;
 
+import org.apache.maven.plugin.logging.Log;
+import org.qubership.nifi.ComponentType;
 import org.qubership.nifi.CustomComponentEntity;
 
 import java.io.IOException;
@@ -9,6 +11,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
+import static org.qubership.nifi.ComponentType.PROCESSOR;
+import static org.qubership.nifi.ComponentType.REPORTING_TASK;
 
 public class MarkdownUtils {
 
@@ -25,20 +31,47 @@ public class MarkdownUtils {
     private static final String PROPERTIES_DESCRIPTION_REPORTING_TASK =
             "<!-- Additional reporting tasks description. DO NOT REMOVE -->";
 
+
+    private static final String HEADER_BASE = " | NAR                 | Description        |";
+    private static final String HEADER_PROCESSORS = "| Processor " + HEADER_BASE;
+    private static final String HEADER_CONTROLLER_SERVICES = "| Controller Service " + HEADER_BASE;
+    private static final String HEADER_REPORTING_TASKS = "| Reporting Task " + HEADER_BASE;
+    private static final String TITLE_SEPARATOR = "|------------------------|---------------------|" +
+            "--------------------|";
+
+    private static final String PROPERTIES_DESCRIPTION_HEADER = "| Display Name                      | API Name        " +
+            "    | Default Value      | Allowable Values   | Description        |";
+
     private static final int NUMBER_OF_COLUMN = 3;
 
+    private List<String> lines;
+
     private final Path templateFile;
+    private final Log log;
 
     /**
      * Constructor for class MarkdownUtils.
      *
      * @param templateFileValue File to write
      */
-    public MarkdownUtils(final Path templateFileValue) {
+    public MarkdownUtils(final Path templateFileValue, final Log logValue) {
         if (templateFileValue == null) {
             throw new IllegalArgumentException("Output file path cannot be null");
         }
         this.templateFile = templateFileValue;
+        this.log = logValue;
+    }
+
+    private Log getLog() {
+        return log;
+    }
+
+    public void readFile() throws IOException {
+        lines = Files.readAllLines(templateFile);
+    }
+
+    public void writeToFile() throws IOException {
+        Files.write(templateFile, lines);
     }
 
     /**
@@ -49,8 +82,7 @@ public class MarkdownUtils {
      *  *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      * @throws IOException
      */
-    public void generateTable(String[][] processorRows, String componentType) throws IOException {
-        List<String> lines = Files.readAllLines(templateFile);
+    public void generateTable(String[][] processorRows, ComponentType componentType) throws IOException {
 
         List<String> updatedLines = new ArrayList<>();
         boolean headerFound = false;
@@ -59,17 +91,15 @@ public class MarkdownUtils {
         int tableEndIndex = -1;
 
         String strTemplate = switch (componentType) {
-            case "processor" -> TABLE_PROCESSOR;
-            case "controller_service" -> TABLE_CONTROLLER_SERVICES;
-            case "reporting_task" -> TABLE_REPORTING_TASK;
-            default -> throw new IllegalStateException("Unexpected value: " + componentType);
+            case PROCESSOR -> TABLE_PROCESSOR;
+            case CONTROLLER_SERVICE -> TABLE_CONTROLLER_SERVICES;
+            case REPORTING_TASK -> TABLE_REPORTING_TASK;
         };
 
         String headerTemplate = switch (componentType) {
-            case "processor" -> "Processor";
-            case "controller_service" -> "Controller Service";
-            case "reporting_task" -> "Reporting Task";
-            default -> throw new IllegalStateException("Unexpected value: " + componentType);
+            case PROCESSOR -> HEADER_PROCESSORS;
+            case CONTROLLER_SERVICE -> HEADER_CONTROLLER_SERVICES;
+            case REPORTING_TASK -> HEADER_REPORTING_TASKS;
         };
 
         for (int i = 0; i < lines.size(); i++) {
@@ -87,8 +117,7 @@ public class MarkdownUtils {
 
         for (int i = afterHeaderIndex; i < lines.size(); i++) {
             String line = lines.get(i).trim();
-            if (line.startsWith("|") && line.contains(headerTemplate)
-                    && line.contains("NAR") && line.contains("Description")) {
+            if (line.contains(headerTemplate)) {
                 tableStartIndex = i;
                 int j = i + 1;
                 if (j < lines.size() && lines.get(j).trim().startsWith("|") && lines.get(j).trim().contains("---")) {
@@ -113,7 +142,7 @@ public class MarkdownUtils {
                     String tableRow = "| " + row[0] + " | " + row[1] + " | " + row[2] + " |";
                     newTableRows.add(tableRow);
                 } else {
-                    System.err.println("Warning: Skipping invalid row data: " + Arrays.toString(row));
+                    getLog().error("Skipping invalid row data: " + Arrays.toString(row));
                 }
             }
         }
@@ -126,8 +155,8 @@ public class MarkdownUtils {
             if (i == afterHeaderIndex - 1) {
                 if (tableStartIndex == -1) {
                     updatedLines.add("");
-                    updatedLines.add("| " + headerTemplate + " | NAR                 | Description        |");
-                    updatedLines.add("|------------------------|---------------------|--------------------|");
+                    updatedLines.add(headerTemplate);
+                    updatedLines.add(TITLE_SEPARATOR);
                     updatedLines.addAll(newTableRows);
                     tableProcessed = true;
                 }
@@ -139,7 +168,7 @@ public class MarkdownUtils {
             }
         }
 
-        Files.write(templateFile, updatedLines);
+        lines = updatedLines;
     }
 
     /**
@@ -153,14 +182,11 @@ public class MarkdownUtils {
      */
     public void generatePropertyDescription(
             Map<String, List<CustomComponentEntity>> componentEntityMap,
-            String componentType) throws IOException {
-        List<String> lines = Files.readAllLines(templateFile);
-
+            ComponentType componentType) throws IOException {
         String strTemplate = switch (componentType) {
-            case "processor" -> PROPERTIES_DESCRIPTION_PROCESSOR;
-            case "controller_service" -> PROPERTIES_DESCRIPTION_CONTROLLER_SERVICES;
-            case "reporting_task" -> PROPERTIES_DESCRIPTION_REPORTING_TASK;
-            default -> throw new IllegalStateException("Unexpected value: " + componentType);
+            case PROCESSOR -> PROPERTIES_DESCRIPTION_PROCESSOR;
+            case CONTROLLER_SERVICE -> PROPERTIES_DESCRIPTION_CONTROLLER_SERVICES;
+            case REPORTING_TASK -> PROPERTIES_DESCRIPTION_REPORTING_TASK;
         };
 
         List<String> updatedLines = new ArrayList<>();
@@ -203,10 +229,8 @@ public class MarkdownUtils {
                     descriptionLines.add("");
                 }
 
-                descriptionLines.add("| Display Name                      | API Name            | Default Value      "
-                        + "| Allowable Values   | Description        |");
-                descriptionLines.add("|-----------------------------------|---------------------|--------------------|"
-                        + "--------------------|--------------------|");
+                descriptionLines.add(PROPERTIES_DESCRIPTION_HEADER);
+                descriptionLines.add(TITLE_SEPARATOR);
 
                 if (entities != null) {
                     for (CustomComponentEntity entity : entities) {
@@ -222,7 +246,7 @@ public class MarkdownUtils {
                             descriptionLines.add("| " + displayName + " | " + apiName + " | " + defaultValue + " | "
                                     + allowableValuesStr + " | " + description + " |");
                         } else {
-                            System.err.println("Warning: Found null entity in list for component '"
+                            getLog().error("Found null entity in list for component '"
                                     + componentName + "'");
                         }
                     }
@@ -241,7 +265,7 @@ public class MarkdownUtils {
             updatedLines.add(lines.get(i));
         }
 
-        Files.write(templateFile, updatedLines);
+        lines = updatedLines;
     }
 
 }

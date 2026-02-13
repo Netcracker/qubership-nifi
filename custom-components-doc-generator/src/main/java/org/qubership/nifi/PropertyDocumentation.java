@@ -57,10 +57,15 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.TreeSet;
 
+import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
+import static org.qubership.nifi.ComponentType.PROCESSOR;
+import static org.qubership.nifi.ComponentType.REPORTING_TASK;
+
 @Mojo(name = "generate", requiresDependencyResolution = ResolutionScope.RUNTIME)
-public class GenerateDoc extends AbstractMojo {
+public class PropertyDocumentation extends AbstractMojo {
 
     private Set<String> excludedArtifactIds;
+    private static final String KEY_EXCLUDE_ARRAY = "excludedArtifacts";
 
     @Component
     private DependencyGraphBuilder dependencyGraphBuilder;
@@ -75,19 +80,21 @@ public class GenerateDoc extends AbstractMojo {
     @Parameter(defaultValue = "${repositorySystemSession}", readonly = true)
     private RepositorySystemSession repoSession;
 
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
+    private MavenSession session;
+
+    //сменить путь
     @Parameter(property = "doc.template.file", defaultValue = "/doc-template/custom-components-doc-template.md",
             readonly = true, required = true)
     private String outputFileTemplatePath;
 
-    @Parameter(defaultValue = "${session}", readonly = true, required = true)
-    private MavenSession session;
-
-
-    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/doc-template/artifactExcludedList.yaml",
+    //сменить путь
+    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/doc-template/documentGeneratorConfig.yaml",
             readonly = true, required = true)
     private String artifactExcludedListPath;
 
     /**
+     * Method for generating documentation for custom components.
      *
      * @throws MojoExecutionException
      */
@@ -102,13 +109,16 @@ public class GenerateDoc extends AbstractMojo {
         File topLevelBasedir = session.getTopLevelProject().getBasedir();
         File outputFile = new File(topLevelBasedir, outputFileTemplatePath);
         if (!outputFile.exists() || !outputFile.isFile()) {
-            throw new MojoExecutionException("Input file does not exist or is not a file"
-                    + " relative to top-level project: " + outputFile.getAbsolutePath());
+            throw new MojoExecutionException("File specified in the parameter 'doc.template.file' does not exists."
+                    + " 'doc.template.file' = " + outputFile.getAbsolutePath());
         }
 
         File artifactExcludedListFile = new File(topLevelBasedir, artifactExcludedListPath);
         Set<String> excludedIds = readExcludedArtifactsFromFile(artifactExcludedListFile);
         excludedArtifactIds = Collections.unmodifiableSet(excludedIds);
+
+
+        //prepareOutputFile();
 
         try {
             generateDocumentation(outputFile);
@@ -117,42 +127,50 @@ public class GenerateDoc extends AbstractMojo {
         }
     }
 
-    private static Set<String> readExcludedArtifactsFromFile(File configFile) {
+    private void prepareOutputFile() {
+
+    }
+
+    private Set<String> readExcludedArtifactsFromFile(File configFile) {
         if (configFile == null || !configFile.exists() || !configFile.isFile()) {
-            System.err.println("Configuration file does not exist or is not a file: "
-                    + (configFile != null ? configFile.getAbsolutePath() : "null"));
+            getLog().error("File specified in the parameter 'doc.exclude.artifact.file' does not exists. "
+                    + " 'doc.exclude.artifact.file' = " + configFile.getAbsolutePath());
             return Collections.emptySet();
         }
 
         Yaml yaml = new Yaml();
 
         try (InputStream inputStream = new FileInputStream(configFile)) {
-            java.util.Map<String, Object> data = yaml.load(inputStream);
+            Map<String, Object> data = yaml.load(inputStream);
 
             if (data != null) {
-                Object listObj = data.get("excluded_artifact");
+                Object listObj = data.get(KEY_EXCLUDE_ARRAY);
                 if (listObj instanceof List) {
                     List<String> list = (List<String>) listObj;
 
                     Set<String> artifactSet = new HashSet<>(list);
                     return artifactSet;
                 } else {
-                    System.err.println("Key 'excluded_artifact' not found or is not a list in YAML file: "
+                    getLog().error("Key '" + KEY_EXCLUDE_ARRAY + "' not found or is not a list in configuration"
+                            + " file specified in the parameter 'doc.exclude.artifact.file' = "
                             + configFile.getAbsolutePath());
                     return Collections.emptySet();
                 }
             } else {
-                System.err.println("YAML file is empty or could not be parsed as a Map: "
+                getLog().error("Configuration file specified in the parameter 'doc.exclude.artifact.file'"
+                        + " is empty or could not be parsed as a Map. 'doc.exclude.artifact.file' = "
                         + configFile.getAbsolutePath());
                 return Collections.emptySet();
             }
         } catch (IOException e) {
-            System.err.println("IO Error reading YAML file: " + configFile.getAbsolutePath() + " - " + e.getMessage());
-            e.printStackTrace();
+            getLog().error("IO Error reading configuration file specified in the parameter"
+                    + " 'doc.exclude.artifact.file' =  " + configFile.getAbsolutePath() + " - " + e.getMessage());
+            getLog().error("Error: ", e);
             return Collections.emptySet();
         } catch (Exception e) {
-            System.err.println("YAML parsing error in file: " + configFile.getAbsolutePath() + " - " + e.getMessage());
-            e.printStackTrace();
+            getLog().error("YAML parsing error in configuration file specified in the parameter "
+                    + " 'doc.exclude.artifact.file' = " + configFile.getAbsolutePath() + " - " + e.getMessage());
+            getLog().error("Error: ", e);
             return Collections.emptySet();
         }
     }
@@ -161,7 +179,6 @@ public class GenerateDoc extends AbstractMojo {
             File outputFile
     ) throws IOException, ProjectBuildingException, MojoExecutionException {
         getLog().info("Generating documentation for Custom Components");
-        final URLClassLoader componentClassLoader;
         Artifact narArtifact = project.getArtifact();
         final Set<Artifact> narArtifacts = getNarDependencies(narArtifact);
 
@@ -173,12 +190,12 @@ public class GenerateDoc extends AbstractMojo {
 
         URL[] urlsArray = urls.toArray(new URL[0]);
         ClassLoader parentClassLoader = Thread.currentThread().getContextClassLoader();
-        componentClassLoader = new URLClassLoader(urlsArray, parentClassLoader);
 
-        getLog().info("URLClassLoader created successfully with " + urls.size() + " entries.");
+        getLog().debug("URLClassLoader created successfully with " + urls.size() + " entries.");
 
-        MarkdownUtils markdownUtils = new MarkdownUtils(outputFile.toPath());
-        try {
+        MarkdownUtils markdownUtils = new MarkdownUtils(outputFile.toPath(), getLog());
+        markdownUtils.readFile();
+        try (URLClassLoader componentClassLoader = new URLClassLoader(urlsArray, parentClassLoader)) {
             ServiceLoader<Processor> processorServiceLoader = ServiceLoader.load(Processor.class, componentClassLoader);
             Map<String, List<CustomComponentEntity>> processorEntityMap = new HashMap<>();
             List<String[]> processorRowsList = new ArrayList<>();
@@ -204,8 +221,8 @@ public class GenerateDoc extends AbstractMojo {
             }
             String[][] processorArrays = processorRowsList.toArray(new String[processorRowsList.size()][]);
             if (processorArrays.length != 0) {
-                markdownUtils.generateTable(processorArrays, "processor");
-                markdownUtils.generatePropertyDescription(processorEntityMap, "processor");
+                markdownUtils.generateTable(processorArrays, PROCESSOR);
+                markdownUtils.generatePropertyDescription(processorEntityMap, PROCESSOR);
             }
 
             ServiceLoader<ControllerService> controllerServiceServiceLoader =
@@ -232,8 +249,8 @@ public class GenerateDoc extends AbstractMojo {
             String[][] controllerServiceArrays =
                     controllerServiceRowsList.toArray(new String[controllerServiceRowsList.size()][]);
             if (controllerServiceArrays.length != 0) {
-                markdownUtils.generateTable(controllerServiceArrays, "controller_service");
-                markdownUtils.generatePropertyDescription(controllerServiceEntityMap, "controller_service");
+                markdownUtils.generateTable(controllerServiceArrays, CONTROLLER_SERVICE);
+                markdownUtils.generatePropertyDescription(controllerServiceEntityMap, CONTROLLER_SERVICE);
             }
 
             ServiceLoader<ReportingTask> reportingTaskServiceLoader =
@@ -262,17 +279,17 @@ public class GenerateDoc extends AbstractMojo {
             }
             String[][] reportingTaskArrays = reportingTaskRowsList.toArray(new String[reportingTaskRowsList.size()][]);
             if (reportingTaskArrays.length != 0) {
-                markdownUtils.generateTable(reportingTaskArrays, "reporting_task");
-                markdownUtils.generatePropertyDescription(reportingTaskEntityMap, "reporting_task");
+                markdownUtils.generateTable(reportingTaskArrays, REPORTING_TASK);
+                markdownUtils.generatePropertyDescription(reportingTaskEntityMap, REPORTING_TASK);
             }
         } catch (ServiceConfigurationError e) {
-            System.err.println("ServiceConfigurationError: " + e.getMessage());
+            getLog().error("ServiceConfigurationError: " + e.getMessage());
             e.printStackTrace();
         } catch (InitializationException e) {
             throw new RuntimeException(e);
-        } finally {
-            componentClassLoader.close();
         }
+
+        markdownUtils.writeToFile();
     }
 
     private List<CustomComponentEntity> generateComponentPropertiesList(
