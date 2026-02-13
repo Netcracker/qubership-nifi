@@ -1,0 +1,3 @@
+excludedArtifacts:
+  - org.apache.nifi:nifi-redis-extensions
+  - org.qubership.nifi:qubership-nifi-test-processors

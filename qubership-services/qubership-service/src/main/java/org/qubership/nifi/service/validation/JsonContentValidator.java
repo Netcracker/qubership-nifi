@@ -47,7 +47,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
-            .description("Validation Json Schema.")
+            .description("Validation JSON Schema.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
