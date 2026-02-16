@@ -17,7 +17,7 @@ public class PropertyDescriptorEntity {
     private final List<AllowableValue> allowableValues;
 
     /**
-     * Constructor for class CustomComponentEntity.
+     * Constructor for class PropertyDescriptorEntity.
      *
      * @param displayNameValue display name value
      * @param apiNameValue api name value

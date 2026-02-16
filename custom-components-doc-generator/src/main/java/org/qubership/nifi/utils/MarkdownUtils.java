@@ -9,9 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class MarkdownUtils {
 
@@ -35,8 +33,8 @@ public class MarkdownUtils {
     private static final String HEADER_REPORTING_TASKS = "| Reporting Task " + HEADER_BASE;
     private static final String TITLE_SEPARATOR = "|----------------------|--------------------|--------------------|";
 
-    private static final String PROPERTIES_DESCRIPTION_HEADER = "| Display Name                      | API Name        " +
-            "    | Default Value      | Allowable Values   | Description        |";
+    private static final String PROPERTIES_DESCRIPTION_HEADER = "| Display Name                      | API Name        "
+            + "    | Default Value      | Allowable Values   | Description        |";
 
     private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
             + "---------------|--------------------|--------------------|--------------------|";
@@ -52,6 +50,7 @@ public class MarkdownUtils {
      * Constructor for class MarkdownUtils.
      *
      * @param templateFileValue File to write
+     * @param logValue Logger
      */
     public MarkdownUtils(final Path templateFileValue, final Log logValue) {
         if (templateFileValue == null) {
@@ -65,10 +64,18 @@ public class MarkdownUtils {
         return log;
     }
 
+    /**
+     * Reading the contents of a file.
+     * @throws IOException
+     */
     public void readFile() throws IOException {
         lines = Files.readAllLines(templateFile);
     }
 
+    /**
+     * Writing to a file.
+     * @throws IOException
+     */
     public void writeToFile() throws IOException {
         Files.write(templateFile, lines);
     }
