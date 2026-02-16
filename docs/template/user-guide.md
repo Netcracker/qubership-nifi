@@ -16,7 +16,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |----------------------|--------------------|--------------------|
 | QueryDatabaseToJsonWithMerge | migration-nifi-processors-open | Executes custom query to fetch rows from table and merge them with the main JSON object which is in the content of incoming FlowFile.  The Path property supports JsonPath syntax to find source ID attributes in the main object.  The main and queried objects are merged by join key properties.You can specify where exactly to insert queried objects and by what key with path  to insert and key to insert properties. |
 | QueryDatabaseToJson | migration-nifi-processors-open | Fetches data from database table and transforms it to JSON.This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passedin select query as an array. Obtained result set will be written into output FlowFile.Expects that content of an incoming FlowFile is array of unique business entity identifiers in the JSON format. |
-| FetchTableToJson | migration-nifi-processors-open | Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and  list of columns (Columns To Return). This processor works in batched mode: it collects FlowFiles until  batch size limit is reached and then processes batch. This processor can accept incoming connections;  the behavior of the processor is different whether incoming connections are provided: -If no incoming connection(s) are specified, the processor will generate SQL queries on the specified  processor schedule. -If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed. -If incoming connection(s) are specified and a FlowFile is available to a processor task, query  will be executed when processing the next FlowFile.  |
+| FetchTableToJson | migration-nifi-processors-open | Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and  list of columns (Columns To Return). This processor works in batched mode: it collects FlowFiles until  batch size limit is reached and then processes batch. This processor can accept incoming connections;  the behavior of the processor is different whether incoming connections are provided: -If no incoming connection(s) are specified, the processor will generate SQL queries on the specified  processor schedule. -If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed. -If incoming connection(s) are specified and a FlowFile is available to a processor task, query  will be executed when processing the next FlowFile. |
 | ValidateJson | migration-nifi-processors-open | Validates the content of FlowFiles against the JSON schema. The FlowFiles that are successfully validated against the specified schema are routed to valid relationship without any changes. The FlowFiles that are not valid according to the schema are routed to invalid relationship. Array with validation errors is added to the content of FlowFile. |
 | BackupAttributes | migration-nifi-processors-open | Backups all FlowFile attributes by adding prefix to their names. |
 | PutGeneratedRecord | migration-nifi-processors-open | A processor that generates Records based on its properties and sends them to a destination specified by a Record Destination Service (i.e., record sink). The record source is defined by the 'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type automatically determined by the value type: string, double, or Record (if the dynamic property contains a JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to 'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'. |
@@ -108,7 +108,6 @@ will be performed.
 -If incoming connection(s) are specified and a FlowFile is available to a processor task, query
  will be executed when processing the next FlowFile.
 
-
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
 | Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the database. |
@@ -199,9 +198,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 ### HttpLookupService
 
 Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values.
-
 If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records.
-
 Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
