@@ -29,7 +29,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 <!-- Additional processors properties description. DO NOT REMOVE -->
 ### PutSQLRecord
 
-Executes given SQL statement using data from input records. All records within single  
+Executes given SQL statement using data from input records. All records within single
 FlowFile are processed within single transaction.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
@@ -56,11 +56,11 @@ It is also possible to copy from DB to FlowFile content.
 
 ### QueryDatabaseToJsonWithMerge
 
-Executes custom query to fetch rows from table and merge them with the main JSON object 
-which is in the content of incoming FlowFile. 
- The Path property supports JsonPath syntax to find source ID attributes in the main object. 
+Executes custom query to fetch rows from table and merge them with the main JSON object
+which is in the content of incoming FlowFile.
+ The Path property supports JsonPath syntax to find source ID attributes in the main object.
  The main and queried objects are merged by join key properties.
-You can specify where exactly to insert queried objects and by what key with path 
+You can specify where exactly to insert queried objects and by what key with path
  to insert and key to insert properties.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
@@ -82,7 +82,7 @@ You can specify where exactly to insert queried objects and by what key with pat
 Fetches data from database table and transforms it to JSON.
 This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passed
 in select query as an array. Obtained result set will be written into output FlowFile.
-Expects that content of an incoming FlowFile is array of unique business entity 
+Expects that content of an incoming FlowFile is array of unique business entity
 identifiers in the JSON format.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
@@ -96,16 +96,16 @@ identifiers in the JSON format.
 
 ### FetchTableToJson
 
-Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and 
- list of columns (Columns To Return). This processor works in batched mode: it collects FlowFiles until 
- batch size limit is reached and then processes batch. This processor can accept incoming connections; 
- the behavior of the processor is different whether incoming connections are provided: 
--If no incoming connection(s) are specified, the processor will generate SQL queries on the specified 
- processor schedule. 
--If incoming connection(s) are specified and no FlowFile is available to a processor task, no work 
-will be performed. 
--If incoming connection(s) are specified and a FlowFile is available to a processor task, query 
- will be executed when processing the next FlowFile. 
+Fetches data from DB table into JSON using either query (Custom Query) or table (Table) and
+ list of columns (Columns To Return). This processor works in batched mode: it collects FlowFiles until
+ batch size limit is reached and then processes batch. This processor can accept incoming connections;
+ the behavior of the processor is different whether incoming connections are provided:
+-If no incoming connection(s) are specified, the processor will generate SQL queries on the specified
+ processor schedule.
+-If incoming connection(s) are specified and no FlowFile is available to a processor task, no work
+will be performed.
+-If incoming connection(s) are specified and a FlowFile is available to a processor task, query
+ will be executed when processing the next FlowFile.
 
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
@@ -120,10 +120,10 @@ will be performed.
 
 ### ValidateJson
 
-Validates the content of FlowFiles against the JSON schema. 
-The FlowFiles that are successfully validated against the specified schema are routed to valid 
-relationship without any changes. 
-The FlowFiles that are not valid according to the schema are routed to invalid relationship. 
+Validates the content of FlowFiles against the JSON schema.
+The FlowFiles that are successfully validated against the specified schema are routed to valid
+relationship without any changes.
+The FlowFiles that are not valid according to the schema are routed to invalid relationship.
 Array with validation errors is added to the content of FlowFile.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
@@ -190,9 +190,9 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 <!-- Additional controller services description. DO NOT REMOVE -->
 ### HttpLookupService
 
-Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values. 
+Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values.
 
-If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records. 
+If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records.
 
 Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.
 

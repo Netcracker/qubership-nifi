@@ -237,7 +237,7 @@ public class MarkdownUtils {
                 }
 
                 if (componentDescription != null) {
-                    descriptionLines.add(componentDescription);
+                    descriptionLines.add(removeSpacesBeforeNewline(componentDescription));
                     descriptionLines.add("");
                 }
 
@@ -278,6 +278,10 @@ public class MarkdownUtils {
         }
 
         lines = updatedLines;
+    }
+
+    private String removeSpacesBeforeNewline(String input) {
+        return input.replaceAll("[ \\t]+(?=\\r?\\n|\\r)", "");
     }
 
 }
