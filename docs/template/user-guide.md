@@ -145,7 +145,13 @@ Backups all FlowFile attributes by adding prefix to their names.
 
 ### PutGeneratedRecord
 
-A processor that generates Records based on its properties and sends them to a destination specified by a Record Destination Service (i.e., record sink). The record source is defined by the 'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type automatically determined by the value type: string, double, or Record (if the dynamic property contains a JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to 'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.
+A processor that generates Records based on its properties and sends them to a destination
+specified by a Record Destination Service (i.e., record sink). The record source is defined by the
+'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type'
+is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type
+automatically determined by the value type: string, double, or Record (if the dynamic property contains a
+JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to
+'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
@@ -156,7 +162,8 @@ A processor that generates Records based on its properties and sends them to a d
 
 ### QueryDatabaseToCSV
 
-Fetches data from DB using specified query and transforms it to CSV in particular CSV format.The processor allows to split query result into several FlowFiles and select CSV format for output.
+Fetches data from DB using specified query and transforms it to CSV in particular CSV format.
+The processor allows to split query result into several FlowFiles and select CSV format for output.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
@@ -182,7 +189,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 | OraclePreparedStatementWithArrayProvider | qubership-service-nar | Provides a prepared statement service. |
 | PostgresPreparedStatementWithArrayProvider | qubership-service-nar | Provides a prepared statement service. |
 | JsonContentValidator | qubership-service-nar | Provides validate method to check the JSON against a given schema. |
-| QubershipPrometheusRecordSink | qubership-service-nar | A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server  on a configurable port. Collects metrics from incoming records by treating string fields as labels, numeric fields as gauges, and nested records (with 'type' and 'value' fields) as counters or distribution summaries. |
+| QubershipPrometheusRecordSink | qubership-service-nar | A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server on a configurable port. Collects metrics from incoming records by treating string fields as labels, numeric fields as gauges, and nested records (with 'type' and 'value' fields) as counters or distribution summaries. |
 | HttpLookupService | qubership-nifi-lookup-service-nar | Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values. If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records. Otherwise (status code other than 2xx), the controller service throws exception and logs the response body. |
 
 ## Additional controller services properties description
@@ -232,7 +239,10 @@ Provides validate method to check the JSON against a given schema.
 
 ### QubershipPrometheusRecordSink
 
-A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server  on a configurable port. Collects metrics from incoming records by treating string fields as labels, numeric fields as gauges, and nested records (with 'type' and 'value' fields) as counters or distribution summaries.
+A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server
+on a configurable port. Collects metrics from incoming records by treating string fields as labels,
+numeric fields as gauges, and nested records (with 'type' and 'value' fields)
+as counters or distribution summaries.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
@@ -242,7 +252,11 @@ A Record Sink service that exposes metrics to Prometheus via an embedded HTTP se
 
 ### RedisBulkDistributedMapCacheClientService
 
-Provides a Redis-based distributed map cache client with bulk operation support. This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios requiring atomic bulk cache operations across multiple NiFi instances.
+Provides a Redis-based distributed map cache client with bulk operation support.
+This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent
+and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable
+TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios
+requiring atomic bulk cache operations across multiple NiFi instances.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|

@@ -60,7 +60,7 @@ import java.util.UUID;
         + "-If incoming connection(s) are specified and no FlowFile is available to a processor task, no work \n"
         + "will be performed. \n"
         + "-If incoming connection(s) are specified and a FlowFile is available to a processor task, query \n"
-        + " will be executed when processing the next FlowFile. \n")
+        + " will be executed when processing the next FlowFile.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets mime.type = application/json"),
         @WritesAttribute(attribute = "fetch.id", description = "Sets to UUID"),

@@ -50,12 +50,12 @@ import java.util.stream.Collectors;
 
 @SupportsBatching
 @Tags({"record", "put", "sink"})
-@CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination"
-        + " specified by a Record Destination Service (i.e., record sink). The record source is defined by the "
-        + "'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type'"
-        + " is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type "
-        + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a "
-        + "JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to "
+@CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination \n"
+        + "specified by a Record Destination Service (i.e., record sink). The record source is defined by the \n"
+        + "'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' \n"
+        + "is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type \n"
+        + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a \n"
+        + "JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to \n"
         + "'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.")
 @DynamicProperties(@DynamicProperty(name = "*", value = "*",
         description = "The processor’s dynamic properties serve as the data source for generating a record. "
