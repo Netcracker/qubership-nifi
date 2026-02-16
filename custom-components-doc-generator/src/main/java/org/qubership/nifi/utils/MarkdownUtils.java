@@ -225,6 +225,7 @@ public class MarkdownUtils {
                 String componentName = customComponentEntity.getComponentName();
                 List<PropertyDescriptorEntity> entities = customComponentEntity.getComponentProperties();
 
+                descriptionLines.add("");
                 descriptionLines.add("### " + componentName);
                 descriptionLines.add("");
 
@@ -263,7 +264,6 @@ public class MarkdownUtils {
                         }
                     }
                 }
-                descriptionLines.add("");
             }
         }
 

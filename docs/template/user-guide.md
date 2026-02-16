@@ -27,6 +27,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 ## Additional processors properties description
 
 <!-- Additional processors properties description. DO NOT REMOVE -->
+
 ### PutSQLRecord
 
 Executes given SQL statement using data from input records. All records within single
@@ -174,7 +175,6 @@ The processor allows to split query result into several FlowFiles and select CSV
 | Fetch Size | fetch-size | 10000 |  | The number of result rows to be fetched from the result set at a time.  This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
 | Write By Batch | write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
 
-
 ## Additional controller services
 
 Qubership-nifi contains additional controller services compared with Apache NiFi.
@@ -195,6 +195,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 ## Additional controller services properties description
 
 <!-- Additional controller services description. DO NOT REMOVE -->
+
 ### HttpLookupService
 
 Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values.
@@ -263,7 +264,6 @@ requiring atomic bulk cache operations across multiple NiFi instances.
 | Redis Connection Pool | redis-connection-pool |  |  | A service that provides connections to Redis. |
 | TTL | redis-cache-ttl | 0 secs |  | Indicates how long the data should exist in Redis.Setting '0 secs' would mean the data would exist forever |
 
-
 ## Additional reporting tasks
 
 Qubership-nifi contains additional reporting tasks compared with Apache NiFi.
@@ -281,6 +281,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 ## Additional reporting tasks properties description
 
 <!-- Additional reporting tasks description. DO NOT REMOVE -->
+
 ### ComponentMetricsReportingTask
 
 Sends components (Processors, Connections) metrics to InfluxDB.
@@ -326,4 +327,3 @@ Sends components (Processors, Connections) metrics to Prometheus.
 | Processor time threshold | processor-time-threshold | 150 sec |  | Minimal processing time for processor to be included in monitoring.Limits data volume collected in Prometheus. |
 | Connection queue threshold | connection-queue-threshold | 80 |  | Minimal connection usage % relative to backPressureObjectThreshold.Limits data volume collected in Prometheus. |
 | Process group level threshold | pg-level-threshold | 2 |  | Maximum depth of process group to report in monitoring.Limits data volume collected in Prometheus. |
-

@@ -61,10 +61,8 @@ import java.util.stream.Collectors;
 @CapabilityDescription(
         "Sends HTTP GET request with specified URL and headers "
         + "(set up via dynamic PROPERTY_DESCRIPTORS) to look up values. \n"
-        + "\n"
         + "If the response status code is 2xx, the response body is parsed with Record Reader "
         + "and returned as array of records. \n"
-        + "\n"
         + "Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.")
 @DynamicProperties({
         @DynamicProperty(name = "*", value = "*",
