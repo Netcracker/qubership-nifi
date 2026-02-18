@@ -40,6 +40,10 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.InfluxDBIOException;
 
+/**
+ * @deprecated Since qubership-nifi v.2.4.0. To be removed in 2.7.0.
+ */
+@Deprecated(since = "2.4.0", forRemoval = true)
 public abstract class AbstractInfluxDbReportingTask
         extends AbstractReportingTask {
     /**

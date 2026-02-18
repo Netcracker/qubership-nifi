@@ -37,7 +37,7 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:2.6.0@sha256:81a6217fe9c8fcbd6bdf2a9609f0068ea0a8a49e3477bf9a196e51b208486324 AS nifi
+FROM apache/nifi:2.7.2@sha256:f6a1d2bcca0819f825cdc0a6719dfaca58e9986c97b696831597e69bdaf5364f AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-cassandra-*.nar ${NIFI_HOME}/lib/
@@ -95,7 +95,7 @@ COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
 
-ARG NIFI_VERSION='2.5.0'
+ARG NIFI_VERSION='2.7.2'
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \

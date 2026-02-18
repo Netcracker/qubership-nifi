@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "4be60f61-3269-4c5b-b30c-8044c47c84e2",
+        "_postman_id": "9d37b35c-6405-4a60-8f0b-96fb79e498a7",
         "name": "NiFi_Qubership_NAR_Tests_2.x",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
@@ -325,7 +325,7 @@
                         "header": [],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",  \r\n    \"version\": {{hikaricp.cs.version}}\r\n  },\r\n  \"component\": {\r\n    \"id\": \"{{hikaricp.cs.id}}\",\r\n    \"properties\": {\r\n      \"hikaricp-connection-url\": \"jdbc:postgresql://postgresql:5432/postgres\",\r\n      \"hikaricp-driver-classname\": \"org.postgresql.Driver\",\r\n      \"hikaricp-username\": \"postgres\",\r\n      \"hikaricp-password\": \"{{database.password}}\"\r\n    }\r\n  }\r\n}",
+                            "raw": "{\r\n  \"revision\": {\r\n    \"clientId\": \"{{nifi.client.id}}\",  \r\n    \"version\": {{hikaricp.cs.version}}\r\n  },\r\n  \"component\": {\r\n    \"id\": \"{{hikaricp.cs.id}}\",\r\n    \"properties\": {\r\n      \"Database Connection URL\": \"jdbc:postgresql://postgresql:5432/postgres\",\r\n      \"Database Driver Class Name\": \"org.postgresql.Driver\",\r\n      \"Database User\": \"postgres\",\r\n      \"Password\": \"{{database.password}}\"\r\n    }\r\n  }\r\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
