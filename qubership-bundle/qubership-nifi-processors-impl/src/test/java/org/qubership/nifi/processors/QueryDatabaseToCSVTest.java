@@ -27,7 +27,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 import org.hamcrest.CoreMatchers;
-import org.junit.Assert;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -190,7 +190,7 @@ public class QueryDatabaseToCSVTest {
     private void compareErrorAttributes(MockFlowFile ff, String key, String value) {
         Map<String, String> attr = ff.getAttributes();
         String actualValue = attr.get(key);
-        Assert.assertThat(actualValue, CoreMatchers.containsString(value));
+        MatcherAssert.assertThat(actualValue, CoreMatchers.containsString(value));
     }
 
     private void initBdTestDataFirstSet() throws SQLException {

@@ -59,7 +59,7 @@
         <pmd.version>3.26.0</pmd.version>
         <jacoco.version>0.8.12</jacoco.version>
         <resources.version>3.1.0</resources.version>
-        <testcontainers.version>1.20.4</testcontainers.version>
+        <testcontainers.version>2.0.2</testcontainers.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
         <logback.version>1.5.19</logback.version>
         <hikari.cp.version>5.1.0</hikari.cp.version>
