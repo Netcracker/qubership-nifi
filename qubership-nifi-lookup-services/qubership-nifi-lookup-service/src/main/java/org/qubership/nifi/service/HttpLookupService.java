@@ -61,10 +61,8 @@ import java.util.stream.Collectors;
 @CapabilityDescription(
         "Sends HTTP GET request with specified URL and headers "
         + "(set up via dynamic PROPERTY_DESCRIPTORS) to look up values. \n"
-        + "\n"
         + "If the response status code is 2xx, the response body is parsed with Record Reader "
         + "and returned as array of records. \n"
-        + "\n"
         + "Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.")
 @DynamicProperties({
         @DynamicProperty(name = "*", value = "*",
@@ -81,7 +79,7 @@ public class HttpLookupService extends AbstractControllerService
             .name("http-lookup-url")
             .displayName("URL")
             .description("The URL to send request to. Expression language is supported "
-                    + "and evaluated against both the lookup key/value pairs and FlowFile attributes.")
+                    + "and evaluated against both the lookup key-value pairs and FlowFile attributes.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)

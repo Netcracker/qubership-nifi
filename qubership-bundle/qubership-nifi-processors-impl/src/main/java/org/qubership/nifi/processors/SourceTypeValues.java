@@ -11,8 +11,8 @@ public enum SourceTypeValues {
     /**
      * jsonProperty source type.
      */
-    JSON_PROPERTY(new AllowableValue("jsonProperty", "Json Property",
-            "Create record from the 'Json Property'"));
+    JSON_PROPERTY(new AllowableValue("jsonProperty", "JSON Property",
+            "Create record from the 'JSON Property'"));
 
     private final AllowableValue allowableValue;
 

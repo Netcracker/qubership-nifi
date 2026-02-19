@@ -89,7 +89,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
             .displayName("Server Port")
-            .description("")
+            .description("The Port where prometheus metrics can be accessed.")
             .defaultValue("9192")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();

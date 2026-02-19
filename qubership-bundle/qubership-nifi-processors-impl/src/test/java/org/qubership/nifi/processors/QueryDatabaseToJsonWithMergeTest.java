@@ -52,7 +52,7 @@ import java.util.Map;
 import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.DBCP_SERVICE;
 import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.PS_PROVIDER_SERVICE;
 import static org.qubership.nifi.processors.QueryDatabaseToJson.SQL_QUERY;
-import static junit.framework.TestCase.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.PATH;

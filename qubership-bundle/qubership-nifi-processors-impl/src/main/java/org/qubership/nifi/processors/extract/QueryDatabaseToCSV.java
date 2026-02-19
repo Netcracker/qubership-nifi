@@ -60,7 +60,7 @@ import java.util.Map;
 
 @SideEffectFree
 @Tags({"CSV", "DB", "Database", "Query"})
-@CapabilityDescription("Fetches data from DB using specified query and transforms it to CSV in particular CSV format."
+@CapabilityDescription("Fetches data from DB using specified query and transforms it to CSV in particular CSV format.\n"
         + "The processor allows to split query result into several FlowFiles and select CSV format for output.")
 @WritesAttributes({
     @WritesAttribute(attribute = "extraction.error", description = "Error message with stacktrace for the case, "

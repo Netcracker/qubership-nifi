@@ -73,10 +73,10 @@ import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 /**
  * Controller Service which allows to expose metrics to Prometheus.
  */
-@CapabilityDescription("A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server "
-    + " on a configurable port. Collects metrics from incoming records by treating string fields as labels, "
-    + "numeric fields as gauges, and nested records (with 'type' and 'value' fields)"
-    + " as counters or distribution summaries.")
+@CapabilityDescription("A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server \n"
+    + "on a configurable port. Collects metrics from incoming records by treating string fields as labels, \n"
+    + "numeric fields as gauges, and nested records (with 'type' and 'value' fields) \n"
+    + "as counters or distribution summaries.")
 @Tags({"record", "send", "write", "prometheus"})
 public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService,
         MeterRegistryProvider {

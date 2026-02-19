@@ -48,7 +48,7 @@ import static org.qubership.nifi.NiFiUtils.readJsonNodeFromFlowFile;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"JSON", "DB"})
 @CapabilityDescription("Fetches data from database table and transforms it to JSON.\n"
-        + "This processor gets incoming FlowFile and reads id attributes using Json Path. Found ids are passed\n"
+        + "This processor gets incoming FlowFile and reads ID attributes using JSON Path. Found IDs are passed\n"
         + "in select query as an array. Obtained result set will be written into output FlowFile.\n"
         + "Expects that content of an incoming FlowFile is array of unique business entity \n"
         + "identifiers in the JSON format.")
@@ -78,7 +78,7 @@ public class QueryDatabaseToJson extends AbstractSingleQueryDatabaseToJson {
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("path")
             .displayName("Path")
-            .description("A JsonPath expression that specifies path to source id attribute inside the array "
+            .description("A JsonPath expression that specifies path to source ID attribute inside the array "
                     + "in an incoming FlowFile.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
