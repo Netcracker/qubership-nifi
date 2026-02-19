@@ -276,17 +276,15 @@
                         <DOCKER_HOST>${env.TEST_DOCKER_URL}</DOCKER_HOST>
                         <testcontainers.environmentprovider.timeout>60</testcontainers.environmentprovider.timeout>
                     </environmentVariables>
+                    <systemPropertyVariables>
+                        <api.version>1.44</api.version>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.0.0-M1</version>
-                <configuration>
-                    <systemPropertyVariables>
-                        <api.version>1.44</api.version>
-                    </systemPropertyVariables>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
