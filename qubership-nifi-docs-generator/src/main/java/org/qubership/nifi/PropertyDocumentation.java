@@ -325,7 +325,8 @@ public class PropertyDocumentation extends AbstractMojo {
         for (PropertyDescriptor propDesc : propertyDescriptors) {
             customComponentEntityList.add(new PropertyDescriptorEntity(
                     propDesc.getDisplayName(), propDesc.getName(), propDesc.getDefaultValue(),
-                    propDesc.getDescription().replaceAll("\\r?\\n|\\r", ""), propDesc.getAllowableValues(),
+                    propDesc.getDescription() != null ? propDesc.getDescription().replaceAll("\\r?\\n|\\r", "") : "",
+                    propDesc.getAllowableValues(),
                     componentDescription));
         }
         return customComponentEntityList;
