@@ -10,7 +10,7 @@ Qubership-nifi contains additional processors compared with Apache NiFi.
 Table below provides list of these processors with descriptions.
 More information on their usage is available in Help (`Global Menu` -> `Help`) within qubership-nifi.
 
-<!-- Table for additional processor. DO NOT REMOVE. -->
+<!-- Table for additional processors. DO NOT REMOVE. -->
 
 | Processor  | NAR                 | Description        |
 |----------------------|--------------------|--------------------|
@@ -26,7 +26,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 ## Additional processors properties description
 
-<!-- Additional processors properties description. DO NOT REMOVE -->
+<!-- Additional processors properties description. DO NOT REMOVE. -->
 
 ### PutSQLRecord
 
@@ -180,7 +180,7 @@ Qubership-nifi contains additional controller services compared with Apache NiFi
 Table below provides list of these controller services with descriptions.
 More information on their usage is available in Help (`Global Menu` -> `Help`) within qubership-nifi.
 
-<!-- Table additional controller services. DO NOT REMOVE. -->
+<!-- Table for additional controller services. DO NOT REMOVE. -->
 
 | Controller Service  | NAR                 | Description        |
 |----------------------|--------------------|--------------------|
@@ -193,7 +193,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 ## Additional controller services properties description
 
-<!-- Additional controller services description. DO NOT REMOVE -->
+<!-- Additional controller services description. DO NOT REMOVE. -->
 
 ### HttpLookupService
 
@@ -267,7 +267,7 @@ Qubership-nifi contains additional reporting tasks compared with Apache NiFi.
 Table below provides list of these reporting tasks with descriptions.
 More information on their usage is available in Help (`Global Menu` -> `Help`) within qubership-nifi.
 
-<!-- Table additional reporting tasks. DO NOT REMOVE. -->
+<!-- Table for additional reporting tasks. DO NOT REMOVE. -->
 
 | Reporting Task  | NAR                 | Description        |
 |----------------------|--------------------|--------------------|
@@ -277,7 +277,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 ## Additional reporting tasks properties description
 
-<!-- Additional reporting tasks description. DO NOT REMOVE -->
+<!-- Additional reporting tasks description. DO NOT REMOVE. -->
 
 ### ComponentMetricsReportingTask
 

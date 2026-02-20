@@ -17,6 +17,7 @@ import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.maven.plugin.AbstractMojo;
@@ -32,10 +33,13 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.mock.MockProcessorInitializationContext;
+import org.apache.nifi.mock.MockControllerServiceInitializationContext;
 import org.eclipse.aether.RepositorySystemSession;
 import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.qubership.nifi.utils.MarkdownUtils;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -117,10 +121,14 @@ public class PropertyDocumentation extends AbstractMojo {
         }
 
         File outputFile = prepareOutputFile(outputFileTemplate);
-        try {
-            generateDocumentation(outputFile);
-        } catch (Exception e) {
-            throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
+        if (outputFile != null) {
+            try {
+                generateDocumentation(outputFile);
+            } catch (Exception e) {
+                throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
+            }
+        } else {
+            throw new MojoExecutionException("Failed to prepare output file for documentation generation.");
         }
     }
 
@@ -153,7 +161,9 @@ public class PropertyDocumentation extends AbstractMojo {
     }
 
     private Set<String> readExcludedArtifactsFromFile(File configFile) {
-        Yaml yaml = new Yaml();
+        LoaderOptions opts = new LoaderOptions();
+        opts.setMaxAliasesForCollections(50);
+        Yaml yaml = new Yaml(new SafeConstructor(opts));
 
         try (InputStream inputStream = new FileInputStream(configFile)) {
             Map<String, Object> data = yaml.load(inputStream);
@@ -236,6 +246,9 @@ public class PropertyDocumentation extends AbstractMojo {
                 Class<? extends ControllerService> controllerServiceClass = controllerServiceInstance.getClass();
                 CapabilityDescription capabilityDescriptionAnnotationCS =
                         controllerServiceClass.getAnnotation(CapabilityDescription.class);
+                ControllerServiceInitializationContext controllerServiceInitializationContext =
+                        new MockControllerServiceInitializationContext();
+                controllerServiceInstance.initialize(controllerServiceInitializationContext);
                 List<PropertyDescriptor> propertyDescriptors = controllerServiceInstance.getPropertyDescriptors();
                 if (capabilityDescriptionAnnotationCS != null) {
                     String controllerServiceName = controllerServiceClass.getSimpleName();
@@ -295,10 +308,11 @@ public class PropertyDocumentation extends AbstractMojo {
             }
 
         } catch (ServiceConfigurationError e) {
-            getLog().error("ServiceConfigurationError: " + e.getMessage());
-            getLog().error("Error: ", e);
+            getLog().error("Failed to load services", e);
+            throw new MojoExecutionException("Failed to load services for documentation generation", e);
         } catch (InitializationException e) {
-            throw new RuntimeException(e);
+            getLog().error("Failed to initialize component", e);
+            throw new MojoExecutionException("Failed to initialize component", e);
         }
         markdownUtils.writeToFile();
     }
@@ -383,7 +397,6 @@ public class PropertyDocumentation extends AbstractMojo {
         final ProjectBuildingRequest projectRequest = new DefaultProjectBuildingRequest();
         projectRequest.setRepositorySession(repoSession);
         projectRequest.setSystemProperties(System.getProperties());
-        projectRequest.setUserProperties(System.getProperties());
         return projectRequest;
     }
 

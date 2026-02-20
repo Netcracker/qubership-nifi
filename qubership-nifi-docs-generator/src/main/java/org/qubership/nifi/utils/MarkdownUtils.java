@@ -8,23 +8,24 @@ import org.qubership.nifi.PropertyDescriptorEntity;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MarkdownUtils {
 
-    private static final String TABLE_PROCESSOR = "<!-- Table for additional processor. DO NOT REMOVE. -->";
+    private static final String TABLE_PROCESSOR = "<!-- Table for additional processors. DO NOT REMOVE. -->";
     private static final String TABLE_CONTROLLER_SERVICES =
-            "<!-- Table additional controller services. DO NOT REMOVE. -->";
+            "<!-- Table for additional controller services. DO NOT REMOVE. -->";
     private static final String TABLE_REPORTING_TASK =
-            "<!-- Table additional reporting tasks. DO NOT REMOVE. -->";
+            "<!-- Table for additional reporting tasks. DO NOT REMOVE. -->";
 
     private static final String PROPERTIES_DESCRIPTION_PROCESSOR =
-            "<!-- Additional processors properties description. DO NOT REMOVE -->";
+            "<!-- Additional processors properties description. DO NOT REMOVE. -->";
     private static final String PROPERTIES_DESCRIPTION_CONTROLLER_SERVICES =
-            "<!-- Additional controller services description. DO NOT REMOVE -->";
+            "<!-- Additional controller services description. DO NOT REMOVE. -->";
     private static final String PROPERTIES_DESCRIPTION_REPORTING_TASK =
-            "<!-- Additional reporting tasks description. DO NOT REMOVE -->";
+            "<!-- Additional reporting tasks description. DO NOT REMOVE. -->";
 
 
     private static final String HEADER_BASE = " | NAR                 | Description        |";
@@ -38,8 +39,6 @@ public class MarkdownUtils {
 
     private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
             + "---------------|--------------------|--------------------|--------------------|";
-
-    private static final int NUMBER_OF_COLUMN = 3;
 
     private List<String> lines;
 
@@ -69,7 +68,7 @@ public class MarkdownUtils {
      * @throws IOException
      */
     public void readFile() throws IOException {
-        lines = Files.readAllLines(templateFile);
+        lines = Files.readAllLines(templateFile, StandardCharsets.UTF_8);
     }
 
     /**
@@ -77,7 +76,7 @@ public class MarkdownUtils {
      * @throws IOException
      */
     public void writeToFile() throws IOException {
-        Files.write(templateFile, lines);
+        Files.write(templateFile, lines, StandardCharsets.UTF_8);
     }
 
     /**
@@ -187,7 +186,7 @@ public class MarkdownUtils {
      * Generates detailed property descriptions for components in markdown format
      * and inserts them into a template file.
      *
-     * @param customComponentList map of component for table
+     * @param customComponentList list of component for table
      * @param componentType the type of component properties to generate; must be one of:
      *                    {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      * @throws IOException

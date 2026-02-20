@@ -21,7 +21,7 @@ public class PropertyDescriptorEntity {
      *
      * @param displayNameValue display name value
      * @param apiNameValue api name value
-     * @param defaultNameValue default name value
+     * @param defaultValueValue default value
      * @param descriptionValue description value
      * @param allowableValuesValue allowable values value
      * @param componentDescriptionValue component description value
@@ -29,13 +29,13 @@ public class PropertyDescriptorEntity {
     public PropertyDescriptorEntity(
             final String displayNameValue,
             final String apiNameValue,
-            final String defaultNameValue,
+            final String defaultValueValue,
             final String descriptionValue,
             final List<AllowableValue> allowableValuesValue,
             final String componentDescriptionValue) {
         this.displayName = displayNameValue;
         this.apiName = apiNameValue;
-        this.defaultValue = defaultNameValue;
+        this.defaultValue = defaultValueValue;
         this.description = descriptionValue;
         this.allowableValues = allowableValuesValue;
         this.componentDescription = componentDescriptionValue;
