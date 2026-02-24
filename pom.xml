@@ -95,6 +95,7 @@
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
         <module>qubership-test-bundle</module>
+        <module>qubership-nifi-docs-generator</module>
     </modules>
 
     <reporting>

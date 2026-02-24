@@ -27,6 +27,13 @@ public class MarkdownUtils {
     private static final String PROPERTIES_DESCRIPTION_REPORTING_TASK =
             "<!-- Additional reporting tasks description. DO NOT REMOVE. -->";
 
+    private static final String PROPERTIES_DESCRIPTION_END_PROCESSOR =
+            "<!-- End of additional processors properties description. DO NOT REMOVE. -->";
+    private static final String PROPERTIES_DESCRIPTION_END_CONTROLLER_SERVICES =
+            "<!-- End of additional controller services description. DO NOT REMOVE. -->";
+    private static final String PROPERTIES_DESCRIPTION_END_REPORTING_TASK =
+            "<!-- End of additional reporting tasks description. DO NOT REMOVE. -->";
+
 
     private static final String HEADER_BASE = " | NAR                 | Description        |";
     private static final String HEADER_PROCESSORS = "| Processor " + HEADER_BASE;
@@ -200,7 +207,12 @@ public class MarkdownUtils {
             case REPORTING_TASK -> PROPERTIES_DESCRIPTION_REPORTING_TASK;
         };
 
-        List<String> updatedLines = new ArrayList<>();
+        String endMarker = switch (componentType) {
+            case PROCESSOR -> PROPERTIES_DESCRIPTION_END_PROCESSOR;
+            case CONTROLLER_SERVICE -> PROPERTIES_DESCRIPTION_END_CONTROLLER_SERVICES;
+            case REPORTING_TASK -> PROPERTIES_DESCRIPTION_END_REPORTING_TASK;
+        };
+
         boolean markerFound = false;
         int sectionStartIndex = -1;
 
@@ -216,6 +228,18 @@ public class MarkdownUtils {
         if (!markerFound) {
             throw new IllegalStateException("Marker comment for " + componentType
                     + " properties not found in template file: " + templateFile);
+        }
+
+        int endIndex = -1;
+        for (int i = sectionStartIndex + 1; i < lines.size(); i++) {
+            if (lines.get(i).trim().equals(endMarker)) {
+                endIndex = i;
+                break;
+            }
+        }
+        if (endIndex == -1) {
+            throw new IllegalStateException("End marker for " + componentType
+                    + " properties not found in file: " + templateFile);
         }
 
         List<String> descriptionLines = new ArrayList<>();
@@ -266,16 +290,9 @@ public class MarkdownUtils {
             }
         }
 
-        for (int i = 0; i <= sectionStartIndex; i++) {
-            updatedLines.add(lines.get(i));
-        }
-
+        List<String> updatedLines = new ArrayList<>(lines.subList(0, endIndex));
         updatedLines.addAll(descriptionLines);
-
-        for (int i = sectionStartIndex + 1; i < lines.size(); i++) {
-            updatedLines.add(lines.get(i));
-        }
-
+        updatedLines.addAll(lines.subList(endIndex, lines.size()));
         lines = updatedLines;
     }
 

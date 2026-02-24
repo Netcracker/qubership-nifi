@@ -46,6 +46,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -71,6 +72,7 @@ public class PropertyDocumentation extends AbstractMojo {
 
     private Set<String> excludedArtifactIds;
     private static final String KEY_EXCLUDE_ARRAY = "excludedArtifacts";
+    private static final String SESSION_RESET_KEY = "docs.generator.reset";
 
     @Component
     private DependencyGraphBuilder dependencyGraphBuilder;
@@ -89,11 +91,15 @@ public class PropertyDocumentation extends AbstractMojo {
     private MavenSession session;
 
     @Parameter(property = "doc.template.file", defaultValue = "/docs/template/user-guide-template.md",
-            readonly = true, required = true)
+            readonly = false, required = true)
     private String outputFileTemplatePath;
 
+    @Parameter(property = "doc.output.file", defaultValue = "/docs/user-guide.md",
+            readonly = false, required = true)
+    private String outputFilePath;
+
     @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/docs/template/documentGeneratorConfig.yaml",
-            readonly = true, required = true)
+            readonly = false, required = true)
     private String artifactExcludedListPath;
 
     /**
@@ -120,43 +126,23 @@ public class PropertyDocumentation extends AbstractMojo {
                     + " 'doc.template.file' = " + outputFileTemplate.getAbsolutePath());
         }
 
-        File outputFile = prepareOutputFile(outputFileTemplate);
-        if (outputFile != null) {
+        File outputFile = new File(topLevelBasedir, outputFilePath);
+        String resetKey = SESSION_RESET_KEY + "." + outputFile.getAbsolutePath();
+        if (session.getUserProperties().getProperty(resetKey) == null) {
             try {
-                generateDocumentation(outputFile);
-            } catch (Exception e) {
-                throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
+                Files.copy(outputFileTemplate.toPath(), outputFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+                session.getUserProperties().setProperty(resetKey, "true");
+                getLog().info("Reset output file to template: " + outputFile.getAbsolutePath());
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to reset output file from template", e);
             }
-        } else {
-            throw new MojoExecutionException("Failed to prepare output file for documentation generation.");
-        }
-    }
-
-    private File prepareOutputFile(File outputFileTemplate) {
-        if (outputFileTemplate == null || !outputFileTemplate.exists() || !outputFileTemplate.isFile()) {
-            getLog().error("Template file does not exist or is not a file: "
-                    + (outputFileTemplate != null ? outputFileTemplate.getAbsolutePath() : "null"));
-            return null;
-        }
-
-        File parentDir = outputFileTemplate.getParentFile();
-        String templateName = outputFileTemplate.getName();
-        String outputFileName = templateName.replace("-template", "");
-        File outputFile = new File(parentDir, outputFileName);
-
-        if (outputFile.exists()) {
-            getLog().debug("Output file already exists, returning existing file: "
-                    + outputFile.getAbsolutePath());
-            return outputFile;
         }
 
         try {
-            Files.copy(outputFileTemplate.toPath(), outputFile.toPath());
-            getLog().debug("Template copied to output file: " + outputFile.getAbsolutePath());
-            return outputFile;
-        } catch (IOException e) {
-            getLog().error("Error copying template file: " + e.getMessage());
-            return null;
+            generateDocumentation(outputFile);
+        } catch (Exception e) {
+            throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
         }
     }
 

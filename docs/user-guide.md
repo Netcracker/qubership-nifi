@@ -28,33 +28,6 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Additional processors properties description. DO NOT REMOVE. -->
 
-### PutSQLRecord
-
-Executes given SQL statement using data from input records. All records within single
-FlowFile are processed within single transaction.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Record Reader | record-reader |  |  | Record Reader |
-| SQL Statement | sql-statement |  |  | SQL statement that should be executed for each record. Statement must contains exactly the same number and types of binds as number and types of fields in RecordSchema. |
-| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database |
-| Maximum Batch Size | max-batch-size | 100 |  | Maximum number of records to include into DB batch |
-| Convert Payload | convert-payload | false | true, false | When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present in the input Record. By default is set to false. |
-
-### PostgreSQLBulkLoader
-
-The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.
-It is also possible to copy from DB to FlowFile content.
-
-| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
-|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database. |
-| SQL Query | sql-query |  |  | SQL query to execute. Copy command from stdin/to stdout. |
-| File Path | file-path |  |  | Path to CSV file in file system. |
-| Buffer Size | buffer-size |  |  | Number of characters to buffer and push over network to server at once. |
-| Copy Mode | copy-mode | to | To, From | Provides a selection of copy mode (from stdin/to stdout). |
-| Read From | read-from | file-system | File System, Content | Provides a selection of data to copy. |
-
 ### QueryDatabaseToJsonWithMerge
 
 Executes custom query to fetch rows from table and merge them with the main JSON object
@@ -174,6 +147,34 @@ The processor allows to split query result into several FlowFiles and select CSV
 | Fetch Size | fetch-size | 10000 |  | The number of result rows to be fetched from the result set at a time.  This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
 | Write By Batch | write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
 
+### PutSQLRecord
+
+Executes given SQL statement using data from input records. All records within single
+FlowFile are processed within single transaction.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Record Reader | record-reader |  |  | Record Reader |
+| SQL Statement | sql-statement |  |  | SQL statement that should be executed for each record. Statement must contains exactly the same number and types of binds as number and types of fields in RecordSchema. |
+| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database |
+| Maximum Batch Size | max-batch-size | 100 |  | Maximum number of records to include into DB batch |
+| Convert Payload | convert-payload | false | true, false | When set to true, Map/Record/Array/Choice fields will be converted to JSON strings. Otherwise processor will throw exception, if Map/Record/Array/Choice fields are present in the input Record. By default is set to false. |
+
+### PostgreSQLBulkLoader
+
+The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.
+It is also possible to copy from DB to FlowFile content.
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Database Connection Pooling Service | dbcp-service |  |  | Database Connection Pooling Service to use for connecting to target Database. |
+| SQL Query | sql-query |  |  | SQL query to execute. Copy command from stdin/to stdout. |
+| File Path | file-path |  |  | Path to CSV file in file system. |
+| Buffer Size | buffer-size |  |  | Number of characters to buffer and push over network to server at once. |
+| Copy Mode | copy-mode | to | To, From | Provides a selection of copy mode (from stdin/to stdout). |
+| Read From | read-from | file-system | File System, Content | Provides a selection of data to copy. |
+<!-- End of additional processors properties description. DO NOT REMOVE. -->
+
 ## Additional controller services
 
 Qubership-nifi contains additional controller services compared with Apache NiFi.
@@ -195,18 +196,18 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Additional controller services description. DO NOT REMOVE. -->
 
-### HttpLookupService
+### RedisBulkDistributedMapCacheClientService
 
-Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values.
-If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records.
-Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.
+Provides a Redis-based distributed map cache client with bulk operation support.
+This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent
+and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable
+TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios
+requiring atomic bulk cache operations across multiple NiFi instances.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| URL | http-lookup-url |  |  | The URL to send request to. Expression language is supported and evaluated against both the lookup key-value pairs and FlowFile attributes. |
-| Record Reader | http-lookup-record-reader |  |  | The record reader to use for loading response body and handling it as a record set. |
-| Connection Timeout | http-lookup-connection-timeout | 5 secs |  | Max wait time for connection to remote service. |
-| Read Timeout | http-lookup-read-timeout | 15 secs |  | Max wait time for response from remote service. |
+| Redis Connection Pool | redis-connection-pool |  |  | A service that provides connections to Redis. |
+| TTL | redis-cache-ttl | 0 secs |  | Indicates how long the data should exist in Redis.Setting '0 secs' would mean the data would exist forever |
 
 ### OraclePreparedStatementWithArrayProvider
 
@@ -248,18 +249,19 @@ as counters or distribution summaries.
 | Instance ID | prometheus-sink-instance-id | ${hostname(true)}_${NAMESPACE} |  | Identifier of the NiFi instance to be included in the metrics as a label. |
 | Clear Metrics on Disable | prometheus-sink-clear-metrics | No | Yes, No | If set to Yes, all metrics stored in the controller service are cleared, when the controller service is disabled. By default, metrics are not cleared. |
 
-### RedisBulkDistributedMapCacheClientService
+### HttpLookupService
 
-Provides a Redis-based distributed map cache client with bulk operation support.
-This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent
-and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable
-TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios
-requiring atomic bulk cache operations across multiple NiFi instances.
+Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values.
+If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records.
+Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.
 
 | Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
 |-----------------------------------|---------------------|--------------------|--------------------|--------------------|
-| Redis Connection Pool | redis-connection-pool |  |  | A service that provides connections to Redis. |
-| TTL | redis-cache-ttl | 0 secs |  | Indicates how long the data should exist in Redis.Setting '0 secs' would mean the data would exist forever |
+| URL | http-lookup-url |  |  | The URL to send request to. Expression language is supported and evaluated against both the lookup key-value pairs and FlowFile attributes. |
+| Record Reader | http-lookup-record-reader |  |  | The record reader to use for loading response body and handling it as a record set. |
+| Connection Timeout | http-lookup-connection-timeout | 5 secs |  | Max wait time for connection to remote service. |
+| Read Timeout | http-lookup-read-timeout | 15 secs |  | Max wait time for response from remote service. |
+<!-- End of additional controller services description. DO NOT REMOVE. -->
 
 ## Additional reporting tasks
 
@@ -324,3 +326,4 @@ Sends components (Processors, Connections) metrics to Prometheus.
 | Processor time threshold | processor-time-threshold | 150 sec |  | Minimal processing time for processor to be included in monitoring.Limits data volume collected in Prometheus. |
 | Connection queue threshold | connection-queue-threshold | 80 |  | Minimal connection usage % relative to backPressureObjectThreshold.Limits data volume collected in Prometheus. |
 | Process group level threshold | pg-level-threshold | 2 |  | Maximum depth of process group to report in monitoring.Limits data volume collected in Prometheus. |
+<!-- End of additional reporting tasks description. DO NOT REMOVE. -->
