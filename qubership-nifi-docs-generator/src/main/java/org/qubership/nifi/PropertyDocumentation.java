@@ -146,9 +146,11 @@ public class PropertyDocumentation extends AbstractMojo {
         }
     }
 
+    private static final int MAX_ALIASES_FOR_COLLECTIONS = 50;
+
     private Set<String> readExcludedArtifactsFromFile(File configFile) {
         LoaderOptions opts = new LoaderOptions();
-        opts.setMaxAliasesForCollections(50);
+        opts.setMaxAliasesForCollections(MAX_ALIASES_FOR_COLLECTIONS);
         Yaml yaml = new Yaml(new SafeConstructor(opts));
 
         try (InputStream inputStream = new FileInputStream(configFile)) {
