@@ -6,8 +6,8 @@ As input, the generator uses a template documentation file with specific marker 
 the locations where documentation for processors, controller services, and reporting tasks will be injected.
 The generated documentation includes:
 
-1. A summary table listing the component name, description, and the NAR file that packages the component.
-2. A details section listing the component name, description, and a table of the component's properties.
+1. A summary table listing the component name, description, and the NAR file that packages the component
+2. A details section listing the component name, description, and a table of the component's properties
 
 On each run, the output documentation file is overwritten with the template contents,
 and then the generated sections are inserted at the specified marker locations.
