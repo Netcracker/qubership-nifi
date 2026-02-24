@@ -49,7 +49,7 @@ They must not be modified and must be kept as-is for the plugin to work correctl
 <!-- End of additional reporting tasks description. DO NOT REMOVE. -->
 ```
 
-An example template is available at [docs/template/user-guide-template.md](docs/template/user-guide-template.md).
+An example template is available at [docs/template/user-guide-template.md](../docs/template/user-guide-template.md).
 
 ## Usage
 
@@ -83,4 +83,4 @@ excludedArtifacts:
   - ...
 ```
 
-An example configuration file is available at [docs/template/documentGeneratorConfig.yaml](docs/template/documentGeneratorConfig.yaml).
+An example configuration file is available at [docs/template/documentGeneratorConfig.yaml](../docs/template/documentGeneratorConfig.yaml).
