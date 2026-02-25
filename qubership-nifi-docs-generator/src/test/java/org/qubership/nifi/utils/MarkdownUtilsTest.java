@@ -196,6 +196,27 @@ class MarkdownUtilsTest {
     }
 
     @Test
+    void testGeneratePropertyDescriptionWithCustomHeaderLevel() throws Exception {
+        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        MarkdownUtils utils = new MarkdownUtils(file, mockLog(), 2);
+        utils.readFile();
+
+        PropertyDescriptorEntity prop = new PropertyDescriptorEntity(
+                "My Property", "my-property", "default", "Property description",
+                null, "Component description");
+        CustomComponentEntity entity = new CustomComponentEntity(
+                "MyProcessor", ComponentType.PROCESSOR, "my-nar", "A processor",
+                Collections.singletonList(prop));
+
+        utils.generatePropertyDescription(Collections.singletonList(entity), ComponentType.PROCESSOR);
+        utils.writeToFile();
+
+        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        assertTrue(result.contains("## MyProcessor"), "Should use level-2 heading");
+        assertFalse(result.contains("### MyProcessor"), "Should not use default level-3 heading");
+    }
+
+    @Test
     void testWriteToFilePersistsModifiedContent() throws Exception {
         Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());

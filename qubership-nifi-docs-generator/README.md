@@ -67,11 +67,16 @@ mvn org.qubership.nifi:qubership-nifi-docs-generator:generate
 To run the documentation generator with explicit parameters, execute the following command:
 
 ```shell
-mvn org.qubership.nifi:qubership-nifi-docs-generator:generate -Ddoc.template.file=<templateFile> -Ddoc.output.file=<docFile> -Ddoc.exclude.artifact.file=<docGeneratorConfig>
+mvn org.qubership.nifi:qubership-nifi-docs-generator:generate \
+  -Ddoc.template.file=<templateFile> \
+  -Ddoc.output.file=<docFile> \
+  -Ddoc.exclude.artifact.file=<docGeneratorConfig> \
+  -Ddoc.header.level=<headerLevel>
 ```
 
 where `<templateFile>`, `<docFile>`, and `<docGeneratorConfig>` are paths to the template file, the target
-documentation file, and the documentation generator configuration file, respectively.
+documentation file, and the documentation generator configuration file, respectively,
+and `<headerLevel>` is the Markdown heading level (1–6) for component name headings in the details section.
 
 The table below describes the plugin parameters:
 
@@ -80,6 +85,7 @@ The table below describes the plugin parameters:
 | doc.template.file                 | `/docs/template/user-guide-template.md`       | The template file used to generate documentation. Must be provided and must match the requirements listed in the **Template file structure** section. |
 | doc.output.file                   | `/docs/user-guide.md`                         | The output documentation file. Regenerated on each plugin execution.                                                         |
 | doc.exclude.artifact.file         | `/docs/template/documentGeneratorConfig.yaml` | Optional. The documentation generator configuration file specifying NAR artifacts to exclude from processing.                 |
+| doc.header.level                  | `3`                                           | Optional. The Markdown heading level (1–6) used for component name headings in the details section.                           |
 
 ## Documentation generator configuration file
 

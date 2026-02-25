@@ -102,6 +102,9 @@ public class PropertyDocumentation extends AbstractMojo {
             readonly = false, required = true)
     private String artifactExcludedListPath;
 
+    @Parameter(property = "doc.header.level", defaultValue = "3", readonly = false, required = false)
+    private int propertyDescriptionHeaderLevel;
+
     /**
      * Method for generating documentation for custom components.
      *
@@ -206,7 +209,7 @@ public class PropertyDocumentation extends AbstractMojo {
 
         getLog().debug("URLClassLoader created successfully with " + urls.size() + " entries.");
 
-        MarkdownUtils markdownUtils = new MarkdownUtils(outputFile.toPath(), getLog());
+        MarkdownUtils markdownUtils = new MarkdownUtils(outputFile.toPath(), getLog(), propertyDescriptionHeaderLevel);
         markdownUtils.readFile();
         try (URLClassLoader componentClassLoader = new URLClassLoader(urlsArray, parentClassLoader)) {
             ServiceLoader<Processor> processorServiceLoader = ServiceLoader.load(Processor.class, componentClassLoader);
