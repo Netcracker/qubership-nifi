@@ -2,8 +2,10 @@ package org.qubership.nifi;
 
 import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
+import org.apache.maven.artifact.resolver.filter.AndArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.ArtifactFilter;
 import org.apache.maven.artifact.resolver.filter.ExclusionSetFilter;
+import org.apache.maven.artifact.resolver.filter.ScopeArtifactFilter;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.project.DefaultProjectBuildingRequest;
@@ -327,26 +329,44 @@ public class PropertyDocumentation extends AbstractMojo {
         final ProjectBuildingResult narResult = projectBuilder.build(narArtifact, narRequest);
 
         final Set<Artifact> narDependencies = gatherArtifacts(narResult.getProject(), TreeSet::new);
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Found NAR dependency of " + narArtifact
+                    + ", which resolved to the following artifacts: " + narDependencies);
+        }
         narDependencies.remove(narArtifact);
         narDependencies.remove(project.getArtifact());
+        //remove test dependencies:
+        narDependencies.removeIf(artifact -> "test".equals(artifact.getScope()));
 
-        getLog().debug("Found NAR dependency of " + narArtifact
-                + ", which resolved to the following artifacts: " + narDependencies);
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Found NAR dependency of " + narArtifact
+                    + ", which resolved to the following artifacts after filter: " + narDependencies);
+        }
         Set<Artifact> artifactsToAdd = new HashSet<>();
-        for (Artifact artifact : narDependencies) {
-            if ("org.qubership.nifi".equals(artifact.getGroupId())) {
-                try {
-                    Set<Artifact> childNarArtifacts = getNarDependencies(artifact);
-                    childNarArtifacts.removeIf(childArtifact -> !"provided".equals(childArtifact.getScope()));
-                    artifactsToAdd.addAll(childNarArtifacts);
-                } catch (Exception e) {
-                    getLog().warn("Failed to get dependencies for artifact "
-                            + artifact.getId() + ". Reason: " + e.getMessage(), e);
+        if ("nar".equals(narArtifact.getType())) {
+            for (Artifact artifact : narDependencies) {
+                if ("jar".equals(artifact.getType())) {
+                    try {
+                        Set<Artifact> childNarArtifacts = getNarDependencies(artifact);
+                        childNarArtifacts.removeIf(childArtifact -> !"provided".equals(childArtifact.getScope()));
+
+                        if (getLog().isDebugEnabled()) {
+                            getLog().debug("Child " + artifact
+                                    + " has dependencies with scope = provided " + childNarArtifacts);
+                        }
+                        artifactsToAdd.addAll(childNarArtifacts);
+                    } catch (Exception e) {
+                        getLog().warn("Failed to get dependencies for artifact "
+                                + artifact.getId() + ". Reason: " + e.getMessage(), e);
+                    }
                 }
             }
         }
         narDependencies.addAll(artifactsToAdd);
-
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Found NAR dependency of " + narArtifact
+                    + ", which resolved to the following artifacts after children: " + narDependencies);
+        }
         return narDependencies;
     }
 
@@ -374,7 +394,9 @@ public class PropertyDocumentation extends AbstractMojo {
             projectRequest.setProject(mavenProject);
 
             final ArtifactFilter excludesFilter = new ExclusionSetFilter(excludedArtifactIds);
-            final DependencyNode depNode = dependencyGraphBuilder.buildDependencyGraph(projectRequest, excludesFilter);
+            final ScopeArtifactFilter scopeFilter = new ScopeArtifactFilter("compile");
+            final AndArtifactFilter andFilter = new AndArtifactFilter(List.of(excludesFilter, scopeFilter));
+            final DependencyNode depNode = dependencyGraphBuilder.buildDependencyGraph(projectRequest, andFilter);
             depNode.accept(nodeVisitor);
         } catch (DependencyGraphBuilderException e) {
             throw new MojoExecutionException("Failed to build dependency tree", e);

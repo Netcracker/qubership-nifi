@@ -16,7 +16,6 @@
     <description>Maven plugin for generating nifi components documentation</description>
 
     <properties>
-        <maven.compiler.source>15</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven-plugin-api.version>3.8.6</maven-plugin-api.version>
     </properties>
