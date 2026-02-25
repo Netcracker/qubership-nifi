@@ -5,8 +5,9 @@ from projects containing custom Apache NiFi components.
 As input, the generator uses a template documentation file with specific marker comments that indicate
 the locations where documentation for processors, controller services, and reporting tasks will be injected.
 The generated documentation includes:
-1. A summary table listing the component name, description, and the NAR file that packages the component.
-2. A details section listing the component name, description, and a table of the component's properties.
+
+- A summary table listing the component name, description, and the NAR file that packages the component
+- A details section listing the component name, description, and a table of the component's properties
 
 On each run, the output documentation file is overwritten with the template contents,
 and then the generated sections are inserted at the specified marker locations.
@@ -51,21 +52,29 @@ They must not be modified and must be kept as-is for the plugin to work correctl
 
 An example template is available at [docs/template/user-guide-template.md](../docs/template/user-guide-template.md).
 
+## Prerequisites
+
+Before running the plugin, user must build the project at least locally, so that all JAR files in NAR dependencies are available.
+
 ## Usage
 
 To run the documentation generator with default parameters, execute the following command in the repository root:
+
 ```shell
 mvn org.qubership.nifi:qubership-nifi-docs-generator:generate
 ```
 
 To run the documentation generator with explicit parameters, execute the following command:
+
 ```shell
 mvn org.qubership.nifi:qubership-nifi-docs-generator:generate -Ddoc.template.file=<templateFile> -Ddoc.output.file=<docFile> -Ddoc.exclude.artifact.file=<docGeneratorConfig>
 ```
+
 where `<templateFile>`, `<docFile>`, and `<docGeneratorConfig>` are paths to the template file, the target
 documentation file, and the documentation generator configuration file, respectively.
 
 The table below describes the plugin parameters:
+
 | Parameter name                    | Default Value                                 | Description                                                                                                                   |
 |-----------------------------------|-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | doc.template.file                 | `/docs/template/user-guide-template.md`       | The template file used to generate documentation. Must be provided and must match the requirements listed in the **Template file structure** section. |
@@ -76,6 +85,7 @@ The table below describes the plugin parameters:
 
 The documentation generator configuration file specifies the list of artifacts to exclude from the plugin's processing.
 The file uses YAML format and has the following structure:
+
 ```yaml
 excludedArtifacts:
   - <groupId1>:<artifactId1>
