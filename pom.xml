@@ -65,6 +65,7 @@
         <hikari.cp.version>5.1.0</hikari.cp.version>
         <okhttp.mockwebserver.version>5.1.0</okhttp.mockwebserver.version>
         <junit.jupiter.version>6.0.1</junit.jupiter.version>
+        <mockito.version>2.21.0</mockito.version>
         <json.smart.version>2.6.0</json.smart.version>
         <com-google-guava.version>32.1.3-jre</com-google-guava.version>
         <derby.version>10.14.2.0</derby.version>
