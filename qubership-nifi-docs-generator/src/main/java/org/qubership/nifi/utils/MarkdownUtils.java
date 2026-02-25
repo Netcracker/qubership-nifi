@@ -76,6 +76,9 @@ public class MarkdownUtils {
         if (templateFileValue == null) {
             throw new IllegalArgumentException("Output file path cannot be null");
         }
+        if (headerLevel < 1 || headerLevel > 6) {
+            throw new IllegalArgumentException("headerLevel must be between 1 and 6, got: " + headerLevel);
+        }
         this.templateFile = templateFileValue;
         this.log = logValue;
         this.componentHeadingPrefix = "#".repeat(headerLevel) + " ";
@@ -107,12 +110,11 @@ public class MarkdownUtils {
      * @param customComponentList list of component for table
      * @param componentType the type of component table to generate; must be one of:
      *  *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
-     * @throws IOException
      */
     public void generateTable(
             List<CustomComponentEntity> customComponentList,
             ComponentType componentType
-    ) throws IOException {
+    ) {
 
         List<String> updatedLines = new ArrayList<>();
         boolean headerFound = false;
@@ -147,7 +149,7 @@ public class MarkdownUtils {
 
         for (int i = afterHeaderIndex; i < lines.size(); i++) {
             String line = lines.get(i).trim();
-            if (line.contains(headerTemplate)) {
+            if (line.trim().equals(headerTemplate)) {
                 tableStartIndex = i;
                 int j = i + 1;
                 if (j < lines.size() && lines.get(j).trim().startsWith("|") && lines.get(j).trim().contains("---")) {
@@ -213,11 +215,10 @@ public class MarkdownUtils {
      * @param customComponentList list of component for table
      * @param componentType the type of component properties to generate; must be one of:
      *                    {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
-     * @throws IOException
      */
     public void generatePropertyDescription(
             List<CustomComponentEntity> customComponentList,
-            ComponentType componentType) throws IOException {
+            ComponentType componentType) {
         String strTemplate = switch (componentType) {
             case PROCESSOR -> PROPERTIES_DESCRIPTION_PROCESSOR;
             case CONTROLLER_SERVICE -> PROPERTIES_DESCRIPTION_CONTROLLER_SERVICES;

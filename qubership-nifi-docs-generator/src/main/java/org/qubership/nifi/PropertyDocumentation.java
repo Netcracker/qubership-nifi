@@ -92,20 +92,20 @@ public class PropertyDocumentation extends AbstractMojo {
     @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
 
-    @Parameter(property = "doc.template.file", defaultValue = "/docs/template/user-guide-template.md",
+    @Parameter(property = "doc.template.file", defaultValue = "docs/template/user-guide-template.md",
             readonly = false, required = true)
     private String outputFileTemplatePath;
 
-    @Parameter(property = "doc.output.file", defaultValue = "/docs/user-guide.md",
+    @Parameter(property = "doc.output.file", defaultValue = "docs/user-guide.md",
             readonly = false, required = true)
     private String outputFilePath;
 
-    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "/docs/template/documentGeneratorConfig.yaml",
+    @Parameter(property = "doc.exclude.artifact.file", defaultValue = "docs/template/documentGeneratorConfig.yaml",
             readonly = false, required = true)
     private String artifactExcludedListPath;
 
     @Parameter(property = "doc.header.level", defaultValue = "3", readonly = false, required = false)
-    private int propertyDescriptionHeaderLevel;
+    private int propertyDescriptionHeaderLevel = 3;
 
     /**
      * Method for generating documentation for custom components.
