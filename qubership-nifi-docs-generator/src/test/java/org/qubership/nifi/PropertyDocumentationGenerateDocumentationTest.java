@@ -3,6 +3,7 @@ package org.qubership.nifi;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuilder;
@@ -26,16 +27,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-import org.apache.maven.plugin.MojoExecutionException;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+/** Integration tests for {@link PropertyDocumentation#execute()} documentation generation. */
 class PropertyDocumentationGenerateDocumentationTest {
 
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /** Returns the temporary directory used by this test. */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     private PropertyDocumentation mojo;
     private DependencyNode mockDepNode;
@@ -49,6 +58,7 @@ class PropertyDocumentationGenerateDocumentationTest {
         }
     }
 
+    /** Sets up the mojo with mocked Maven infrastructure and test resources. */
     @BeforeEach
     void setUp() throws Exception {
         // Write template and config files into tempDir
@@ -143,6 +153,7 @@ class PropertyDocumentationGenerateDocumentationTest {
 
     // --- Sunny-day tests ---
 
+    /** Verifies processors with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedProcessor() throws Exception {
         mojo.execute();
@@ -156,6 +167,7 @@ class PropertyDocumentationGenerateDocumentationTest {
                 "Output should contain the property display name");
     }
 
+    /** Verifies processors without {@code @CapabilityDescription} are excluded from the output. */
     @Test
     void testGenerateDocumentationIgnoresProcessorWithoutCapabilityDescription() throws Exception {
         mojo.execute();
@@ -165,6 +177,7 @@ class PropertyDocumentationGenerateDocumentationTest {
                 "Output should not document BulkDistributedMapCacheProcessor (no @CapabilityDescription)");
     }
 
+    /** Verifies controller services with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedControllerService() throws Exception {
         File jarFile = new File(
@@ -208,6 +221,7 @@ class PropertyDocumentationGenerateDocumentationTest {
                 "Output should contain the property display name");
     }
 
+    /** Verifies reporting tasks with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedReportingTask() throws Exception {
         File jarFile = new File(
@@ -253,6 +267,7 @@ class PropertyDocumentationGenerateDocumentationTest {
 
     // --- Rainy-day / edge-case tests ---
 
+    /** Verifies output file is created from the template even when the dependency graph is empty. */
     @Test
     void testGenerateDocumentationWithEmptyDependencyGraph() throws Exception {
         // Override: accept() only calls endVisit so no artifact enters the dependency set
@@ -280,6 +295,7 @@ class PropertyDocumentationGenerateDocumentationTest {
                 "Output should contain no processor rows when the dependency graph is empty");
     }
 
+    /** Verifies execute() throws when the output file path points to a non-existent directory. */
     @Test
     void testExecuteThrowsWhenOutputFilePathIsInvalid() throws Exception {
         // Point the output file at a non-existent subdirectory so Files.copy() will fail

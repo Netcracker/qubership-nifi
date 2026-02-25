@@ -47,23 +47,38 @@ public class MarkdownUtils {
     private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
             + "---------------|--------------------|--------------------|--------------------|";
 
+    private static final int DEFAULT_HEADER_LEVEL = 3;
+
     private List<String> lines;
 
     private final Path templateFile;
     private final Log log;
+    private final String componentHeadingPrefix;
+
+    /**
+     * Constructor for class MarkdownUtils. Uses heading level 3 by default.
+     *
+     * @param templateFileValue File to write
+     * @param logValue Logger
+     */
+    public MarkdownUtils(final Path templateFileValue, final Log logValue) {
+        this(templateFileValue, logValue, DEFAULT_HEADER_LEVEL);
+    }
 
     /**
      * Constructor for class MarkdownUtils.
      *
      * @param templateFileValue File to write
      * @param logValue Logger
+     * @param headerLevel the Markdown heading level (1–6) used for component name headings
      */
-    public MarkdownUtils(final Path templateFileValue, final Log logValue) {
+    public MarkdownUtils(final Path templateFileValue, final Log logValue, final int headerLevel) {
         if (templateFileValue == null) {
             throw new IllegalArgumentException("Output file path cannot be null");
         }
         this.templateFile = templateFileValue;
         this.log = logValue;
+        this.componentHeadingPrefix = "#".repeat(headerLevel) + " ";
     }
 
     private Log getLog() {
@@ -192,6 +207,8 @@ public class MarkdownUtils {
     /**
      * Generates detailed property descriptions for components in markdown format
      * and inserts them into a template file.
+     * The heading level for component names is controlled by the {@code headerLevel}
+     * constructor parameter.
      *
      * @param customComponentList list of component for table
      * @param componentType the type of component properties to generate; must be one of:
@@ -249,7 +266,7 @@ public class MarkdownUtils {
                 List<PropertyDescriptorEntity> entities = customComponentEntity.getComponentProperties();
 
                 descriptionLines.add("");
-                descriptionLines.add("### " + componentName);
+                descriptionLines.add(componentHeadingPrefix + componentName);
                 descriptionLines.add("");
 
                 String componentDescription = null;
