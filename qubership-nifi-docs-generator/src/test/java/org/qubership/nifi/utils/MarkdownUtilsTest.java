@@ -8,6 +8,7 @@ import org.qubership.nifi.CustomComponentEntity;
 import org.qubership.nifi.PropertyDescriptorEntity;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,36 +23,6 @@ import static org.mockito.Mockito.mock;
 /** Tests for {@link MarkdownUtils}. */
 class MarkdownUtilsTest {
 
-    private static final String ALL_MARKERS_TEMPLATE =
-            "# User Guide\n"
-            + "\n"
-            + "## Processors\n"
-            + "\n"
-            + "<!-- Table for additional processors. DO NOT REMOVE. -->\n"
-            + "\n"
-            + "## Processors Properties\n"
-            + "\n"
-            + "<!-- Additional processors properties description. DO NOT REMOVE. -->\n"
-            + "<!-- End of additional processors properties description. DO NOT REMOVE. -->\n"
-            + "\n"
-            + "## Controller Services\n"
-            + "\n"
-            + "<!-- Table for additional controller services. DO NOT REMOVE. -->\n"
-            + "\n"
-            + "## Controller Services Properties\n"
-            + "\n"
-            + "<!-- Additional controller services description. DO NOT REMOVE. -->\n"
-            + "<!-- End of additional controller services description. DO NOT REMOVE. -->\n"
-            + "\n"
-            + "## Reporting Tasks\n"
-            + "\n"
-            + "<!-- Table for additional reporting tasks. DO NOT REMOVE. -->\n"
-            + "\n"
-            + "## Reporting Tasks Properties\n"
-            + "\n"
-            + "<!-- Additional reporting tasks description. DO NOT REMOVE. -->\n"
-            + "<!-- End of additional reporting tasks description. DO NOT REMOVE. -->\n";
-
     @TempDir
     private Path tempDir;
 
@@ -61,6 +32,12 @@ class MarkdownUtilsTest {
      */
     Path getTempDir() {
         return tempDir;
+    }
+
+    private static String readResource(String name) throws Exception {
+        try (InputStream is = MarkdownUtilsTest.class.getResourceAsStream("/" + name)) {
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private Log mockLog() {
@@ -85,7 +62,7 @@ class MarkdownUtilsTest {
     /** Verifies readFile() succeeds for an existing file. */
     @Test
     void testReadFileReadsExistingFile() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         assertDoesNotThrow(utils::readFile);
     }
@@ -93,7 +70,7 @@ class MarkdownUtilsTest {
     /** Verifies generateTable() inserts a header row and a data row for a processor. */
     @Test
     void testGenerateTableForProcessorInsertsHeaderAndRows() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
@@ -146,7 +123,7 @@ class MarkdownUtilsTest {
     /** Verifies generateTable() inserts a controller service table. */
     @Test
     void testGenerateTableForControllerServiceInsertsTable() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
@@ -163,7 +140,7 @@ class MarkdownUtilsTest {
     /** Verifies generateTable() inserts a reporting task table. */
     @Test
     void testGenerateTableForReportingTaskInsertsTable() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
@@ -180,7 +157,7 @@ class MarkdownUtilsTest {
     /** Verifies generateTable() with an empty component list inserts only the header row. */
     @Test
     void testGenerateTableWithEmptyComponentListInsertsHeaderOnly() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
@@ -195,7 +172,7 @@ class MarkdownUtilsTest {
     /** Verifies generatePropertyDescription() inserts component heading and property details. */
     @Test
     void testGeneratePropertyDescriptionForProcessorInsertsContent() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
@@ -218,7 +195,7 @@ class MarkdownUtilsTest {
     /** Verifies generatePropertyDescription() uses the custom header level when specified. */
     @Test
     void testGeneratePropertyDescriptionWithCustomHeaderLevel() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog(), 2);
         utils.readFile();
 
@@ -240,7 +217,7 @@ class MarkdownUtilsTest {
     /** Verifies writeToFile() persists in-memory changes to disk. */
     @Test
     void testWriteToFilePersistsModifiedContent() throws Exception {
-        Path file = writeTemplate(ALL_MARKERS_TEMPLATE);
+        Path file = writeTemplate(readResource("all-markers-template.md"));
         MarkdownUtils utils = new MarkdownUtils(file, mockLog());
         utils.readFile();
 
