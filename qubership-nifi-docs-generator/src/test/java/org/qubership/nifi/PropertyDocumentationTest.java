@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -17,14 +16,23 @@ import java.nio.file.Path;
 import java.util.Properties;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/** Tests for {@link PropertyDocumentation}. */
 class PropertyDocumentationTest {
 
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /** Returns the temporary directory used by this test. */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     private void setField(Object target, String fieldName, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(fieldName);
@@ -52,6 +60,7 @@ class PropertyDocumentationTest {
 
     // --- Sunny day tests ---
 
+    /** Verifies execute() is a no-op for non-NAR packaged projects. */
     @Test
     void testExecuteSkipsNonNarPackaging() throws Exception {
         MavenProject mockProject = mock(MavenProject.class);
@@ -63,6 +72,7 @@ class PropertyDocumentationTest {
         assertDoesNotThrow(mojo::execute);
     }
 
+    /** Verifies valid YAML config file is parsed into the excluded artifacts set. */
     @Test
     void testReadExcludedArtifactsFromFileWithValidYamlReturnsParsedSet() throws Exception {
         Path yamlFile = tempDir.resolve("config.yaml");
@@ -79,6 +89,7 @@ class PropertyDocumentationTest {
 
     // --- Rainy day tests ---
 
+    /** Verifies execute() throws when the template file does not exist. */
     @Test
     void testExecuteWithMissingTemplateFileThrowsMojoExecutionException() throws Exception {
         MavenProject mockProject = mock(MavenProject.class);
@@ -101,6 +112,7 @@ class PropertyDocumentationTest {
         assertThrows(MojoExecutionException.class, mojo::execute);
     }
 
+    /** Verifies missing YAML config file returns an empty set. */
     @Test
     void testReadExcludedArtifactsFromFileWithMissingFileReturnsEmptySet() throws Exception {
         File missing = tempDir.resolve("missing.yaml").toFile();
@@ -111,6 +123,7 @@ class PropertyDocumentationTest {
         assertTrue(result.isEmpty());
     }
 
+    /** Verifies an empty YAML config file returns an empty set. */
     @Test
     void testReadExcludedArtifactsFromFileWithEmptyYamlReturnsEmptySet() throws Exception {
         Path yamlFile = tempDir.resolve("empty.yaml");
@@ -122,6 +135,7 @@ class PropertyDocumentationTest {
         assertTrue(result.isEmpty());
     }
 
+    /** Verifies a YAML file with invalid syntax returns an empty set. */
     @Test
     void testReadExcludedArtifactsFromFileWithInvalidYamlSyntaxReturnsEmptySet() throws Exception {
         Path yamlFile = tempDir.resolve("invalid.yaml");
@@ -133,6 +147,7 @@ class PropertyDocumentationTest {
         assertTrue(result.isEmpty());
     }
 
+    /** Verifies a YAML file without the excludedArtifacts key returns an empty set. */
     @Test
     void testReadExcludedArtifactsFromFileWithMissingExcludedArtifactsKeyReturnsEmptySet() throws Exception {
         Path yamlFile = tempDir.resolve("no-key.yaml");
