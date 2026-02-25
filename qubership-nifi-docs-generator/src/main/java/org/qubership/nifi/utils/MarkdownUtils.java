@@ -47,6 +47,8 @@ public class MarkdownUtils {
     private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
             + "---------------|--------------------|--------------------|--------------------|";
 
+    private static final int DEFAULT_HEADER_LEVEL = 3;
+
     private List<String> lines;
 
     private final Path templateFile;
@@ -60,7 +62,7 @@ public class MarkdownUtils {
      * @param logValue Logger
      */
     public MarkdownUtils(final Path templateFileValue, final Log logValue) {
-        this(templateFileValue, logValue, 3);
+        this(templateFileValue, logValue, DEFAULT_HEADER_LEVEL);
     }
 
     /**
