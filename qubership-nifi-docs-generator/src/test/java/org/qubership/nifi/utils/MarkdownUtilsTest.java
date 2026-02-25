@@ -55,7 +55,10 @@ class MarkdownUtilsTest {
     @TempDir
     private Path tempDir;
 
-    /** Returns the temporary directory used by this test. */
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
     Path getTempDir() {
         return tempDir;
     }
