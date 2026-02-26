@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>nifi</artifactId>
     <packaging>pom</packaging>
-    <version>2.3.3</version>
+    <version>2.3.4-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -44,7 +44,7 @@
         <connection>scm:git:https://github.com/Netcracker/qubership-nifi.git</connection>
         <developerConnection>scm:git:https://github.com/Netcracker/qubership-nifi.git</developerConnection>
         <url>https://github.com/Netcracker/qubership-nifi/tree/main</url>
-    <tag>v2.3.3</tag>
+    <tag>HEAD</tag>
   </scm>
 
     <properties>
