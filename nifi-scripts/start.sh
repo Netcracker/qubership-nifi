@@ -17,7 +17,6 @@
 
 # shellcheck source=/dev/null
 # shellcheck disable=SC2154
-# shellcheck disable=SC2034
 . /opt/nifi/scripts/logging_api.sh
 
 if [ -z "$MICROSERVICE_NAME" ] ; then
@@ -46,6 +45,7 @@ if ! type "$severity_to_number" >/dev/null 2>&1; then
     }
     export -f severity_to_number
     info "Setting CURRENT_LOG_LEVEL..."
+    # shellcheck disable=SC2034
     CURRENT_LOG_LEVEL=$(severity_to_number "${LOG_LEVEL^^:-INFO}")
 fi
 # Load diag-bootstrap.sh (and diag-lib.sh) to make functions from profiler agent available
@@ -67,6 +67,7 @@ cp "${NIFI_HOME}"/nifi-config-template/* "${NIFI_HOME}"/conf/
 cp "${NIFI_HOME}"/nifi-config-template-custom/bootstrap.conf "${NIFI_HOME}"/conf/
 cp "${NIFI_HOME}"/nifi-config-template-custom/config-client-template.json "${NIFI_HOME}"/conf/
 
+# shellcheck disable=SC2329
 generate_random_hex_password(){
     #args -- letters, numbers
     echo "$(tr -dc A-F < /dev/urandom | head -c "$1")""$(tr -dc 0-9 < /dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
