@@ -29,6 +29,32 @@ mkdir -p /tmp/db-init-scripts
 mkdir -p /tmp/db-init-scripts-custom
 
 scripts_dir='/opt/nifi/scripts'
+
+# Adding severity_to_number function, if not exists
+if ! type "$severity_to_number" >/dev/null 2>&1; then
+    info "Loading severity_to_number function..."
+    # Copied from base-image's entrypoint.sh
+    severity_to_number() {
+        case "$1" in
+            DEBUG) echo 1 ;;
+            INFO)  echo 2 ;;
+            WARN|WARNING) echo 3 ;;
+            ERROR) echo 4 ;;
+            *) echo 2 ;;
+        esac
+    }
+    export -f severity_to_number
+    info "Setting CURRENT_LOG_LEVEL..."
+    # shellcheck disable=SC2034
+    CURRENT_LOG_LEVEL=$(severity_to_number "${LOG_LEVEL^^:-INFO}")
+fi
+# Load diag-bootstrap.sh (and diag-lib.sh) to make functions from profiler agent available
+# Copied from base-image's entrypoint.sh
+if [ -f /app/diag/diag-bootstrap.sh ]; then
+    source /app/diag/diag-bootstrap.sh
+    log INFO "/app/diag/diag-bootstrap.sh file was found. Diagnostic functions are enabled."
+fi
+
 #run before start operations:
 [ -f "${scripts_dir}/before_start.sh" ] && . "$scripts_dir/before_start.sh"
 
@@ -41,6 +67,7 @@ cp "${NIFI_HOME}"/nifi-config-template/* "${NIFI_HOME}"/conf/
 cp "${NIFI_HOME}"/nifi-config-template-custom/bootstrap.conf "${NIFI_HOME}"/conf/
 cp "${NIFI_HOME}"/nifi-config-template-custom/config-client-template.json "${NIFI_HOME}"/conf/
 
+# shellcheck disable=SC2329
 generate_random_hex_password(){
     #args -- letters, numbers
     echo "$(tr -dc A-F < /dev/urandom | head -c "$1")""$(tr -dc 0-9 < /dev/urandom | head -c "$2")" | fold -w 1 | shuf | tr -d '\n'
@@ -522,14 +549,6 @@ case ${AUTH} in
         ;;
 esac
 
-#Set up bootstrap sensitive key: letters=11, numbers=21
-#NIFI_BOOTSTRAP_SENSITIVE_KEY=$(generate_random_hex_password 11 21)
-
-#if [ -n "${NIFI_BOOTSTRAP_SENSITIVE_KEY}" ]; then
-    #info "Setting bootstrap sensitive key..."
-    #/opt/nifi/nifi-toolkit-current/bin/encrypt-config.sh -n "${NIFI_HOME}"/conf/nifi.properties -b "${NIFI_HOME}"/conf/bootstrap.conf -k "${NIFI_BOOTSTRAP_SENSITIVE_KEY}"
-#fi
-
 load_additional_resources
 
 . "${scripts_dir}/clear_sensitive_env_vars.sh"
@@ -551,3 +570,8 @@ wait ${nifi_pid}
 
 javaRetCode=$?
 check_java_ret_code "$javaRetCode"
+
+# save crash dump for future analysis
+[ "$(type -t send_crash_dump)" = "function" ]  && send_crash_dump
+
+exit "$javaRetCode"
