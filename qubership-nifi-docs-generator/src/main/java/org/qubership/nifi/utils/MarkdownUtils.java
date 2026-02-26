@@ -48,6 +48,8 @@ public class MarkdownUtils {
             + "---------------|--------------------|--------------------|--------------------|";
 
     private static final int DEFAULT_HEADER_LEVEL = 3;
+    private static final int MIN_HEADER_LEVEL = 1;
+    private static final int MAX_HEADER_LEVEL = 6;
 
     private List<String> lines;
 
@@ -76,7 +78,7 @@ public class MarkdownUtils {
         if (templateFileValue == null) {
             throw new IllegalArgumentException("Output file path cannot be null");
         }
-        if (headerLevel < 1 || headerLevel > 6) {
+        if (headerLevel < MIN_HEADER_LEVEL || headerLevel > MAX_HEADER_LEVEL) {
             throw new IllegalArgumentException("headerLevel must be between 1 and 6, got: " + headerLevel);
         }
         this.templateFile = templateFileValue;
