@@ -50,13 +50,13 @@ import java.util.stream.Collectors;
 
 @SupportsBatching
 @Tags({"record", "put", "sink"})
-@CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination"
-        + " specified by a Record Destination Service (i.e., record sink). The record source is defined by the "
-        + "'Source Type' property, which can be either 'Dynamic Properties' or 'Json Property'. If 'Source Type'"
-        + " is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type "
-        + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a "
-        + "JSON value and is listed in the 'List Json Dynamic Property' property). If 'Source Type' is set to "
-        + "'Json Property', the Record is generated directly from the JSON value in the 'Json Property'.")
+@CapabilityDescription("A processor that generates Records based on its properties and sends them to a destination \n"
+        + "specified by a Record Destination Service (i.e., record sink). The record source is defined by the \n"
+        + "'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' \n"
+        + "is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type \n"
+        + "automatically determined by the value type: string, double, or Record (if the dynamic property contains a \n"
+        + "JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to \n"
+        + "'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'.")
 @DynamicProperties(@DynamicProperty(name = "*", value = "*",
         description = "The processor’s dynamic properties serve as the data source for generating a record. "
                 + "The Dynamic Property Key defines the field name, while the value of the dynamic property determines"
@@ -105,7 +105,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
             .name("source-type")
             .displayName("Source type")
             .description("The source type that will be used to create the record. "
-                    + "The record source can be a Dynamic Processor Property or a 'Json Property' property.")
+                    + "The record source can be a Dynamic Processor Property or a 'JSON Property' property.")
             .required(true)
             .allowableValues(
                     SourceTypeValues.DYNAMIC_PROPERTY.getAllowableValue(),
@@ -119,7 +119,7 @@ public class PutGeneratedRecord extends AbstractProcessor {
      */
     public static final PropertyDescriptor LIST_JSON_DYNAMIC_PROPERTY = new PropertyDescriptor.Builder()
             .name("list-json-dynamic-property")
-            .displayName("List Json Dynamic Property")
+            .displayName("List JSON Dynamic Property")
             .description("Comma-separated list of dynamic properties that contain JSON values")
             .addValidator(LIST_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -130,8 +130,8 @@ public class PutGeneratedRecord extends AbstractProcessor {
      */
     public static final PropertyDescriptor JSON_PROPERTY_OBJECT = new PropertyDescriptor.Builder()
             .name("json-property-object")
-                .displayName("Json Property")
-            .description("A complex json object for generating Record.A JSON object must have a flat structure without"
+                .displayName("JSON Property")
+            .description("A complex JSON object for generating Record.A JSON object must have a flat structure without"
                     + " nested objects or arrays of non-scalar types. Object keys directly correspond to attribute"
                     + " names and are used as field names. All values must be scalar. Arrays containing only numeric"
                     + " values are allowed.")

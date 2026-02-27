@@ -51,7 +51,11 @@ import redis.clients.jedis.util.SafeEncoder;
 import static org.springframework.data.redis.connection.ReturnType.MULTI;
 
 @Tags({"redis", "distributed", "cache", "map"})
-@CapabilityDescription("")
+@CapabilityDescription("Provides a Redis-based distributed map cache client with bulk operation support. \n"
+        + "This service enables efficient batch operations on Redis cache, including bulk get-and-put-if-absent \n"
+        + "and bulk remove operations. It uses Lua scripting for atomic bulk operations and supports configurable \n"
+        + "TTL (time-to-live) for cached entries. The service is particularly useful for high-performance scenarios \n"
+        + "requiring atomic bulk cache operations across multiple NiFi instances.")
 public class RedisBulkDistributedMapCacheClientService
         extends AbstractControllerService implements BulkDistributedMapCacheClient {
 
@@ -61,6 +65,7 @@ public class RedisBulkDistributedMapCacheClientService
     public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
             .name("redis-connection-pool")
             .displayName("Redis Connection Pool")
+            .description("A service that provides connections to Redis.")
             .identifiesControllerService(RedisConnectionPool.class)
             .required(false)
             .build();
