@@ -12,7 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ghcr.io/netcracker/qubership-java-base:21-alpine-2.1.1@sha256:36217a867a92977ceb6a34b9b5bdce9f1af11050486e3da0252ce180fb107b3d AS base
+ARG NIFI_VERSION='2.7.2'
+ARG NIFI_VERSION_SHA256='sha256:f6a1d2bcca0819f825cdc0a6719dfaca58e9986c97b696831597e69bdaf5364f'
+
+ARG BASE_IMAGE_VERSION='21-alpine-2.2.4'
+ARG BASE_IMAGE_VERSION_SHA256='sha256:eb6f44dac3e2a05b8ca69a5472b8054a0d3668fd7cfb2a037dfa36a7dba8c567'
+
+FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
@@ -37,7 +43,7 @@ RUN mkdir -p /opt/nifi/nifi-home-dir \
 
 USER 10001
 
-FROM apache/nifi:2.7.2@sha256:f6a1d2bcca0819f825cdc0a6719dfaca58e9986c97b696831597e69bdaf5364f AS nifi
+FROM apache/nifi:$NIFI_VERSION@$NIFI_VERSION_SHA256 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-cassandra-*.nar ${NIFI_HOME}/lib/
@@ -95,8 +101,6 @@ COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
 
-ARG NIFI_VERSION='2.7.2'
-
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
     && mkdir -p $NIFI_HOME/auxiliary-cp \
@@ -118,5 +122,5 @@ VOLUME ${NIFI_HOME}/conf \
         ${NIFI_HOME}/work
 
 EXPOSE 8080 8443 10000 8000
-ENTRYPOINT ["../scripts/start.sh"]
+CMD ["bash", "../scripts/start.sh"]
 HEALTHCHECK NONE
