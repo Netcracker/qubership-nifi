@@ -26,7 +26,6 @@ import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.ProtectionDomain;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
