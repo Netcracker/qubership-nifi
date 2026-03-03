@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Tests for {@link PropertyDocumentation}. */
+/** Tests for basic functions of {@link PropertyDocumentation} not involving dependency processing. */
 class PropertyDocumentationTest {
 
     @TempDir
@@ -43,17 +43,6 @@ class PropertyDocumentationTest {
         field.set(target, value);
     }
 
-    private Log mockLog() {
-        return mock(Log.class);
-    }
-
-    private PropertyDocumentation createMojo() throws Exception {
-        PropertyDocumentation mojo = new PropertyDocumentation();
-        // Inject a mock Log via the inherited setLog method
-        mojo.setLog(mockLog());
-        return mojo;
-    }
-
     @SuppressWarnings("unchecked")
     private Set<String> invokeReadExcludedArtifactsFromFile(PropertyDocumentation mojo, File file) throws Exception {
         Method method = PropertyDocumentation.class.getDeclaredMethod("readExcludedArtifactsFromFile", File.class);
@@ -61,15 +50,13 @@ class PropertyDocumentationTest {
         return (Set<String>) method.invoke(mojo, file);
     }
 
-    // --- Sunny day tests ---
-
     /** Verifies execute() is a no-op for non-NAR packaged projects. */
     @Test
     void testExecuteSkipsNonNarPackaging() throws Exception {
         MavenProject mockProject = mock(MavenProject.class);
         when(mockProject.getPackaging()).thenReturn("jar");
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         setField(mojo, "project", mockProject);
 
         assertDoesNotThrow(mojo::execute);
@@ -79,18 +66,16 @@ class PropertyDocumentationTest {
     @Test
     void testReadExcludedArtifactsFromFileWithValidYamlReturnsParsedSet() throws Exception {
         Path yamlFile = tempDir.resolve("config.yaml");
-        Files.write(yamlFile,
-                "excludedArtifacts:\n  - artifact-one\n  - artifact-two\n".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(yamlFile,
+                "excludedArtifacts:\n  - artifact-one\n  - artifact-two\n");
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         Set<String> result = invokeReadExcludedArtifactsFromFile(mojo, yamlFile.toFile());
 
         assertEquals(2, result.size());
         assertTrue(result.contains("artifact-one"));
         assertTrue(result.contains("artifact-two"));
     }
-
-    // --- Rainy day tests ---
 
     /** Verifies execute() throws when the template file does not exist. */
     @Test
@@ -105,7 +90,7 @@ class PropertyDocumentationTest {
         when(mockSession.getTopLevelProject()).thenReturn(mockTopLevelProject);
         when(mockSession.getUserProperties()).thenReturn(new Properties());
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         setField(mojo, "project", mockProject);
         setField(mojo, "session", mockSession);
         setField(mojo, "outputFileTemplatePath", "/nonexistent-template.md");
@@ -120,7 +105,7 @@ class PropertyDocumentationTest {
     void testReadExcludedArtifactsFromFileWithMissingFileReturnsEmptySet() throws Exception {
         File missing = tempDir.resolve("missing.yaml").toFile();
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         Set<String> result = invokeReadExcludedArtifactsFromFile(mojo, missing);
 
         assertTrue(result.isEmpty());
@@ -132,7 +117,7 @@ class PropertyDocumentationTest {
         Path yamlFile = tempDir.resolve("empty.yaml");
         Files.write(yamlFile, new byte[0]);
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         Set<String> result = invokeReadExcludedArtifactsFromFile(mojo, yamlFile.toFile());
 
         assertTrue(result.isEmpty());
@@ -142,9 +127,9 @@ class PropertyDocumentationTest {
     @Test
     void testReadExcludedArtifactsFromFileWithInvalidYamlSyntaxReturnsEmptySet() throws Exception {
         Path yamlFile = tempDir.resolve("invalid.yaml");
-        Files.write(yamlFile, ": invalid: yaml: content: [\n".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(yamlFile, ": invalid: yaml: content: [\n");
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         Set<String> result = invokeReadExcludedArtifactsFromFile(mojo, yamlFile.toFile());
 
         assertTrue(result.isEmpty());
@@ -154,9 +139,9 @@ class PropertyDocumentationTest {
     @Test
     void testReadExcludedArtifactsFromFileWithMissingExcludedArtifactsKeyReturnsEmptySet() throws Exception {
         Path yamlFile = tempDir.resolve("no-key.yaml");
-        Files.write(yamlFile, "otherKey:\n  - value\n".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(yamlFile, "otherKey:\n  - value\n");
 
-        PropertyDocumentation mojo = createMojo();
+        PropertyDocumentation mojo = new PropertyDocumentation();
         Set<String> result = invokeReadExcludedArtifactsFromFile(mojo, yamlFile.toFile());
 
         assertTrue(result.isEmpty());

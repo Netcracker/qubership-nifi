@@ -5,6 +5,9 @@ import org.apache.nifi.components.AllowableValue;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * PropertyDescriptorEntity represents component's property, holding documentation-related parameters.
+ */
 public class PropertyDescriptorEntity {
 
     private static final String HTTP_REGEX = "(https?://[^\\s]+)";
@@ -88,7 +91,6 @@ public class PropertyDescriptorEntity {
 
     /**
      * Gets description as string.
-     *
      * @return string description
      */
     public String getDescriptionAsString() {
@@ -116,7 +118,6 @@ public class PropertyDescriptorEntity {
 
     /**
      * Get list of allowable values in string format.
-     *
      * @return allowable values in string format
      */
     public String getAllowableValuesAsString() {
@@ -130,7 +131,7 @@ public class PropertyDescriptorEntity {
 
     /**
      * Sets display name.
-     * @param newDisplayName
+     * @param newDisplayName display name
      */
     public void setDisplayName(String newDisplayName) {
         this.displayName = newDisplayName;
@@ -138,7 +139,7 @@ public class PropertyDescriptorEntity {
 
     /**
      * Sets api name.
-     * @param newApiName
+     * @param newApiName api name
      */
     public void setApiName(String newApiName) {
         this.apiName = newApiName;
@@ -146,15 +147,15 @@ public class PropertyDescriptorEntity {
 
     /**
      * Sets default value.
-     * @param newDefaultName
+     * @param newDefaultValue default value
      */
-    public void setDefaultValue(String newDefaultName) {
-        this.defaultValue = newDefaultName;
+    public void setDefaultValue(String newDefaultValue) {
+        this.defaultValue = newDefaultValue;
     }
 
     /**
      * Sets description.
-     * @param newDescription
+     * @param newDescription description
      */
     public void setDescription(String newDescription) {
         this.description = newDescription;
@@ -162,7 +163,7 @@ public class PropertyDescriptorEntity {
 
     /**
      * Sets component description.
-     * @param newComponentDescription
+     * @param newComponentDescription the component description
      */
     public void setComponentDescription(String newComponentDescription) {
         this.componentDescription = newComponentDescription;

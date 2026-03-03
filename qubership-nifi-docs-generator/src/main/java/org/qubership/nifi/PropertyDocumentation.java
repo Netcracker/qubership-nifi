@@ -69,6 +69,10 @@ import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
 import static org.qubership.nifi.ComponentType.PROCESSOR;
 import static org.qubership.nifi.ComponentType.REPORTING_TASK;
 
+/**
+ * PropertyDocumentation Mojo is a Maven plugin that generates Markdown-based documentation
+ * from projects containing custom Apache NiFi components.
+ */
 @Mojo(name = "generate", requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class PropertyDocumentation extends AbstractMojo {
 
@@ -108,9 +112,14 @@ public class PropertyDocumentation extends AbstractMojo {
     private int propertyDescriptionHeaderLevel = 3;
 
     /**
-     * Method for generating documentation for custom components.
-     *
-     * @throws MojoExecutionException
+     * Default constructor.
+     */
+    public PropertyDocumentation() {
+    }
+
+    /**
+     * Generate documentation for the project.
+     * @throws MojoExecutionException MojoExecutionException may be thrown, if any unexpected error occurs
      */
     @Override
     public void execute() throws MojoExecutionException {

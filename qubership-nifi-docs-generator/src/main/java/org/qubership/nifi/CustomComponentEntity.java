@@ -2,6 +2,9 @@ package org.qubership.nifi;
 
 import java.util.List;
 
+/**
+ * NiFi Component entity container with information on the component, parent NAR and component's properties.
+ */
 public class CustomComponentEntity {
 
     private String componentName;
@@ -12,7 +15,6 @@ public class CustomComponentEntity {
 
     /**
      * Constructor for class CustomComponentEntity.
-     *
      * @param componentNameValue component name value
      * @param typeValue type value
      * @param componentNarValue component nar value

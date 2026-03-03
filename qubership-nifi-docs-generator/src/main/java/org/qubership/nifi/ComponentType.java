@@ -1,5 +1,8 @@
 package org.qubership.nifi;
 
+/**
+ * Enum for NiFi component type. One of processor, controller_service, reporting_task.
+ */
 public enum ComponentType {
 
     /**

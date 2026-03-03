@@ -12,6 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utilities class handling IO operations with Markdown documentation files.
+ */
 public class MarkdownUtils {
 
     private static final String TABLE_PROCESSOR = "<!-- Table for additional processors. DO NOT REMOVE. -->";
@@ -59,9 +62,8 @@ public class MarkdownUtils {
 
     /**
      * Constructor for class MarkdownUtils. Uses heading level 3 by default.
-     *
-     * @param templateFileValue File to write
-     * @param logValue Logger
+     * @param templateFileValue template file to read/write
+     * @param logValue maven logger
      */
     public MarkdownUtils(final Path templateFileValue, final Log logValue) {
         this(templateFileValue, logValue, DEFAULT_HEADER_LEVEL);
@@ -69,9 +71,8 @@ public class MarkdownUtils {
 
     /**
      * Constructor for class MarkdownUtils.
-     *
-     * @param templateFileValue File to write
-     * @param logValue Logger
+     * @param templateFileValue template file to read/write
+     * @param logValue maven logger
      * @param headerLevel the Markdown heading level (1–6) used for component name headings
      */
     public MarkdownUtils(final Path templateFileValue, final Log logValue, final int headerLevel) {
@@ -91,16 +92,16 @@ public class MarkdownUtils {
     }
 
     /**
-     * Reading the contents of a file.
-     * @throws IOException
+     * Reads the template file into memory.
+     * @throws IOException IOExceptions may be thrown, if file read fails
      */
     public void readFile() throws IOException {
         lines = Files.readAllLines(templateFile, StandardCharsets.UTF_8);
     }
 
     /**
-     * Writing to a file.
-     * @throws IOException
+     * Writes to the template file.
+     * @throws IOException IOExceptions may be thrown, if file write fails
      */
     public void writeToFile() throws IOException {
         Files.write(templateFile, lines, StandardCharsets.UTF_8);
@@ -108,16 +109,14 @@ public class MarkdownUtils {
 
     /**
      * Generates or updates a Markdown table in a template file with component information.
-     *
      * @param customComponentList list of component for table
      * @param componentType the type of component table to generate; must be one of:
-     *  *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
+     *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      */
     public void generateTable(
             List<CustomComponentEntity> customComponentList,
             ComponentType componentType
     ) {
-
         List<String> updatedLines = new ArrayList<>();
         boolean headerFound = false;
         int afterHeaderIndex = -1;
@@ -209,14 +208,13 @@ public class MarkdownUtils {
 
 
     /**
-     * Generates detailed property descriptions for components in markdown format
-     * and inserts them into a template file.
+     * Generates detailed property descriptions for components in Markdown format
+     * and inserts them into the template file.
      * The heading level for component names is controlled by the {@code headerLevel}
      * constructor parameter.
-     *
-     * @param customComponentList list of component for table
+     * @param customComponentList list of components for table
      * @param componentType the type of component properties to generate; must be one of:
-     *                    {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
+     *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
      */
     public void generatePropertyDescription(
             List<CustomComponentEntity> customComponentList,
@@ -319,5 +317,4 @@ public class MarkdownUtils {
     private String removeSpacesBeforeNewline(String input) {
         return input.replaceAll("[ \\t]+(?=\\r?\\n|\\r)", "");
     }
-
 }

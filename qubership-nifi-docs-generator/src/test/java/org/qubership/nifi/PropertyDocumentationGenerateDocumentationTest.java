@@ -4,12 +4,12 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.ProjectBuilder;
 import org.apache.maven.project.ProjectBuildingRequest;
 import org.apache.maven.project.ProjectBuildingResult;
 import org.apache.maven.shared.dependency.graph.DependencyGraphBuilder;
+import org.apache.maven.shared.dependency.graph.DependencyGraphBuilderException;
 import org.apache.maven.shared.dependency.graph.DependencyNode;
 import org.apache.maven.shared.dependency.graph.traversal.DependencyNodeVisitor;
 import org.eclipse.aether.RepositorySystemSession;
@@ -23,8 +23,10 @@ import org.qubership.nifi.service.validation.JsonContentValidator;
 import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.ProtectionDomain;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -35,7 +37,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Integration tests for {@link PropertyDocumentation#execute()} documentation generation. */
+/** Tests for {@link PropertyDocumentation#execute()} with dependency processing
+ * and documentation generation. */
 class PropertyDocumentationGenerateDocumentationTest {
 
     @TempDir
@@ -50,7 +53,6 @@ class PropertyDocumentationGenerateDocumentationTest {
     }
 
     private PropertyDocumentation mojo;
-    private DependencyNode mockDepNode;
     private DependencyGraphBuilder mockDepGraphBuilder;
     private Path outputFile;
 
@@ -61,16 +63,41 @@ class PropertyDocumentationGenerateDocumentationTest {
         }
     }
 
+
+    private void mockForClass(Class<?> clazz) throws URISyntaxException, DependencyGraphBuilderException {
+        File jarFile = new File(
+                clazz.getProtectionDomain()
+                        .getCodeSource().getLocation().toURI());
+
+        Artifact serviceArtifact = mock(Artifact.class);
+        doAnswer(inv -> {
+            Artifact other = inv.getArgument(0);
+            return (other == serviceArtifact) ? 0 : 1;
+        }).when(serviceArtifact).compareTo(any());
+
+        when(serviceArtifact.getGroupId()).thenReturn("test");
+        when(serviceArtifact.getFile()).thenReturn(jarFile);
+
+        DependencyNode serviceDepNode = mock(DependencyNode.class);
+        when(serviceDepNode.getArtifact()).thenReturn(serviceArtifact);
+        doAnswer(inv -> {
+            DependencyNodeVisitor visitor = inv.getArgument(0);
+            visitor.visit(serviceDepNode);
+            visitor.endVisit(serviceDepNode);
+            return null;
+        }).when(serviceDepNode).accept(any(DependencyNodeVisitor.class));
+
+        when(mockDepGraphBuilder.buildDependencyGraph(any(), any())).thenReturn(serviceDepNode);
+    }
+
     /** Sets up the mojo with mocked Maven infrastructure and test resources. */
     @BeforeEach
     void setUp() throws Exception {
         // Write template and config files into tempDir
         Path templatePath = tempDir.resolve("template.md");
         Files.write(templatePath, readResource("template.md"));
-
         Path configPath = tempDir.resolve("config.yaml");
         Files.write(configPath, readResource("config.yaml"));
-
         outputFile = tempDir.resolve("user-guide.md");
 
         // NAR-packaged project mock
@@ -86,14 +113,8 @@ class PropertyDocumentationGenerateDocumentationTest {
         when(mockSession.getTopLevelProject()).thenReturn(mockTopLevelProject);
         when(mockSession.getUserProperties()).thenReturn(new Properties());
 
-        // Locate the test-processors JAR via its class's ProtectionDomain
-        File jarFile = new File(
-                ContentValidatorProcessor.class.getProtectionDomain()
-                        .getCodeSource().getLocation().toURI());
-
         // NAR artifact (project.getArtifact()) and the test-processors artifact discovered as a dependency
         Artifact narArtifact = mock(Artifact.class);
-        Artifact testProcessorsArtifact = mock(Artifact.class);
 
         // Stub compareTo so TreeSet ordering is stable and remove(narArtifact) does not
         // accidentally remove testProcessorsArtifact (default Mockito compareTo returns 0)
@@ -101,17 +122,9 @@ class PropertyDocumentationGenerateDocumentationTest {
             Artifact other = inv.getArgument(0);
             return (other == narArtifact) ? 0 : -1;
         }).when(narArtifact).compareTo(any());
-        doAnswer(inv -> {
-            Artifact other = inv.getArgument(0);
-            return (other == testProcessorsArtifact) ? 0 : 1;
-        }).when(testProcessorsArtifact).compareTo(any());
-
-        // Non-qubership groupId prevents a recursive getNarDependencies() call
-        when(testProcessorsArtifact.getGroupId()).thenReturn("test");
-        when(testProcessorsArtifact.getFile()).thenReturn(jarFile);
         when(mockProject.getArtifact()).thenReturn(narArtifact);
 
-        // ProjectBuilder: build(narArtifact, ...) → result whose project is mockNarProject
+        // ProjectBuilder: build(narArtifact, ...): result whose project is mockNarProject
         MavenProject mockNarProject = mock(MavenProject.class);
         ProjectBuildingResult mockBuildingResult = mock(ProjectBuildingResult.class);
         when(mockBuildingResult.getProject()).thenReturn(mockNarProject);
@@ -119,23 +132,10 @@ class PropertyDocumentationGenerateDocumentationTest {
         ProjectBuilder mockProjectBuilder = mock(ProjectBuilder.class);
         when(mockProjectBuilder.build(any(Artifact.class), any(ProjectBuildingRequest.class)))
                 .thenReturn(mockBuildingResult);
-
-        // Dependency graph: visitor visits testProcessorsArtifact (happy-path default)
-        mockDepNode = mock(DependencyNode.class);
-        when(mockDepNode.getArtifact()).thenReturn(testProcessorsArtifact);
-        doAnswer(inv -> {
-            DependencyNodeVisitor visitor = inv.getArgument(0);
-            visitor.visit(mockDepNode);
-            visitor.endVisit(mockDepNode);
-            return null;
-        }).when(mockDepNode).accept(any(DependencyNodeVisitor.class));
-
         mockDepGraphBuilder = mock(DependencyGraphBuilder.class);
-        when(mockDepGraphBuilder.buildDependencyGraph(any(), any())).thenReturn(mockDepNode);
 
         // Assemble the mojo with all required fields injected via reflection
         mojo = new PropertyDocumentation();
-        mojo.setLog(mock(Log.class));
         setField(mojo, "project", mockProject);
         setField(mojo, "session", mockSession);
         setField(mojo, "repoSession", mock(RepositorySystemSession.class));
@@ -159,6 +159,7 @@ class PropertyDocumentationGenerateDocumentationTest {
     /** Verifies processors with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedProcessor() throws Exception {
+        mockForClass(ContentValidatorProcessor.class);
         mojo.execute();
 
         String output = Files.readString(outputFile);
@@ -173,6 +174,7 @@ class PropertyDocumentationGenerateDocumentationTest {
     /** Verifies processors without {@code @CapabilityDescription} are excluded from the output. */
     @Test
     void testGenerateDocumentationIgnoresProcessorWithoutCapabilityDescription() throws Exception {
+        mockForClass(ContentValidatorProcessor.class);
         mojo.execute();
 
         String output = Files.readString(outputFile);
@@ -183,36 +185,7 @@ class PropertyDocumentationGenerateDocumentationTest {
     /** Verifies controller services with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedControllerService() throws Exception {
-        File jarFile = new File(
-                JsonContentValidator.class.getProtectionDomain()
-                        .getCodeSource().getLocation().toURI());
-
-        Artifact narArtifact = mock(Artifact.class);
-        Artifact serviceArtifact = mock(Artifact.class);
-
-        doAnswer(inv -> {
-            Artifact other = inv.getArgument(0);
-            return (other == narArtifact) ? 0 : -1;
-        }).when(narArtifact).compareTo(any());
-        doAnswer(inv -> {
-            Artifact other = inv.getArgument(0);
-            return (other == serviceArtifact) ? 0 : 1;
-        }).when(serviceArtifact).compareTo(any());
-
-        when(serviceArtifact.getGroupId()).thenReturn("test");
-        when(serviceArtifact.getFile()).thenReturn(jarFile);
-
-        DependencyNode serviceDepNode = mock(DependencyNode.class);
-        when(serviceDepNode.getArtifact()).thenReturn(serviceArtifact);
-        doAnswer(inv -> {
-            DependencyNodeVisitor visitor = inv.getArgument(0);
-            visitor.visit(serviceDepNode);
-            visitor.endVisit(serviceDepNode);
-            return null;
-        }).when(serviceDepNode).accept(any(DependencyNodeVisitor.class));
-
-        when(mockDepGraphBuilder.buildDependencyGraph(any(), any())).thenReturn(serviceDepNode);
-
+        mockForClass(JsonContentValidator.class);
         mojo.execute();
 
         String output = Files.readString(outputFile);
@@ -227,36 +200,7 @@ class PropertyDocumentationGenerateDocumentationTest {
     /** Verifies reporting tasks with {@code @CapabilityDescription} are included in the output. */
     @Test
     void testGenerateDocumentationDocumentsAnnotatedReportingTask() throws Exception {
-        File jarFile = new File(
-                ComponentPrometheusReportingTask.class.getProtectionDomain()
-                        .getCodeSource().getLocation().toURI());
-
-        Artifact narArtifact = mock(Artifact.class);
-        Artifact processorImplArtifact = mock(Artifact.class);
-
-        doAnswer(inv -> {
-            Artifact other = inv.getArgument(0);
-            return (other == narArtifact) ? 0 : -1;
-        }).when(narArtifact).compareTo(any());
-        doAnswer(inv -> {
-            Artifact other = inv.getArgument(0);
-            return (other == processorImplArtifact) ? 0 : 1;
-        }).when(processorImplArtifact).compareTo(any());
-
-        when(processorImplArtifact.getGroupId()).thenReturn("test");
-        when(processorImplArtifact.getFile()).thenReturn(jarFile);
-
-        DependencyNode processorImplDepNode = mock(DependencyNode.class);
-        when(processorImplDepNode.getArtifact()).thenReturn(processorImplArtifact);
-        doAnswer(inv -> {
-            DependencyNodeVisitor visitor = inv.getArgument(0);
-            visitor.visit(processorImplDepNode);
-            visitor.endVisit(processorImplDepNode);
-            return null;
-        }).when(processorImplDepNode).accept(any(DependencyNodeVisitor.class));
-
-        when(mockDepGraphBuilder.buildDependencyGraph(any(), any())).thenReturn(processorImplDepNode);
-
+        mockForClass(ComponentPrometheusReportingTask.class);
         mojo.execute();
 
         String output = Files.readString(outputFile);
@@ -274,11 +218,13 @@ class PropertyDocumentationGenerateDocumentationTest {
     @Test
     void testGenerateDocumentationWithEmptyDependencyGraph() throws Exception {
         // Override: accept() only calls endVisit so no artifact enters the dependency set
+        DependencyNode mockDepNode = mock(DependencyNode.class);
         doAnswer(inv -> {
             DependencyNodeVisitor visitor = inv.getArgument(0);
             visitor.endVisit(mockDepNode);
             return null;
         }).when(mockDepNode).accept(any(DependencyNodeVisitor.class));
+        when(mockDepGraphBuilder.buildDependencyGraph(any(), any())).thenReturn(mockDepNode);
 
         // Use the platform classloader as the thread-context classloader so the
         // URLClassLoader (created with empty URL array) cannot find test processors
