@@ -97,6 +97,7 @@
         <module>qubership-consul</module>
         <module>qubership-test-bundle</module>
         <module>qubership-nifi-docs-generator</module>
+        <module>qubership-nifi-tools</module>
     </modules>
 
     <reporting>
@@ -398,6 +399,22 @@
                     <groupId>org.sonarsource.scanner.maven</groupId>
                     <artifactId>sonar-maven-plugin</artifactId>
                     <version>3.6.0.1398</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.6.0</version>
+                    <configuration>
+                        <!-- Path relative to the project root -->
+                        <configLocation>.github/linters/sun_checks.xml</configLocation>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>13.2.0</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>
