@@ -51,6 +51,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>15</maven.compiler.source>
         <maven.compiler.target>15</maven.compiler.target>
+        <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <nifi.version>2.7.2</nifi.version>
         <nifi.api.version>2.5.0</nifi.api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
@@ -272,7 +273,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>@{argLine} -Duser.timezone=UTC</argLine>
                     <environmentVariables>

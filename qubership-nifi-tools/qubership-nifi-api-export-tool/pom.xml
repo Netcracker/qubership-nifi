@@ -77,11 +77,34 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin.version}</version>
+                <configuration>
+                    <argLine>@{argLine} -Duser.timezone=UTC</argLine>
+                    <environmentVariables>
+                        <DOCKER_HOST>${env.TEST_DOCKER_URL}</DOCKER_HOST>
+                        <testcontainers.environmentprovider.timeout>60</testcontainers.environmentprovider.timeout>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                    </environmentVariables>
+                    <systemPropertyVariables>
+                        <api.version>1.44</api.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
                     <mainClass>org.qubership.nifi.tools.export.Main</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>TESTCONTAINERS_RYUK_DISABLED</key>
+                            <value>true</value>
+                        </systemProperty>
+                    </systemProperties>
+                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
                 </configuration>
             </plugin>
         </plugins>
