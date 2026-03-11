@@ -24,8 +24,11 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NiFi2xStrategyTest {
 
@@ -42,8 +45,9 @@ class NiFi2xStrategyTest {
 
     @Test
     void collectProcessorCallsDefinitionEndpointAndReturnsDescriptors() throws Exception {
-        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
-                "{\"processorTypes\":[{\"type\":\"org.foo.Bar\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}"));
+        String processorTypesJson = "{\"processorTypes\":[{\"type\":\"org.foo.Bar\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}";
+        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(processorTypesJson));
         when(apiClient.get("/nifi-api/flow/processor-definition/g/a/1.0/org.foo.Bar")).thenReturn(MAPPER.readTree(
                 "{\"propertyDescriptors\":{\"prop1\":{\"name\":\"prop1\",\"displayName\":\"Prop One\"}}}"));
 
@@ -57,10 +61,11 @@ class NiFi2xStrategyTest {
 
     @Test
     void collectControllerServiceCallsCorrectEndpoints() throws Exception {
-        when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(
-                "{\"controllerServiceTypes\":[{\"type\":\"org.foo.Svc\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"2.0\"}}]}"));
-        when(apiClient.get("/nifi-api/flow/controller-service-definition/g/a/2.0/org.foo.Svc")).thenReturn(MAPPER.readTree(
-                "{\"propertyDescriptors\":{}}"));
+        String csTypesJson = "{\"controllerServiceTypes\":[{\"type\":\"org.foo.Svc\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"2.0\"}}]}";
+        when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(csTypesJson));
+        when(apiClient.get("/nifi-api/flow/controller-service-definition/g/a/2.0/org.foo.Svc"))
+                .thenReturn(MAPPER.readTree("{\"propertyDescriptors\":{}}"));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.CONTROLLER_SERVICE);
 
@@ -71,8 +76,9 @@ class NiFi2xStrategyTest {
 
     @Test
     void collectReportingTaskCallsCorrectEndpoints() throws Exception {
-        when(apiClient.get("/nifi-api/flow/reporting-task-types")).thenReturn(MAPPER.readTree(
-                "{\"reportingTaskTypes\":[{\"type\":\"org.foo.Task\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"3.0\"}}]}"));
+        String rtTypesJson = "{\"reportingTaskTypes\":[{\"type\":\"org.foo.Task\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"3.0\"}}]}";
+        when(apiClient.get("/nifi-api/flow/reporting-task-types")).thenReturn(MAPPER.readTree(rtTypesJson));
         when(apiClient.get("/nifi-api/flow/reporting-task-definition/g/a/3.0/org.foo.Task")).thenReturn(MAPPER.readTree(
                 "{\"propertyDescriptors\":{}}"));
 

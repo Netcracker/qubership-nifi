@@ -22,9 +22,16 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests that ComponentDescriptorCollector detects the NiFi version from /nifi-api/flow/about
@@ -39,9 +46,10 @@ class ComponentDescriptorCollectorTest {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"2.7.2\"}}"));
+        String processorTypesJson = "{\"processorTypes\":[{\"type\":\"org.foo.P\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}";
         when(apiClient.get("/nifi-api/flow/processor-types"))
-                .thenReturn(MAPPER.readTree(
-                        "{\"processorTypes\":[{\"type\":\"org.foo.P\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}"));
+                .thenReturn(MAPPER.readTree(processorTypesJson));
         when(apiClient.get(contains("processor-definition")))
                 .thenReturn(MAPPER.readTree("{\"descriptors\":{}}"));
 
@@ -105,9 +113,10 @@ class ComponentDescriptorCollectorTest {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"2.7.2\"}}"));
+        String csTypesJson = "{\"controllerServiceTypes\":[{\"type\":\"org.foo.Svc\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}";
         when(apiClient.get("/nifi-api/flow/controller-service-types"))
-                .thenReturn(MAPPER.readTree(
-                        "{\"controllerServiceTypes\":[{\"type\":\"org.foo.Svc\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}"));
+                .thenReturn(MAPPER.readTree(csTypesJson));
         when(apiClient.get(contains("controller-service-definition")))
                 .thenReturn(MAPPER.readTree("{\"descriptors\":{\"p1\":{}}}"));
 

@@ -25,8 +25,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for NiFiApiClient using OkHttp MockWebServer (plain HTTP).
@@ -42,7 +46,10 @@ class NiFiApiClientTest {
     void setUp() throws Exception {
         server = new MockWebServer();
         server.start();
-        client = new NiFiApiClient("http://localhost:" + server.getPort(), "admin", "testpass");
+        client = new NiFiApiClient(
+            "http://localhost:" + server.getPort(), "admin", "testpass",
+            HttpClient.newBuilder().build()
+        );
     }
 
     @AfterEach

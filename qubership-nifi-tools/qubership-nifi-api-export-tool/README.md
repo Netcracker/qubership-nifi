@@ -1,6 +1,6 @@
 # qubership-nifi-api-export-tool
 
-CLI tool for extracting NiFi component API descriptors (processors, controller services, and
+Command-line tool for extracting NiFi component API descriptors (processors, controller services, and
 reporting tasks) from a running NiFi instance managed by Testcontainers.
 
 It starts a temporary NiFi Docker container, authenticates to its REST API, collects property
@@ -36,7 +36,7 @@ Parameters are optional; omit any to use the default value.
 
 ## Output structure
 
-```
+```shell
 <output-dir>/
   processors/
     <ProcessorSimpleName>.json

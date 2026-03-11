@@ -87,7 +87,8 @@ public final class Main {
         containerManager.start();
         try {
             String baseUrl = containerManager.getBaseUrl();
-            NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password);
+            NiFiContainerManager.TruststoreData truststoreData = containerManager.readTruststore();
+            NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password, truststoreData);
             apiClient.authenticate();
 
             ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);

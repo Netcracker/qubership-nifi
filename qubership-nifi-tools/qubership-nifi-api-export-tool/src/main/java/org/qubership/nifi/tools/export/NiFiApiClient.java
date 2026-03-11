@@ -22,20 +22,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 
 /**
  * HTTP client for NiFi REST API. Handles authentication and JSON requests.
- * Uses a trust-all SSLContext to handle NiFi's self-signed certificate.
  */
 public class NiFiApiClient {
 
@@ -55,30 +54,37 @@ public class NiFiApiClient {
     /**
      * Creates a new NiFiApiClient for the given NiFi instance.
      *
-     * @param url  the base URL of the NiFi instance
-     * @param user the username for authentication
-     * @param pass the password for authentication
-     * @throws Exception if the trust-all SSL context cannot be built
+     * @param url            the base URL of the NiFi instance
+     * @param user           the username for authentication
+     * @param pass           the password for authentication
+     * @param truststoreData the NiFi truststore used to build the SSL context
+     * @throws Exception if the SSL context cannot be built
      */
-    public NiFiApiClient(final String url, final String user, final String pass) throws Exception {
+    public NiFiApiClient(final String url, final String user, final String pass,
+                         final NiFiContainerManager.TruststoreData truststoreData) throws Exception {
         this.baseUrl = url;
         this.username = user;
         this.password = pass;
-        this.httpClient = buildTrustAllHttpClient();
+        this.httpClient = buildTruststoreHttpClient(truststoreData);
     }
 
-    private HttpClient buildTrustAllHttpClient() throws Exception {
-        TrustManager[] trustAll = new TrustManager[]{
-            new X509TrustManager() {
-                public void checkClientTrusted(X509Certificate[] chain, String authType) { }
-                public void checkServerTrusted(X509Certificate[] chain, String authType) { }
-                public X509Certificate[] getAcceptedIssuers() {
-                    return new X509Certificate[0];
-                }
-            }
-        };
+    NiFiApiClient(final String url, final String user, final String pass,
+                  final HttpClient client) {
+        this.baseUrl = url;
+        this.username = user;
+        this.password = pass;
+        this.httpClient = client;
+    }
+
+    private HttpClient buildTruststoreHttpClient(
+            final NiFiContainerManager.TruststoreData ts) throws Exception {
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        keyStore.load(new ByteArrayInputStream(ts.getBytes()), ts.getPassword().toCharArray());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(
+                TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
         SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, trustAll, new SecureRandom());
+        sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());
         return HttpClient.newBuilder()
                 .sslContext(sslContext)
                 .build();

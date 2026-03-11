@@ -25,7 +25,8 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests that spin up a real NiFi container via TestContainers,
@@ -39,8 +40,9 @@ class MainIntegrationTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
     @Test
     void testMainNifi2xProducesValidOutput() throws Exception {

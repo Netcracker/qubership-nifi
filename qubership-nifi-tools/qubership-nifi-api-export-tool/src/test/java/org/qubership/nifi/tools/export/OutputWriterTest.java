@@ -28,14 +28,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OutputWriterTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
     @Test
     void writeCreatesProcessorsSubdirAndJsonFiles() throws Exception {

@@ -23,6 +23,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Manages the NiFi TestContainer lifecycle.
@@ -100,5 +101,58 @@ public final class NiFiContainerManager {
             throw new IllegalStateException("NiFi container is not running");
         }
         return "https://localhost:" + port;
+    }
+
+    /**
+     * Copies the NiFi truststore from the running container and returns it along
+     * with its password read from the container's {@code nifi.properties}.
+     *
+     * @return truststore bytes and password
+     * @throws Exception if the container is not running or copying fails
+     */
+    public TruststoreData readTruststore() throws Exception {
+        if (container == null || !container.isRunning()) {
+            throw new IllegalStateException("NiFi container is not running");
+        }
+        String truststorePassword = container.copyFileFromContainer(
+            "/opt/nifi/nifi-current/conf/nifi.properties",
+            is -> {
+                Properties props = new Properties();
+                props.load(is);
+                return props.getProperty("nifi.security.truststorePasswd");
+            }
+        );
+        byte[] truststoreBytes = container.copyFileFromContainer(
+            "/opt/nifi/nifi-current/conf/truststore.p12",
+            is -> is.readAllBytes()
+        );
+        return new TruststoreData(truststoreBytes, truststorePassword);
+    }
+
+    /**
+     * Holds the raw bytes and password of the NiFi truststore.
+     */
+    public static final class TruststoreData {
+        private final byte[] bytes;
+        private final String password;
+
+        /**
+         * @param truststoreBytes    raw PKCS12 truststore bytes
+         * @param truststorePassword truststore password
+         */
+        public TruststoreData(final byte[] truststoreBytes, final String truststorePassword) {
+            this.bytes = truststoreBytes;
+            this.password = truststorePassword;
+        }
+
+        /** @return the raw PKCS12 truststore bytes */
+        public byte[] getBytes() {
+            return bytes;
+        }
+
+        /** @return the truststore password */
+        public String getPassword() {
+            return password;
+        }
     }
 }

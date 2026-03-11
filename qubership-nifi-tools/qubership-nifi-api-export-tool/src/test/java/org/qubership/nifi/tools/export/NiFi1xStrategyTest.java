@@ -24,9 +24,15 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NiFi1xStrategyTest {
 
@@ -45,8 +51,10 @@ class NiFi1xStrategyTest {
     void collectProcessorCreatesInstanceAndDeletesIt() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":[{\"type\":\"org.foo.MyProc\"}]}"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), anyString())).thenReturn(MAPPER.readTree(
-                "{\"component\":{\"id\":\"abc\",\"config\":{\"descriptors\":{\"prop1\":{\"name\":\"prop1\"}}}},\"revision\":{\"version\":3}}"));
+        String processorJson = "{\"component\":{\"id\":\"abc\","
+                + "\"config\":{\"descriptors\":{\"prop1\":{\"name\":\"prop1\"}}}},\"revision\":{\"version\":3}}";
+        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), anyString()))
+                .thenReturn(MAPPER.readTree(processorJson));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
 
@@ -61,8 +69,9 @@ class NiFi1xStrategyTest {
     void collectControllerServiceCreatesAndDeletes() throws Exception {
         when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(
                 "{\"controllerServiceTypes\":[{\"type\":\"org.foo.MySvc\"}]}"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/controller-services"), anyString())).thenReturn(MAPPER.readTree(
-                "{\"component\":{\"id\":\"def\",\"descriptors\":{\"p\":{}}},\"revision\":{\"version\":5}}"));
+        when(apiClient.post(eq("/nifi-api/process-groups/root/controller-services"), anyString()))
+                .thenReturn(MAPPER.readTree(
+                        "{\"component\":{\"id\":\"def\",\"descriptors\":{\"p\":{}}},\"revision\":{\"version\":5}}"));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.CONTROLLER_SERVICE);
 
@@ -96,7 +105,8 @@ class NiFi1xStrategyTest {
                 .thenThrow(new RuntimeException("Create failed"));
         when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), contains("org.foo.B")))
                 .thenReturn(MAPPER.readTree(
-                        "{\"component\":{\"id\":\"xyz\",\"config\":{\"descriptors\":{}}},\"revision\":{\"version\":0}}"));
+                        "{\"component\":{\"id\":\"xyz\",\"config\":{\"descriptors\":{}}},"
+                        + "\"revision\":{\"version\":0}}"));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
 
