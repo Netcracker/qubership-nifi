@@ -35,7 +35,7 @@ class ComponentDescriptorCollectorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
-    void version_2x_uses_definition_endpoints_not_create_delete() throws Exception {
+    void version2xUsesDefinitionEndpointsNotCreateDelete() throws Exception {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"2.7.2\"}}"));
@@ -53,7 +53,7 @@ class ComponentDescriptorCollectorTest {
     }
 
     @Test
-    void version_1x_uses_create_delete_not_definition_endpoints() throws Exception {
+    void version1xUsesCreateDeleteNotDefinitionEndpoints() throws Exception {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"1.28.1\"}}"));
@@ -71,7 +71,7 @@ class ComponentDescriptorCollectorTest {
     }
 
     @Test
-    void version_2_0_0_treated_as_2x() throws Exception {
+    void version200TreatedAs2x() throws Exception {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"2.0.0\"}}"));
@@ -86,7 +86,7 @@ class ComponentDescriptorCollectorTest {
     }
 
     @Test
-    void version_1_21_0_treated_as_1x() throws Exception {
+    void version1210TreatedAs1x() throws Exception {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"1.21.0\"}}"));
@@ -101,7 +101,7 @@ class ComponentDescriptorCollectorTest {
     }
 
     @Test
-    void collect_returns_results_from_strategy() throws Exception {
+    void collectReturnsResultsFromStrategy() throws Exception {
         NiFiApiClient apiClient = mock(NiFiApiClient.class);
         when(apiClient.get("/nifi-api/flow/about"))
                 .thenReturn(MAPPER.readTree("{\"about\":{\"version\":\"2.7.2\"}}"));

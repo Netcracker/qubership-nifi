@@ -51,7 +51,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void authenticate_201_stores_token_used_in_subsequent_requests() throws Exception {
+    void authenticate201StoresTokenUsedInSubsequentRequests() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("my-bearer-token"));
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
 
@@ -64,19 +64,19 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void authenticate_200_also_accepted() throws Exception {
+    void authenticate200AlsoAccepted() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("token-from-200"));
         assertDoesNotThrow(() -> client.authenticate());
     }
 
     @Test
-    void authenticate_non2xx_throws() {
+    void authenticateNon2xxThrows() {
         server.enqueue(new MockResponse().setResponseCode(403).setBody("Forbidden"));
         assertThrows(RuntimeException.class, () -> client.authenticate());
     }
 
     @Test
-    void authenticate_sends_form_encoded_credentials() throws Exception {
+    void authenticateSendsFormEncodedCredentials() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -89,7 +89,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void get_200_parses_json_response() throws Exception {
+    void get200ParsesJsonResponse() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -101,7 +101,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void get_non200_throws_runtime_exception() throws Exception {
+    void getNon200ThrowsRuntimeException() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -110,7 +110,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void post_201_parses_json_response() throws Exception {
+    void post201ParsesJsonResponse() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -122,7 +122,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void post_200_also_accepted() throws Exception {
+    void post200AlsoAccepted() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -131,7 +131,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void post_non2xx_throws() throws Exception {
+    void postNon2xxThrows() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -140,7 +140,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void delete_200_no_exception() throws Exception {
+    void delete200NoException() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
@@ -149,7 +149,7 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void delete_non200_logs_warning_no_exception() throws Exception {
+    void deleteNon200LogsWarningNoException() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 

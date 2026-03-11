@@ -42,7 +42,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_processor_creates_instance_and_deletes_it() throws Exception {
+    void collectProcessorCreatesInstanceAndDeletesIt() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":[{\"type\":\"org.foo.MyProc\"}]}"));
         when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), anyString())).thenReturn(MAPPER.readTree(
@@ -58,7 +58,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_controller_service_creates_and_deletes() throws Exception {
+    void collectControllerServiceCreatesAndDeletes() throws Exception {
         when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(
                 "{\"controllerServiceTypes\":[{\"type\":\"org.foo.MySvc\"}]}"));
         when(apiClient.post(eq("/nifi-api/process-groups/root/controller-services"), anyString())).thenReturn(MAPPER.readTree(
@@ -72,7 +72,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_reporting_task_creates_and_deletes() throws Exception {
+    void collectReportingTaskCreatesAndDeletes() throws Exception {
         when(apiClient.get("/nifi-api/flow/reporting-task-types")).thenReturn(MAPPER.readTree(
                 "{\"reportingTaskTypes\":[{\"type\":\"org.foo.MyTask\"}]}"));
         when(apiClient.post(eq("/nifi-api/controller/reporting-tasks"), anyString())).thenReturn(MAPPER.readTree(
@@ -86,7 +86,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_skips_component_when_post_throws() throws Exception {
+    void collectSkipsComponentWhenPostThrows() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":["
                 + "{\"type\":\"org.foo.A\"},"
@@ -105,7 +105,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_returns_empty_when_list_key_missing() throws Exception {
+    void collectReturnsEmptyWhenListKeyMissing() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
@@ -115,7 +115,7 @@ class NiFi1xStrategyTest {
     }
 
     @Test
-    void collect_post_body_contains_fqcn() throws Exception {
+    void collectPostBodyContainsFqcn() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":[{\"type\":\"org.apache.nifi.processors.standard.GenerateFlowFile\"}]}"));
         when(apiClient.post(eq("/nifi-api/process-groups/root/processors"),

@@ -43,7 +43,7 @@ class MainIntegrationTest {
     Path tempDir;
 
     @Test
-    void testMain_nifi2x_produces_valid_output() throws Exception {
+    void testMainNifi2xProducesValidOutput() throws Exception {
         Main.main(new String[]{
             "--version", "2.7.2",
             "--output-dir", tempDir.toString(),
@@ -55,7 +55,7 @@ class MainIntegrationTest {
     }
 
     @Test
-    void testMain_nifi1x_produces_valid_output() throws Exception {
+    void testMainNifi1xProducesValidOutput() throws Exception {
         Main.main(new String[]{
             "--version", "1.28.1",
             "--output-dir", tempDir.toString(),

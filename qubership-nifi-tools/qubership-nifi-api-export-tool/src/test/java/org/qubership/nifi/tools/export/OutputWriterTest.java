@@ -38,7 +38,7 @@ class OutputWriterTest {
     Path tempDir;
 
     @Test
-    void write_creates_processors_subdir_and_json_files() throws Exception {
+    void writeCreatesProcessorsSubdirAndJsonFiles() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         writer.write(ComponentKind.PROCESSOR, buildComponents("org.foo.Foo", "org.foo.Bar"));
 
@@ -49,7 +49,7 @@ class OutputWriterTest {
     }
 
     @Test
-    void write_uses_exact_subdir_names_for_all_kinds() throws Exception {
+    void writeUsesExactSubdirNamesForAllKinds() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         List<Map<String, Object>> one = buildComponents("org.foo.X");
 
@@ -63,7 +63,7 @@ class OutputWriterTest {
     }
 
     @Test
-    void write_filename_is_simple_name_of_fqcn() throws Exception {
+    void writeFilenameIsSimpleNameOfFqcn() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         writer.write(ComponentKind.PROCESSOR, buildComponents("org.apache.nifi.GenerateFlowFile"));
         writer.write(ComponentKind.CONTROLLER_SERVICE, buildComponents("SimpleName"));
@@ -73,7 +73,7 @@ class OutputWriterTest {
     }
 
     @Test
-    void write_json_contains_type_and_property_descriptors() throws Exception {
+    void writeJsonContainsTypeAndPropertyDescriptors() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         JsonNode descriptors = MAPPER.readTree("{\"myProp\":{\"name\":\"myProp\",\"displayName\":\"My Property\"}}");
 
@@ -92,7 +92,7 @@ class OutputWriterTest {
     }
 
     @Test
-    void write_empty_list_creates_directory_with_no_files() throws Exception {
+    void writeEmptyListCreatesDirectoryWithNoFiles() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         writer.write(ComponentKind.PROCESSOR, new ArrayList<>());
 
@@ -102,7 +102,7 @@ class OutputWriterTest {
     }
 
     @Test
-    void write_multiple_kinds_to_separate_subdirs() throws Exception {
+    void writeMultipleKindsToSeparateSubdirs() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         writer.write(ComponentKind.PROCESSOR, buildComponents("org.foo.Proc"));
         writer.write(ComponentKind.CONTROLLER_SERVICE, buildComponents("org.foo.Svc"));

@@ -41,7 +41,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_processor_calls_definition_endpoint_and_returns_descriptors() throws Exception {
+    void collectProcessorCallsDefinitionEndpointAndReturnsDescriptors() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":[{\"type\":\"org.foo.Bar\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}"));
         when(apiClient.get("/nifi-api/flow/processor-definition/g/a/1.0/org.foo.Bar")).thenReturn(MAPPER.readTree(
@@ -56,7 +56,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_controller_service_calls_correct_endpoints() throws Exception {
+    void collectControllerServiceCallsCorrectEndpoints() throws Exception {
         when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(
                 "{\"controllerServiceTypes\":[{\"type\":\"org.foo.Svc\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"2.0\"}}]}"));
         when(apiClient.get("/nifi-api/flow/controller-service-definition/g/a/2.0/org.foo.Svc")).thenReturn(MAPPER.readTree(
@@ -70,7 +70,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_reporting_task_calls_correct_endpoints() throws Exception {
+    void collectReportingTaskCallsCorrectEndpoints() throws Exception {
         when(apiClient.get("/nifi-api/flow/reporting-task-types")).thenReturn(MAPPER.readTree(
                 "{\"reportingTaskTypes\":[{\"type\":\"org.foo.Task\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"3.0\"}}]}"));
         when(apiClient.get("/nifi-api/flow/reporting-task-definition/g/a/3.0/org.foo.Task")).thenReturn(MAPPER.readTree(
@@ -84,7 +84,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_skips_component_when_definition_call_fails() throws Exception {
+    void collectSkipsComponentWhenDefinitionCallFails() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":["
                 + "{\"type\":\"org.foo.A\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}},"
@@ -102,7 +102,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_returns_empty_when_response_key_missing() throws Exception {
+    void collectReturnsEmptyWhenResponseKeyMissing() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
 
         List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
@@ -111,7 +111,7 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collect_returns_multiple_components() throws Exception {
+    void collectReturnsMultipleComponents() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
                 "{\"processorTypes\":["
                 + "{\"type\":\"org.foo.P1\",\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}},"

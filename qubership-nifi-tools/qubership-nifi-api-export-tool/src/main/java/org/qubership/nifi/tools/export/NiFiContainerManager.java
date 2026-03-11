@@ -18,7 +18,7 @@ package org.qubership.nifi.tools.export;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.FixedHostPortGenericContainer;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.time.Duration;
@@ -38,7 +38,7 @@ public final class NiFiContainerManager {
     private final int timeoutSeconds;
     private final int port;
 
-    private FixedHostPortGenericContainer<?> container;
+    private GenericContainer<?> container;
 
     /**
      * Creates a new NiFiContainerManager.
@@ -65,7 +65,7 @@ public final class NiFiContainerManager {
      */
     public void start() {
         LOG.info("Starting NiFi container: {}", nifiImage);
-        container = new FixedHostPortGenericContainer<>(nifiImage)
+        container = new GenericContainer<>(nifiImage)
                 .withEnv("SINGLE_USER_CREDENTIALS_USERNAME", username)
                 .withEnv("SINGLE_USER_CREDENTIALS_PASSWORD", password)
                 .withEnv("NIFI_WEB_PROXY_HOST", "localhost:" + port)
