@@ -872,6 +872,29 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Variables in Exported Flow - $flowName"
+
+    echo "Checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
+    jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" '
+    walk(
+      if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then
+        .name as $groupName | .processors |= map(. + {groupName: $groupName})
+      elif type == "object" and .type != null and IN(.type; "org.apache.nifi.processors.aws.s3.DeleteS3Object", "org.apache.nifi.processors.aws.s3.FetchS3Object", "org.apache.nifi.processors.aws.s3.ListS3", "org.apache.nifi.processors.aws.s3.PutS3Object", "org.apache.nifi.processors.aws.s3.TagS3Object") then
+            if .properties | has("AWS Credentials Provider service") | not
+                then
+                    .checkLevel = "Warning" |
+                    .checkIssue = "The DeleteS3Object, FetchS3Object, ListS3, PutS3Object, TagS3Object processors may contain the \"Access Key ID\" and \"Secret Access Key\" properties which are not available in Apache NiFi 2.x." |
+                    .checkVersion = "1.28.1" |
+                    .checkSolution = "Update the flow to use Proxy Configuration Service property: 1) Create new Proxy Configuration Service; 2) Fill its properties based on the documentation and the properties from the InvokeHTTP processor."
+                else
+                    .
+            end
+        else .
+    end)| .. | objects | select(has("checkIssue")) |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + .checkVersion + "\"" + $csvSeparator +
+    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"
