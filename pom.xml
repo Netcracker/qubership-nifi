@@ -408,6 +408,7 @@
                     <configuration>
                         <!-- Path relative to the project root -->
                         <configLocation>.github/linters/sun_checks.xml</configLocation>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                     <dependencies>
                         <dependency>

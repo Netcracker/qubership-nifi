@@ -83,9 +83,9 @@ public final class Main {
         LOG.info("  timeout    : {}s", timeout);
         LOG.info("  port       : {}", port);
 
-        NiFiContainerManager containerManager = new NiFiContainerManager(nifiImage, username, password, timeout, port);
-        containerManager.start();
-        try {
+        try (NiFiContainerManager containerManager =
+                new NiFiContainerManager(nifiImage, username, password, timeout, port)) {
+            containerManager.start();
             String baseUrl = containerManager.getBaseUrl();
             NiFiContainerManager.TruststoreData truststoreData = containerManager.readTruststore();
             NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password, truststoreData);
@@ -102,8 +102,6 @@ public final class Main {
             }
 
             LOG.info("Done. Output written to: {}", outputDir);
-        } finally {
-            containerManager.stop();
         }
     }
 }

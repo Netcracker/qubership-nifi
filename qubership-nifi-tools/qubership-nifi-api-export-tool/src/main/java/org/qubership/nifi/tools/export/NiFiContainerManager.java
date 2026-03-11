@@ -28,21 +28,17 @@ import java.util.Properties;
 /**
  * Manages the NiFi TestContainer lifecycle.
  */
-public final class NiFiContainerManager {
+public final class NiFiContainerManager implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(NiFiContainerManager.class);
     private static final int NIFI_PORT = 8443;
+    private static final int HTTP_UNAUTHORIZED_STATUS_CODE = 401;
 
-    private final String nifiImage;
-    private final String username;
-    private final String password;
-    private final int timeoutSeconds;
     private final int port;
-
-    private GenericContainer<?> container;
+    private final GenericContainer<?> container;
 
     /**
-     * Creates a new NiFiContainerManager.
+     * Creates a NiFiContainerManager and configures the NiFi container (but does not start it).
      *
      * @param image    the Docker image to use for the NiFi container
      * @param user     the NiFi single-user username
@@ -52,39 +48,34 @@ public final class NiFiContainerManager {
      */
     public NiFiContainerManager(final String image, final String user, final String pass, final int timeout,
                                 final int hostPort) {
-        this.nifiImage = image;
-        this.username = user;
-        this.password = pass;
-        this.timeoutSeconds = timeout;
         this.port = hostPort;
+        this.container = new GenericContainer<>(image)
+                .withEnv("SINGLE_USER_CREDENTIALS_USERNAME", user)
+                .withEnv("SINGLE_USER_CREDENTIALS_PASSWORD", pass)
+                .withEnv("NIFI_WEB_PROXY_HOST", "localhost:" + hostPort)
+                .waitingFor(Wait.forHttps("/nifi-api/controller/config")
+                        .allowInsecure()
+                        .forStatusCode(HTTP_UNAUTHORIZED_STATUS_CODE)
+                        .withStartupTimeout(Duration.ofSeconds(timeout))
+                );
+        this.container.setPortBindings(List.of("127.0.0.1:" + hostPort + ":" + NIFI_PORT));
     }
-
-    private static final int HTTP_UNAUTHORIZED_STATUS_CODE = 401;
 
     /**
      * Starts the NiFi container and waits until the API is ready.
      */
     public void start() {
-        LOG.info("Starting NiFi container: {}", nifiImage);
-        container = new GenericContainer<>(nifiImage)
-                .withEnv("SINGLE_USER_CREDENTIALS_USERNAME", username)
-                .withEnv("SINGLE_USER_CREDENTIALS_PASSWORD", password)
-                .withEnv("NIFI_WEB_PROXY_HOST", "localhost:" + port)
-                .waitingFor(Wait.forHttps("/nifi-api/controller/config")
-                        .allowInsecure()
-                        .forStatusCode(HTTP_UNAUTHORIZED_STATUS_CODE)
-                        .withStartupTimeout(Duration.ofSeconds(timeoutSeconds))
-                );
-        container.setPortBindings(List.of("127.0.0.1:" + port + ":" + NIFI_PORT));
+        LOG.info("Starting NiFi container: {}", container.getDockerImageName());
         container.start();
         LOG.info("NiFi container started. Base URL: {}", getBaseUrl());
     }
 
     /**
-     * Stops the NiFi container if it is running.
+     * Stops and removes the NiFi container.
      */
-    public void stop() {
-        if (container != null && container.isRunning()) {
+    @Override
+    public void close() {
+        if (container.isRunning()) {
             LOG.info("Stopping NiFi container");
             container.close();
         }
@@ -97,7 +88,7 @@ public final class NiFiContainerManager {
      * @throws IllegalStateException if the container is not running
      */
     public String getBaseUrl() {
-        if (container == null || !container.isRunning()) {
+        if (!container.isRunning()) {
             throw new IllegalStateException("NiFi container is not running");
         }
         return "https://localhost:" + port;
@@ -111,7 +102,7 @@ public final class NiFiContainerManager {
      * @throws Exception if the container is not running or copying fails
      */
     public TruststoreData readTruststore() throws Exception {
-        if (container == null || !container.isRunning()) {
+        if (!container.isRunning()) {
             throw new IllegalStateException("NiFi container is not running");
         }
         String truststorePassword = container.copyFileFromContainer(
