@@ -882,8 +882,7 @@ for flowName in "${exportFlow[@]}"; do
             if .properties | has("AWS Credentials Provider service") | not
                 then
                     .checkLevel = "Warning" |
-                    .checkIssue = "The DeleteS3Object, FetchS3Object, ListS3, PutS3Object, TagS3Object processors may contain the \"Access Key ID\" and \"Secret Access Key\" properties which are not available in Apache NiFi 2.x." |
-                    .checkVersion = "1.28.1" |
+                    .checkIssue = "The " + .type + " processor may contain the \"Access Key ID\" and \"Secret Access Key\" properties which are not available in Apache NiFi 2.x." |
                     .checkSolution = "Update the flow to use AWS Credentials Provider Service property: 1) Create new AWS Credentials Provider Service; 2) Fill its properties based on the documentation and the properties from the S3 processor"
                 else
                     .
@@ -892,7 +891,7 @@ for flowName in "${exportFlow[@]}"; do
     end)| .. | objects | select(has("checkIssue")) |
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
-    "\"" + .checkVersion + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
     "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
 done
