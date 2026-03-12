@@ -884,7 +884,7 @@ for flowName in "${exportFlow[@]}"; do
                     .checkLevel = "Warning" |
                     .checkIssue = "The DeleteS3Object, FetchS3Object, ListS3, PutS3Object, TagS3Object processors may contain the \"Access Key ID\" and \"Secret Access Key\" properties which are not available in Apache NiFi 2.x." |
                     .checkVersion = "1.28.1" |
-                    .checkSolution = "Update the flow to use Proxy Configuration Service property: 1) Create new Proxy Configuration Service; 2) Fill its properties based on the documentation and the properties from the InvokeHTTP processor."
+                    .checkSolution = "Update the flow to use AWS Credentials Provider Service property: 1) Create new AWS Credentials Provider Service; 2) Fill its properties based on the documentation and the properties from the S3 processor"
                 else
                     .
             end
