@@ -876,9 +876,9 @@ for flowName in "${exportFlow[@]}"; do
     echo "Checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" '
     walk(
-      if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then
         .name as $groupName | .processors |= map(. + {groupName: $groupName})
-      elif type == "object" and .type != null and IN(.type; "org.apache.nifi.processors.aws.s3.DeleteS3Object", "org.apache.nifi.processors.aws.s3.FetchS3Object", "org.apache.nifi.processors.aws.s3.ListS3", "org.apache.nifi.processors.aws.s3.PutS3Object", "org.apache.nifi.processors.aws.s3.TagS3Object") then
+        elif type == "object" and .type != null and IN(.type; "org.apache.nifi.processors.aws.s3.DeleteS3Object", "org.apache.nifi.processors.aws.s3.FetchS3Object", "org.apache.nifi.processors.aws.s3.ListS3", "org.apache.nifi.processors.aws.s3.PutS3Object", "org.apache.nifi.processors.aws.s3.TagS3Object") then
             if .properties | has("AWS Credentials Provider service") | not
                 then
                     .checkLevel = "Warning" |
