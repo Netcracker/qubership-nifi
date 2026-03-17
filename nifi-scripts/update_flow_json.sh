@@ -26,10 +26,14 @@ create_bugfix_marker(){
     echo "$(date +%Y-%m-%dT%H:%M:%S) - $1" > "$flow_conf_path/update_flow_json.applied"
 }
 
+create_bugfix_marker_2(){
+    echo "$(date +%Y-%m-%dT%H:%M:%S) - $1" > "$flow_conf_path/update_flow_json_2.applied"
+}
+
 flow_conf_path="${NIFI_HOME}/persistent_conf/conf"
 
 # Fix already applied. Skip.
-if [ -f "$flow_conf_path/update_flow_json.applied" ]; then
+if [ -f "$flow_conf_path/update_flow_json_2.applied" ]; then
     info "NAR coordinates in flow.json.gz have already been updated. No changes needed."
     exit 0
 fi
@@ -56,9 +60,9 @@ mv "$tmp" "$flow_conf_path/flow.json"
 
 info "Replacing JoltTransformJSON property names in flow.json.gz..."
 tmp2=$(mktemp)
-jq 'walk(if type == "object" and .type != null and .type == "org.apache.nifi.processors.jolt.JoltTransformJSON" then .properties |= with_entries(if .key == "jolt-spec" then .key = "Jolt Specification" elif .key == "jolt-transform" then .key = "Jolt Transform" elif .key == "pretty_print" then .key = "Pretty Print" else .key |= . end ) else . end)' "$flow_conf_path/flow.json" >"$tmp2" || handle_error "Error while executing replacement properties for JoltTransformJSON processor in flow.json.gz"
+jq 'walk(if type == "object" and .type != null and .type == "org.apache.nifi.processors.jolt.JoltTransformJSON" then .properties |= with_entries(if .key == "jolt-spec" then .key = "Jolt Specification" elif .key == "jolt-transform" then .key = "Jolt Transform" elif .key == "pretty_print" then .key = "Pretty Print" elif .key == "jolt-custom-modules" then .key = "Custom Module Directory" elif .key == "jolt-custom-class" then .key = "Custom Transformation Class Name" else .key |= . end ) else . end)' "$flow_conf_path/flow.json" >"$tmp2" || handle_error "Error while executing replacement properties for JoltTransformJSON processor in flow.json.gz"
 mv "$tmp2" "$flow_conf_path/flow.json"
 
-create_bugfix_marker "File flow.json updated"
+create_bugfix_marker_2 "File flow.json updated with fix"
 gzip "$flow_conf_path/flow.json"
 info "Updating flow.json.gz complete"
