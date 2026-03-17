@@ -97,7 +97,6 @@
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
         <module>qubership-test-bundle</module>
-        <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-tools</module>
     </modules>
 
@@ -283,6 +282,8 @@
                     <systemPropertyVariables>
                         <api.version>1.44</api.version>
                     </systemPropertyVariables>
+                    <!-- Custom property to skip unit tests -->
+                    <skipTests>${skipUnitTests}</skipTests>
                 </configuration>
             </plugin>
             <plugin>

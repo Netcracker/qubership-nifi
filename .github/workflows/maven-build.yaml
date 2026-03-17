@@ -13,7 +13,6 @@ on:
       - 'qubership-nifi-db-bundle/**'
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-services/**'
-      - 'qubership-nifi-docs-generator/**'
       - 'qubership-nifi-tools/**'
       - 'pom.xml'
   pull_request:
@@ -27,7 +26,6 @@ on:
       - 'qubership-nifi-db-bundle/**'
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-services/**'
-      - 'qubership-nifi-docs-generator/**'
       - 'qubership-nifi-tools/**'
       - 'pom.xml'
   workflow_dispatch:
@@ -127,6 +125,12 @@ jobs:
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Run integration tests
+        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL }}
+        run: >
+          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P integration-tests
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       - name: Upload test results
         if: failure() || cancelled()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

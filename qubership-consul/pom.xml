@@ -220,6 +220,8 @@
                 <version>3.5.4</version>
                 <configuration>
                     <argLine>@{argLine} -Duser.timezone=UTC</argLine>
+                    <!-- Custom property to skip unit tests -->
+                    <skipTests>${skipUnitTests}</skipTests>
                 </configuration>
             </plugin>
             <plugin>

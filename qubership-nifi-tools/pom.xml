@@ -35,5 +35,15 @@
 
     <modules>
         <module>qubership-nifi-api-export-tool</module>
+        <module>qubership-nifi-docs-generator</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <modules>
+                <module>qubership-nifi-docs-generator-it</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
