@@ -7,7 +7,8 @@ Compared with Apache NiFi it supports:
 - additional environment variables for configuration
 - integration with Consul as configuration source for logging levels and other configuration properties
 - automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
-- additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations, complex JSON extract from DB, rules-based validation
+- additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations, 
+  complex JSON extract from DB, rules-based validation
 - reporting tasks for additional monitoring of NiFi processes.
 
 ## Status
@@ -32,11 +33,11 @@ Depending on configuration, it relies on:
 - Zookeeper service: required for NiFi clustering, if it's enabled
 - identity provider service: required for OIDC integration, if it's enabled
 - several file-system based repositories:
-   - Persistent Configuration (Database Repository and Flow Configuration).
-     See [Administrator Guide](docs/administrator-guide.md) for more details.
-   - FlowFile Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
-   - Content Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
-   - Provenance Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+  - Persistent Configuration (Database Repository and Flow Configuration).
+    See [Administrator Guide](docs/administrator-guide.md) for more details.
+  - FlowFile Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+  - Content Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
+  - Provenance Repository. See [Administrator Guide](docs/administrator-guide.md) for more details.
 - qubership-nifi-registry: for version control of NiFi flows, as well as export/import for versioned flows.
 
 qubership-nifi can be started in single node (non-cluster) or cluster configuration.
@@ -48,9 +49,10 @@ qubership-nifi-registry is not clustered and all cluster nodes must connect to t
 ### Prerequisites
 
 Build process requires the following tools:
-* Java - JDK 21
-* Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
-* Docker - any version of Docker Engine or any compatible Docker container runtime.
+
+- Java - JDK 21
+- Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
+- Docker - any version of Docker Engine or any compatible Docker container runtime.
 
 ### Project build
 
