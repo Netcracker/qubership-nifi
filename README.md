@@ -7,7 +7,7 @@ Compared with Apache NiFi it supports:
 - additional environment variables for configuration
 - integration with Consul as configuration source for logging levels and other configuration properties
 - automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
-- additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations, 
+- additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations,
   complex JSON extract from DB, rules-based validation
 - reporting tasks for additional monitoring of NiFi processes.
 
