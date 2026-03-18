@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -105,7 +106,13 @@ class DocsGeneratorIT {
         pb.redirectErrorStream(true);
         Process process = pb.start();
         String output = drain(process.getInputStream());
-        int exitCode = process.waitFor();
+        //wait for the process to finish, but only for 15 seconds to avoid hanging indefinitely
+        boolean finished = process.waitFor(15, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new RuntimeException("Process timed out and was killed: " + String.join(" ", command));
+        }
+        int exitCode = process.exitValue();
         System.out.println("=== Command: " + command);
         System.out.println("=== Exit code: " + exitCode);
         System.out.println(output);
@@ -134,8 +141,8 @@ class DocsGeneratorIT {
             }
         });
         t.start();
-        //wait for the thread to finish, but only for 2 minutes to avoid hanging indefinitely
-        t.join(120000);
+        //wait for the thread to finish, but only for 3 minutes to avoid hanging indefinitely
+        t.join(180000);
         return sb.toString();
     }
 }
