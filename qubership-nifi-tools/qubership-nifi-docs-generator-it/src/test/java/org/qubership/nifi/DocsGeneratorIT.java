@@ -128,6 +128,7 @@ class DocsGeneratorIT {
      * when waiting for a subprocess to finish.
      *
      * @param stream input stream to drain
+     * @param outputSb buffer to hold output stream
      * @return the thread that is doing the draining (already started)
      */
     private Thread startDrainThread(InputStream stream, StringBuilder outputSb) {
