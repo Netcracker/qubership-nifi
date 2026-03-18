@@ -129,9 +129,8 @@ class DocsGeneratorIT {
      *
      * @param stream input stream to drain
      * @return the thread that is doing the draining (already started)
-     * @throws Exception if the draining thread is interrupted
      */
-    private Thread startDrainThread(InputStream stream, StringBuilder outputSb) throws Exception {
+    private Thread startDrainThread(InputStream stream, StringBuilder outputSb) {
         Thread t = new Thread(() -> {
             try {
                 byte[] buf = new byte[4096];
