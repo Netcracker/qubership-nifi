@@ -20,7 +20,7 @@ services:
       - CONSUL_TOKEN=${CONSUL_TOKEN}
       - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
-    image: local-nifi:test
+    image: ${NIFI_IMAGE:-local-nifi}:${NIFI_IMAGE_TAG:-test}
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
@@ -46,6 +46,7 @@ services:
       - CONSUL_ACL_TOKEN=${CONSUL_TOKEN}
     container_name: local-nifi
     restart: unless-stopped
+    hostname: nifi
   nifi-registry:
     image: ghcr.io/netcracker/qubership-nifi-registry:latest
     depends_on:
