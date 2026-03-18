@@ -105,13 +105,17 @@ class DocsGeneratorIT {
         pb.directory(workDir);
         pb.redirectErrorStream(true);
         Process process = pb.start();
-        String output = drain(process.getInputStream());
-        //wait for the process to finish, but only for 15 seconds to avoid hanging indefinitely
-        boolean finished = process.waitFor(15, TimeUnit.SECONDS);
+        StringBuilder outputSb = new StringBuilder();
+        Thread drainThread = startDrainThread(process.getInputStream(), outputSb);
+        //wait for the process to finish, but only for 60 seconds to avoid hanging indefinitely
+        boolean finished = process.waitFor(60, TimeUnit.SECONDS);
         if (!finished) {
             process.destroyForcibly();
             throw new RuntimeException("Process timed out and was killed: " + String.join(" ", command));
         }
+        //wait for the thread to finish, but only for 2 minutes to avoid hanging indefinitely
+        drainThread.join(120000);
+        String output = outputSb.toString();
         int exitCode = process.exitValue();
         System.out.println("=== Command: " + command);
         System.out.println("=== Exit code: " + exitCode);
@@ -124,25 +128,22 @@ class DocsGeneratorIT {
      * when waiting for a subprocess to finish.
      *
      * @param stream input stream to drain
-     * @return collected output as a UTF-8 string
+     * @return the thread that is doing the draining (already started)
      * @throws Exception if the draining thread is interrupted
      */
-    private String drain(InputStream stream) throws Exception {
-        StringBuilder sb = new StringBuilder();
+    private Thread startDrainThread(InputStream stream, StringBuilder outputSb) throws Exception {
         Thread t = new Thread(() -> {
             try {
                 byte[] buf = new byte[4096];
                 int n;
                 while ((n = stream.read(buf)) != -1) {
-                    sb.append(new String(buf, 0, n, StandardCharsets.UTF_8));
+                    outputSb.append(new String(buf, 0, n, StandardCharsets.UTF_8));
                 }
             } catch (IOException ex) {
                 LOG.error("Error reading process output", ex);
             }
         });
         t.start();
-        //wait for the thread to finish, but only for 3 minutes to avoid hanging indefinitely
-        t.join(180000);
-        return sb.toString();
+        return t;
     }
 }
