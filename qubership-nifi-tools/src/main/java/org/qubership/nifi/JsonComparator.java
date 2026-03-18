@@ -3,6 +3,8 @@ package org.qubership.nifi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
@@ -22,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * Compares NiFi component JSON descriptors between two directory trees,
@@ -40,8 +41,12 @@ public class JsonComparator {
 
     private static final String CSV_OUTPUT_FILE  = "NiFiComponentsDelta.csv";
     private static final String JSON_OUTPUT_FILE = "NiFiTypeMapping.json";
-    private static final String CSV_HEADER =
-            "Filename,Type Change,Display Name Old,Display Name New,Old Api Name,New Api Name";
+
+    private static final String[] CSV_HEADERS = {
+            "Component Name", "Component Type", "Change Type",
+            "Old Display Name", "New Display Name",
+            "Old Api Name", "New Api Name"
+    };
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -50,11 +55,13 @@ public class JsonComparator {
     private Map<String, JsonNode> sourceJsonMap = new HashMap<>();
     private Map<String, JsonNode> targetJsonMap = new HashMap<>();
     private Map<String, String> fileTypeMap = new HashMap<>();
+    private Map<String, String> fileSubfolderMap = new HashMap<>();
     private Map<String, Map<String, String>> dictionaryMappings = new HashMap<>();
-    private final List<String> csvLines = new ArrayList<>();
-    private final Map<String, Map<String, String>> typeToRenamedProperties = new TreeMap<>();
+    private final List<String[]> csvRecords = new ArrayList<>();
+    private final Map<String, Map<String, String>> typeToRenamedProperties = new HashMap<>();
 
     private boolean isLoaded = false;
+    private Path outputDir = Paths.get("./");
 
     private static final int NUMBER_OF_CHARACTERS = 5;
 
@@ -106,8 +113,9 @@ public class JsonComparator {
         sourceJsonMap.clear();
         targetJsonMap.clear();
         fileTypeMap.clear();
+        fileSubfolderMap.clear();
         dictionaryMappings.clear();
-        csvLines.clear();
+        csvRecords.clear();
         typeToRenamedProperties.clear();
     }
 
@@ -208,128 +216,125 @@ public class JsonComparator {
             JsonNode sourceProps   = sourceJsonMap.get(fileName);
             JsonNode targetProps   = targetJsonMap.get(fileName);
             String componentType   = fileTypeMap.get(fileName);
+            String componentFolder = fileSubfolderMap.get(fileName);
 
-            DisplayNameIndex sourceIndex = buildDisplayNameIndex(sourceProps);
-            DisplayNameIndex targetIndex = buildDisplayNameIndex(targetProps);
+            Map<String, String> nameMappings = resolveMappings(componentType);
 
-            processSourceProperties(fileName, componentType, sourceIndex, targetIndex);
-            processAddedTargetProperties(fileName, componentType, sourceIndex, targetIndex);
+            List<ComponentProperties> sourceList = buildComponentProperties(sourceProps, nameMappings);
+            List<ComponentProperties> targetList = buildComponentProperties(targetProps, nameMappings);
+
+            boolean sourceHasDuplicates = hasDisplayNameDuplicates(sourceList);
+            boolean targetHasDuplicates = hasDisplayNameDuplicates(targetList);
+            boolean useNonUnique = sourceHasDuplicates || targetHasDuplicates;
+
+            processSourceProperties(fileName, componentType, componentFolder,
+                    sourceList, targetList, useNonUnique);
+            processAddedTargetProperties(fileName, componentType, componentFolder,
+                    sourceList, targetList, useNonUnique);
         }
-        LOGGER.info("Found property differences: {}", csvLines.size());
+        LOGGER.info("Found property differences: {}", csvRecords.size());
     }
 
-    private record DisplayNameIndex(
-            Map<String, String> lowerToApiName,
-            Map<String, String> lowerToOriginalDisplay
-    ) {
-        static DisplayNameIndex empty() {
-            return new DisplayNameIndex(new HashMap<>(), new HashMap<>());
+    private Map<String, String> resolveMappings(String componentType) {
+        String shortType = getShortTypeName(componentType);
+        if (shortType == null) {
+            return Collections.emptyMap();
         }
+        Map<String, String> mappings = dictionaryMappings.get(shortType);
+        return mappings != null ? mappings : Collections.emptyMap();
     }
 
-    private DisplayNameIndex buildDisplayNameIndex(JsonNode propsNode) {
+    private List<ComponentProperties> buildComponentProperties(JsonNode propsNode,
+                                                               Map<String, String> nameMappings) {
+        List<ComponentProperties> result = new ArrayList<>();
         if (propsNode == null) {
-            return DisplayNameIndex.empty();
+            return result;
         }
-
-        Map<String, String> lowerToApiName      = new HashMap<>();
-        Map<String, String> lowerToOriginalDisplay = new HashMap<>();
 
         propsNode.fields().forEachRemaining(entry -> {
-            JsonNode prop        = entry.getValue();
-            String displayName   = getNodeText(prop, "displayName");
-            String apiName       = getNodeText(prop, "name");
-            if (displayName != null) {
-                String lower = displayName.toLowerCase();
-                lowerToApiName.put(lower, apiName);
-                lowerToOriginalDisplay.put(lower, displayName);
-            }
+            JsonNode prop       = entry.getValue();
+            String apiName      = getNodeText(prop, "name");
+            String displayName  = getNodeText(prop, "displayName");
+            String description  = getNodeText(prop, "description");
+
+            ComponentProperties cp = new ComponentProperties(apiName, displayName, description);
+            cp.setEquivalentNameMappings(nameMappings);
+            result.add(cp);
         });
 
-        return new DisplayNameIndex(lowerToApiName, lowerToOriginalDisplay);
+        return result;
+    }
+
+    private boolean hasDisplayNameDuplicates(List<ComponentProperties> properties) {
+        Set<String> seen = new HashSet<>();
+        for (ComponentProperties cp : properties) {
+            String dn = cp.getDisplayName();
+            if (dn != null && !seen.add(dn.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void processSourceProperties(String fileName, String componentType,
-                                         DisplayNameIndex sourceIndex,
-                                         DisplayNameIndex targetIndex) {
-        sourceIndex.lowerToApiName().forEach((lowerKey, sourceApiName) -> {
-            String sourceDisplay = sourceIndex.lowerToOriginalDisplay().get(lowerKey);
-            String matchingTargetLower = findMatchingTargetKey(componentType, sourceDisplay, targetIndex);
+                                         String componentFolder,
+                                         List<ComponentProperties> sourceList,
+                                         List<ComponentProperties> targetList,
+                                         boolean useNonUnique) {
+        for (ComponentProperties sourceProp : sourceList) {
+            ComponentProperties matchingTarget = findMatchingTarget(sourceProp, targetList, useNonUnique);
 
-            if (matchingTargetLower != null) {
-                String targetApiName  = targetIndex.lowerToApiName().get(matchingTargetLower);
-                String targetDisplay  = targetIndex.lowerToOriginalDisplay().get(matchingTargetLower);
-
-                if (!Objects.equals(sourceApiName, targetApiName)) {
-                    csvLines.add(createCsvLine(fileName, "rename",
-                            sourceDisplay, targetDisplay, sourceApiName, targetApiName));
-                    recordRename(componentType, sourceApiName, targetApiName);
+            if (matchingTarget != null) {
+                if (!Objects.equals(sourceProp.getApiName(), matchingTarget.getApiName())) {
+                    csvRecords.add(createCsvRecord(fileName, componentFolder, "rename",
+                            sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
+                            sourceProp.getApiName(), matchingTarget.getApiName()));
+                    recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
                 }
             } else {
-                csvLines.add(createCsvLine(fileName, "deleted",
-                        sourceDisplay, "", sourceApiName, ""));
+                csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
+                        sourceProp.getDisplayName(), "",
+                        sourceProp.getApiName(), ""));
             }
-        });
+        }
     }
 
     private void processAddedTargetProperties(String fileName, String componentType,
-                                              DisplayNameIndex sourceIndex,
-                                              DisplayNameIndex targetIndex) {
-        targetIndex.lowerToApiName().forEach((targetLower, targetApiName) -> {
-            String targetDisplay = targetIndex.lowerToOriginalDisplay().get(targetLower);
-            boolean existsInSource = sourceIndex.lowerToOriginalDisplay().values().stream()
-                    .anyMatch(srcDisplay -> areDisplayNamesEquivalent(componentType, srcDisplay, targetDisplay));
+                                              String componentFolder,
+                                              List<ComponentProperties> sourceList,
+                                              List<ComponentProperties> targetList,
+                                              boolean useNonUnique) {
+        for (ComponentProperties targetProp : targetList) {
+            boolean existsInSource = sourceList.stream()
+                    .anyMatch(srcProp -> useNonUnique
+                            ? srcProp.compareNonUniqueDisplayName(targetProp)
+                            : srcProp.compareUniqueDisplayName(targetProp));
 
             if (!existsInSource) {
-                csvLines.add(createCsvLine(fileName, "added",
-                        "", targetDisplay, "", targetApiName));
+                csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
+                        "", targetProp.getDisplayName(),
+                        "", targetProp.getApiName()));
             }
-        });
+        }
     }
 
-    private String findMatchingTargetKey(String componentType, String sourceDisplay,
-                                         DisplayNameIndex targetIndex) {
-        for (Map.Entry<String, String> e : targetIndex.lowerToOriginalDisplay().entrySet()) {
-            if (areDisplayNamesEquivalent(componentType, sourceDisplay, e.getValue())) {
-                return e.getKey();
+    private ComponentProperties findMatchingTarget(ComponentProperties sourceProp,
+                                                   List<ComponentProperties> targetList,
+                                                   boolean useNonUnique) {
+        for (ComponentProperties targetProp : targetList) {
+            boolean matches = useNonUnique
+                    ? sourceProp.compareNonUniqueDisplayName(targetProp)
+                    : sourceProp.compareUniqueDisplayName(targetProp);
+            if (matches) {
+                return targetProp;
             }
         }
         return null;
     }
 
     private void recordRename(String componentType, String oldApiName, String newApiName) {
-        String typeKey = (componentType != null && !componentType.isEmpty()) ? componentType : "unknown";
-        typeToRenamedProperties.computeIfAbsent(typeKey, k -> new TreeMap<>())
+        typeToRenamedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
                 .put(oldApiName, newApiName);
-    }
-
-    private boolean areDisplayNamesEquivalent(String componentType,
-                                              String sourceDisplay,
-                                              String targetDisplay) {
-        if (sourceDisplay == null || targetDisplay == null) {
-            return false;
-        }
-        if (sourceDisplay.equalsIgnoreCase(targetDisplay)) {
-            return true;
-        }
-
-        String shortType = getShortTypeName(componentType);
-        if (shortType == null) {
-            return false;
-        }
-
-        Map<String, String> typeMappings = dictionaryMappings.get(shortType);
-        if (typeMappings == null) {
-            return false;
-        }
-
-        return isMappedMatch(typeMappings, sourceDisplay.toLowerCase(), targetDisplay)
-                || isMappedMatch(typeMappings, targetDisplay.toLowerCase(), sourceDisplay);
-    }
-
-    private boolean isMappedMatch(Map<String, String> mappings, String lowerKey, String compareWith) {
-        String mapped = mappings.get(lowerKey);
-        return mapped != null && mapped.equalsIgnoreCase(compareWith);
     }
 
     private String getShortTypeName(String fullTypeName) {
@@ -359,7 +364,7 @@ public class JsonComparator {
             rootNode.set(type, typeNode);
         });
 
-        try (FileWriter writer = new FileWriter(JSON_OUTPUT_FILE)) {
+        try (FileWriter writer = new FileWriter(getJsonOutputPath())) {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(rootNode));
             LOGGER.info("Type mapping JSON written to: {}", getJsonOutputPath());
             LOGGER.info("Total types with renames: {}", typeToRenamedProperties.size());
@@ -368,47 +373,37 @@ public class JsonComparator {
         }
     }
 
-    private String createCsvLine(String filename, String changeType,
-                                 String displayNameOld, String displayNameNew,
-                                 String apiNameOld,     String apiNameNew) {
-        return String.join(",",
-                escapeCsv(removeJsonExtension(filename)),
-                escapeCsv(changeType),
-                escapeCsv(displayNameOld),
-                escapeCsv(displayNameNew),
-                escapeCsv(apiNameOld),
-                escapeCsv(apiNameNew)
-        );
+    private String[] createCsvRecord(String filename, String componentType, String changeType,
+                                     String displayNameOld, String displayNameNew,
+                                     String apiNameOld, String apiNameNew) {
+        return new String[]{
+                removeJsonExtension(filename),
+                componentType != null ? componentType : "",
+                changeType,
+                displayNameOld,
+                displayNameNew,
+                apiNameOld,
+                apiNameNew
+        };
     }
 
-    private void writeCsvReport() {
-        try (FileWriter writer = new FileWriter(CSV_OUTPUT_FILE)) {
-            writer.write(CSV_HEADER + "\n");
-            for (String line : csvLines) {
-                writer.write(line + "\n");
+    public void writeCsvReport() {
+        CSVFormat csvFormat = CSVFormat.DEFAULT
+                .withHeader(CSV_HEADERS);
+
+        try (CSVPrinter printer = new CSVPrinter(new FileWriter(getCsvOutputPath()), csvFormat)) {
+            for (String[] record : csvRecords) {
+                printer.printRecord((Object[]) record);
             }
             LOGGER.info("Report successfully written to: {}", getCsvOutputPath());
-            LOGGER.info("Total records: {}", csvLines.size());
+            LOGGER.info("Total records: {}", csvRecords.size());
         } catch (IOException e) {
             LOGGER.error("Error writing CSV file: {}", e.getMessage(), e);
         }
     }
 
     private String removeJsonExtension(String filename) {
-        if (filename != null && filename.toLowerCase().endsWith(".json")) {
-            return filename.substring(0, filename.length() - NUMBER_OF_CHARACTERS);
-        }
-        return filename;
-    }
-
-    private String escapeCsv(String value) {
-        if (value == null || value.isEmpty()) {
-            return "";
-        }
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
+        return filename.substring(0, filename.length() - NUMBER_OF_CHARACTERS);
     }
 
     private Map<String, String> scanDirectory(String rootPath) throws IOException {
@@ -428,8 +423,11 @@ public class JsonComparator {
             try (var stream = Files.list(subPath)) {
                 stream.filter(Files::isRegularFile)
                         .filter(p -> p.toString().toLowerCase().endsWith(".json"))
-                        .forEach(p -> filesMap.put(p.getFileName().toString(),
-                                p.toAbsolutePath().toString()));
+                        .forEach(p -> {
+                            String name = p.getFileName().toString();
+                            filesMap.put(name, p.toAbsolutePath().toString());
+                            fileSubfolderMap.put(name, subFolder);
+                        });
             }
         }
         return filesMap;
@@ -493,7 +491,7 @@ public class JsonComparator {
      * @return absolute path to the CSV report file
      */
     public String getCsvOutputPath()  {
-        return Paths.get(CSV_OUTPUT_FILE).toAbsolutePath().toString(); }
+        return outputDir.resolve(CSV_OUTPUT_FILE).toAbsolutePath().toString(); }
 
     /**
      * Returns the absolute path of the JSON type-mapping output file NiFiTypeMapping.json.
@@ -501,7 +499,7 @@ public class JsonComparator {
      * @return absolute path to the JSON type-mapping file
      */
     public String getJsonOutputPath() {
-        return Paths.get(JSON_OUTPUT_FILE).toAbsolutePath().toString(); }
+        return outputDir.resolve(JSON_OUTPUT_FILE).toAbsolutePath().toString(); }
 
     /**
      * Returns an unmodifiable view of the source propertyDescriptors map.
@@ -526,4 +524,22 @@ public class JsonComparator {
      */
     public boolean isLoaded() {
         return isLoaded; }
+
+    /**
+     * Sets the output directory for CSV and JSON report files.
+     * The directory will be created if it does not exist.
+     *
+     * @param outputPath path to the output directory
+     * @throws IOException if the directory cannot be created
+     */
+    public void setOutputDir(String outputPath) throws IOException {
+        if (outputPath == null || outputPath.isEmpty()) {
+            return;
+        }
+        this.outputDir = Paths.get(outputPath);
+        if (!Files.exists(this.outputDir)) {
+            Files.createDirectories(this.outputDir);
+            LOGGER.info("Created output directory: {}", this.outputDir.toAbsolutePath());
+        }
+    }
 }

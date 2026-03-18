@@ -1,3 +1,5 @@
+package org.qubership.nifi.tools;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.AfterAll;

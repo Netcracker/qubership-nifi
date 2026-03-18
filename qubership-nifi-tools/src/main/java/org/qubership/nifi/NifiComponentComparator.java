@@ -5,48 +5,69 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-public class NifiComponentComparator {
+public final class NifiComponentComparator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NifiComponentComparator.class);
 
+    private static final String DEFAULT_OUTPUT_DIR = "./";
+
+    private NifiComponentComparator() { }
+
     /**
-     * Comparison of components from two NiFi systems and report generation.
+     * Application entry point.
+     *
+     * @param args command-line arguments (--sourceDir, --targetDir, --dictionaryPath, --outputPath);
+     *             each flag must be followed by its value — a flag provided as the last
+     *             argument without a value causes an {@link ArrayIndexOutOfBoundsException}
+     * @throws Exception if any step of the compare process fails
      */
     public static void main(String[] args) {
-        if (args.length < 2) {
-            LOGGER.error("Not enough command line arguments.");
-            System.exit(1);
-        }
+        String sourceDir = "";
+        String targetDir = "";
+        String dictionaryPath = "";
+        String outputPath = DEFAULT_OUTPUT_DIR;
 
-        String sourceDir = args[0];
-        String targetDir = args[1];
-        String dictionaryPath = (args.length > 2) ? args[2] : null;
-
-        if (dictionaryPath != null && dictionaryPath.trim().isEmpty()) {
-            dictionaryPath = null;
+        for (int i = 0; i < args.length; i++) {
+            switch (args[i]) {
+                case "--sourceDir":
+                    sourceDir = args[++i];
+                    break;
+                case "--targetDir":
+                    targetDir = args[++i];
+                    break;
+                case "--dictionaryPath":
+                    dictionaryPath = args[++i];
+                    break;
+                case "--outputPath":
+                    outputPath = args[++i];
+                    break;
+                default:
+                    // ignore unknown flags
+                    break;
+            }
         }
 
         LOGGER.info("Starting NiFi Component Comparison...");
         LOGGER.info("Source Directory: {}", sourceDir);
         LOGGER.info("Target Directory: {}", targetDir);
         LOGGER.info("Dictionary File:  {}", (dictionaryPath != null) ? dictionaryPath : "None");
+        LOGGER.info("Output Path: {}", outputPath);
 
         JsonComparator comparator = new JsonComparator();
 
         try {
-            if (dictionaryPath != null) {
-                comparator.load(sourceDir, targetDir, dictionaryPath);
-            } else {
-                comparator.load(sourceDir, targetDir);
-            }
+
+            comparator.setOutputDir(outputPath);
+
+            comparator.load(sourceDir, targetDir, dictionaryPath);
+
             comparator.compare();
+            comparator.writeCsvReport();
             comparator.generateTypeMappingJson();
 
-            LOGGER.info("========================================");
             LOGGER.info("Comparison completed successfully!");
             LOGGER.info("CSV Report:  {}", comparator.getCsvOutputPath());
             LOGGER.info("JSON Report: {}", comparator.getJsonOutputPath());
-            LOGGER.info("========================================");
 
         } catch (IOException e) {
             LOGGER.error("Fatal error during comparison: {}", e.getMessage(), e);
