@@ -15,6 +15,9 @@
  */
 package org.qubership.nifi;
 
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -28,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Integration test that invokes the docs-generator plugin against the whole project
  * and verifies that docs/user-guide.md has no uncommitted changes.
  *
- * <p>Run via: {@code mvn install -P integration-tests -DskipUnitTests=true -Dgpg.skip=true}
+ * <p>Run via: {@code mvn install -P tools-integration-tests -DskipUnitTests=true -Dgpg.skip=true}
  * (the full reactor must be installed first so the plugin is in the local repo).
  */
 class DocsGeneratorIT {
@@ -41,7 +44,7 @@ class DocsGeneratorIT {
         if (rootDirProp == null || rootDirProp.isEmpty()) {
             throw new IllegalStateException(
                 "System property 'project.rootdir' is not set. "
-                + "Run this test via maven-failsafe-plugin (mvn verify -P integration-tests -DskipUnitTests=true).");
+                + "Run this test via maven-failsafe-plugin (mvn verify -P tools-integration-tests -DskipUnitTests=true).");
         }
         File projectRoot = new File(rootDirProp);
 
@@ -54,15 +57,15 @@ class DocsGeneratorIT {
         assertEquals(SUCCESS_EXIT_CODE, generateExitCode,
             "docs-generator plugin exited with a non-zero code. Check output above.");
 
-        // Step 2: verify docs/user-guide.md has no local git changes
-        int gitDiffExitCode = runProcess(projectRoot, List.of(
-            "git", "diff", "--exit-code", "docs/user-guide.md"
-        ));
-        assertEquals(SUCCESS_EXIT_CODE, gitDiffExitCode,
-            "docs/user-guide.md has local changes after running the plugin. "
-            + "The committed file is out of date. Re-run "
-            + "'mvn org.qubership.nifi:qubership-nifi-docs-generator:generate' "
-            + "and commit the result.");
+        try (Git git = Git.open(projectRoot)) {
+            List<DiffEntry> diffResult = git.diff().setPathFilter(PathFilter.create("docs/user-guide.md")).call();
+            assertEquals(0, diffResult.size(),
+                "docs/user-guide.md has local changes after running the plugin. "
+                + "The committed file is out of date. Re-run "
+                + "'mvn org.qubership.nifi:qubership-nifi-docs-generator:generate' "
+                + "and commit the result."
+            );
+        }
     }
 
     /**

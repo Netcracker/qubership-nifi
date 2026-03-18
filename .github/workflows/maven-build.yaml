@@ -128,7 +128,7 @@ jobs:
       - name: Run integration tests
         if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL }}
         run: >
-          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P integration-tests
+          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       - name: Upload test results

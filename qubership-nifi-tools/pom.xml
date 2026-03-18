@@ -40,7 +40,7 @@
 
     <profiles>
         <profile>
-            <id>integration-tests</id>
+            <id>tools-integration-tests</id>
             <modules>
                 <module>qubership-nifi-docs-generator-it</module>
             </modules>
