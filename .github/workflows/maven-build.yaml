@@ -50,6 +50,11 @@ on:
         required: false
         type: boolean
         description: 'If set, skips sonar cloud analysis'
+      skip-tools-it:
+        default: false
+        required: false
+        type: boolean
+        description: 'If set, skips tools integration tests'
   workflow_call:
     inputs:
       java-version:
@@ -65,6 +70,10 @@ on:
         required: false
         type: string
       skip-sonar:
+        default: false
+        required: false
+        type: boolean
+      skip-tools-it:
         default: false
         required: false
         type: boolean
@@ -125,8 +134,8 @@ jobs:
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      - name: Run integration tests
-        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL }}
+      - name: Run tools integration tests
+        if: ${{ !inputs.skip-tools-it }}
         run: >
           mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
         env:

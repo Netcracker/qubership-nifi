@@ -19,8 +19,11 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -35,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * (the full reactor must be installed first so the plugin is in the local repo).
  */
 class DocsGeneratorIT {
+    private static final Logger LOG = LoggerFactory.getLogger(DocsGeneratorIT.class);
 
     private static final int SUCCESS_EXIT_CODE = 0;
 
@@ -44,7 +48,8 @@ class DocsGeneratorIT {
         if (rootDirProp == null || rootDirProp.isEmpty()) {
             throw new IllegalStateException(
                 "System property 'project.rootdir' is not set. "
-                + "Run this test via maven-failsafe-plugin (mvn verify -P tools-integration-tests -DskipUnitTests=true).");
+                + "Run this test via maven-failsafe-plugin "
+                + "(mvn verify -P tools-integration-tests -DskipUnitTests=true).");
         }
         File projectRoot = new File(rootDirProp);
 
@@ -124,12 +129,13 @@ class DocsGeneratorIT {
                 while ((n = stream.read(buf)) != -1) {
                     sb.append(new String(buf, 0, n, StandardCharsets.UTF_8));
                 }
-            } catch (Exception ignored) {
-                // stream closed on process exit — expected
+            } catch (IOException ex) {
+                LOG.error("Error reading process output", ex);
             }
         });
         t.start();
-        t.join();
+        //wait for the thread to finish, but only for 2 minutes to avoid hanging indefinitely
+        t.join(120000);
         return sb.toString();
     }
 }

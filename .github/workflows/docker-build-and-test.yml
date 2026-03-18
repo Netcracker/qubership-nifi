@@ -67,6 +67,7 @@ jobs:
       artifact-id: 'qubership-nifi-local-build'
       upload-artifact: true
       skip-sonar: true
+      skip-tools-it: true
   docker-build-and-test:
     strategy:
       fail-fast: false
