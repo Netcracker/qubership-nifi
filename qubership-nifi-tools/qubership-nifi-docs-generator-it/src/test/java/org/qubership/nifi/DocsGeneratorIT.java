@@ -42,6 +42,9 @@ class DocsGeneratorIT {
     private static final Logger LOG = LoggerFactory.getLogger(DocsGeneratorIT.class);
 
     private static final int SUCCESS_EXIT_CODE = 0;
+    private static final int MVN_TIMEOUT_SECONDS = 60;
+    private static final int DRAIN_THREAD_BUFFER_SIZE = 4096;
+    private static final int DRAIN_THREAD_TIMEOUT_MS = 120000;
 
     @Test
     void testDocsGeneratorProducesNoGitChanges() throws Exception {
@@ -108,13 +111,13 @@ class DocsGeneratorIT {
         StringBuilder outputSb = new StringBuilder();
         Thread drainThread = startDrainThread(process.getInputStream(), outputSb);
         //wait for the process to finish, but only for 60 seconds to avoid hanging indefinitely
-        boolean finished = process.waitFor(60, TimeUnit.SECONDS);
+        boolean finished = process.waitFor(MVN_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         if (!finished) {
             process.destroyForcibly();
             throw new RuntimeException("Process timed out and was killed: " + String.join(" ", command));
         }
         //wait for the thread to finish, but only for 2 minutes to avoid hanging indefinitely
-        drainThread.join(120000);
+        drainThread.join(DRAIN_THREAD_TIMEOUT_MS);
         String output = outputSb.toString();
         int exitCode = process.exitValue();
         System.out.println("=== Command: " + command);
@@ -134,7 +137,7 @@ class DocsGeneratorIT {
     private Thread startDrainThread(InputStream stream, StringBuilder outputSb) {
         Thread t = new Thread(() -> {
             try {
-                byte[] buf = new byte[4096];
+                byte[] buf = new byte[DRAIN_THREAD_BUFFER_SIZE];
                 int n;
                 while ((n = stream.read(buf)) != -1) {
                     outputSb.append(new String(buf, 0, n, StandardCharsets.UTF_8));
