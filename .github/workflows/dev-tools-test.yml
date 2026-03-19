@@ -46,14 +46,14 @@ jobs:
 
       - name: Build Maven artifacts (local image only)
         if: ${{ matrix.nifi.build-local }}
-        run: mvn --batch-mode install -DskipTests -Dgpg.skip=true
+        run: mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
 
       - name: Build local NiFi Docker image (local image only)
         if: ${{ matrix.nifi.build-local }}
         run: docker build -t local-nifi:test .
 
       - name: Build scripts Docker image
-        run: docker build -t qubership-nifi-update-scripts:test dev/update-scripts-2.0/
+        run: docker build -t qubership-nifi-update-scripts:test . -f dev/update-scripts-autotest/Dockerfile
 
       - name: Set up test environment
         run: |

@@ -81,7 +81,6 @@ class UpdateScriptsIT {
     private static final int NIFI_CONTAINER_PORT = 8080;
     private static final String SCRIPTS_CONTAINER_CERT_DIR = "/tmp/certs";
     private static final String SCRIPTS_CONTAINER_FLOWS_DIR = "/data/export";
-    private static final String SCRIPTS_CONTAINER_CONFIG = "/scripts/updateNiFiVerNarConfig.json";
     private static final int HTTP_CREATED = 201;
     private static final int HTTP_OK = 200;
     private static final int SCRIPTS_TIMEOUT_MINUTES = 2;
@@ -89,7 +88,6 @@ class UpdateScriptsIT {
     private static String nifiUrl;
     private static String nifiCertPath;
     private static String nifiCertPassword;
-    private static String nifiCaCertPath;
     private static String scriptsDockerNetwork;
     private static Path tempFlowsDir;
     private static HttpClient httpClient;
@@ -102,7 +100,7 @@ class UpdateScriptsIT {
 
         nifiUrl = System.getProperty("nifi.url", "https://localhost:8080");
         nifiCertPath = certDir + "/" + ADMIN_CERT_FILENAME;
-        nifiCaCertPath = certDir + "/" + NIFI_CA_CERT_FILENAME;
+        String nifiCaCertPath = certDir + "/" + NIFI_CA_CERT_FILENAME;
         nifiCertPassword = System.getenv("NIFI_CLIENT_PASSWORD");
         scriptsDockerNetwork = System.getProperty("scripts.docker.network", "");
 
@@ -178,7 +176,7 @@ class UpdateScriptsIT {
                     SCRIPTS_CONTAINER_CERT_DIR, BindMode.READ_ONLY)
                 .withEnv("NIFI_TARGET_URL", nifiTargetUrl)
                 .withEnv("NIFI_CERT", nifiCert)
-                .withCommand(SCRIPTS_CONTAINER_FLOWS_DIR, SCRIPTS_CONTAINER_CONFIG)
+                .withCommand(SCRIPTS_CONTAINER_FLOWS_DIR)
                 .withStartupCheckStrategy(
                     new OneShotStartupCheckStrategy()
                         .withTimeout(Duration.ofMinutes(SCRIPTS_TIMEOUT_MINUTES)));
@@ -271,12 +269,22 @@ class UpdateScriptsIT {
 
     private static void copyTestFlows(final Path dest) throws Exception {
         Path testFlowsPath = Paths.get(UpdateScriptsIT.class.getResource("/test-flows").toURI());
-        try (Stream<Path> files = Files.list(testFlowsPath)) {
+        try (Stream<Path> files = Files.walk(testFlowsPath)) {
             files.forEach(src -> {
-                try {
-                    Files.copy(src, dest.resolve(src.getFileName()));
-                } catch (IOException e) {
-                    throw new IllegalStateException("Failed to copy test flow: " + src, e);
+                if (Files.isDirectory(src)) {
+                    try {
+                        LOG.debug("Copy test directory = {}", src);
+                        Files.createDirectories(dest.resolve(src.getFileName()));
+                    } catch (IOException e) {
+                        throw new IllegalStateException("Failed to create directories for test flow: " + src, e);
+                    }
+                } else {
+                    try {
+                        LOG.debug("Copy test file = {}", src);
+                        Files.copy(src, dest.resolve(src.getParent().relativize(src)));
+                    } catch (IOException e) {
+                        throw new IllegalStateException("Failed to copy test flow: " + src, e);
+                    }
                 }
             });
         }

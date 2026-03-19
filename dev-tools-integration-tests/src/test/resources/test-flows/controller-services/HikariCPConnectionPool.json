@@ -1,0 +1,201 @@
+{
+  "revision": {
+    "clientId": "06250f1e-019d-1000-6725-25fb4d6f1e6c",
+    "version": 2
+  },
+  "id": "0625599e-019d-1000-45e1-355abea0d0cd",
+  "uri": "https://localhost:8080/nifi-api/controller-services/0625599e-019d-1000-45e1-355abea0d0cd",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "0625599e-019d-1000-45e1-355abea0d0cd",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "HikariCPConnectionPool",
+    "type": "org.apache.nifi.dbcp.HikariCPConnectionPool",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-dbcp-service-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.dbcp.DBCPService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": true,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": true,
+    "properties": {
+      "hikaricp-connection-url": "jdbc:postgresql://postgresql:5432/postgres",
+      "hikaricp-driver-classname": "org.postgresql.Driver",
+      "hikaricp-driver-locations": null,
+      "hikaricp-kerberos-user-service": null,
+      "hikaricp-username": "postgres",
+      "hikaricp-password": "********",
+      "hikaricp-max-wait-time": "500 millis",
+      "hikaricp-max-total-conns": "10",
+      "hikaricp-validation-query": null,
+      "hikaricp-min-idle-conns": "10",
+      "hikaricp-max-conn-lifetime": "-1"
+    },
+    "descriptors": {
+      "hikaricp-connection-url": {
+        "name": "hikaricp-connection-url",
+        "displayName": "Database Connection URL",
+        "description": "A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters. The exact syntax of a database connection URL is specified by your DBMS.",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-driver-classname": {
+        "name": "hikaricp-driver-classname",
+        "displayName": "Database Driver Class Name",
+        "description": "The fully-qualified class name of the JDBC driver. Example: com.mysql.jdbc.Driver",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-driver-locations": {
+        "name": "hikaricp-driver-locations",
+        "displayName": "Database Driver Location(s)",
+        "description": "Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-kerberos-user-service": {
+        "name": "hikaricp-kerberos-user-service",
+        "displayName": "Kerberos User Service",
+        "description": "Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos",
+        "allowableValues": [],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.kerberos.KerberosUserService",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": []
+      },
+      "hikaricp-username": {
+        "name": "hikaricp-username",
+        "displayName": "Database User",
+        "description": "Database user name",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-password": {
+        "name": "hikaricp-password",
+        "displayName": "Password",
+        "description": "The password for the database user",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-max-wait-time": {
+        "name": "hikaricp-max-wait-time",
+        "displayName": "Max Wait Time",
+        "description": "The maximum amount of time that the pool will wait (when there are no available connections)  for a connection to be returned before failing, or 0 <time units> to wait indefinitely. ",
+        "defaultValue": "500 millis",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-max-total-conns": {
+        "name": "hikaricp-max-total-conns",
+        "displayName": "Max Total Connections",
+        "description": "This property controls the maximum size that the pool is allowed to reach, including both idle and in-use connections. Basically this value will determine the maximum number of actual connections to the database backend. A reasonable value for this is best determined by your execution environment. When the pool reaches this size, and no idle connections are available, the service will block for up to connectionTimeout milliseconds before timing out.",
+        "defaultValue": "10",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-validation-query": {
+        "name": "hikaricp-validation-query",
+        "displayName": "Validation Query",
+        "description": "Validation Query used to validate connections before returning them. When connection is invalid, it gets dropped and new valid connection will be returned. NOTE: Using validation might have some performance penalty.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-min-idle-conns": {
+        "name": "hikaricp-min-idle-conns",
+        "displayName": "Minimum Idle Connections",
+        "description": "This property controls the minimum number of idle connections that HikariCP tries to maintain in the pool. If the idle connections dip below this value and total connections in the pool are less than 'Max Total Connections', HikariCP will make a best effort to add additional connections quickly and efficiently. It is recommended that this property to be set equal to 'Max Total Connections'.",
+        "defaultValue": "10",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "hikaricp-max-conn-lifetime": {
+        "name": "hikaricp-max-conn-lifetime",
+        "displayName": "Max Connection Lifetime",
+        "description": "The maximum lifetime of a connection. After this time is exceeded the connection will fail the next activation, passivation or validation test. A value of zero or less means the connection has an infinite lifetime.",
+        "defaultValue": "-1",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}
