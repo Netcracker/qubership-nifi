@@ -1,4 +1,4 @@
-package org.qubership.nifi;
+package org.qubership.nifi.tools.compare;
 
 import java.util.Map;
 import java.util.Objects;
@@ -10,20 +10,43 @@ public class ComponentProperties {
     private final String description;
     private Map<String, String> equivalentNameMappings;
 
-    public ComponentProperties(String apiName, String displayName, String description) {
-        this.apiName = apiName;
-        this.displayName = displayName;
-        this.description = description;
+    /**
+     * Constructor for class ComponentProperties.
+     *
+     * @param apiNameValue property api name
+     * @param displayNameValue property display name
+     * @param descriptionValue property description
+     */
+    public ComponentProperties(
+            final String apiNameValue,
+            final String displayNameValue,
+            final String descriptionValue
+    ) {
+        this.apiName = apiNameValue;
+        this.displayName = displayNameValue;
+        this.description = descriptionValue;
     }
 
+    /**
+     * Gets api name.
+     * @return api name
+     */
     public String getApiName() {
         return apiName;
     }
 
+    /**
+     * Gets display name.
+     * @return display name
+     */
     public String getDisplayName() {
         return displayName;
     }
 
+    /**
+     * Gets description.
+     * @return description
+     */
     public String getDescription() {
         return description;
     }
@@ -32,38 +55,38 @@ public class ComponentProperties {
      * Sets the dictionary mappings used by {@link #hasEquivalentName} and
      * {@link #getEquivalentName} for display-name equivalence checks.
      *
-     * @param equivalentNameMappings map of lowercase display name to its equivalent name
+     * @param equivalentNameMappingsValue map of lowercase display name to its equivalent name
      */
-    public void setEquivalentNameMappings(Map<String, String> equivalentNameMappings) {
-        this.equivalentNameMappings = equivalentNameMappings;
+    public void setEquivalentNameMappings(Map<String, String> equivalentNameMappingsValue) {
+        this.equivalentNameMappings = equivalentNameMappingsValue;
     }
 
     /**
      * Checks whether the dictionary contains an equivalent mapping
      * for the given display name.
      *
-     * @param displayName the display name to look up
+     * @param displayNameValue the display name to look up
      * @return true if a mapping exists
      */
-    public boolean hasEquivalentName(String displayName) {
-        if (equivalentNameMappings == null || displayName == null) {
+    public boolean hasEquivalentName(String displayNameValue) {
+        if (equivalentNameMappings == null || displayNameValue == null) {
             return false;
         }
-        return equivalentNameMappings.containsKey(displayName.toLowerCase());
+        return equivalentNameMappings.containsKey(displayNameValue.toLowerCase());
     }
 
     /**
      * Returns the equivalent (mapped) name for the given display name
      * from the dictionary.
      *
-     * @param displayName the display name to look up
+     * @param displayNameValue the display name to look up
      * @return the mapped equivalent name, or null if not found
      */
-    public String getEquivalentName(String displayName) {
-        if (equivalentNameMappings == null || displayName == null) {
+    public String getEquivalentName(String displayNameValue) {
+        if (equivalentNameMappings == null || displayNameValue == null) {
             return null;
         }
-        return equivalentNameMappings.get(displayName.toLowerCase());
+        return equivalentNameMappings.get(displayNameValue.toLowerCase());
     }
 
     /**
@@ -123,18 +146,5 @@ public class ComponentProperties {
             return true;
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return "ComponentProperties{"
-                +
-                "apiName='" + apiName
-                + '\''
-                + ", displayName='" + displayName
-                + '\''
-                + ", description='" + description
-                + '\''
-                + '}';
     }
 }

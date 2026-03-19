@@ -1,4 +1,4 @@
-package org.qubership.nifi;
+package org.qubership.nifi.tools.compare;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -387,6 +387,9 @@ public class JsonComparator {
         };
     }
 
+    /**
+     * Method for generating a CSV report with comparison results.
+     */
     public void writeCsvReport() {
         CSVFormat csvFormat = CSVFormat.DEFAULT
                 .withHeader(CSV_HEADERS);

@@ -1,4 +1,4 @@
-package org.qubership.nifi;
+package org.qubership.nifi.tools.compare;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

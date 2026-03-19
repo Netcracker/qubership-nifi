@@ -1,4 +1,4 @@
-package org.qubership.nifi.tools;
+package org.qubership.nifi.tools.compare;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 
-public class JsonComparatorTest {
+public class  JsonComparatorTest {
 
     @TempDir
     Path tempDir;
