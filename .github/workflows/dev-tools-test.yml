@@ -72,7 +72,7 @@ jobs:
           . .github/workflows/sh/nifi-lib.sh
           NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
           wait_nifi_container "15" "150" "localhost" "8080" "true" \
-            ".github/docker/tls/docker-compose.yaml" "dev-tools" \
+            ".github/docker/tls/docker-compose.yaml" "tls" \
             "./temp-vol/tls-cert/nifi/nifi-cert.pem" \
             "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
             "$NIFI_CLIENT_PASSWORD"
@@ -112,5 +112,5 @@ jobs:
         run: |
           docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env \
             down -v || true
-          rm -rf ./temp-vol ./docker.env ./nifi-sens-key.tmp ./consul-acl-token.tmp \
+          sudo rm -rf ./temp-vol ./docker.env ./nifi-sens-key.tmp ./consul-acl-token.tmp \
             ./consul-acl-read-token.tmp ./consul-acl-write-token.tmp
