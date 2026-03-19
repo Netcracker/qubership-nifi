@@ -46,7 +46,7 @@ jobs:
 
       - name: Build Maven artifacts (local image only)
         if: ${{ matrix.nifi.build-local }}
-        run: mvn --batch-mode install -DskipTests
+        run: mvn --batch-mode install -DskipTests -Dgpg.skip=true
 
       - name: Build local NiFi Docker image (local image only)
         if: ${{ matrix.nifi.build-local }}
