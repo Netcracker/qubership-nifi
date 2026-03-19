@@ -2,7 +2,7 @@
 
 ## Scripts overview
 
-The script 'analyzeAndUpdateNiFiExports.sh' upgrades controller services and reporting tasks exports
+The script `analyzeAndUpdateNiFiExports.sh` upgrades controller services and reporting tasks exports
 done from older NiFi versions to be compatible with NiFi 2.7.2.
 The script automatically checks for nifi version in target instance, as well version in export
 and determines, if adaptation is required.
@@ -31,6 +31,7 @@ The table below describes environment variables used in script
 ## Mapping config
 
 Configuration file that stores the mapping between old and new property names for NiFi components.
+
 ```json
 {
     "org.apache.nifi.services.protobuf.ProtobufReader": {
