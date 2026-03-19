@@ -39,7 +39,7 @@
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.SSS}][%-5p] [request_id=%-15X{requestId:--}] [tenant_id=%-36X{tenantId:--}] [thread=%-50.50t] [class=%-60.60c{59}] [method=%-30.30M] [version=${DEPLOYMENT_VERSION}] [originating_bi_id=%-16X{originating_bi_id:--}] [business_identifiers=%-16X{business-identifiers:--}] [traceId=%-16X{traceId:--}] [spanId=%-16X{spanId:--}] %m%n</pattern>
+            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.SSS}][%-5p] [request_id=%-15X{requestId:--}] [tenant_id=%-36X{tenantId:--}] [thread=%-50.50t] [class=%-60.60c{59}] [method=%-30.30M] [version=${DEPLOYMENT_VERSION}] [originating_bi_id=%-16X{originating_bi_id:--}] [business_identifiers=%-16X{business-identifiers:--}] [traceId=%-16X{traceId:--}] [spanId=%-16X{spanId:--}] [nifiPgPath=%X{processGroupNamePath:--}] %m%n</pattern>
         </encoder>
     </appender>
 

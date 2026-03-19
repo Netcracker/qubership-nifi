@@ -49,8 +49,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>15</maven.compiler.source>
-        <maven.compiler.target>15</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <nifi.version>2.7.2</nifi.version>
         <nifi.api.version>2.5.0</nifi.api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
@@ -72,8 +73,7 @@
         <spring-framework.version>6.2.15</spring-framework.version>
         <postgresql.jdbc.version>42.5.5</postgresql.jdbc.version>
         <lombok.version>1.18.30</lombok.version>
-        <commons-csv.version>1.8</commons-csv.version>
-        <snakeyaml.version>2.5</snakeyaml.version>
+        <jgit.version>7.6.0.202603022253-r</jgit.version>
 
         <!-- Version for provided artifact -->
         <okhttp.version>5.1.0</okhttp.version>
@@ -98,7 +98,6 @@
         <module>qubership-nifi-deps</module>
         <module>qubership-consul</module>
         <module>qubership-test-bundle</module>
-        <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-tools</module>
     </modules>
 
@@ -261,20 +260,11 @@
                 <artifactId>nifi-nar-maven-plugin</artifactId>
                 <version>${nifi.nar.plugin.version}</version>
                 <extensions>true</extensions>
-                <!--<executions>
-                    <execution>
-                        <id>build-nar</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>nar</goal>
-                        </goals>
-                    </execution>
-                </executions>-->
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>@{argLine} -Duser.timezone=UTC</argLine>
                     <environmentVariables>
@@ -284,12 +274,14 @@
                     <systemPropertyVariables>
                         <api.version>1.44</api.version>
                     </systemPropertyVariables>
+                    <!-- Custom property to skip unit tests -->
+                    <skipTests>${skipUnitTests}</skipTests>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M1</version>
+                <version>3.5.4</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -327,12 +319,12 @@
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-java</artifactId>
-                        <version>7.10.0</version>
+                        <version>7.22.0</version>
                     </dependency>
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-core</artifactId>
-                        <version>7.10.0</version>
+                        <version>7.22.0</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -401,6 +393,23 @@
                     <groupId>org.sonarsource.scanner.maven</groupId>
                     <artifactId>sonar-maven-plugin</artifactId>
                     <version>3.6.0.1398</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>3.6.0</version>
+                    <configuration>
+                        <!-- Path relative to the project root -->
+                        <configLocation>.github/linters/sun_checks.xml</configLocation>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>13.2.0</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>
