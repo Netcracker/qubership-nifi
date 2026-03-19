@@ -1,0 +1,590 @@
+{
+    "org.apache.nifi.services.slack.SlackRecordSink" : {
+        "api-url" : "API URL",
+        "input-character-set" : "Input Character Set",
+        "access-token" : "Access Token",
+        "channel-id" : "Channel ID",
+        "web-service-client-provider" : "Web Service Client Provider",
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.services.protobuf.ProtobufReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProvider" : {
+        "connection.factory.name" : "JNDI Name of the Connection Factory",
+        "java.naming.security.principal" : "JNDI Principal",
+        "java.naming.factory.initial" : "JNDI Initial Context Factory Class",
+        "java.naming.provider.url" : "JNDI Provider URL",
+        "naming.factory.libraries" : "JNDI / JMS Client Libraries",
+        "java.naming.security.credentials" : "JNDI Credentials"
+    },
+    "org.apache.nifi.websocket.jetty.JettyWebSocketServer" : {
+        "users-properties-file" : "Users Properties File"
+    },
+    "org.apache.nifi.processors.aws.s3.service.S3FileResourceService" : {
+        "AWS Credentials Provider service" : "AWS Credentials Provider Service"
+    },
+    "org.apache.nifi.hazelcast.services.cacheclient.HazelcastMapCacheClient" : {
+        "hazelcast-cache-name" : "Hazelcast Cache Name",
+        "hazelcast-cache-manager" : "Hazelcast Cache Manager",
+        "hazelcast-entry-ttl" : "Hazelcast Entry Lifetime"
+    },
+    "org.apache.nifi.redis.service.RedisDistributedMapCacheClientService" : {
+        "redis-connection-pool" : "Redis Connection Pool",
+        "redis-cache-ttl" : "TTL"
+    },
+    "org.apache.nifi.processors.gcp.storage.GCSFileResourceService" : {
+        "gcp-credentials-provider-service" : "GCP Credentials Provider Service"
+    },
+    "org.apache.nifi.confluent.schemaregistry.ConfluentSchemaRegistry" : {
+        "cache-expiration" : "Cache Expiration",
+        "password" : "Password",
+        "authentication-type" : "Authentication Type",
+        "cache-size" : "Cache Size",
+        "ssl-context" : "SSL Context Service",
+        "url" : "Schema Registry URLs",
+        "timeout" : "Communications Timeout",
+        "username" : "Username"
+    },
+    "org.apache.nifi.syslog.Syslog5424Reader" : {
+        "syslog-5424-reader-raw-message" : "Raw Message"
+    },
+    "org.apache.nifi.services.dropbox.StandardDropboxCredentialService" : {
+        "refresh-token" : "Refresh Token",
+        "app-secret" : "App Secret",
+        "app-key" : "App Key",
+        "access-token" : "Access Token"
+    },
+    "org.apache.nifi.box.controllerservices.JsonConfigBasedBoxClientService" : {
+        "box-account-id" : "Account ID",
+        "app-config-file" : "App Config File",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "app-config-json" : "App Config JSON"
+    },
+    "org.apache.nifi.dbcp.HikariCPConnectionPool" : {
+        "hikaricp-validation-query" : "Validation Query",
+        "hikaricp-max-total-conns" : "Max Total Connections",
+        "hikaricp-password" : "Password",
+        "hikaricp-driver-classname" : "Database Driver Class Name",
+        "hikaricp-min-idle-conns" : "Minimum Idle Connections",
+        "hikaricp-username" : "Database User",
+        "hikaricp-kerberos-user-service" : "Kerberos User Service",
+        "hikaricp-max-conn-lifetime" : "Max Connection Lifetime",
+        "hikaricp-max-wait-time" : "Max Wait Time",
+        "hikaricp-connection-url" : "Database Connection URL"
+    },
+    "org.apache.nifi.ssl.StandardSSLContextService" : {
+        "SSL Protocol" : "TLS Protocol",
+        "key-password" : "Key Password"
+    },
+    "org.apache.nifi.lookup.SimpleCsvFileLookupService" : {
+        "lookup-key-column" : "Lookup Key Column",
+        "csv-file" : "CSV File",
+        "lookup-value-column" : "Lookup Value Column",
+        "ignore-duplicates" : "Ignore Duplicates"
+    },
+    "org.apache.nifi.record.sink.HttpRecordSink" : {
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.schema.inference.VolatileSchemaCache" : {
+        "max-cache-size" : "Maximum Cache Size"
+    },
+    "org.apache.nifi.hazelcast.services.cachemanager.EmbeddedHazelcastCacheManager" : {
+        "hazelcast-port" : "Hazelcast Port",
+        "hazelcast-clustering-strategy" : "Hazelcast Clustering Strategy",
+        "hazelcast-instances" : "Hazelcast Instances",
+        "hazelcast-cluster-name" : "Hazelcast Cluster Name"
+    },
+    "org.apache.nifi.fileresource.service.StandardFileResourceService" : {
+        "file-path" : "File Path"
+    },
+    "org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl" : {
+        "el-cs-strict-deprecation" : "Strict Deprecation",
+        "el-cs-http-hosts" : "HTTP Hosts",
+        "el-cs-path-prefix" : "Path Prefix",
+        "el-cs-run-as-user" : "Run As User",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "api-key-id" : "API Key ID",
+        "jwt-shared-secret" : "JWT Shared Secret",
+        "el-cs-send-meta-header" : "Send Meta Header",
+        "el-cs-username" : "Username",
+        "el-cs-enable-compression" : "Enable Compression",
+        "el-cs-sniff-cluster-nodes" : "Sniff Cluster Nodes",
+        "el-cs-sniffer-interval" : "Sniffer Interval",
+        "el-cs-sniffer-failure-delay" : "Sniffer Failure Delay",
+        "el-cs-password" : "Password",
+        "api-key" : "API Key",
+        "el-cs-node-selector" : "Node Selector",
+        "authorization-scheme" : "Authorization Scheme",
+        "el-cs-sniff-failure" : "Sniff on Failure",
+        "el-cs-sniffer-request-timeout" : "Sniffer Request Timeout",
+        "el-cs-connect-timeout" : "Connect Timeout",
+        "el-cs-socket-timeout" : "Read Timeout",
+        "el-cs-ssl-context-service" : "SSL Context Service",
+        "el-cs-oauth2-token-provider" : "OAuth2 Access Token Provider"
+    },
+    "org.apache.nifi.services.smb.SmbjClientProviderService" : {
+        "use-encryption" : "Use Encryption",
+        "enable-dfs" : "Enable DFS",
+        "hostname" : "Hostname",
+        "password" : "Password",
+        "port" : "Port",
+        "domain" : "Domain",
+        "share" : "Share",
+        "timeout" : "Timeout",
+        "username" : "Username",
+        "smb-dialect" : "SMB Dialect"
+    },
+    "org.apache.nifi.json.JsonRecordSetWriter" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "compression-format" : "Compression Format",
+        "schema-branch" : "Schema Branch",
+        "suppress-nulls" : "Suppress Null Values",
+        "output-grouping" : "Output Grouping",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "compression-level" : "Compression Level",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-cache" : "Schema Cache",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.record.sink.EmailRecordSink" : {
+        "cc" : "CC",
+        "smtp-hostname" : "SMTP Hostname",
+        "smtp-password" : "SMTP Password",
+        "bcc" : "BCC",
+        "subject" : "Subject",
+        "smtp-port" : "SMTP Port",
+        "smtp-auth" : "SMTP Auth",
+        "smtp-ssl" : "SMTP SSL",
+        "smtp-starttls" : "SMTP STARTTLS",
+        "from" : "From",
+        "to" : "To",
+        "smtp-xmailer-header" : "SMTP X-Mailer Header",
+        "smtp-username" : "SMTP Username",
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.reporting.sink.SiteToSiteReportingRecordSink" : {
+        "s2s-transport-protocol" : "Transport Protocol",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.csv.CSVReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "ignore-csv-header" : "Ignore CSV Header Column Names",
+        "schema-branch" : "Schema Branch",
+        "Trim double quote" : "Trim Double Quote",
+        "csvutils-allow-duplicate-header-names" : "Allow Duplicate Header Names",
+        "Skip Header Line" : "Treat First Line as Header",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "csv-reader-csv-parser" : "CSV Parser",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "csvutils-character-set" : "Character Set",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.dbcp.DBCPConnectionPool" : {
+        "Validation-query" : "Validation Query",
+        "dbcp-min-idle-conns" : "Minimum Idle Connections",
+        "dbcp-time-between-eviction-runs" : "Time Between Eviction Runs",
+        "dbcp-min-evictable-idle-time" : "Minimum Evictable Idle Time",
+        "kerberos-user-service" : "Kerberos User Service",
+        "dbcp-soft-min-evictable-idle-time" : "Soft Minimum Evictable Idle Time"
+    },
+    "org.apache.nifi.proxy.StandardProxyConfigurationService" : {
+        "proxy-server-port" : "Proxy Server Port",
+        "socks-version" : "SOCKS Version",
+        "proxy-user-password" : "Proxy User Password",
+        "proxy-server-host" : "Proxy Server Host",
+        "proxy-user-name" : "Proxy User Name",
+        "proxy-type" : "Proxy Type"
+    },
+    "org.apache.nifi.services.protobuf.StandardProtobufReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.json.JsonTreeReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-inference-cache" : "Schema Inference Cache",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "starting-field-strategy" : "Starting Field Strategy",
+        "schema-registry" : "Schema Registry",
+        "schema-application-strategy" : "Schema Application Strategy",
+        "starting-field-name" : "Starting Field Name",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.lookup.RestLookupService" : {
+        "rest-lookup-basic-auth-username" : "Basic Authentication Username",
+        "rest-lookup-url" : "URL",
+        "rest-lookup-ssl-context-service" : "SSL Context Service",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "rest-lookup-basic-auth-password" : "Basic Authentication Password",
+        "rest-lookup-record-path" : "Record Path",
+        "rest-lookup-record-reader" : "Record Reader",
+        "rest-lookup-digest-auth" : "Use Digest Authentication",
+        "rest-lookup-connection-timeout" : "Connection Timeout",
+        "rest-lookup-response-handling-strategy" : "Response Handling Strategy",
+        "rest-lookup-authentication-strategy" : "Authentication Strategy",
+        "rest-lookup-oauth2-access-token-provider" : "OAuth2 Access Token Provider",
+        "rest-lookup-read-timeout" : "Read Timeout"
+    },
+    "org.apache.nifi.reporting.SiteToSiteBulletinReportingTask" : {
+        "include-null-values" : "Include Null Values",
+        "s2s-transport-protocol" : "Transport Protocol",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.lookup.PropertiesFileLookupService" : {
+        "configuration-file" : "Configuration File"
+    },
+    "org.apache.nifi.cef.CEFReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "inference-strategy" : "Inference Strategy",
+        "invalid-message-field" : "Invalid Field",
+        "accept-empty-extensions" : "Accept Empty Extensions",
+        "datetime-representation" : "DateTime Locale",
+        "schema-inference-cache" : "Schema Inference Cache",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "raw-message-field" : "Raw Message Field",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.lookup.db.DatabaseRecordLookupService" : {
+        "dbrecord-lookup-dbcp-service" : "Database Connection Pooling Service",
+        "dbf-default-precision" : "Default Decimal Precision",
+        "dbrecord-lookup-clear-cache-on-enabled" : "Clear Cache on Enabled",
+        "dbrecord-lookup-cache-size" : "Cache Size",
+        "dbrecord-lookup-value-columns" : "Lookup Value Columns",
+        "dbrecord-lookup-key-column" : "Lookup Key Column",
+        "dbf-default-scale" : "Default Decimal Scale",
+        "dbrecord-lookup-table-name" : "Table Name"
+    },
+    "org.apache.nifi.elasticsearch.ElasticSearchLookupService" : {
+        "el-lookup-type" : "Type",
+        "schema-branch" : "Schema Branch",
+        "el-lookup-index" : "Index",
+        "schema-name" : "Schema Name",
+        "el-rest-client-service" : "Client Service",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService" : {
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "service-account-json-file" : "Service Account JSON File",
+        "service-account-json" : "Service Account JSON"
+    },
+    "org.apache.nifi.lookup.CSVRecordLookupService" : {
+        "lookup-key-column" : "Lookup Key Column",
+        "csv-file" : "CSV File",
+        "ignore-duplicates" : "Ignore Duplicates"
+    },
+    "org.apache.nifi.reporting.SiteToSiteStatusReportingTask" : {
+        "include-null-values" : "Include Null Values",
+        "s2s-transport-protocol" : "Transport Protocol",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.lookup.db.SimpleDatabaseLookupService" : {
+        "dbrecord-lookup-dbcp-service" : "Database Connection Pooling Service",
+        "dbrecord-lookup-clear-cache-on-enabled" : "Clear Cache on Enabled",
+        "lookup-value-column" : "Lookup Value Column",
+        "dbrecord-lookup-cache-size" : "Cache Size",
+        "dbrecord-lookup-key-column" : "Lookup Key Column",
+        "dbrecord-lookup-table-name" : "Table Name"
+    },
+    "org.apache.nifi.record.sink.db.DatabaseRecordSink" : {
+        "db-record-sink-translate-field-names" : "Translate Field Names",
+        "db-record-sink-query-timeout" : "Max Wait Time",
+        "db-record-sink-schema-name" : "Schema Name",
+        "db-record-sink-quoted-identifiers" : "Quote Column Identifiers",
+        "db-record-sink-quoted-table-identifiers" : "Quote Table Identifiers",
+        "db-record-sink-catalog-name" : "Catalog Name",
+        "db-record-sink-unmatched-column-behavior" : "Unmatched Column Behavior",
+        "db-record-sink-unmatched-field-behavior" : "Unmatched Field Behavior",
+        "db-record-sink-table-name" : "Table Name",
+        "db-record-sink-dcbp-service" : "Database Connection Pooling Service"
+    },
+    "org.apache.nifi.redis.service.SimpleRedisDistributedMapCacheClientService" : {
+        "redis-connection-pool" : "Redis Connection Pool",
+        "redis-cache-ttl" : "TTL"
+    },
+    "org.apache.nifi.xml.XMLRecordSetWriter" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "array_tag_name" : "Array Tag Name",
+        "schema-branch" : "Schema Branch",
+        "omit_xml_declaration" : "Omit XML Declaration",
+        "root_tag_name" : "Name of Root Tag",
+        "schema-cache" : "Schema Cache",
+        "suppress_nulls" : "Suppress Null Values",
+        "record_tag_name" : "Name of Record Tag",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "array_wrapping" : "Wrap Elements of Arrays",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "pretty_print_xml" : "Pretty Print XML",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.syslog.SyslogReader" : {
+        "syslog-5424-reader-raw-message" : "Raw Message"
+    },
+    "org.apache.nifi.aws.schemaregistry.AmazonGlueSchemaRegistry" : {
+        "proxy-configuration-service" : "Proxy Configuration Service"
+    },
+    "org.apache.nifi.ssl.StandardRestrictedSSLContextService" : {
+        "SSL Protocol" : "TLS Protocol",
+        "key-password" : "Key Password"
+    },
+    "org.apache.nifi.lookup.XMLFileLookupService" : {
+        "configuration-file" : "Configuration File"
+    },
+    "org.apache.nifi.services.zendesk.ZendeskRecordSink" : {
+        "cache-expiration" : "Cache Expiration",
+        "zendesk-authentication-value-name" : "Authentication Credential",
+        "zendesk-priority" : "Priority",
+        "zendesk-subdomain" : "Subdomain Name",
+        "zendesk-user" : "User Name",
+        "cache-size" : "Cache Size",
+        "zendesk-type" : "Type",
+        "web-client-service-provider" : "Web Client Service Provider",
+        "zendesk-authentication-type-name" : "Authentication Type",
+        "zendesk-comment-body" : "Comment Body",
+        "zendesk-subject" : "Subject"
+    },
+    "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12" : {
+        "proxy-configuration-service" : "Proxy Configuration Service"
+    },
+    "org.apache.nifi.distributed.cache.server.SetCacheServer" : {
+        "maximum-read-size" : "Maximum Read Size"
+    },
+    "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask" : {
+        "s2s-prov-task-event-filter" : "Event Type to Include",
+        "s2s-prov-task-id-filter-exclude" : "Component ID to Exclude",
+        "s2s-transport-protocol" : "Transport Protocol",
+        "s2s-prov-task-type-filter-exclude" : "Component Type to Exclude",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "record-writer" : "Record Writer",
+        "s2s-prov-task-name-filter" : "Component Name to Include",
+        "include-null-values" : "Include Null Values",
+        "s2s-prov-task-type-filter" : "Component Type to Include",
+        "s2s-prov-task-id-filter" : "Component ID to Include",
+        "s2s-prov-task-event-filter-exclude" : "Event Type to Exclude",
+        "start-position" : "Start Position",
+        "s2s-prov-task-name-filter-exclude" : "Component Name to Exclude"
+    },
+    "org.apache.nifi.schemaregistry.services.AvroSchemaRegistry" : {
+        "avro-reg-validated-field-names" : "Validate Field Names"
+    },
+    "org.apache.nifi.distributed.cache.server.map.MapCacheServer" : {
+        "maximum-read-size" : "Maximum Read Size"
+    },
+    "org.apache.nifi.reporting.SiteToSiteMetricsReportingTask" : {
+        "include-null-values" : "Include Null Values",
+        "s2s-metrics-format" : "Output Format",
+        "s2s-transport-protocol" : "Transport Protocol",
+        "s2s-metrics-application-id" : "Application ID",
+        "proxy-configuration-service" : "Proxy Configuration Service",
+        "record-writer" : "Record Writer",
+        "s2s-metrics-hostname" : "Hostname"
+    },
+    "org.apache.nifi.excel.ExcelReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.controller.ControllerStatusReportingTask" : {
+        "reporting-granularity" : "Reporting Granularity"
+    },
+    "org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider" : {
+        "Client secret" : "Client Secret",
+        "proxy-configuration-service" : "Proxy Configuration Service"
+    },
+    "org.apache.nifi.record.sink.LoggingRecordSink" : {
+        "logsink-log-level" : "Log Level",
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.yaml.YamlTreeReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-inference-cache" : "Schema Inference Cache",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "starting-field-strategy" : "Starting Field Strategy",
+        "schema-registry" : "Schema Registry",
+        "schema-application-strategy" : "Schema Application Strategy",
+        "starting-field-name" : "Starting Field Name",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.elasticsearch.ElasticSearchStringLookupService" : {
+        "el-lookup-type" : "Type",
+        "el-lookup-index" : "Index",
+        "el-rest-client-service" : "Client Service"
+    },
+    "org.apache.nifi.mongodb.MongoDBLookupService" : {
+        "schema-branch" : "Schema Branch",
+        "mongo-collection-name" : "Mongo Collection Name",
+        "mongo-lookup-value-field" : "Lookup Value Field",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "mongo-db-name" : "Mongo Database Name",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text",
+        "mongo-lookup-client-service" : "Client Service",
+        "mongo-lookup-projection" : "Projection"
+    },
+    "org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService" : {
+        "proxy-configuration-service" : "Proxy Configuration Service"
+    },
+    "org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider" : {
+        "proxy-configuration-service" : "Proxy Configuration Service"
+    },
+    "org.apache.nifi.hazelcast.services.cachemanager.ExternalHazelcastCacheManager" : {
+        "hazelcast-server-address" : "Hazelcast Server Address",
+        "hazelcast-retry-backoff-maximum" : "Hazelcast Maximum Backoff",
+        "hazelcast-retry-backoff-initial" : "Hazelcast Initial Backoff",
+        "hazelcast-connection-timeout" : "Hazelcast Connection Timeout",
+        "hazelcast-cluster-name" : "Hazelcast Cluster Name",
+        "hazelcast-retry-backoff-multiplier" : "Hazelcast Backoff Multiplier"
+    },
+    "org.apache.nifi.avro.AvroReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "cache-size" : "Cache Size",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.lookup.DistributedMapCacheLookupService" : {
+        "character-encoding" : "Character Encoding",
+        "distributed-map-cache-service" : "Distributed Cache Service"
+    },
+    "org.apache.nifi.record.sink.event.UDPEventRecordSink" : {
+        "hostname" : "Hostname",
+        "port" : "Port",
+        "sender-threads" : "Sender Threads",
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.lookup.maxmind.IPLookupService" : {
+        "lookup-city" : "Lookup Geo Enrichment",
+        "lookup-connection-type" : "Lookup Connection Type",
+        "lookup-domain" : "Lookup Domain Name",
+        "lookup-anonymous-ip" : "Lookup Anonymous IP Information",
+        "database-file" : "MaxMind Database File",
+        "lookup-isp" : "Lookup ISP"
+    },
+    "org.apache.nifi.xml.XMLReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-inference-cache" : "Schema Inference Cache",
+        "parse_xml_attributes" : "Parse XML Attributes",
+        "record_format" : "Expect Records as Array",
+        "content_field_name" : "Field Name for Content",
+        "schema-branch" : "Schema Branch",
+        "attribute_prefix" : "Attribute Prefix",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.json.JsonPathReader" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.services.azure.eventhub.AzureEventHubRecordSink" : {
+        "record-sink-record-writer" : "Record Writer"
+    },
+    "org.apache.nifi.jms.cf.JMSConnectionFactoryProvider" : {
+        "cflib" : "JMS Client Libraries",
+        "SSL Context Service" : "JMS SSL Context Service",
+        "cf" : "JMS Connection Factory Implementation Class",
+        "broker" : "JMS Broker URI"
+    },
+    "org.apache.nifi.pgp.service.standard.StandardPGPPublicKeyService" : {
+        "keyring-file" : "Keyring File",
+        "keyring" : "Keyring"
+    },
+    "org.apache.nifi.grok.GrokReader" : {
+        "Grok Expression" : "Grok Expressions",
+        "schema-reference-reader" : "Schema Reference Reader",
+        "Grok Pattern File" : "Grok Patterns",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "no-match-behavior" : "No Match Behavior",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.avro.AvroRecordSetWriter" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "compression-format" : "Compression Format",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "cache-size" : "Cache Size",
+        "schema-registry" : "Schema Registry",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "encoder-pool-size" : "Encoder Pool Size",
+        "schema-cache" : "Schema Cache",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.vault.hashicorp.StandardHashiCorpVaultClientService" : {
+        "configuration-strategy" : "Configuration Strategy"
+    },
+    "org.apache.nifi.key.service.StandardPrivateKeyService" : {
+        "key-password" : "Key Password",
+        "key-file" : "Key File",
+        "key" : "Key"
+    },
+    "org.apache.nifi.csv.CSVRecordSetWriter" : {
+        "schema-reference-reader" : "Schema Reference Reader",
+        "schema-branch" : "Schema Branch",
+        "schema-name" : "Schema Name",
+        "schema-registry" : "Schema Registry",
+        "csv-writer" : "CSV Writer",
+        "schema-access-strategy" : "Schema Access Strategy",
+        "schema-version" : "Schema Version",
+        "csvutils-character-set" : "Character Set",
+        "schema-cache" : "Schema Cache",
+        "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.pgp.service.standard.StandardPGPPrivateKeyService" : {
+        "keyring-file" : "Keyring File",
+        "key-password" : "Key Password",
+        "keyring" : "Keyring"
+    }
+}
