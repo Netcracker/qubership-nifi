@@ -14,7 +14,7 @@ on:
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/tls/docker-compose.yaml'
-  workflow_dispatch:
+  workflow_dispatch: null
 
 permissions:
   contents: read
@@ -25,10 +25,10 @@ jobs:
       fail-fast: false
       matrix:
         nifi:
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '1.0.7',  build-local: false }
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.0.0',  build-local: false }
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4',  build-local: false }
-          - { image: 'local-nifi',                         tag: 'test',   build-local: true  }
+          - {image: 'ghcr.io/netcracker/qubership-nifi', tag: '1.0.7', build-local: false}
+          - {image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.0.0', build-local: false}
+          - {image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false}
+          - {image: 'local-nifi', tag: 'test', build-local: true}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -64,7 +64,8 @@ jobs:
 
       - name: Start NiFi environment
         run: |
-          export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+          NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+          export NIFI_SENSITIVE_KEY
           docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env up -d
 
       - name: Wait for NiFi to start
@@ -85,11 +86,15 @@ jobs:
 
       - name: Run integration tests
         run: |
-          export NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+          export NIFI_CLIENT_PASSWORD
+          WORKDIR=$(pwd)
           mvn verify -pl dev-tools-integration-tests \
             -DskipUnitTests=true -Dgpg.skip=true -DskipITs=false \
-            -Dnifi.cert.dir=$(pwd)/temp-vol/tls-cert/nifi \
-            "-Dscripts.docker.network=${{ steps.network.outputs.name }}"
+            "-Dnifi.cert.dir=$WORKDIR/temp-vol/tls-cert/nifi" \
+            "-Dscripts.docker.network=$NETWORK_NAME"
+        env:
+          NETWORK_NAME: ${{ steps.network.outputs.name }}
 
       - name: Collect Docker logs on failure
         if: failure()

@@ -491,7 +491,7 @@ setup_env_before_tests() {
         if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
         -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
             echo "Copying test NARs to extensions directory"
-            cp qubership-test-bundle/qubership-nifi-test-nar/target/ \
+            cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
                 ./temp-vol/nifi/extensions/
         else
             echo "Test NARs not found, skipping copy to extensions directory"
