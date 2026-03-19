@@ -1,391 +1,348 @@
 package org.qubership.nifi.tools.compare;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.qubership.nifi.JsonComparator;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+class JsonComparatorTest {
 
-public class  JsonComparatorTest {
-
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
-
-    private static ObjectMapper objectMapper;
-    private JsonComparator comparator;
+    private Path tempDir;
 
     private Path sourceDir;
     private Path targetDir;
-    private Path dictionaryFile;
-
-    @BeforeAll
-    static void setUpAll() {
-        objectMapper = new ObjectMapper();
-    }
+    private JsonComparator comparator;
 
     @BeforeEach
     void setUp() throws IOException {
-        comparator = new JsonComparator();
-
         sourceDir = tempDir.resolve("source");
         targetDir = tempDir.resolve("target");
-
-        Files.createDirectories(sourceDir.resolve("processors"));
-        Files.createDirectories(sourceDir.resolve("controllerService"));
-        Files.createDirectories(sourceDir.resolve("reportingTask"));
-
-        Files.createDirectories(targetDir.resolve("processors"));
-        Files.createDirectories(targetDir.resolve("controllerService"));
-        Files.createDirectories(targetDir.resolve("reportingTask"));
-
-        dictionaryFile = tempDir.resolve("dictionary.yaml");
-    }
-
-    @Test
-    void loadWithValidPathsSucceeds() throws IOException {
-        createTestJsonFile(sourceDir, "TestProcessor.json", "TestProcessor");
-        createTestJsonFile(targetDir, "TestProcessor.json", "TestProcessor");
-
-        assertThatCode(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                null
-        )).doesNotThrowAnyException();
-
-        assertThat(comparator.getSourceJsonMap()).hasSize(1);
-        assertThat(comparator.getTargetJsonMap()).hasSize(1);
-    }
-
-    @Test
-    void loadWithNonExistentDirectoryThrowsIOException() {
-        assertThatThrownBy(() -> comparator.load(
-                "/non/existent/path",
-                targetDir.toString(),
-                null
-        )).isInstanceOf(IOException.class)
-                .hasMessageContaining("Directory not found");
-    }
-
-    @Test
-    void loadWithDictionaryFileSucceeds() throws IOException {
-        createTestJsonFile(sourceDir, "TestProcessor.json", "TestProcessor");
-        createTestJsonFile(targetDir, "TestProcessor.json", "TestProcessor");
-        createDictionaryFile();
-
-        assertThatCode(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                dictionaryFile.toString()
-        )).doesNotThrowAnyException();
-
-        assertThat(comparator.isLoaded()).isTrue();
-    }
-
-    @Test
-    void loadWithNonExistentDictionaryThrowsIOException() throws IOException {
-        createTestJsonFile(sourceDir, "TestProcessor.json", "TestProcessor");
-        createTestJsonFile(targetDir, "TestProcessor.json", "TestProcessor");
-
-        assertThatThrownBy(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                "/non/existent/dictionary.yaml"
-        )).isInstanceOf(IOException.class)
-                .hasMessageContaining("Dictionary file does not exist");
-    }
-
-    @Test
-    void loadMultipleTimesClearsPreviousData() throws IOException {
-        createTestJsonFile(sourceDir, "Processor1.json", "Processor1");
-        createTestJsonFile(targetDir, "Processor1.json", "Processor1");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        int firstSize = comparator.getSourceJsonMap().size();
-
-        Files.delete(sourceDir.resolve("processors/Processor1.json"));
-        createTestJsonFile(sourceDir, "Processor2.json", "Processor2");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-
-        assertThat(comparator.getSourceJsonMap()).hasSize(1);
-        assertThat(comparator.getSourceJsonMap()).containsKey("Processor2.json");
-    }
-
-    @Test
-    void compareWithoutLoadThrowsIllegalStateException() {
-        assertThatThrownBy(() -> comparator.compare())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Data not loaded");
-    }
-
-
-    @Test
-    void compareFindsDeletedFiles() throws IOException {
-        createTestJsonFileWithProperty(
-                sourceDir, "DeletedProcessor.json", "DeletedProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(
-                targetDir, "DeletedProcessor.json", "DeletedProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-
-        String csvContent = Files.readString(Path.of("NiFiComponentsDelta.csv"));
-
-        assertThat(csvContent).contains("DeletedProcessor");
-        assertThat(csvContent).doesNotContain("DeletedProcessor.json");
-
-        assertThat(csvContent).contains("rename");
-        assertThat(csvContent).contains("oldName");
-        assertThat(csvContent).contains("newName");
-    }
-
-    @Test
-    void compareFindsNewFiles() throws IOException {
-        createTestJsonFileWithProperty(
-                sourceDir, "NewProcessor.json", "NewProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(
-                targetDir, "NewProcessor.json", "NewProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-
-        String csvContent = Files.readString(Path.of("NiFiComponentsDelta.csv"));
-
-        assertThat(csvContent).contains("NewProcessor");
-        assertThat(csvContent).doesNotContain("NewProcessor.json");
-
-        assertThat(csvContent).contains("rename");
-        assertThat(csvContent).contains("oldName");
-        assertThat(csvContent).contains("newName");
-    }
-
-    @Test
-    void compareFindsRenamedProperties() throws IOException {
-        createTestJsonFileWithProperty(sourceDir, "TestProcessor.json", "TestProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(targetDir, "TestProcessor.json", "TestProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-
-        String csvContent = Files.readString(Path.of("NiFiComponentsDelta.csv"));
-        assertThat(csvContent).contains("rename");
-        assertThat(csvContent).contains("oldName");
-        assertThat(csvContent).contains("newName");
-    }
-
-    @Test
-    void compareCsvFilenameWithoutJsonExtension() throws IOException {
-        createTestJsonFileWithProperty(
-                sourceDir, "MyProcessor.json", "MyProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(
-                targetDir, "MyProcessor.json", "MyProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-
-        String csvContent = Files.readString(Path.of("NiFiComponentsDelta.csv"));
-
-        assertThat(csvContent).contains("MyProcessor");
-        assertThat(csvContent).doesNotContain("MyProcessor.json");
-
-        assertThat(csvContent).contains("rename");
-        assertThat(csvContent).contains("oldName");
-        assertThat(csvContent).contains("newName");
-    }
-
-    @Test
-    void generateJsonWithoutLoadThrowsIllegalStateException() {
-        assertThatThrownBy(() -> comparator.generateTypeMappingJson())
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Data not loaded");
-    }
-
-    @Test
-    void generateJsonCreatesFile() throws IOException {
-        createTestJsonFileWithProperty(sourceDir, "TestProcessor.json", "TestProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(targetDir, "TestProcessor.json", "TestProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-        comparator.generateTypeMappingJson();
-
-        Path jsonFile = Path.of("NiFiTypeMapping.json");
-        assertThat(jsonFile).exists();
-
-        String jsonContent = Files.readString(jsonFile);
-        assertThat(jsonContent).contains("oldName");
-        assertThat(jsonContent).contains("newName");
-    }
-
-    @Test
-    void generateJsonFromComparisonDataNotFromCsv() throws IOException {
-        createTestJsonFileWithProperty(sourceDir, "TestProcessor.json", "TestProcessor", "oldName", "Test Property");
-        createTestJsonFileWithProperty(targetDir, "TestProcessor.json", "TestProcessor", "newName", "Test Property");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), null);
-        comparator.compare();
-
-        Files.deleteIfExists(Path.of("NiFiComponentsDelta.csv"));
-
-        assertThatCode(() -> comparator.generateTypeMappingJson()).doesNotThrowAnyException();
-        assertThat(Path.of("NiFiTypeMapping.json")).exists();
-    }
-
-    @Test
-    void dictionaryConsideredInComparison() throws IOException {
-        String dictionaryContent = """
-                displayNameMapping:
-                  - TestProcessor:
-                      Old Display Name: New Display Name
-                """;
-        Files.writeString(dictionaryFile, dictionaryContent);
-
-        createTestJsonFileWithProperty(sourceDir, "TestProcessor.json", "TestProcessor", "apiName1", "Old Display Name");
-        createTestJsonFileWithProperty(targetDir, "TestProcessor.json", "TestProcessor", "apiName1", "New Display Name");
-
-        comparator.load(sourceDir.toString(), targetDir.toString(), dictionaryFile.toString());
-        comparator.compare();
-
-        String csvContent = Files.readString(Path.of("NiFiComponentsDelta.csv"));
-        assertThat(csvContent).doesNotContain("rename");
-    }
-
-    @Test
-    void dictionaryWrongExtensionThrowsIOException() throws IOException {
-        Path wrongDictFile = tempDir.resolve("dictionary.txt");
-        Files.writeString(wrongDictFile, "content");
-
-        createTestJsonFile(sourceDir, "TestProcessor.json", "TestProcessor");
-        createTestJsonFile(targetDir, "TestProcessor.json", "TestProcessor");
-
-        assertThatThrownBy(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                wrongDictFile.toString()
-        )).isInstanceOf(IOException.class)
-                .hasMessageContaining("must have .yaml or .yml extension");
-    }
-
-    @Test
-    void invalidJsonFileLoggedAsWarning() throws IOException {
-        Path invalidJson = sourceDir.resolve("processors/Invalid.json");
-        Files.writeString(invalidJson, "{ invalid json content");
-
-        assertThatCode(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                null
-        )).doesNotThrowAnyException();
-    }
-
-    @Test
-    void missingPropertyDescriptorsNoError() throws IOException {
-        String jsonWithoutProps = """
-                {
-                    "type": "TestProcessor",
-                    "otherField": "value"
-                }
-                """;
-
-        Files.writeString(sourceDir.resolve("processors/Test.json"), jsonWithoutProps);
-        Files.writeString(targetDir.resolve("processors/Test.json"), jsonWithoutProps);
-
-        assertThatCode(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                null
-        )).doesNotThrowAnyException();
-    }
-
-    @Test
-    void missingTypeFieldNoError() throws IOException {
-        String jsonWithoutType = """
-                {
-                    "propertyDescriptors": {
-                        "Test Property": {
-                            "name": "testName",
-                            "displayName": "Test Property"
-                        }
-                    }
-                }
-                """;
-
-        Files.writeString(sourceDir.resolve("processors/Test.json"), jsonWithoutType);
-        Files.writeString(targetDir.resolve("processors/Test.json"), jsonWithoutType);
-
-        assertThatCode(() -> comparator.load(
-                sourceDir.toString(),
-                targetDir.toString(),
-                null
-        )).doesNotThrowAnyException();
-    }
-
-    @AfterAll
-    static void tearDownAll() {
-        try {
-            Files.deleteIfExists(Path.of("NiFiComponentsDelta.csv"));
-            Files.deleteIfExists(Path.of("NiFiTypeMapping.json"));
-        } catch (IOException e) {
-            System.err.println("Warning: Could not delete test output files: " + e.getMessage());
+        for (String sub : List.of("processors", "controllerService", "reportingTask")) {
+            Files.createDirectories(sourceDir.resolve(sub));
+            Files.createDirectories(targetDir.resolve(sub));
         }
+        comparator = new JsonComparator();
+    }
+
+    private void writeJson(Path root, String subfolder, String fileName,
+                           String type, String propsJson) throws IOException {
+        String json = String.format(
+                "{\"type\":\"%s\",\"propertyDescriptors\":{%s}}", type, propsJson);
+        Files.writeString(root.resolve(subfolder).resolve(fileName), json);
+    }
+
+    private String prop(String apiName, String displayName) {
+        return prop(apiName, displayName, "");
+    }
+
+    private String prop(String apiName, String displayName, String description) {
+        return String.format(
+                "\"%s\":{\"name\":\"%s\",\"displayName\":\"%s\",\"description\":\"%s\"}",
+                apiName, apiName, displayName, description);
+    }
+
+    private void loadAndCompare() throws IOException {
+        comparator.load(sourceDir.toString(), targetDir.toString(), null);
+        comparator.compare();
+    }
+
+    private void loadAndCompare(String dictionaryPath) throws IOException {
+        comparator.load(sourceDir.toString(), targetDir.toString(), dictionaryPath);
+        comparator.compare();
+    }
+
+    @Test
+    void loadSetsIsLoadedTrue() throws IOException {
+        comparator.load(sourceDir.toString(), targetDir.toString(), null);
+        assertTrue(comparator.isLoaded());
+    }
+
+    @Test
+    void loadThrowsForNonExistentDirectory() {
+        assertThrows(IOException.class, () ->
+                comparator.load("/nonexistent/path", targetDir.toString(), null));
+    }
+
+    @Test
+    void isLoadedFalseBeforeLoad() {
+        assertFalse(comparator.isLoaded());
+    }
+
+    @Test
+    void compareThrowsIfNotLoaded() {
+        assertThrows(IllegalStateException.class, () -> comparator.compare());
+    }
+
+    @Test
+    void compareIdenticalComponentsNoCsvRecords() throws IOException {
+        String props = prop("p1", "Prop One");
+        writeJson(sourceDir, "processors", "Comp.json", "org.example.Comp", props);
+        writeJson(targetDir, "processors", "Comp.json", "org.example.Comp", props);
+
+        loadAndCompare();
+
+        assertTrue(comparator.getCsvRecords().isEmpty());
+        assertTrue(comparator.getTypeToRenamedProperties().isEmpty());
+    }
+
+    @Test
+    void compareRenamedApiNameDetectedAsRename() throws IOException {
+        writeJson(sourceDir, "processors", "Proc.json",
+                "org.example.Proc", prop("old-api", "Same Display"));
+        writeJson(targetDir, "processors", "Proc.json",
+                "org.example.Proc", prop("new-api", "Same Display"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("rename", records.get(0)[2]);
+        assertEquals("old-api", records.get(0)[5]);
+        assertEquals("new-api", records.get(0)[6]);
+    }
+
+    @Test
+    void compareRenamedApiNameRecordedInTypeToRenamedProperties() throws IOException {
+        writeJson(sourceDir, "processors", "Proc.json",
+                "org.example.Proc", prop("old-api", "Display"));
+        writeJson(targetDir, "processors", "Proc.json",
+                "org.example.Proc", prop("new-api", "Display"));
+
+        loadAndCompare();
+
+        Map<String, Map<String, String>> renames = comparator.getTypeToRenamedProperties();
+        assertTrue(renames.containsKey("org.example.Proc"));
+        assertEquals("new-api", renames.get("org.example.Proc").get("old-api"));
+    }
+
+    @Test
+    void compareDeletedProperty() throws IOException {
+        writeJson(sourceDir, "processors", "P.json", "org.example.P",
+                prop("keep", "Keep") + "," + prop("gone", "Gone Prop"));
+        writeJson(targetDir, "processors", "P.json", "org.example.P",
+                prop("keep", "Keep"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("deleted", records.get(0)[2]);
+        assertEquals("gone", records.get(0)[5]);
+    }
+
+    @Test
+    void compareAddedProperty() throws IOException {
+        writeJson(sourceDir, "processors", "P.json", "org.example.P",
+                prop("keep", "Keep"));
+        writeJson(targetDir, "processors", "P.json", "org.example.P",
+                prop("keep", "Keep") + "," + prop("new-prop", "New Prop"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("added", records.get(0)[2]);
+        assertEquals("new-prop", records.get(0)[6]);
+    }
+
+    @Test
+    void compareComponentTypeIsSubfolderName() throws IOException {
+        writeJson(sourceDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("old", "Display"));
+        writeJson(targetDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("new", "Display"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals("controllerService", records.get(0)[1]);
+    }
+
+    @Test
+    void compareReportingTaskSubfolderInRecord() throws IOException {
+        writeJson(sourceDir, "reportingTask", "Task.json",
+                "org.example.Task", prop("old", "Display"));
+        writeJson(targetDir, "reportingTask", "Task.json",
+                "org.example.Task", prop("new", "Display"));
+
+        loadAndCompare();
+
+        assertEquals("reportingTask", comparator.getCsvRecords().get(0)[1]);
+    }
+
+    @Test
+    void loadBuildsTypeToFolderMap() throws IOException {
+        writeJson(sourceDir, "processors", "P.json", "org.example.P", prop("a", "A"));
+        writeJson(sourceDir, "controllerService", "S.json", "org.example.S", prop("b", "B"));
+
+        comparator.load(sourceDir.toString(), targetDir.toString(), null);
+
+        Map<String, String> folderMap = comparator.getTypeToFolderMap();
+        assertEquals("processors", folderMap.get("org.example.P"));
+        assertEquals("controllerService", folderMap.get("org.example.S"));
+    }
+
+    @Test
+    void compareCaseInsensitiveDisplayNameNoChanges() throws IOException {
+        writeJson(sourceDir, "processors", "P.json", "org.example.P",
+                prop("same-api", "my property"));
+        writeJson(targetDir, "processors", "P.json", "org.example.P",
+                prop("same-api", "My Property"));
+
+        loadAndCompare();
+
+        assertTrue(comparator.getCsvRecords().isEmpty());
     }
 
 
-    private void createTestJsonFile(Path rootDir, String fileName, String componentType) throws IOException {
-        String jsonContent = """
-            {
-                "type": "%s",
-                "propertyDescriptors": {
-                    "Test Property": {
-                        "name": "testName",
-                        "displayName": "Test Property"
-                    }
-                }
-            }
-            """.formatted(componentType);
+    @Test
+    void compareDictionaryMappingPreventsDeleteAndAdd() throws IOException {
+        writeJson(sourceDir, "processors", "Proc.json",
+                "org.example.Proc", prop("same-api", "Old Name"));
+        writeJson(targetDir, "processors", "Proc.json",
+                "org.example.Proc", prop("same-api", "New Name"));
 
-        Path processorsDir = rootDir.resolve("processors");
-        Files.createDirectories(processorsDir);
-        Files.writeString(processorsDir.resolve(fileName), jsonContent);
+        Path dictFile = tempDir.resolve("dict.yaml");
+        Files.writeString(dictFile,
+                "displayNameMapping:\n"
+                        + "  - Proc:\n"
+                        + "      old name: New Name\n");
+
+        loadAndCompare(dictFile.toString());
+
+        assertTrue(comparator.getCsvRecords().isEmpty(),
+                "Dictionary mapping should match Old Name to New Name");
     }
 
-    private void createTestJsonFileWithProperty(Path rootDir, String fileName, String componentType,
-                                                String propertyName, String displayName) throws IOException {
-        String jsonContent = """
-            {
-                "type": "%s",
-                "propertyDescriptors": {
-                    "%s": {
-                        "name": "%s",
-                        "displayName": "%s"
-                    }
-                }
-            }
-            """.formatted(componentType, displayName, propertyName, displayName);
+    @Test
+    void compareNonUniqueDisplayNameIdenticalPropsNoChanges() throws IOException {
+        String props = String.join(",",
+                prop("api-1", "Shared", "Desc A"),
+                prop("api-2", "Shared", "Desc B"));
 
-        Path processorsDir = rootDir.resolve("processors");
-        Files.createDirectories(processorsDir);
-        Files.writeString(processorsDir.resolve(fileName), jsonContent);
+        writeJson(sourceDir, "processors", "D.json", "org.example.D", props);
+        writeJson(targetDir, "processors", "D.json", "org.example.D", props);
+
+        loadAndCompare();
+
+        assertTrue(comparator.getCsvRecords().isEmpty());
     }
 
-    private void createDictionaryFile() throws IOException {
-        String dictionaryContent = """
-            displayNameMapping:
-              - TestProcessor:
-                  Old Name: New Name
-            """;
-        Files.writeString(dictionaryFile, dictionaryContent);
+    @Test
+    void compareNonUniqueDisplayNameRenameDetectedByDescription() throws IOException {
+        String sourceProps = String.join(",",
+                prop("api-1", "Shared", "Desc A"),
+                prop("api-2", "Shared", "Desc B"));
+        String targetProps = String.join(",",
+                prop("api-1", "Shared", "Desc A"),
+                prop("api-2-new", "Shared", "Desc B"));
+
+        writeJson(sourceDir, "processors", "D.json", "org.example.D", sourceProps);
+        writeJson(targetDir, "processors", "D.json", "org.example.D", targetProps);
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("rename", records.get(0)[2]);
+        assertEquals("api-2", records.get(0)[5]);
+        assertEquals("api-2-new", records.get(0)[6]);
+    }
+
+    @Test
+    void compareFileOnlyInSourceNoCsvRecords() throws IOException {
+        writeJson(sourceDir, "processors", "Gone.json",
+                "org.example.Gone", prop("p", "Display"));
+
+        loadAndCompare();
+
+        assertTrue(comparator.getCsvRecords().isEmpty());
+    }
+
+    @Test
+    void compareFileOnlyInTargetNoCsvRecords() throws IOException {
+        writeJson(targetDir, "processors", "New.json",
+                "org.example.New", prop("p", "Display"));
+
+        loadAndCompare();
+
+        assertTrue(comparator.getCsvRecords().isEmpty());
+    }
+
+    @Test
+    void compareMultipleSubfolders() throws IOException {
+        writeJson(sourceDir, "processors", "P.json",
+                "org.example.P", prop("p-old", "PD"));
+        writeJson(targetDir, "processors", "P.json",
+                "org.example.P", prop("p-new", "PD"));
+
+        writeJson(sourceDir, "controllerService", "S.json",
+                "org.example.S", prop("s-old", "SD"));
+        writeJson(targetDir, "controllerService", "S.json",
+                "org.example.S", prop("s-new", "SD"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(2, records.size());
+
+        boolean hasProcessors = records.stream().anyMatch(r -> "processors".equals(r[1]));
+        boolean hasCS = records.stream().anyMatch(r -> "controllerService".equals(r[1]));
+        assertTrue(hasProcessors);
+        assertTrue(hasCS);
+    }
+
+    @Test
+    void compareEmptyDirectoriesNoCsvRecords() throws IOException {
+        loadAndCompare();
+        assertTrue(comparator.getCsvRecords().isEmpty());
+    }
+
+    @Test
+    void loadInvalidDictionaryExtensionThrows() {
+        Path badDict = tempDir.resolve("dict.txt");
+        assertThrows(IOException.class, () -> {
+            try {
+                Files.writeString(badDict, "content");
+            } catch (IOException ignored) { }
+            comparator.load(sourceDir.toString(), targetDir.toString(), badDict.toString());
+        });
+    }
+
+    @Test
+    void loadNonExistentDictionaryThrows() {
+        assertThrows(IOException.class, () ->
+                comparator.load(sourceDir.toString(), targetDir.toString(),
+                        "/nonexistent/dict.yaml"));
+    }
+
+    @Test
+    void getSourceJsonMapContainsLoadedFiles() throws IOException {
+        writeJson(sourceDir, "processors", "P.json", "org.example.P", prop("a", "A"));
+
+        comparator.load(sourceDir.toString(), targetDir.toString(), null);
+
+        assertTrue(comparator.getSourceJsonMap().containsKey("P.json"));
+    }
+
+    @Test
+    void getTargetJsonMapContainsLoadedFiles() throws IOException {
+        writeJson(targetDir, "processors", "P.json", "org.example.P", prop("a", "A"));
+
+        comparator.load(sourceDir.toString(), targetDir.toString(), null);
+
+        assertTrue(comparator.getTargetJsonMap().containsKey("P.json"));
     }
 }

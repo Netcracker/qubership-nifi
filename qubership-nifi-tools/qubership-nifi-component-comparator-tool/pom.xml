@@ -69,7 +69,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>org.qubership.nifi.NifiComponentComparator</mainClass>
+                    <mainClass>org.qubership.nifi.tools.compare.Main</mainClass>
                     <arguments>
                         <argument>${source.dir}</argument>
                         <argument>${target.dir}</argument>
