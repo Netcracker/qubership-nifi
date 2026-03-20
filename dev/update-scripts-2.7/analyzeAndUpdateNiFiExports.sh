@@ -38,7 +38,6 @@ if [ ! -f "$pathToUpdateNiFiConfig" ]; then
 fi
 
 echo "Start update flow process"
-ls -al "$pathToFlow"
 mapfile -t exportFlow < <(find "$pathToFlow" -type f -name "*.json" | sort)
 
 for file in "${exportFlow[@]}"; do

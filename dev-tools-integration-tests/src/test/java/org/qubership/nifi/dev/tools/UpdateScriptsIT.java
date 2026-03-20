@@ -41,9 +41,11 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -123,7 +125,15 @@ class UpdateScriptsIT {
         nifiCertPassword = System.getenv("NIFI_CLIENT_PASSWORD");
         scriptsDockerNetwork = System.getProperty("scripts.docker.network", "");
 
-        tempFlowsDir = Files.createTempDirectory("dev-tools-it-flows-");
+        try {
+            //permissions 777 to allow docker container's user to RW access
+            tempFlowsDir = Files.createTempDirectory("dev-tools-it-flows-",
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"))
+            );
+        } catch (UnsupportedOperationException ex) {
+            LOG.debug("POSIX file attributes not supported. Will create directory w/o permissions", ex);
+            tempFlowsDir = Files.createTempDirectory("dev-tools-it-flows-");
+        }
         copyTestFlows(tempFlowsDir);
         LOG.info("Test flows copied to {}", tempFlowsDir);
 
