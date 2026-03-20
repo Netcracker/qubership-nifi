@@ -44,8 +44,8 @@ public class CsvReportGenerator {
                 .withHeader(CSV_HEADERS);
 
         try (CSVPrinter printer = new CSVPrinter(new FileWriter(getOutputPath()), csvFormat)) {
-            for (String[] record : csvRecords) {
-                printer.printRecord((Object[]) record);
+            for (String[] csvRecord : csvRecords) {
+                printer.printRecord((Object[]) csvRecord);
             }
             LOGGER.info("Report successfully written to: {}", getOutputPath());
             LOGGER.info("Total records: {}", csvRecords.size());

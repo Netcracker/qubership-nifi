@@ -177,9 +177,10 @@ class MainTest {
 
         Path dictFile = tempDir.resolve("dict.yaml");
         Files.writeString(dictFile,
-                "displayNameMapping:\n"
-                        + "  - Proc:\n"
-                        + "      old name: New Name\n");
+                """
+                        displayNameMapping:
+                        - Proc:
+                          old name: New Name""");
 
         runMain("--dictionaryPath", dictFile.toString());
 

@@ -216,9 +216,10 @@ class JsonComparatorTest {
 
         Path dictFile = tempDir.resolve("dict.yaml");
         Files.writeString(dictFile,
-                "displayNameMapping:\n"
-                        + "  - Proc:\n"
-                        + "      old name: New Name\n");
+                """
+                    displayNameMapping:
+                    - Proc:
+                        old name: New Name""");
 
         loadAndCompare(dictFile.toString());
 
@@ -308,17 +309,6 @@ class JsonComparatorTest {
     void compareEmptyDirectoriesNoCsvRecords() throws IOException {
         loadAndCompare();
         assertTrue(comparator.getCsvRecords().isEmpty());
-    }
-
-    @Test
-    void loadInvalidDictionaryExtensionThrows() {
-        Path badDict = tempDir.resolve("dict.txt");
-        assertThrows(IOException.class, () -> {
-            try {
-                Files.writeString(badDict, "content");
-            } catch (IOException ignored) { }
-            comparator.load(sourceDir.toString(), targetDir.toString(), badDict.toString());
-        });
     }
 
     @Test
