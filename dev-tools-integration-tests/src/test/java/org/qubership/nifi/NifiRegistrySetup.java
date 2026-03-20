@@ -32,7 +32,7 @@ import java.util.UUID;
  * Handles NiFi Registry client setup in NiFi and bucket/flow/version management
  * in NiFi Registry for integration tests.
  */
-public class NifiRegistrySetup {
+public final class NifiRegistrySetup {
 
     private static final Logger LOG = LoggerFactory.getLogger(NifiRegistrySetup.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -53,6 +53,9 @@ public class NifiRegistrySetup {
     /**
      * Creates a NiFi Registry client in NiFi pointing to {@code registryIntUrl}.
      *
+     * @param nifiUrl NiFi base URL
+     * @param registryIntUrl NiFi Registry internal URL
+     * @param httpClient HTTP client to use for requests
      * @return the created registry client id
      */
     public static String setupRegistryClient(final String nifiUrl,
@@ -108,6 +111,10 @@ public class NifiRegistrySetup {
 
     /**
      * Deletes the NiFi Registry client with the given id from NiFi.
+     *
+     * @param nifiUrl NiFi base URL
+     * @param registryClientId id of the registry client to delete
+     * @param httpClient HTTP client to use for requests
      */
     public static void deleteRegistryClient(final String nifiUrl,
                                             final String registryClientId,
@@ -158,7 +165,7 @@ public class NifiRegistrySetup {
                     "GET /nifi-registry-api/tenants/users returned HTTP " + resp.statusCode());
         }
 
-        ArrayNode allUsers = (ArrayNode)MAPPER.readTree(resp.body());
+        ArrayNode allUsers = (ArrayNode) MAPPER.readTree(resp.body());
         String identifier = null;
         for (JsonNode user : allUsers) {
             if (identity.equals(user.path("identity").asText())) {
@@ -170,7 +177,11 @@ public class NifiRegistrySetup {
     }
 
     /**
-     * Creates NiFi user and sets up necessary access policies in NiFi Registry
+     * Creates NiFi user and sets up necessary access policies in NiFi Registry.
+     *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param identity user identity to create or update
      */
     public static void createOrUpdateUser(final String registryUrl,
                                       final HttpClient httpClient,
@@ -219,10 +230,10 @@ public class NifiRegistrySetup {
         JsonNode jsonNode = MAPPER.readTree(resp.body());
         if (!jsonNode.isObject()) {
             throw new IllegalStateException(
-                    "GET /nifi-registry-api/policies/" + policyPath + " returned not an object: " +
-                            MAPPER.writeValueAsString(jsonNode));
+                    "GET /nifi-registry-api/policies/" + policyPath + " returned not an object: "
+                            + MAPPER.writeValueAsString(jsonNode));
         }
-        return (ObjectNode)jsonNode;
+        return (ObjectNode) jsonNode;
     }
 
     private static void addUserToPolicy(final String registryUrl,
@@ -230,7 +241,7 @@ public class NifiRegistrySetup {
                                         final String userIdentifier, final String policyPath) throws Exception {
         LOG.info("Adding user with id = {} to policy with path = {}", userIdentifier, policyPath);
         ObjectNode policyNode = getRegistryPolicy(registryUrl, httpClient, policyPath);
-        ArrayNode usersNode = (ArrayNode)policyNode.path("users");
+        ArrayNode usersNode = (ArrayNode) policyNode.path("users");
         ObjectNode user = MAPPER.createObjectNode();
         user.put("identifier", userIdentifier);
         usersNode.add(user);
@@ -257,6 +268,9 @@ public class NifiRegistrySetup {
     /**
      * Creates a bucket in NiFi Registry.
      *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param name bucket name
      * @return the bucket identifier
      */
     public static String createBucket(final String registryUrl,
@@ -287,6 +301,10 @@ public class NifiRegistrySetup {
     /**
      * Creates a flow in the given bucket in NiFi Registry.
      *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param bucketId id of the bucket to create the flow in
+     * @param name flow name
      * @return the flow identifier
      */
     public static String createFlow(final String registryUrl,
@@ -319,6 +337,11 @@ public class NifiRegistrySetup {
     /**
      * Creates the first version of a flow in NiFi Registry.
      *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param bucketId id of the bucket containing the flow
+     * @param flowId id of the flow to version
+     * @param flowContents flow contents JSON node
      * @return the version number (normally {@code 1})
      */
     public static int createFlowVersion(final String registryUrl,
@@ -358,6 +381,10 @@ public class NifiRegistrySetup {
 
     /**
      * Deletes a bucket from NiFi Registry (cascades to all flows and versions).
+     *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param bucketId id of the bucket to delete
      */
     public static void deleteBucket(final String registryUrl,
                                     final HttpClient httpClient,

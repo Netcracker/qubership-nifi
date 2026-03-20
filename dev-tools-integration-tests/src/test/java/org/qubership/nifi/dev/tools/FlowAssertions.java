@@ -60,8 +60,8 @@ final class FlowAssertions {
             if ("JoltTransform".equals(name)) {
                 foundJolt = true;
                 assertEquals("org.apache.nifi.processors.jolt.JoltTransformJSON",
-                        type, "JoltTransformJSON type should be " +
-                                "org.apache.nifi.processors.jolt.JoltTransformJSON");
+                        type, "JoltTransformJSON type should be "
+                                + "org.apache.nifi.processors.jolt.JoltTransformJSON");
                 assertEquals("nifi-jolt-nar",
                     proc.path("bundle").path("artifact").asText(),
                     "JoltTransformJSON artifact should be updated to nifi-jolt-nar");
@@ -81,13 +81,13 @@ final class FlowAssertions {
             String name = svc.path("name").asText();
             if ("DistributedMapCacheServer".equals(name)) {
                 assertFalse(type.contains("Distributed"),
-                        "Controller service type '" + type +
-                                "' should not contain 'Distributed' after transformation");
+                        "Controller service type '" + type
+                                + "' should not contain 'Distributed' after transformation");
             }
             if ("DistributedMapCacheClient".equals(name)) {
                 assertFalse(type.contains("Distributed"),
-                        "Controller service type '" + type +
-                                "' should not contain 'Distributed' after transformation");
+                        "Controller service type '" + type
+                                + "' should not contain 'Distributed' after transformation");
             }
         }
     }
@@ -105,8 +105,8 @@ final class FlowAssertions {
             if ("JoltTransform".equals(name)) {
                 foundJolt = true;
                 assertEquals("org.apache.nifi.processors.standard.JoltTransformJSON",
-                        type, "JoltTransformJSON type should be " +
-                                "org.apache.nifi.processors.standard.JoltTransformJSON");
+                        type, "JoltTransformJSON type should be "
+                                + "org.apache.nifi.processors.standard.JoltTransformJSON");
                 JsonNode props = proc.path("properties");
                 assertTrue(props.has("jolt-spec"),
                         "properties should contain 'jolt-spec'");
@@ -122,13 +122,13 @@ final class FlowAssertions {
             String name = svc.path("name").asText();
             if ("DistributedMapCacheServer".equals(name)) {
                 assertTrue(type.contains("Distributed"),
-                        "Controller service type '" + type +
-                                "' should still contain 'Distributed' for 1.x target");
+                        "Controller service type '" + type
+                                + "' should still contain 'Distributed' for 1.x target");
             }
             if ("DistributedMapCacheClient".equals(name)) {
                 assertTrue(type.contains("Distributed"),
-                        "Controller service type '" + type +
-                                "' should still contain 'Distributed' for 1.x target");
+                        "Controller service type '" + type
+                                + "' should still contain 'Distributed' for 1.x target");
             }
         }
     }
