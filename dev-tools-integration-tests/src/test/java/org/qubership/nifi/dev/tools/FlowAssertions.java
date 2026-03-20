@@ -38,10 +38,12 @@ final class FlowAssertions {
      */
     static boolean isTransformed(final JsonNode flowContents) {
         for (JsonNode proc : flowContents.path("processors")) {
-            if (proc.path("type").asText().contains("jolt.JoltTransformJSON")) {
-                return true;
+            String name = proc.path("name").asText();
+            if ("JoltTransform".equals(name)) {
+                return proc.path("type").asText().contains("jolt.JoltTransformJSON");
             }
         }
+        //
         return false;
     }
 
@@ -54,8 +56,12 @@ final class FlowAssertions {
         boolean foundJolt = false;
         for (JsonNode proc : flowContents.path("processors")) {
             String type = proc.path("type").asText();
-            if ("org.apache.nifi.processors.jolt.JoltTransformJSON".equals(type)) {
+            String name = proc.path("name").asText();
+            if ("JoltTransform".equals(name)) {
                 foundJolt = true;
+                assertEquals("org.apache.nifi.processors.jolt.JoltTransformJSON",
+                        type, "JoltTransformJSON type should be " +
+                                "org.apache.nifi.processors.jolt.JoltTransformJSON");
                 assertEquals("nifi-jolt-nar",
                     proc.path("bundle").path("artifact").asText(),
                     "JoltTransformJSON artifact should be updated to nifi-jolt-nar");
@@ -68,12 +74,21 @@ final class FlowAssertions {
                     "properties should contain 'Pretty Print' after transformation");
             }
         }
-        assertTrue(foundJolt, "Transformed flow must contain JoltTransformJSON with updated type");
+        assertTrue(foundJolt, "Flow must contain JoltTransform processor");
 
         for (JsonNode svc : flowContents.path("controllerServices")) {
             String type = svc.path("type").asText();
-            assertFalse(type.contains("Distributed"),
-                "Controller service type '" + type + "' should not contain 'Distributed' after transformation");
+            String name = svc.path("name").asText();
+            if ("DistributedMapCacheServer".equals(name)) {
+                assertFalse(type.contains("Distributed"),
+                        "Controller service type '" + type +
+                                "' should not contain 'Distributed' after transformation");
+            }
+            if ("DistributedMapCacheClient".equals(name)) {
+                assertFalse(type.contains("Distributed"),
+                        "Controller service type '" + type +
+                                "' should not contain 'Distributed' after transformation");
+            }
         }
     }
 
@@ -83,15 +98,38 @@ final class FlowAssertions {
      * @param flowContents the {@code flowContents} node from the exported flow JSON
      */
     static void assertUntransformed(final JsonNode flowContents) {
+        boolean foundJolt = false;
         for (JsonNode proc : flowContents.path("processors")) {
             String type = proc.path("type").asText();
-            assertTrue(type.startsWith("org.apache.nifi.processors.standard"),
-                "Processor type '" + type + "' should remain in standard package for 1.x target");
+            String name = proc.path("name").asText();
+            if ("JoltTransform".equals(name)) {
+                foundJolt = true;
+                assertEquals("org.apache.nifi.processors.standard.JoltTransformJSON",
+                        type, "JoltTransformJSON type should be " +
+                                "org.apache.nifi.processors.standard.JoltTransformJSON");
+                JsonNode props = proc.path("properties");
+                assertTrue(props.has("jolt-spec"),
+                        "properties should contain 'jolt-spec'");
+                assertTrue(props.has("jolt-transform"),
+                        "properties should contain 'jolt-transform'");
+                assertTrue(props.has("pretty_print"),
+                        "properties should contain 'pretty_print'");
+            }
         }
+        assertTrue(foundJolt, "Flow must contain JoltTransform processor");
         for (JsonNode svc : flowContents.path("controllerServices")) {
             String type = svc.path("type").asText();
-            assertTrue(type.contains("Distributed"),
-                "Controller service type '" + type + "' should still contain 'Distributed' for 1.x target");
+            String name = svc.path("name").asText();
+            if ("DistributedMapCacheServer".equals(name)) {
+                assertTrue(type.contains("Distributed"),
+                        "Controller service type '" + type +
+                                "' should still contain 'Distributed' for 1.x target");
+            }
+            if ("DistributedMapCacheClient".equals(name)) {
+                assertTrue(type.contains("Distributed"),
+                        "Controller service type '" + type +
+                                "' should still contain 'Distributed' for 1.x target");
+            }
         }
     }
 }
