@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2020-2025 NetCracker Technology Corporation
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.qubership.nifi</groupId>
+        <artifactId>nifi</artifactId>
+        <version>2.4.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>dev-tools-integration-tests</artifactId>
+    <packaging>jar</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Integration tests for dev/update-scripts-2.0 — verifies script transformation and NiFi flow import</description>
+
+    <properties>
+        <!-- Skip ITs by default; enable with -DskipITs=false -->
+        <skipITs>true</skipITs>
+        <!-- Defaults; override with -Dnifi.url=... or -Dscripts.docker.network=... -->
+        <nifi.url>https://localhost:8080</nifi.url>
+        <nifi.registry.url>https://localhost:18080</nifi.registry.url>
+        <scripts.docker.network>oidc_default</scripts.docker.network>
+        <nifi.cert.dir>${maven.multiModuleProjectDirectory}/temp-vol/tls-cert/nifi</nifi.cert.dir>
+        <nifi.registry.int.url>https://nifi-registry:18080</nifi.registry.int.url>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.databind.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>3.5.4</version>
+                <configuration>
+                    <environmentVariables>
+                        <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
+                        <NIFI_CLIENT_PASSWORD>${env.NIFI_CLIENT_PASSWORD}</NIFI_CLIENT_PASSWORD>
+                    </environmentVariables>
+                    <systemPropertyVariables>
+                        <nifi.url>${nifi.url}</nifi.url>
+                        <nifi.registry.url>${nifi.registry.url}</nifi.registry.url>
+                        <nifi.registry.int.url>${nifi.registry.int.url}</nifi.registry.int.url>
+                        <nifi.cert.dir>${nifi.cert.dir}</nifi.cert.dir>
+                        <scripts.docker.network>${scripts.docker.network}</scripts.docker.network>
+                        <project.rootdir>${session.executionRootDirectory}</project.rootdir>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

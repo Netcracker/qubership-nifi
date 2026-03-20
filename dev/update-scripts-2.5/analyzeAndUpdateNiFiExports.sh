@@ -23,8 +23,8 @@ if [ -z "$pathToFlow" ]; then
 fi
 
 if [ -z "$pathToUpdateNiFiConfig" ]; then
-    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - './upgradeConfig_2_7.json' will be set."
-    pathToUpdateNiFiConfig="./upgradeConfig_2_7.json"
+    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - './upgradeConfig_2_5.json' will be set."
+    pathToUpdateNiFiConfig="./upgradeConfig_2_5.json"
 fi
 
 if [ ! -d "$pathToFlow" ]; then
@@ -50,7 +50,7 @@ for file in "${exportFlow[@]}"; do
         majorVersion=$(echo "$version" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\1/')
         minorVersion=$(echo "$version" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\2/')
         echo "Found controller service with org.apache.nifi group. Major.minor version: $majorVersion.$minorVersion"
-        if ((majorVersion == 1 || majorVersion == 2 && minorVersion < 7)); then
+        if ((majorVersion == 1 || majorVersion == 2 && minorVersion < 5)); then
             listForUpdate+=("$file")
             echo "Flow - $file needs to be updated"
         fi
@@ -73,9 +73,9 @@ echo "Target NiFi version - $targetVer"
 majorVersion=$(echo "$targetVer" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\1/')
 minorVersion=$(echo "$targetVer" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\2/')
 
-#If target NiFi version is >= 2.7, then run the script on the flow update:
-if ((majorVersion == 2 && minorVersion >= 7)); then
-    . upgradeExports_2_7.sh
+#If target NiFi version is >= 2.5, then run the script on the flow update:
+if ((majorVersion == 2 && minorVersion >= 5)); then
+    . upgradeExports_2_5.sh
 fi
 delete_tmp_file
 
