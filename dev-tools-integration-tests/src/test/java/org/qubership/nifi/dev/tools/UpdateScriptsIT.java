@@ -430,6 +430,18 @@ class UpdateScriptsIT {
     // Helpers
     // -------------------------------------------------------------------------
 
+    private static Path createDirectories(Path dir) throws IOException {
+        try {
+            //permissions 777 to allow docker container's user to RW access
+            return Files.createDirectories(dir,
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxrwxrwx"))
+            );
+        } catch (UnsupportedOperationException ex) {
+            LOG.debug("POSIX file attributes not supported. Will create directory w/o permissions", ex);
+            return Files.createDirectories(dir);
+        }
+    }
+
     private static void copyTestFlows(final Path dest) throws Exception {
         Path testFlowsPath = Paths.get(UpdateScriptsIT.class.getResource("/test-flows").toURI());
         try (Stream<Path> files = Files.walk(testFlowsPath)) {
@@ -437,7 +449,7 @@ class UpdateScriptsIT {
                 if (Files.isDirectory(src)) {
                     try {
                         LOG.debug("Copy test directory = {}", src);
-                        Files.createDirectories(dest.resolve(src.getFileName()));
+                        createDirectories(dest.resolve(src.getFileName()));
                     } catch (IOException e) {
                         throw new IllegalStateException("Failed to create directories for test flow: " + src, e);
                     }
