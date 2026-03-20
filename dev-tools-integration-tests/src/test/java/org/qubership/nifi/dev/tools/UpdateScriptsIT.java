@@ -33,6 +33,9 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
 import org.testcontainers.utility.DockerImageName;
 
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -43,8 +46,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -110,6 +114,7 @@ class UpdateScriptsIT {
     private static Path tempFlowsDir;
     private static HttpClient httpClient;
     private static String registryClientId;
+    private static Map<String, String> csVersionMap;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -133,6 +138,8 @@ class UpdateScriptsIT {
 
         registryClientId = NifiRegistrySetup.setupRegistryClient(nifiUrl, NIFI_REGISTRY_INT_URL, httpClient);
         NifiRegistrySetup.createOrUpdateUser(nifiRegistryUrl, httpClient, "localhost");
+
+        csVersionMap = buildControllerServiceVersionMap(fetchControllerServiceTypes());
 
         runScriptsContainer();
     }
@@ -168,64 +175,68 @@ class UpdateScriptsIT {
         importAndCleanup(flowContents);
     }
 
+    static Stream<String> controllerServiceFiles() {
+        return CONTROLLER_SERVICE_FILES.stream();
+    }
+
     /**
-     * Creates each standard controller service in NiFi using the (script-updated) resource
-     * files and validates that each resolves to {@code VALID} status.
+     * Creates a single controller service in NiFi using the (script-updated) resource
+     * file and validates that it resolves to {@code VALID} status.
+     *
+     * @param fileName controller service JSON file name under {@code controller-services/}
      */
-    @Test
-    void testControllerServices() throws Exception {
-        JsonNode csTypes = fetchControllerServiceTypes();
+    @ParameterizedTest
+    @MethodSource("controllerServiceFiles")
+    void testControllerService(final String fileName) throws Exception {
+        Path csFile = tempFlowsDir.resolve("controller-services/" + fileName);
+        ObjectNode csJson = (ObjectNode) MAPPER.readTree(csFile.toFile());
 
-        for (String fileName : CONTROLLER_SERVICE_FILES) {
-            Path csFile = tempFlowsDir.resolve("controller-services/" + fileName);
-            ObjectNode csJson = (ObjectNode) MAPPER.readTree(csFile.toFile());
+        // Clean for creation: remove server-assigned fields, reset revision version
+        csJson.remove("id");
+        csJson.remove("uri");
+        ((ObjectNode) csJson.path("revision")).put("version", 0);
+        ObjectNode component = (ObjectNode) csJson.path("component");
+        component.remove("id");
+        component.remove("parentGroupId");
 
-            // Clean for creation: remove server-assigned fields, reset revision version
-            csJson.remove("id");
-            csJson.remove("uri");
-            ((ObjectNode) csJson.path("revision")).put("version", 0);
-            ObjectNode component = (ObjectNode) csJson.path("component");
-            component.remove("id");
-            component.remove("parentGroupId");
-
-            // Resolve the actual bundle version from this NiFi instance
-            String csType = component.path("type").asText();
-            String bundleGroup = component.path("bundle").path("group").asText();
-            String bundleArtifact = component.path("bundle").path("artifact").asText();
-            String resolvedVersion = resolveControllerServiceBundleVersion(
-                csTypes, csType, bundleGroup, bundleArtifact);
-            ((ObjectNode) component.path("bundle")).put("version", resolvedVersion);
-
-            String body = MAPPER.writeValueAsString(csJson);
-            HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/process-groups/root/controller-services"))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-            LOG.info("Create controller service {}: status={}", fileName, resp.statusCode());
-            assertEquals(HTTP_CREATED, resp.statusCode(),
-                "Expected HTTP 201 when creating controller service " + fileName
-                    + ". Response: " + resp.body());
-
-            JsonNode respJson = MAPPER.readTree(resp.body());
-            String createdId = respJson.path("id").asText();
-            String validationStatus = respJson.path("status").path("validationStatus").asText();
-
-            if (!"VALID".equals(validationStatus)) {
-                StringBuilder errors = new StringBuilder();
-                for (JsonNode err : respJson.path("component").path("validationErrors")) {
-                    errors.append(err.asText()).append("; ");
-                }
-                assertEquals("VALID", validationStatus,
-                    "Controller service " + fileName + " is not VALID. Errors: " + errors);
-            }
-
-            deleteControllerService(createdId,
-                respJson.path("revision").path("version").asText("0"));
+        // Resolve the actual bundle version from this NiFi instance
+        String csType = component.path("type").asText();
+        String resolvedVersion = csVersionMap.get(csType);
+        if (resolvedVersion == null) {
+            throw new IllegalStateException(
+                "Controller service type not found in NiFi: " + csType);
         }
+        ((ObjectNode) component.path("bundle")).put("version", resolvedVersion);
+
+        String body = MAPPER.writeValueAsString(csJson);
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(nifiUrl + "/nifi-api/process-groups/root/controller-services"))
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(body))
+            .build();
+
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        LOG.info("Create controller service {}: status={}", fileName, resp.statusCode());
+        assertEquals(HTTP_CREATED, resp.statusCode(),
+            "Expected HTTP 201 when creating controller service " + fileName
+                + ". Response: " + resp.body());
+
+        JsonNode respJson = MAPPER.readTree(resp.body());
+        String createdId = respJson.path("id").asText();
+        String validationStatus = respJson.path("status").path("validationStatus").asText();
+
+        if (!"VALID".equals(validationStatus)) {
+            StringBuilder errors = new StringBuilder();
+            for (JsonNode err : respJson.path("component").path("validationErrors")) {
+                errors.append(err.asText()).append("; ");
+            }
+            assertEquals("VALID", validationStatus,
+                "Controller service " + fileName + " is not VALID. Errors: " + errors);
+        }
+
+        deleteControllerService(createdId,
+            respJson.path("revision").path("version").asText("0"));
     }
 
     // -------------------------------------------------------------------------
@@ -388,20 +399,13 @@ class UpdateScriptsIT {
         return MAPPER.readTree(resp.body()).path("controllerServiceTypes");
     }
 
-    private static String resolveControllerServiceBundleVersion(final JsonNode csTypes,
-                                                                 final String type,
-                                                                 final String group,
-                                                                 final String artifact) {
+    private static Map<String, String> buildControllerServiceVersionMap(final JsonNode csTypes) {
+        Map<String, String> map = new HashMap<>();
         for (JsonNode entry : csTypes) {
-            JsonNode bundle = entry.path("bundle");
-            if (type.equals(entry.path("type").asText())
-                    && group.equals(bundle.path("group").asText())
-                    && artifact.equals(bundle.path("artifact").asText())) {
-                return bundle.path("version").asText();
-            }
+            map.put(entry.path("type").asText(),
+                    entry.path("bundle").path("version").asText());
         }
-        throw new IllegalStateException(
-            "Controller service type not found in NiFi: " + type + " (" + group + ":" + artifact + ")");
+        return map;
     }
 
     private static void deleteControllerService(final String csId, final String version) throws Exception {
