@@ -74,6 +74,8 @@
         <postgresql.jdbc.version>42.5.5</postgresql.jdbc.version>
         <lombok.version>1.18.30</lombok.version>
         <jgit.version>7.6.0.202603022253-r</jgit.version>
+        <snakeyaml.version>2.5</snakeyaml.version>
+        <commons-csv.version>1.8</commons-csv.version>
 
         <!-- Version for provided artifact -->
         <okhttp.version>5.1.0</okhttp.version>

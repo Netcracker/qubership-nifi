@@ -36,6 +36,7 @@
     <modules>
         <module>qubership-nifi-api-export-tool</module>
         <module>qubership-nifi-docs-generator</module>
+        <module>qubership-nifi-component-comparator-tool</module>
     </modules>
 
     <profiles>
