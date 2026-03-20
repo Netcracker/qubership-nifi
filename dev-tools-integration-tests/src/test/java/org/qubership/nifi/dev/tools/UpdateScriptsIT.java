@@ -455,8 +455,12 @@ class UpdateScriptsIT {
                     }
                 } else {
                     try {
-                        LOG.debug("Copy test file = {}", src);
-                        Files.copy(src, dest.resolve(src.getParent().getParent().relativize(src)));
+                        Path target = dest.resolve(src.getParent().getParent().relativize(src));
+                        LOG.debug("Copy test file = {} to {}", src, target);
+                        Files.copy(src, target);
+                        if (target.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                            Files.setPosixFilePermissions(target, PosixFilePermissions.fromString("rw-rw-rw-"));
+                        }
                     } catch (IOException e) {
                         throw new IllegalStateException("Failed to copy test flow: " + src, e);
                     }
