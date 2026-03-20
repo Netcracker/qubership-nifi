@@ -37,7 +37,10 @@
         <skipITs>true</skipITs>
         <!-- Defaults; override with -Dnifi.url=... or -Dscripts.docker.network=... -->
         <nifi.url>https://localhost:8080</nifi.url>
-        <scripts.docker.network></scripts.docker.network>
+        <nifi.registry.url>https://localhost:18080</nifi.registry.url>
+        <scripts.docker.network>oidc_default</scripts.docker.network>
+        <nifi.cert.dir>${maven.multiModuleProjectDirectory}/temp-vol/tls-cert/nifi</nifi.cert.dir>
+        <nifi.registry.int.url>https://nifi-registry:18080</nifi.registry.int.url>
     </properties>
 
     <dependencies>
@@ -86,6 +89,8 @@
                     </environmentVariables>
                     <systemPropertyVariables>
                         <nifi.url>${nifi.url}</nifi.url>
+                        <nifi.registry.url>${nifi.registry.url}</nifi.registry.url>
+                        <nifi.registry.int.url>${nifi.registry.int.url}</nifi.registry.int.url>
                         <nifi.cert.dir>${nifi.cert.dir}</nifi.cert.dir>
                         <scripts.docker.network>${scripts.docker.network}</scripts.docker.network>
                         <project.rootdir>${session.executionRootDirectory}</project.rootdir>

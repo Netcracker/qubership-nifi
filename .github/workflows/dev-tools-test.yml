@@ -5,15 +5,19 @@ on:
   push:
     paths:
       - 'dev/update-scripts-2.0/**'
+      - 'dev/update-scripts-2.5/**'
+      - 'dev/update-scripts-2.7/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
-      - '.github/docker/tls/docker-compose.yaml'
+      - '.github/docker/oidc/docker-compose.yaml'
   pull_request:
     paths:
       - 'dev/update-scripts-2.0/**'
+      - 'dev/update-scripts-2.5/**'
+      - 'dev/update-scripts-2.7/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
-      - '.github/docker/tls/docker-compose.yaml'
+      - '.github/docker/oidc/docker-compose.yaml'
   workflow_dispatch: null
 
 permissions:
@@ -58,7 +62,7 @@ jobs:
       - name: Set up test environment
         run: |
           . .github/workflows/sh/nifi-lib.sh
-          setup_env_before_tests "tls"
+          setup_env_before_tests "oidc"
           echo "NIFI_IMAGE=${{ matrix.nifi.image }}" >> ./docker.env
           echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}" >> ./docker.env
 
@@ -66,14 +70,14 @@ jobs:
         run: |
           NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
           export NIFI_SENSITIVE_KEY
-          docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env up -d
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env up -d
 
       - name: Wait for NiFi to start
         run: |
           . .github/workflows/sh/nifi-lib.sh
           NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
           wait_nifi_container "15" "150" "localhost" "8080" "true" \
-            ".github/docker/tls/docker-compose.yaml" "tls" \
+            ".github/docker/oidc/docker-compose.yaml" "oidc" \
             "./temp-vol/tls-cert/nifi/nifi-cert.pem" \
             "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
             "$NIFI_CLIENT_PASSWORD"
@@ -81,7 +85,7 @@ jobs:
       - name: Determine compose network name
         id: network
         run: |
-          NETWORK=$(docker network ls --filter "name=tls_default" --format "{{.Name}}" | head -1)
+          NETWORK=$(docker network ls --filter "name=oidc_default" --format "{{.Name}}" | head -1)
           echo "name=$NETWORK" >> $GITHUB_OUTPUT
 
       - name: Run integration tests
@@ -99,7 +103,7 @@ jobs:
       - name: Collect Docker logs on failure
         if: failure()
         run: |
-          docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env \
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
             logs --no-color > ./nifi-docker.log 2>&1 || true
 
       - name: Upload test results and logs
@@ -115,7 +119,7 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          docker compose -f .github/docker/tls/docker-compose.yaml --env-file ./docker.env \
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
             down -v || true
           sudo rm -rf ./temp-vol ./docker.env ./nifi-sens-key.tmp ./consul-acl-token.tmp \
             ./consul-acl-read-token.tmp ./consul-acl-write-token.tmp

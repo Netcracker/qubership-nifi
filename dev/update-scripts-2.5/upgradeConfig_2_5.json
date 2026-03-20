@@ -1,0 +1,5 @@
+{
+    "org.apache.nifi.json.JsonRecordSetWriter" : {
+        "schema-protocol-version" : null
+    }
+}
