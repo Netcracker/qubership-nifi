@@ -461,7 +461,7 @@ public class JsonComparator {
                 }
 
             } catch (Exception e) {
-                LOGGER.warn("Error reading JSON {}: {}", fileName, e.getMessage());
+                LOGGER.warn("Error reading JSON {}: {}", fileName, e.getMessage(), e);
             }
         }
         return jsonMap;
