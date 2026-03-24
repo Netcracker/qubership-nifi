@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.startupcheck.OneShotStartupCheckStrategy;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -52,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -286,6 +288,21 @@ class UpdateScriptsIT {
         csVersion = respJson.path("revision").path("version").asText("0");
         String validationStatus = respJson.path("status").path("validationStatus").asText();
 
+        if ("VALIDATING".equals(validationStatus)) {
+            //wait for up to 30 seconds for status to update
+            LOG.info("Controller service {}: validationStatus={}, "
+                    + "waiting for status to change to either valid or invalid", fileName, validationStatus);
+            Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+                        JsonNode csNode = getControllerServiceById(createdId);
+                        String validStatus = csNode.path("status").
+                                path("validationStatus").asText();
+                        return "VALID".equals(validStatus) || "INVALID".equals(validStatus);
+                    }
+            );
+            //update cs data:
+            respJson = getControllerServiceById(createdId);
+            validationStatus = respJson.path("status").path("validationStatus").asText();
+        }
         if (!"VALID".equals(validationStatus)) {
             StringBuilder errors = new StringBuilder();
             for (JsonNode err : respJson.path("component").path("validationErrors")) {
@@ -294,6 +311,25 @@ class UpdateScriptsIT {
             assertEquals("VALID", validationStatus,
                 "Controller service " + fileName + " is not VALID. Errors: " + errors);
         }
+    }
+
+    private static JsonNode getControllerServiceById(String id) throws IOException, InterruptedException {
+        HttpRequest getCsRequest = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller-services/" + id))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .GET().build();
+
+        HttpResponse<String> getPgResponse = httpClient.send(getCsRequest,
+                HttpResponse.BodyHandlers.ofString());
+        LOG.info("Get CS response for id = {}: status={}", id, getPgResponse.statusCode());
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Get CS response body: body={}", getPgResponse.body());
+        }
+        assertEquals(HTTP_OK, getPgResponse.statusCode(),
+                "Expected HTTP 200 when getting CS. Response: " + getPgResponse.body());
+
+        return MAPPER.readTree(getPgResponse.body());
     }
 
     @AfterEach
@@ -394,7 +430,7 @@ class UpdateScriptsIT {
         assertFalse(createdId.isEmpty(), "Created process group id must not be empty");
 
         changeControllerServicesStateForPg(createdId, "ENABLED");
-        Thread.sleep(500);
+        Thread.sleep(1000);
         JsonNode mainPgJson = getProcessGroupById(createdId);
 
         checkForInvalidComponents(mainPgJson, createdId);
@@ -469,7 +505,7 @@ class UpdateScriptsIT {
                 if ("INVALID".equals(validationStatus)) {
                     ArrayNode validationErrorsNode = (ArrayNode) component.path("validationErrors");
                     validationErrorsMessage.append("Processor name = ")
-                            .append(processorNode.path("name").asText())
+                            .append(component.path("name").asText())
                             .append(". Validation errors: [");
                     for (JsonNode validationError : validationErrorsNode) {
                         validationErrorsMessage.append(validationError.asText()).append(",");
@@ -520,25 +556,6 @@ class UpdateScriptsIT {
         return MAPPER.readTree(getPgResponse.body());
     }
 
-    private static JsonNode getChildProcessGroupsById(String createdId) throws IOException, InterruptedException {
-        HttpRequest getPgRequest = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/process-groups/" + createdId + "/process-groups"))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-        HttpResponse<String> getPgResponse = httpClient.send(getPgRequest,
-                HttpResponse.BodyHandlers.ofString());
-        LOG.info("Get child PG response: status={}", getPgResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Get child PG response body: body={}", getPgResponse.body());
-        }
-        assertEquals(HTTP_OK, getPgResponse.statusCode(),
-                "Expected HTTP 200 when getting child PG. Response: " + getPgResponse.body());
-
-        return MAPPER.readTree(getPgResponse.body());
-    }
 
     private static ObjectNode buildVersionedImportBody(final String bucketId,
                                                        final String flowId,
