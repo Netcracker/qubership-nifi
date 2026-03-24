@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.NifiAccessPolicies;
+import org.qubership.nifi.NifiFlowApiClient;
 import org.qubership.nifi.NifiMtlsClient;
 import org.qubership.nifi.NifiRegistrySetup;
 import org.slf4j.Logger;
@@ -40,10 +41,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,7 +51,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -97,8 +94,6 @@ class UpdateScriptsIT {
     private static final int NIFI_CONTAINER_PORT = 8080;
     private static final String SCRIPTS_CONTAINER_CERT_DIR = "/tmp/certs";
     private static final String SCRIPTS_CONTAINER_FLOWS_DIR = "/data/export";
-    private static final int HTTP_CREATED = 201;
-    private static final int HTTP_OK = 200;
     private static final int SCRIPTS_TIMEOUT_MINUTES = 2;
 
     /** Internal URL NiFi uses to reach the Registry container. */
@@ -138,6 +133,7 @@ class UpdateScriptsIT {
     private static String scriptsDockerNetwork;
     private static Path tempFlowsDir;
     private static HttpClient httpClient;
+    private static NifiFlowApiClient api;
     private static String registryClientId;
     private static Map<String, String> csVersionMap;
     private static String nifiVersion;
@@ -160,39 +156,26 @@ class UpdateScriptsIT {
         LOG.info("Test flows copied to {}", tempFlowsDir);
 
         httpClient = NifiMtlsClient.build(nifiCertPath, nifiCertPassword, nifiCaCertPath);
+        api = new NifiFlowApiClient(nifiUrl, httpClient);
         new NifiAccessPolicies(nifiUrl, httpClient).setup();
 
         registryClientId = NifiRegistrySetup.setupRegistryClient(nifiUrl, NIFI_REGISTRY_INT_URL, httpClient);
         NifiRegistrySetup.createOrUpdateUser(nifiRegistryUrl, httpClient, "localhost");
 
-        csVersionMap = buildControllerServiceVersionMap(fetchControllerServiceTypes());
-        nifiVersion = fetchNifiVersion();
+        csVersionMap = buildControllerServiceVersionMap(api.fetchControllerServiceTypes());
+        nifiVersion = api.fetchNifiVersion();
         //setup properties for SSLContext services:
         setupSslContextServicesTestProperties();
         runScriptsContainer();
     }
 
-    private static String fetchNifiVersion() throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/flow/about"))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-        if (resp.statusCode() != HTTP_OK) {
-            throw new IllegalStateException(
-                    "GET /nifi-api/flow/about returned HTTP " + resp.statusCode());
-        }
-        return MAPPER.readTree(resp.body()).path("about").path("version").asText();
-    }
+    private static final String TEST_PWD = "changeit";
+    private static final String CA_CERTS_KEYSTORE = "/opt/java/openjdk/lib/security/cacerts";
 
     private static void setupSslContextServicesTestProperties() throws Exception {
         setupSslContextServicesTestProperties("StandardRestrictedSSLContextService.json");
         setupSslContextServicesTestProperties("StandardSSLContextService.json");
     }
-
-    private static final String TEST_PWD = "changeit";
-    private static final String CA_CERTS_KEYSTORE = "/opt/java/openjdk/lib/security/cacerts";
 
     private static void setupSslContextServicesTestProperties(String fileName) throws IOException {
         Path csFile = tempFlowsDir.resolve("controller-services/" + fileName);
@@ -289,21 +272,8 @@ class UpdateScriptsIT {
         }
         ((ObjectNode) component.path("bundle")).put("version", resolvedVersion);
 
-        String body = MAPPER.writeValueAsString(csJson);
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(nifiUrl + "/nifi-api/process-groups/root/controller-services"))
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(body))
-            .build();
-
-        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-        LOG.info("Create controller service {}: status={}", fileName, resp.statusCode());
-        assertEquals(HTTP_CREATED, resp.statusCode(),
-            "Expected HTTP 201 when creating controller service " + fileName
-                + ". Response: " + resp.body());
-
-        JsonNode respJson = MAPPER.readTree(resp.body());
+        JsonNode respJson = api.createControllerService(MAPPER.writeValueAsString(csJson));
+        LOG.info("Create controller service {}: id={}", fileName, respJson.path("id").asText());
         String createdId = respJson.path("id").asText();
         csId = createdId;
         csVersion = respJson.path("revision").path("version").asText("0");
@@ -313,15 +283,13 @@ class UpdateScriptsIT {
             //wait for up to 30 seconds for status to update
             LOG.info("Controller service {}: validationStatus={}, "
                     + "waiting for status to change to either valid or invalid", fileName, validationStatus);
-            Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
-                        JsonNode csNode = getControllerServiceById(createdId);
-                        String validStatus = csNode.path("status").
-                                path("validationStatus").asText();
+            Awaitility.await().atMost(30, java.util.concurrent.TimeUnit.SECONDS).until(() -> {
+                        JsonNode csNode = api.getControllerServiceById(createdId);
+                        String validStatus = csNode.path("status").path("validationStatus").asText();
                         return "VALID".equals(validStatus) || "INVALID".equals(validStatus);
-                    }
-            );
+                    });
             //update cs data:
-            respJson = getControllerServiceById(createdId);
+            respJson = api.getControllerServiceById(createdId);
             validationStatus = respJson.path("status").path("validationStatus").asText();
         }
         if (!"VALID".equals(validationStatus)) {
@@ -334,40 +302,21 @@ class UpdateScriptsIT {
         }
     }
 
-    private static JsonNode getControllerServiceById(String id) throws IOException, InterruptedException {
-        HttpRequest getCsRequest = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/controller-services/" + id))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .GET().build();
-
-        HttpResponse<String> getPgResponse = httpClient.send(getCsRequest,
-                HttpResponse.BodyHandlers.ofString());
-        LOG.info("Get CS response for id = {}: status={}", id, getPgResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Get CS response body: body={}", getPgResponse.body());
-        }
-        assertEquals(HTTP_OK, getPgResponse.statusCode(),
-                "Expected HTTP 200 when getting CS. Response: " + getPgResponse.body());
-
-        return MAPPER.readTree(getPgResponse.body());
-    }
-
     @AfterEach
     void cleanupCreatedResources() throws Exception {
         if (csId != null) {
-            deleteControllerService(csId, csVersion);
+            api.deleteControllerService(csId, csVersion);
             csId = null;
             csVersion = null;
         }
         if (pgId != null) {
-            JsonNode mainPgJson = getProcessGroupById(pgId);
+            JsonNode mainPgJson = api.getProcessGroupById(pgId);
             String pgVersion = mainPgJson.path("revision").path("version").asText("0");
             String bucketId = mainPgJson.path("component").
                     path("versionControlInformation").path("bucketId").asText();
-            changeControllerServicesStateForPg(pgId, "DISABLED");
-            waitForControllerServicesState(pgId, "DISABLED");
-            deleteProcessGroup(pgId, pgVersion);
+            api.changeControllerServicesStateForPg(pgId, "DISABLED");
+            api.waitForControllerServicesState(pgId, "DISABLED");
+            api.deleteProcessGroup(pgId, pgVersion);
             NifiRegistrySetup.deleteBucket(nifiRegistryUrl, httpClient, bucketId);
             pgId = null;
         }
@@ -425,34 +374,15 @@ class UpdateScriptsIT {
         String flowId = NifiRegistrySetup.createFlow(nifiRegistryUrl, httpClient, bucketId, "IT-Flow");
         int version = NifiRegistrySetup.createFlowVersion(nifiRegistryUrl, httpClient, bucketId, flowId, flowContents);
 
-        ObjectNode importBody = buildVersionedImportBody(bucketId, flowId, version);
-        String importBodyStr = MAPPER.writeValueAsString(importBody);
-
-        HttpRequest importRequest = HttpRequest.newBuilder()
-            .uri(URI.create(nifiUrl + "/nifi-api/process-groups/root/process-groups"))
-            .header("Content-Type", "application/json")
-            .header("Accept", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(importBodyStr))
-            .build();
-
-        HttpResponse<String> importResponse = httpClient.send(importRequest,
-            HttpResponse.BodyHandlers.ofString());
-        LOG.info("Import response: status={}", importResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Import response body: body={}", importResponse.body());
-        }
-        assertEquals(HTTP_CREATED, importResponse.statusCode(),
-            "Expected HTTP 201 when creating process group. Response: " + importResponse.body());
-
-        JsonNode responseJson = MAPPER.readTree(importResponse.body());
+        JsonNode responseJson = api.importProcessGroup(bucketId, flowId, version, registryClientId);
         String createdId = responseJson.path("id").asText();
         pgId = createdId;
         assertNotNull(createdId, "Created process group must have an id");
         assertFalse(createdId.isEmpty(), "Created process group id must not be empty");
 
-        changeControllerServicesStateForPg(createdId, "ENABLED");
-        waitForControllerServicesState(createdId, "ENABLED");
-        JsonNode mainPgJson = waitForPgValidation(createdId);
+        api.changeControllerServicesStateForPg(createdId, "ENABLED");
+        api.waitForControllerServicesState(createdId, "ENABLED");
+        JsonNode mainPgJson = api.waitForPgValidation(createdId);
 
         checkForInvalidComponents(mainPgJson, createdId);
     }
@@ -462,7 +392,7 @@ class UpdateScriptsIT {
         int invalidCount = pgJson.path("invalidCount").asInt();
         if (invalidCount > 0) {
             StringBuilder validationErrorsMessage = new StringBuilder();
-            JsonNode mainPgFlow = getProcessGroupFlowById(pgId);
+            JsonNode mainPgFlow = api.getProcessGroupFlowById(pgId);
             //process processors directly under main PG:
             LOG.info("Processing processors validation errors for PG with id = {}", pgId);
             addValidationErrorsForPg(mainPgFlow, validationErrorsMessage);
@@ -476,7 +406,7 @@ class UpdateScriptsIT {
                     String childPgId = childPg.path("id").asText();
                     LOG.info("Child PG with id = {} has invalidCount = {}", childPgId, childInvalidCount);
                     if (childInvalidCount > 0) {
-                        JsonNode childPgFlowJson = getProcessGroupFlowById(childPgId);
+                        JsonNode childPgFlowJson = api.getProcessGroupFlowById(childPgId);
                         LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
                         addValidationErrorsForPg(childPgFlowJson, validationErrorsMessage);
                     }
@@ -496,31 +426,6 @@ class UpdateScriptsIT {
             assertEquals(0, invalidCount, "Created PG must not have invalid components. "
                 + "Validation errors: " + validationErrorsMessage);
         }
-    }
-
-    private static void changeControllerServicesStateForPg(String pgId, String targetState)
-            throws IOException, InterruptedException {
-        ObjectNode changeCsStateJson = MAPPER.createObjectNode();
-        changeCsStateJson.put("id", pgId);
-        changeCsStateJson.put("state", targetState);
-        changeCsStateJson.put("disconnectedNodeAcknowledged", Boolean.FALSE);
-
-        HttpRequest changeCsStateRequest = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + pgId + "/controller-services"))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .PUT(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(changeCsStateJson)))
-                .build();
-
-        HttpResponse<String> changeCsStateResponse = httpClient.send(changeCsStateRequest,
-                HttpResponse.BodyHandlers.ofString());
-        LOG.info("Change CS to state {} response: status={}", targetState, changeCsStateResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Change CS to state {} response body: body={}", targetState, changeCsStateResponse.body());
-        }
-        assertEquals(HTTP_OK, changeCsStateResponse.statusCode(),
-                "Expected HTTP 200 when changing controller services state to " + targetState
-                        + ". Response: " + changeCsStateResponse.body());
     }
 
     private static void addValidationErrorsForPg(JsonNode getResponseJson, StringBuilder validationErrorsMessage) {
@@ -548,145 +453,9 @@ class UpdateScriptsIT {
         }
     }
 
-    private static JsonNode getProcessGroupById(String createdId) throws IOException, InterruptedException {
-        HttpRequest getPgRequest = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/process-groups/" + createdId))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-        HttpResponse<String> getPgResponse = httpClient.send(getPgRequest,
-                HttpResponse.BodyHandlers.ofString());
-        LOG.info("Get PG response: status={}", getPgResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Get PG response body: body={}", getPgResponse.body());
-        }
-        assertEquals(HTTP_OK, getPgResponse.statusCode(),
-                "Expected HTTP 200 when getting PG. Response: " + getPgResponse.body());
-
-        return MAPPER.readTree(getPgResponse.body());
-    }
-
-    private static JsonNode getControllerServicesForPg(String pgId) throws IOException, InterruptedException {
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + pgId + "/controller-services"))
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-        assertEquals(HTTP_OK, resp.statusCode(),
-                "Expected HTTP 200 when getting controller services for PG. Response: " + resp.body());
-        return MAPPER.readTree(resp.body()).path("controllerServices");
-    }
-
-    private static void waitForControllerServicesState(String pgId, String targetState)
-            throws IOException, InterruptedException {
-        LOG.info("Waiting for all controller services in PG {} to reach state {}", pgId, targetState);
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .until(() -> {
-                    JsonNode csArray = getControllerServicesForPg(pgId);
-                    if (!csArray.isArray() || csArray.isEmpty()) {
-                        return true;
-                    }
-                    for (JsonNode cs : csArray) {
-                        String state = cs.path("component").path("state").asText();
-                        if (!targetState.equals(state)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                });
-        LOG.info("All controller services in PG {} reached state {}", pgId, targetState);
-    }
-
-    private static JsonNode waitForPgValidation(String pgId) throws IOException, InterruptedException {
-        LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
-        Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
-                .until(() -> getProcessGroupById(pgId).path("invalidCount").asInt() == 0);
-        LOG.info("PG {} has no invalid components", pgId);
-        return getProcessGroupById(pgId);
-    }
-
-    private static JsonNode getProcessGroupFlowById(String createdId) throws IOException, InterruptedException {
-        HttpRequest getPgRequest = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + createdId))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-        HttpResponse<String> getPgResponse = httpClient.send(getPgRequest,
-                HttpResponse.BodyHandlers.ofString());
-        LOG.info("Get flow PG response: status={}", getPgResponse.statusCode());
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Get flow PG response body: body={}", getPgResponse.body());
-        }
-        assertEquals(HTTP_OK, getPgResponse.statusCode(),
-                "Expected HTTP 200 when getting flow PG. Response: " + getPgResponse.body());
-
-        return MAPPER.readTree(getPgResponse.body());
-    }
-
-
-    private static ObjectNode buildVersionedImportBody(final String bucketId,
-                                                       final String flowId,
-                                                       final int version) {
-        ObjectNode importBody = MAPPER.createObjectNode();
-
-        ObjectNode revision = MAPPER.createObjectNode();
-        revision.put("version", 0);
-        importBody.set("revision", revision);
-        importBody.put("disconnectedNodeAcknowledged", false);
-
-        ObjectNode position = MAPPER.createObjectNode();
-        position.put("x", 0.0);
-        position.put("y", 0.0);
-
-        ObjectNode versionControlInfo = MAPPER.createObjectNode();
-        versionControlInfo.put("registryId", registryClientId);
-        versionControlInfo.put("bucketId", bucketId);
-        versionControlInfo.put("flowId", flowId);
-        versionControlInfo.put("version", version);
-
-        ObjectNode component = MAPPER.createObjectNode();
-        component.put("name", "IT-Test-Group");
-        component.set("position", position);
-        component.set("versionControlInformation", versionControlInfo);
-        importBody.set("component", component);
-
-        return importBody;
-    }
-
-    private static void deleteProcessGroup(final String pgId, final String pgVersion) throws Exception {
-        HttpRequest deleteRequest = HttpRequest.newBuilder()
-            .uri(URI.create(nifiUrl + "/nifi-api/process-groups/" + pgId + "?version=" + pgVersion))
-            .header("Accept", "application/json")
-            .DELETE()
-            .build();
-        HttpResponse<String> deleteResponse = httpClient.send(deleteRequest,
-            HttpResponse.BodyHandlers.ofString());
-        if (deleteResponse.statusCode() != HTTP_OK) {
-            LOG.warn("DELETE process group {} returned status {}; body: {}",
-                pgId, deleteResponse.statusCode(), deleteResponse.body());
-        }
-    }
-
-    private static JsonNode fetchControllerServiceTypes() throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(nifiUrl + "/nifi-api/flow/controller-service-types"))
-            .header("Accept", "application/json")
-            .GET()
-            .build();
-        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-        if (resp.statusCode() != HTTP_OK) {
-            throw new IllegalStateException(
-                "GET /nifi-api/flow/controller-service-types returned HTTP " + resp.statusCode());
-        }
-        return MAPPER.readTree(resp.body()).path("controllerServiceTypes");
-    }
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     private static Map<String, String> buildControllerServiceVersionMap(final JsonNode csTypes) {
         Map<String, String> map = new HashMap<>();
@@ -696,23 +465,6 @@ class UpdateScriptsIT {
         }
         return map;
     }
-
-    private static void deleteControllerService(final String csId, final String version) throws Exception {
-        HttpRequest req = HttpRequest.newBuilder()
-            .uri(URI.create(nifiUrl + "/nifi-api/controller-services/" + csId + "?version=" + version))
-            .header("Accept", "application/json")
-            .DELETE()
-            .build();
-        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-        if (resp.statusCode() != HTTP_OK) {
-            LOG.warn("DELETE controller service {} returned status {}; body: {}",
-                csId, resp.statusCode(), resp.body());
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     private static void copyTestFlows(final Path dest) throws Exception {
         Path testFlowsPath = Paths.get(UpdateScriptsIT.class.getResource("/test-flows").toURI());
