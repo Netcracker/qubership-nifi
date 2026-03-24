@@ -17,6 +17,7 @@ package org.qubership.nifi;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -291,19 +292,85 @@ public class NifiFlowApiClient {
     }
 
     /**
-     * Waits (up to 30 s) for the process group's {@code invalidCount} to reach zero,
-     * then returns the final process group state.
+     * Waits (up to 30 s) for the process group's {@code invalidCount} to reach an acceptable
+     * terminal state, then asserts that no invalid components remain.
      *
-     * @param pgId process group id
-     * @return process group JSON after {@code invalidCount} reaches zero
+     * <p>For NiFi 2.5.0, {@code invalidCount == 1} caused by the known
+     * {@code PutS3Object} sensitive-properties issue is silently accepted.
+     *
+     * @param pgId        process group id
+     * @param nifiVersion NiFi version string (e.g. {@code "2.5.0"})
      */
-    public JsonNode waitForPgValidation(final String pgId) throws IOException, InterruptedException {
+    public void waitForPgValidation(final String pgId, final String nifiVersion)
+            throws IOException, InterruptedException {
         LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
-                .until(() -> getProcessGroupById(pgId).path("invalidCount").asInt() == 0);
-        LOG.info("PG {} has no invalid components", pgId);
-        return getProcessGroupById(pgId);
+                .until(() -> {
+                    int count = getProcessGroupById(pgId).path("invalidCount").asInt();
+                    // For NiFi 2.5.0, invalidCount=1 (PutS3Object known issue) is also terminal
+                    return count == 0 || ("2.5.0".equals(nifiVersion) && count == 1);
+                });
+
+        JsonNode pgJson = getProcessGroupById(pgId);
+        int invalidCount = pgJson.path("invalidCount").asInt();
+        if (invalidCount == 0) {
+            LOG.info("PG {} has no invalid components", pgId);
+            return;
+        }
+
+        // invalidCount > 0 — gather details and check for known exceptions
+        StringBuilder validationErrorsMessage = new StringBuilder();
+        JsonNode mainPgFlow = getProcessGroupFlowById(pgId);
+        LOG.info("Processing processors validation errors for PG with id = {}", pgId);
+        addValidationErrorsForPg(mainPgFlow, validationErrorsMessage);
+        JsonNode childPgsNode = mainPgFlow.path("processGroupFlow").path("flow").path("processGroups");
+        if (childPgsNode.isArray()) {
+            for (JsonNode childPg : (ArrayNode) childPgsNode) {
+                int childInvalidCount = childPg.path("invalidCount").asInt();
+                String childPgId = childPg.path("id").asText();
+                LOG.info("Child PG with id = {} has invalidCount = {}", childPgId, childInvalidCount);
+                if (childInvalidCount > 0) {
+                    LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
+                    addValidationErrorsForPg(getProcessGroupFlowById(childPgId), validationErrorsMessage);
+                }
+            }
+        }
+        if ("2.5.0".equals(nifiVersion)
+                && invalidCount == 1
+                && !validationErrorsMessage.isEmpty()
+                && validationErrorsMessage.toString().contains(
+                        "Processor name = PutS3Object. Validation errors: "
+                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
+                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
+            LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
+                    validationErrorsMessage);
+            return;
+        }
+        assertEquals(0, invalidCount, "Created PG must not have invalid components. "
+                + "Validation errors: " + validationErrorsMessage);
+    }
+
+    private static void addValidationErrorsForPg(final JsonNode getResponseJson,
+                                                  final StringBuilder validationErrorsMessage) {
+        JsonNode processorsNode = getResponseJson.path("processGroupFlow").path("flow").path("processors");
+        if (!processorsNode.isArray()) {
+            return;
+        }
+        LOG.info("Processing processors validation errors under PG with id = {}",
+                getResponseJson.path("processGroupFlow").path("id").asText());
+        for (JsonNode processorNode : (ArrayNode) processorsNode) {
+            JsonNode component = processorNode.path("component");
+            if ("INVALID".equals(component.path("validationStatus").asText())) {
+                validationErrorsMessage.append("Processor name = ")
+                        .append(component.path("name").asText())
+                        .append(". Validation errors: [");
+                for (JsonNode validationError : (ArrayNode) component.path("validationErrors")) {
+                    validationErrorsMessage.append(validationError.asText()).append(",");
+                }
+                validationErrorsMessage.append("].");
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

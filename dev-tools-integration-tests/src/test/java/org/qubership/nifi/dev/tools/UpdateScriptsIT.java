@@ -17,7 +17,6 @@ package org.qubership.nifi.dev.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -382,75 +381,7 @@ class UpdateScriptsIT {
 
         api.changeControllerServicesStateForPg(createdId, "ENABLED");
         api.waitForControllerServicesState(createdId, "ENABLED");
-        JsonNode mainPgJson = api.waitForPgValidation(createdId);
-
-        checkForInvalidComponents(mainPgJson, createdId);
-    }
-
-    private static void checkForInvalidComponents(JsonNode pgJson, String pgId)
-            throws IOException, InterruptedException {
-        int invalidCount = pgJson.path("invalidCount").asInt();
-        if (invalidCount > 0) {
-            StringBuilder validationErrorsMessage = new StringBuilder();
-            JsonNode mainPgFlow = api.getProcessGroupFlowById(pgId);
-            //process processors directly under main PG:
-            LOG.info("Processing processors validation errors for PG with id = {}", pgId);
-            addValidationErrorsForPg(mainPgFlow, validationErrorsMessage);
-            //iterate through child process groups:
-            JsonNode childPgsNode = mainPgFlow.path("processGroupFlow").path("flow").path("processGroups");
-            //child PGs exist:
-            if (childPgsNode.isArray()) {
-                ArrayNode childPgs = (ArrayNode) childPgsNode;
-                for (JsonNode childPg : childPgs) {
-                    int childInvalidCount = childPg.path("invalidCount").asInt();
-                    String childPgId = childPg.path("id").asText();
-                    LOG.info("Child PG with id = {} has invalidCount = {}", childPgId, childInvalidCount);
-                    if (childInvalidCount > 0) {
-                        JsonNode childPgFlowJson = api.getProcessGroupFlowById(childPgId);
-                        LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
-                        addValidationErrorsForPg(childPgFlowJson, validationErrorsMessage);
-                    }
-                }
-            }
-            if ("2.5.0".equals(nifiVersion)) {
-                if ((invalidCount == 1) && !validationErrorsMessage.isEmpty()
-                        && validationErrorsMessage.toString().
-                        contains("Processor name = PutS3Object. Validation errors: "
-                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
-                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
-                    LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
-                            validationErrorsMessage);
-                    invalidCount = 0;
-                }
-            }
-            assertEquals(0, invalidCount, "Created PG must not have invalid components. "
-                + "Validation errors: " + validationErrorsMessage);
-        }
-    }
-
-    private static void addValidationErrorsForPg(JsonNode getResponseJson, StringBuilder validationErrorsMessage) {
-        JsonNode processorsNode = getResponseJson.path("processGroupFlow").
-                path("flow").path("processors");
-        //if processors are available under PG itself:
-        if (processorsNode.isArray()) {
-            LOG.info("Processing processors validation errors under PG with id = {}",
-                    getResponseJson.path("processGroupFlow").path("id").asText());
-            ArrayNode processorsList = (ArrayNode) processorsNode;
-            for (JsonNode processorNode : processorsList) {
-                JsonNode component = processorNode.path("component");
-                String validationStatus = component.path("validationStatus").asText();
-                if ("INVALID".equals(validationStatus)) {
-                    ArrayNode validationErrorsNode = (ArrayNode) component.path("validationErrors");
-                    validationErrorsMessage.append("Processor name = ")
-                            .append(component.path("name").asText())
-                            .append(". Validation errors: [");
-                    for (JsonNode validationError : validationErrorsNode) {
-                        validationErrorsMessage.append(validationError.asText()).append(",");
-                    }
-                    validationErrorsMessage.append("].");
-                }
-            }
-        }
+        api.waitForPgValidation(createdId, nifiVersion);
     }
 
     // -------------------------------------------------------------------------
