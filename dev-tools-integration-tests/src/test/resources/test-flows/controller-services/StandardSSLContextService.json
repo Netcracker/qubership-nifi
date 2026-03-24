@@ -1,10 +1,10 @@
 {
   "revision": {
-    "clientId": "06250f1e-019d-1000-6725-25fb4d6f1e6c",
-    "version": 2
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 3
   },
-  "id": "06265b44-019d-1000-8d26-c56a4b86904e",
-  "uri": "https://localhost:8080/nifi-api/controller-services/06265b44-019d-1000-8d26-c56a4b86904e",
+  "id": "1f8729d5-019d-1000-9c55-8fbd2c0796ed",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f8729d5-019d-1000-9c55-8fbd2c0796ed",
   "permissions": {
     "canRead": true,
     "canWrite": true
@@ -12,24 +12,16 @@
   "bulletins": [],
   "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
   "component": {
-    "id": "06265b44-019d-1000-8d26-c56a4b86904e",
+    "id": "1f8729d5-019d-1000-9c55-8fbd2c0796ed",
     "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
-    "name": "StandardRestrictedSSLContextService",
-    "type": "org.apache.nifi.ssl.StandardRestrictedSSLContextService",
+    "name": "StandardSSLContextService",
+    "type": "org.apache.nifi.ssl.StandardSSLContextService",
     "bundle": {
       "group": "org.apache.nifi",
       "artifact": "nifi-ssl-context-service-nar",
       "version": "1.28.1"
     },
     "controllerServiceApis": [
-      {
-        "type": "org.apache.nifi.ssl.RestrictedSSLContextService",
-        "bundle": {
-          "group": "org.apache.nifi",
-          "artifact": "nifi-standard-services-api-nar",
-          "version": "1.28.1"
-        }
-      },
       {
         "type": "org.apache.nifi.ssl.SSLContextService",
         "bundle": {
@@ -54,7 +46,7 @@
       "Truststore Filename": "/etc/ssl/certs/java/cacerts",
       "Truststore Password": "********",
       "Truststore Type": "JKS",
-      "SSL Protocol": "TLSv1.3"
+      "SSL Protocol": "TLS"
     },
     "descriptors": {
       "Keystore Filename": {
@@ -183,14 +175,22 @@
       "SSL Protocol": {
         "name": "SSL Protocol",
         "displayName": "TLS Protocol",
-        "description": "TLS Protocol Version for encrypted connections. Supported versions depend on the specific version of Java used.",
+        "description": "SSL or TLS Protocol Version for encrypted connections. Supported versions include insecure legacy options and depend on the specific version of Java used.",
         "defaultValue": "TLS",
         "allowableValues": [
           {
             "allowableValue": {
+              "displayName": "SSL",
+              "value": "SSL",
+              "description": "Negotiate latest SSL or TLS protocol version based on platform supported versions"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
               "displayName": "TLS",
               "value": "TLS",
-              "description": "Negotiate latest protocol version based on platform supported versions"
+              "description": "Negotiate latest TLS protocol version based on platform supported versions"
             },
             "canRead": true
           },
@@ -207,6 +207,22 @@
               "displayName": "TLSv1.2",
               "value": "TLSv1.2",
               "description": "Require TLSv1.2 protocol version"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "TLSv1.1",
+              "value": "TLSv1.1",
+              "description": "Require TLSv1.1 protocol version"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "TLSv1",
+              "value": "TLSv1",
+              "description": "Require TLSv1 protocol version"
             },
             "canRead": true
           }

@@ -3,8 +3,7 @@ USER root
 RUN apk add --no-cache jq=1.8.1-r0
 USER 1001
 COPY --chown=1001:1001 dev/update-scripts-2.0/*.sh dev/update-scripts-2.0/*.json /scripts/2.0/
-COPY --chown=1001:1001 dev/update-scripts-2.5/*.sh dev/update-scripts-2.5/*.json /scripts/2.5/
-COPY --chown=1001:1001 dev/update-scripts-2.7/*.sh dev/update-scripts-2.7/*.json /scripts/2.7/
+COPY --chown=1001:1001 dev/update-scripts-prop-2.x/*.sh dev/update-scripts-prop-2.x/*.json /scripts/2.x/
 COPY --chown=1001:1001 dev/update-scripts-autotest/*.sh /scripts/
 WORKDIR /scripts
 # Directory with certificates

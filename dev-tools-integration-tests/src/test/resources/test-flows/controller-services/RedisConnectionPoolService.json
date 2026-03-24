@@ -1,0 +1,463 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 2
+  },
+  "id": "1f850e96-019d-1000-6d2c-3ab5f53bedff",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f850e96-019d-1000-6d2c-3ab5f53bedff",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f850e96-019d-1000-6d2c-3ab5f53bedff",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "RedisConnectionPoolService",
+    "type": "org.apache.nifi.redis.service.RedisConnectionPoolService",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-redis-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.redis.RedisConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-redis-service-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "Redis Mode": "Standalone",
+      "Connection String": "test-redis:6379",
+      "Database Index": "0",
+      "Communication Timeout": "10 seconds",
+      "Cluster Max Redirects": "5",
+      "Sentinel Master": null,
+      "Username": "test-user",
+      "Password": "********",
+      "Sentinel Username": null,
+      "Sentinel Password": null,
+      "SSL Context Service": null,
+      "Pool - Max Total": "8",
+      "Pool - Max Idle": "8",
+      "Pool - Min Idle": "0",
+      "Pool - Block When Exhausted": "true",
+      "Pool - Max Wait Time": "10 seconds",
+      "Pool - Min Evictable Idle Time": "60 seconds",
+      "Pool - Time Between Eviction Runs": "30 seconds",
+      "Pool - Num Tests Per Eviction Run": "-1",
+      "Pool - Test On Create": "false",
+      "Pool - Test On Borrow": "false",
+      "Pool - Test On Return": "false",
+      "Pool - Test While Idle": "true"
+    },
+    "descriptors": {
+      "Redis Mode": {
+        "name": "Redis Mode",
+        "displayName": "Redis Mode",
+        "description": "The type of Redis being communicated with - standalone, sentinel, or clustered.",
+        "defaultValue": "Standalone",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Standalone",
+              "value": "Standalone",
+              "description": "A single standalone Redis instance."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Sentinel",
+              "value": "Sentinel",
+              "description": "Redis Sentinel which provides high-availability. Described further at https://redis.io/topics/sentinel"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Cluster",
+              "value": "Cluster",
+              "description": "Clustered Redis which provides sharding and replication. Described further at https://redis.io/topics/cluster-spec"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Connection String": {
+        "name": "Connection String",
+        "displayName": "Connection String",
+        "description": "The connection string for Redis. In a standalone instance this value will be of the form hostname:port. In a sentinel instance this value will be the comma-separated list of sentinels, such as host1:port1,host2:port2,host3:port3. In a clustered instance this value will be the comma-separated list of cluster masters, such as host1:port,host2:port,host3:port.",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Database Index": {
+        "name": "Database Index",
+        "displayName": "Database Index",
+        "description": "The database index to be used by connections created from this connection pool. See the databases property in redis.conf, by default databases 0-15 will be available.",
+        "defaultValue": "0",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Communication Timeout": {
+        "name": "Communication Timeout",
+        "displayName": "Communication Timeout",
+        "description": "The timeout to use when attempting to communicate with Redis.",
+        "defaultValue": "10 seconds",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Cluster Max Redirects": {
+        "name": "Cluster Max Redirects",
+        "displayName": "Cluster Max Redirects",
+        "description": "The maximum number of redirects that can be performed when clustered.",
+        "defaultValue": "5",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Sentinel Master": {
+        "name": "Sentinel Master",
+        "displayName": "Sentinel Master",
+        "description": "The name of the sentinel master, require when Mode is set to Sentinel",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Username": {
+        "name": "Username",
+        "displayName": "Username",
+        "description": "The username used to authenticate to the Redis server.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Password": {
+        "name": "Password",
+        "displayName": "Password",
+        "description": "The password used to authenticate to the Redis server. See the 'requirepass' property in redis.conf.",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Sentinel Username": {
+        "name": "Sentinel Username",
+        "displayName": "Sentinel Username",
+        "description": "The username used to authenticate to the Redis sentinel server.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Sentinel Password": {
+        "name": "Sentinel Password",
+        "displayName": "Sentinel Password",
+        "description": "The password used to authenticate to the Redis Sentinel server. See the 'requirepass' and 'sentinel sentinel-pass' properties in sentinel.conf.",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "SSL Context Service": {
+        "name": "SSL Context Service",
+        "displayName": "SSL Context Service",
+        "description": "If specified, this service will be used to create an SSL Context that will be used to secure communications; if not specified, communications will not be secure",
+        "allowableValues": [],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.ssl.RestrictedSSLContextService",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": []
+      },
+      "Pool - Max Total": {
+        "name": "Pool - Max Total",
+        "displayName": "Pool - Max Total",
+        "description": "The maximum number of connections that can be allocated by the pool (checked out to clients, or idle awaiting checkout). A negative value indicates that there is no limit.",
+        "defaultValue": "8",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Max Idle": {
+        "name": "Pool - Max Idle",
+        "displayName": "Pool - Max Idle",
+        "description": "The maximum number of idle connections that can be held in the pool, or a negative value if there is no limit.",
+        "defaultValue": "8",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Min Idle": {
+        "name": "Pool - Min Idle",
+        "displayName": "Pool - Min Idle",
+        "description": "The target for the minimum number of idle connections to maintain in the pool. If the configured value of Min Idle is greater than the configured value for Max Idle, then the value of Max Idle will be used instead.",
+        "defaultValue": "0",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Block When Exhausted": {
+        "name": "Pool - Block When Exhausted",
+        "displayName": "Pool - Block When Exhausted",
+        "description": "Whether or not clients should block and wait when trying to obtain a connection from the pool when the pool has no available connections. Setting this to false means an error will occur immediately when a client requests a connection and none are available.",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Max Wait Time": {
+        "name": "Pool - Max Wait Time",
+        "displayName": "Pool - Max Wait Time",
+        "description": "The amount of time to wait for an available connection when Block When Exhausted is set to true.",
+        "defaultValue": "10 seconds",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Min Evictable Idle Time": {
+        "name": "Pool - Min Evictable Idle Time",
+        "displayName": "Pool - Min Evictable Idle Time",
+        "description": "The minimum amount of time an object may sit idle in the pool before it is eligible for eviction.",
+        "defaultValue": "60 seconds",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Time Between Eviction Runs": {
+        "name": "Pool - Time Between Eviction Runs",
+        "displayName": "Pool - Time Between Eviction Runs",
+        "description": "The amount of time between attempting to evict idle connections from the pool.",
+        "defaultValue": "30 seconds",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Num Tests Per Eviction Run": {
+        "name": "Pool - Num Tests Per Eviction Run",
+        "displayName": "Pool - Num Tests Per Eviction Run",
+        "description": "The number of connections to tests per eviction attempt. A negative value indicates to test all connections.",
+        "defaultValue": "-1",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Test On Create": {
+        "name": "Pool - Test On Create",
+        "displayName": "Pool - Test On Create",
+        "description": "Whether or not connections should be tested upon creation.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Test On Borrow": {
+        "name": "Pool - Test On Borrow",
+        "displayName": "Pool - Test On Borrow",
+        "description": "Whether or not connections should be tested upon borrowing from the pool.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Test On Return": {
+        "name": "Pool - Test On Return",
+        "displayName": "Pool - Test On Return",
+        "description": "Whether or not connections should be tested upon returning to the pool.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Pool - Test While Idle": {
+        "name": "Pool - Test While Idle",
+        "displayName": "Pool - Test While Idle",
+        "description": "Whether or not connections should be tested while idle.",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

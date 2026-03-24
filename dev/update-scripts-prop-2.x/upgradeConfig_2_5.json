@@ -1,0 +1,86 @@
+{
+    "org.apache.nifi.json.JsonRecordSetWriter" : {
+        "schema-protocol-version" : null
+    },
+    "org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider" : {
+        "connect-timeout" : "Connect Timeout",
+        "redirect-handling-strategy" : "Redirect Handling Strategy",
+        "read-timeout" : "Read Timeout",
+        "ssl-context-service" : "SSL Context Service",
+        "write-timeout" : "Write Timeout"
+    },
+    "org.apache.nifi.xml.XMLRecordSetWriter" : {
+        "schema-protocol-version" : null
+    },
+    "org.apache.nifi.dbcp.DBCPConnectionPool" : {
+        "kerberos-credentials-service" : null,
+        "kerberos-password" : null,
+        "kerberos-principal" : null
+    },
+    "org.apache.nifi.websocket.jetty.JettyWebSocketServer" : {
+        "max-binary-message-size" : "Max Binary Message Size",
+        "login-service" : "Login Service",
+        "Listen Port" : "Port",
+        "ssl-context-service" : "SSL Context Service",
+        "SSL Client Authentication" : "Client Authentication",
+        "Enable Basic Authentication" : "Basic Authentication Enabled",
+        "auth-path-spec" : "Basic Authentication Path Spec",
+        "auth-roles" : "Basic Authentication Roles",
+        "max-text-message-size" : "Max Text Message Size",
+        "input-buffer-size" : "Input Buffer Size"
+    },
+    "org.apache.nifi.aws.schemaregistry.AmazonGlueSchemaRegistry" : {
+        "cache-expiration" : "Cache Expiration",
+        "ssl-context-service" : "SSL Context Service",
+        "communications-timeout" : "Communications Timeout",
+        "cache-size" : "Cache Size",
+        "aws-credentials-provider-service" : "AWS Credentials Provider Service",
+        "region" : "Region",
+        "schema-registry-name" : "Schema Registry Name"
+    },
+    "org.apache.nifi.avro.AvroRecordSetWriter" : {
+        "schema-protocol-version" : null
+    },
+    "org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl" : {
+        "el-cs-retry-timeout" : null
+    },
+    "org.apache.nifi.websocket.jetty.JettyWebSocketClient" : {
+        "max-binary-message-size" : "Max Binary Message Size",
+        "ssl-context-service" : "SSL Context Service",
+        "User Name" : "Username",
+        "connection-attempt-timeout" : "Connection Attempt Count",
+        "proxy-host" : "HTTP Proxy Host",
+        "authentication-charset" : "Authentication Header Charset",
+        "max-text-message-size" : "Max Text Message Size",
+        "websocket-uri" : "WebSocket URI",
+        "connection-timeout" : "Connection Timeout",
+        "proxy-port" : "HTTP Proxy Port",
+        "session-maintenance-interval" : "Session Maintenance Interval",
+        "custom-authorization" : "Custom Authorization",
+        "input-buffer-size" : "Input Buffer Size",
+        "User Password" : "Password"
+    },
+    "org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider" : {
+        "audience" : "Audience",
+        "grant-type" : "Grant Type",
+        "ssl-context-service" : "SSL Context Service",
+        "resource" : "Resource",
+        "refresh-window" : "Refresh Window",
+        "service-password" : "Password",
+        "service-user-name" : "Username",
+        "client-authentication-strategy" : "Client Authentication Strategy",
+        "authorization-server-url" : "Authorization Server URL",
+        "refresh-token" : "Refresh Token",
+        "client-secret" : "Client secret",
+        "scope" : "Scope",
+        "client-id" : "Client ID"
+    },
+    "org.apache.nifi.mongodb.MongoDBControllerService" : {
+        "ssl-context-service" : "SSL Context Service",
+        "ssl-client-auth" : null,
+        "mongo-uri" : "Mongo URI"
+    },
+    "org.apache.nifi.csv.CSVRecordSetWriter" : {
+        "schema-protocol-version" : null
+    }
+}

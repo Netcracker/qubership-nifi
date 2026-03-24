@@ -1,0 +1,178 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 2
+  },
+  "id": "1f86533f-019d-1000-4998-6f02a13f4b45",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f86533f-019d-1000-4998-6f02a13f4b45",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f86533f-019d-1000-4998-6f02a13f4b45",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "StandardProxyConfigurationService",
+    "type": "org.apache.nifi.proxy.StandardProxyConfigurationService",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-proxy-configuration-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.proxy.ProxyConfigurationService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "proxy-type": "DIRECT",
+      "socks-version": "SOCKS5",
+      "proxy-server-host": "localhost",
+      "proxy-server-port": "11111",
+      "proxy-user-name": "test-user",
+      "proxy-user-password": "********"
+    },
+    "descriptors": {
+      "proxy-type": {
+        "name": "proxy-type",
+        "displayName": "Proxy Type",
+        "description": "Proxy type.",
+        "defaultValue": "DIRECT",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "DIRECT",
+              "value": "DIRECT"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HTTP",
+              "value": "HTTP"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "SOCKS",
+              "value": "SOCKS"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "socks-version": {
+        "name": "socks-version",
+        "displayName": "SOCKS Version",
+        "description": "SOCKS Protocol Version",
+        "defaultValue": "SOCKS5",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "SOCKS4",
+              "value": "SOCKS4"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "SOCKS5",
+              "value": "SOCKS5"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "proxy-type",
+            "dependentValues": [
+              "SOCKS"
+            ]
+          }
+        ]
+      },
+      "proxy-server-host": {
+        "name": "proxy-server-host",
+        "displayName": "Proxy Server Host",
+        "description": "Proxy server hostname or ip-address.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "proxy-server-port": {
+        "name": "proxy-server-port",
+        "displayName": "Proxy Server Port",
+        "description": "Proxy server port number.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "proxy-user-name": {
+        "name": "proxy-user-name",
+        "displayName": "Proxy User Name",
+        "description": "The name of the proxy client for user authentication.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "proxy-user-password": {
+        "name": "proxy-user-password",
+        "displayName": "Proxy User Password",
+        "description": "The password of the proxy client for user authentication.",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

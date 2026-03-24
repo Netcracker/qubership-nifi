@@ -1,0 +1,82 @@
+{
+    "org.apache.nifi.services.azure.storage.ADLSCredentialsControllerService" : {
+        "storage-account-name" : "Storage Account Name",
+        "service-principal-client-secret" : "Service Principal Client Secret",
+        "storage-sas-token" : "SAS Token",
+        "storage-endpoint-suffix" : "Endpoint Suffix",
+        "storage-account-key" : "Account Key",
+        "service-principal-tenant-id" : "Service Principal Tenant ID",
+        "service-principal-client-id" : "Service Principal Client ID",
+        "credentials-type" : "Credentials Type",
+        "managed-identity-client-id" : "Managed Identity Client ID"
+    },
+    "org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService" : {
+        "key-id-or-key-material" : "Key ID or Key Material",
+        "encryption-strategy" : "Encryption Strategy",
+        "kms-region" : "KMS Region"
+    },
+    "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService" : {
+        "profile-name" : "Profile Name",
+        "Access Key" : "Access Key ID",
+        "assume-role-proxy-configuration-service" : "Assume Role Proxy Configuration Service",
+        "default-credentials" : "Use Default Credentials",
+        "Session Time" : "Assume Role Session Time",
+        "assume-role-ssl-context-service" : "Assume Role SSL Context Service",
+        "assume-role-sts-signer-override" : "Assume Role STS Signer Override",
+        "custom-signer-class-name" : "Custom Signer Class Name",
+        "custom-signer-module-location" : "Custom Signer Module Location",
+        "assume-role-sts-endpoint" : "Assume Role STS Endpoint Override",
+        "assume-role-sts-region" : "Assume Role STS Region",
+        "Secret Key" : "Secret Access Key",
+        "assume-role-external-id" : "Assume Role External ID",
+        "anonymous-credentials" : "Use Anonymous Credentials"
+    },
+    "org.apache.nifi.services.azure.storage.AzureDataLakeStorageFileResourceService" : {
+        "filesystem-name" : "Filesystem Name",
+        "adls-credentials-service" : "ADLS Credentials",
+        "directory-name" : "Directory Name",
+        "file-name" : "File Name"
+    },
+    "org.apache.nifi.services.azure.cosmos.document.AzureCosmosDBClientService" : {
+        "azure-cosmos-db-uri" : "Cosmos DB URI",
+        "azure-cosmos-db-consistency-level" : "Cosmos DB Consistency Level",
+        "azure-cosmos-db-key" : "Cosmos DB Access Key"
+    },
+    "org.apache.nifi.services.azure.StandardAzureCredentialsControllerService" : {
+        "managed-identity-client-id" : "Managed Identity Client ID",
+        "credential-configuration-strategy" : "Credential Configuration Strategy"
+    },
+    "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12" : {
+        "storage-account-name" : "Storage Account Name",
+        "service-principal-client-secret" : "Service Principal Client Secret",
+        "storage-sas-token" : "SAS Token",
+        "storage-endpoint-suffix" : "Endpoint Suffix",
+        "storage-account-key" : "Account Key",
+        "service-principal-tenant-id" : "Service Principal Tenant ID",
+        "service-principal-client-id" : "Service Principal Client ID",
+        "credentials-type" : "Credentials Type",
+        "managed-identity-client-id" : "Managed Identity Client ID"
+    },
+    "org.apache.nifi.services.azure.storage.AzureBlobStorageFileResourceService" : {
+        "blob-name" : "Blob Name",
+        "storage-credentials-service" : "Storage Credentials",
+        "container-name" : "Container Name"
+    },
+    "org.apache.nifi.reporting.azure.loganalytics.AzureLogAnalyticsProvenanceReportingTask" : {
+        "s2s-prov-task-event-filter" : "Event Type to Include",
+        "include-null-values" : "Include Null Values",
+        "s2s-prov-task-type-filter" : "Component Type to Include",
+        "s2s-prov-task-id-filter" : "Component ID to Include",
+        "s2s-prov-task-id-filter-exclude" : "Component ID to Exclude",
+        "s2s-prov-task-type-filter-exclude" : "Component Type to Exclude",
+        "s2s-prov-task-event-filter-exclude" : "Event Type to Exclude",
+        "s2s-prov-task-name-filter" : "Component Name to Include",
+        "start-position" : "Start Position",
+        "s2s-prov-task-name-filter-exclude" : "Component Name to Exclude"
+    },
+    "org.apache.nifi.controller.asana.StandardAsanaClientProviderService" : {
+        "asana-api-url" : "API URL",
+        "asana-personal-access-token" : "Personal Access Token",
+        "asana-workspace-name" : "Workspace"
+    }
+}

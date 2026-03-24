@@ -1,4 +1,7 @@
 {
+    "org.apache.nifi.reporting.azure.loganalytics.AzureLogAnalyticsReportingTask" : {
+        "Process group ID(s)" : "Process Group IDs"
+    },
     "org.apache.nifi.services.slack.SlackRecordSink" : {
         "api-url" : "API URL",
         "input-character-set" : "Input Character Set",
@@ -15,6 +18,9 @@
         "schema-access-strategy" : "Schema Access Strategy",
         "schema-version" : "Schema Version",
         "schema-text" : "Schema Text"
+    },
+    "org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService" : {
+        "KMS Region" : null
     },
     "org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProvider" : {
         "connection.factory.name" : "JNDI Name of the Connection Factory",
@@ -75,6 +81,7 @@
         "hikaricp-min-idle-conns" : "Minimum Idle Connections",
         "hikaricp-username" : "Database User",
         "hikaricp-kerberos-user-service" : "Kerberos User Service",
+        "Database Driver Location(s)" : "Database Driver Locations",
         "hikaricp-max-conn-lifetime" : "Max Connection Lifetime",
         "hikaricp-max-wait-time" : "Max Wait Time",
         "hikaricp-connection-url" : "Database Connection URL"
@@ -107,27 +114,29 @@
     "org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl" : {
         "el-cs-strict-deprecation" : "Strict Deprecation",
         "el-cs-http-hosts" : "HTTP Hosts",
-        "el-cs-path-prefix" : "Path Prefix",
         "el-cs-run-as-user" : "Run As User",
         "proxy-configuration-service" : "Proxy Configuration Service",
-        "api-key-id" : "API Key ID",
         "jwt-shared-secret" : "JWT Shared Secret",
         "el-cs-send-meta-header" : "Send Meta Header",
         "el-cs-username" : "Username",
         "el-cs-enable-compression" : "Enable Compression",
         "el-cs-sniff-cluster-nodes" : "Sniff Cluster Nodes",
+        "api-key" : "API Key",
+        "el-cs-node-selector" : "Node Selector",
+        "el-cs-sniff-failure" : "Sniff on Failure",
+        "el-cs-sniffer-request-timeout" : "Sniffer Request Timeout",
+        "el-cs-ssl-context-service" : "SSL Context Service",
+        "el-cs-oauth2-token-provider" : "OAuth2 Access Token Provider",
+        "el-cs-path-prefix" : "Path Prefix",
+        "api-key-id" : "API Key ID",
+        "Charset" : "Character Set",
         "el-cs-sniffer-interval" : "Sniffer Interval",
         "el-cs-sniffer-failure-delay" : "Sniffer Failure Delay",
         "el-cs-password" : "Password",
-        "api-key" : "API Key",
-        "el-cs-node-selector" : "Node Selector",
         "authorization-scheme" : "Authorization Scheme",
-        "el-cs-sniff-failure" : "Sniff on Failure",
-        "el-cs-sniffer-request-timeout" : "Sniffer Request Timeout",
+        "Suppress Null/Empty Values" : "Suppress Null and Empty Values",
         "el-cs-connect-timeout" : "Connect Timeout",
-        "el-cs-socket-timeout" : "Read Timeout",
-        "el-cs-ssl-context-service" : "SSL Context Service",
-        "el-cs-oauth2-token-provider" : "OAuth2 Access Token Provider"
+        "el-cs-socket-timeout" : "Read Timeout"
     },
     "org.apache.nifi.services.smb.SmbjClientProviderService" : {
         "use-encryption" : "Use Encryption",
@@ -192,9 +201,12 @@
         "schema-text" : "Schema Text"
     },
     "org.apache.nifi.dbcp.DBCPConnectionPool" : {
+        "Max Idle Connections" : "Maximum Idle Connections",
         "Validation-query" : "Validation Query",
         "dbcp-min-idle-conns" : "Minimum Idle Connections",
+        "Max Connection Lifetime" : "Maximum Connection Lifetime",
         "dbcp-time-between-eviction-runs" : "Time Between Eviction Runs",
+        "Database Driver Location(s)" : "Database Driver Locations",
         "dbcp-min-evictable-idle-time" : "Minimum Evictable Idle Time",
         "kerberos-user-service" : "Kerberos User Service",
         "dbcp-soft-min-evictable-idle-time" : "Soft Minimum Evictable Idle Time"
@@ -328,6 +340,11 @@
     "org.apache.nifi.redis.service.SimpleRedisDistributedMapCacheClientService" : {
         "redis-connection-pool" : "Redis Connection Pool",
         "redis-cache-ttl" : "TTL"
+    },
+    "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService" : {
+        "Custom Signer Module Location" : null,
+        "Custom Signer Class Name" : null,
+        "Assume Role STS Signer Override" : null
     },
     "org.apache.nifi.xml.XMLRecordSetWriter" : {
         "schema-reference-reader" : "Schema Reference Reader",

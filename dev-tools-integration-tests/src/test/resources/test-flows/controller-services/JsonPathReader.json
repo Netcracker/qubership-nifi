@@ -1,0 +1,326 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 3
+  },
+  "id": "1f837e27-019d-1000-d456-5d5931250611",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f837e27-019d-1000-d456-5d5931250611",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f837e27-019d-1000-d456-5d5931250611",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "JsonPathReader",
+    "type": "org.apache.nifi.json.JsonPathReader",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-record-serialization-services-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.serialization.RecordReaderFactory",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "schema-access-strategy": "infer-schema",
+      "schema-registry": null,
+      "schema-name": "${schema.name}",
+      "schema-version": null,
+      "schema-branch": null,
+      "schema-text": "${avro.schema}",
+      "Max String Length": "20 MB",
+      "Allow Comments": "false",
+      "Date Format": null,
+      "Time Format": null,
+      "Timestamp Format": null,
+      "path1": "$.attr1"
+    },
+    "descriptors": {
+      "schema-access-strategy": {
+        "name": "schema-access-strategy",
+        "displayName": "Schema Access Strategy",
+        "description": "Specifies how to obtain the schema that is to be used for interpreting the data.",
+        "defaultValue": "infer-schema",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Name' Property",
+              "value": "schema-name",
+              "description": "The name of the Schema to use is specified by the 'Schema Name' Property. The value of this property is used to lookup the Schema in the configured Schema Registry service."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Text' Property",
+              "value": "schema-text-property",
+              "description": "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Schema Reference Attributes",
+              "value": "hwx-schema-ref-attributes",
+              "description": "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Content-Encoded Schema Reference",
+              "value": "hwx-content-encoded-schema",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, found at https://github.com/hortonworks/registry"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Confluent Content-Encoded Schema Reference",
+              "value": "confluent-encoded",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single 'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. This is based on version 3.2.x of the Confluent Schema Registry."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Infer Schema",
+              "value": "infer-schema",
+              "description": "The Schema of the data will be inferred automatically when the data is read. See component Usage and Additional Details for information about how the schema is inferred."
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "schema-registry": {
+        "name": "schema-registry",
+        "displayName": "Schema Registry",
+        "description": "Specifies the Controller Service to use for the Schema Registry",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "AvroSchemaRegistry",
+              "value": "1f7c4916-019d-1000-49a7-4df3e68ff83a"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.schemaregistry.services.SchemaRegistry",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "confluent-encoded",
+              "schema-name",
+              "hwx-schema-ref-attributes",
+              "hwx-content-encoded-schema"
+            ]
+          }
+        ]
+      },
+      "schema-name": {
+        "name": "schema-name",
+        "displayName": "Schema Name",
+        "description": "Specifies the name of the schema to lookup in the Schema Registry property",
+        "defaultValue": "${schema.name}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-version": {
+        "name": "schema-version",
+        "displayName": "Schema Version",
+        "description": "Specifies the version of the schema to lookup in the Schema Registry. If not specified then the latest version of the schema will be retrieved.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-branch": {
+        "name": "schema-branch",
+        "displayName": "Schema Branch",
+        "description": "Specifies the name of the branch to use when looking up the schema in the Schema Registry property. If the chosen Schema Registry does not support branching, this value will be ignored.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-text": {
+        "name": "schema-text",
+        "displayName": "Schema Text",
+        "description": "The text of an Avro-formatted Schema",
+        "defaultValue": "${avro.schema}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-text-property"
+            ]
+          }
+        ]
+      },
+      "Max String Length": {
+        "name": "Max String Length",
+        "displayName": "Max String Length",
+        "description": "The maximum allowed length of a string value when parsing the JSON document",
+        "defaultValue": "20 MB",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Allow Comments": {
+        "name": "Allow Comments",
+        "displayName": "Allow Comments",
+        "description": "Whether to allow comments when parsing the JSON document",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Date Format": {
+        "name": "Date Format",
+        "displayName": "Date Format",
+        "description": "Specifies the format to use when reading/writing Date fields. If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Time Format": {
+        "name": "Time Format",
+        "displayName": "Time Format",
+        "description": "Specifies the format to use when reading/writing Time fields. If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Timestamp Format": {
+        "name": "Timestamp Format",
+        "displayName": "Timestamp Format",
+        "description": "Specifies the format to use when reading/writing Timestamp fields. If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "path1": {
+        "name": "path1",
+        "displayName": "path1",
+        "description": "JsonPath Expression that indicates how to retrieve the value from a JSON Object for the 'path1' column",
+        "required": false,
+        "sensitive": false,
+        "dynamic": true,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

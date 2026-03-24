@@ -2,8 +2,9 @@
 # shellcheck source=/dev/null
 # shellcheck disable=SC2154
 
-echo "Start update flow to NiFi 2.7.2 version using configuration - $pathToUpdateNiFiConfig"
-configFile=$(cat "$pathToUpdateNiFiConfig")
+configFile=$(cat "$1")
+echo "Start updating nifi configurations using configuration file - $1"
+
 for expflow in "${listForUpdate[@]}"; do
     echo "Updating property names based on mapping file for flow - $expflow"
     tmp=$(mktemp)
@@ -31,4 +32,4 @@ for expflow in "${listForUpdate[@]}"; do
     mv "$tmp" "$expflow"
 done
 
-echo "Finish update flow to NiFi 2.7.2 version"
+echo "Finish updating nifi configurations"

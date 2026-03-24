@@ -11,10 +11,11 @@ delete_tmp_file() {
 }
 
 pathToFlow=$1
-pathToUpdateNiFiConfig=$2
 
 #declare array
-declare -a listForUpdate
+declare -a listForUpdate_2_5
+declare -a listForUpdate_2_6
+declare -a listForUpdate_2_7
 declare -a exportFlow
 
 if [ -z "$pathToFlow" ]; then
@@ -22,18 +23,8 @@ if [ -z "$pathToFlow" ]; then
     pathToFlow="./export"
 fi
 
-if [ -z "$pathToUpdateNiFiConfig" ]; then
-    echo "The second argument - 'pathToUpdateNiFiConfig' is not set. The default value - './upgradeConfig_2_5.json' will be set."
-    pathToUpdateNiFiConfig="./upgradeConfig_2_5.json"
-fi
-
 if [ ! -d "$pathToFlow" ]; then
     echo "Error: The specified directory does not exist."
-    exit 1
-fi
-
-if [ ! -f "$pathToUpdateNiFiConfig" ]; then
-    echo "Error: The specified configuration file does not exist."
     exit 1
 fi
 
@@ -51,13 +42,23 @@ for file in "${exportFlow[@]}"; do
         minorVersion=$(echo "$version" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\2/')
         echo "Found controller service with org.apache.nifi group. Major.minor version: $majorVersion.$minorVersion"
         if ((majorVersion == 1 || majorVersion == 2 && minorVersion < 5)); then
-            listForUpdate+=("$file")
-            echo "Flow - $file needs to be updated"
+            listForUpdate_2_5+=("$file")
+            echo "Flow - $file needs to be updated, if target version >= 2.5"
+        fi
+        if ((majorVersion == 1 || majorVersion == 2 && minorVersion < 6)); then
+            listForUpdate_2_6+=("$file")
+            echo "Flow - $file needs to be updated, if target version >= 2.6"
+        fi
+        if ((majorVersion == 1 || majorVersion == 2 && minorVersion < 7)); then
+            listForUpdate_2_7+=("$file")
+            echo "Flow - $file needs to be updated, if target version >= 2.7"
         fi
     fi
 done
 
-echo "Flow for update: " "${listForUpdate[@]}"
+echo "Flow for update 2.5: " "${listForUpdate_2_5[@]}"
+echo "Flow for update 2.6: " "${listForUpdate_2_6[@]}"
+echo "Flow for update 2.7: " "${listForUpdate_2_7[@]}"
 
 #Checking the target version of NiFi
 respCode=$(eval curl -sS -w '%{response_code}' -o ./flow-about.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/about")
@@ -73,10 +74,27 @@ echo "Target NiFi version - $targetVer"
 majorVersion=$(echo "$targetVer" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\1/')
 minorVersion=$(echo "$targetVer" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\2/')
 
+# shellcheck disable=SC2034
 #If target NiFi version is >= 2.5, then run the script on the flow update:
 if ((majorVersion == 2 && minorVersion >= 5)); then
-    . upgradeExports_2_5.sh
+    listForUpdate=("${listForUpdate_2_5[@]}")
+    . upgradeExports_2_x.sh ./upgradeConfig_2_5.json
 fi
+
+# shellcheck disable=SC2034
+#If target NiFi version is >= 2.6, then run the script on the flow update:
+if ((majorVersion == 2 && minorVersion >= 6)); then
+    listForUpdate=("${listForUpdate_2_6[@]}")
+    . upgradeExports_2_x.sh ./upgradeConfig_2_6.json
+fi
+
+# shellcheck disable=SC2034
+#If target NiFi version is >= 2.7, then run the script on the flow update:
+if ((majorVersion == 2 && minorVersion >= 7)); then
+    listForUpdate=("${listForUpdate_2_7[@]}")
+    . upgradeExports_2_x.sh ./upgradeConfig_2_7.json
+fi
+
 delete_tmp_file
 
 echo "Finish update flow process"
