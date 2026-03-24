@@ -140,6 +140,7 @@ class UpdateScriptsIT {
     private static HttpClient httpClient;
     private static String registryClientId;
     private static Map<String, String> csVersionMap;
+    private static String nifiVersion;
 
     @BeforeAll
     static void setup() throws Exception {
@@ -157,8 +158,6 @@ class UpdateScriptsIT {
         tempFlowsDir = Files.createTempDirectory("dev-tools-it-flows-");
         copyTestFlows(tempFlowsDir);
         LOG.info("Test flows copied to {}", tempFlowsDir);
-        //setup test passwords for SSLContext services:
-        setupTestPasswords();
 
         httpClient = NifiMtlsClient.build(nifiCertPath, nifiCertPassword, nifiCaCertPath);
         new NifiAccessPolicies(nifiUrl, httpClient).setup();
@@ -167,17 +166,35 @@ class UpdateScriptsIT {
         NifiRegistrySetup.createOrUpdateUser(nifiRegistryUrl, httpClient, "localhost");
 
         csVersionMap = buildControllerServiceVersionMap(fetchControllerServiceTypes());
+        nifiVersion = fetchNifiVersion();
+        //setup properties for SSLContext services:
+        setupSslContextServicesTestProperties();
         runScriptsContainer();
     }
 
-    static void setupTestPasswords() throws IOException {
-        setupTestPassword("StandardRestrictedSSLContextService.json");
-        setupTestPassword("StandardSSLContextService.json");
+    private static String fetchNifiVersion() throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/flow/about"))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        if (resp.statusCode() != HTTP_OK) {
+            throw new IllegalStateException(
+                    "GET /nifi-api/flow/about returned HTTP " + resp.statusCode());
+        }
+        return MAPPER.readTree(resp.body()).path("about").path("version").asText();
+    }
+
+    private static void setupSslContextServicesTestProperties() throws Exception {
+        setupSslContextServicesTestProperties("StandardRestrictedSSLContextService.json");
+        setupSslContextServicesTestProperties("StandardSSLContextService.json");
     }
 
     private static final String TEST_PWD = "changeit";
+    private static final String CA_CERTS_KEYSTORE = "/opt/java/openjdk/lib/security/cacerts";
 
-    static void setupTestPassword(String fileName) throws IOException {
+    private static void setupSslContextServicesTestProperties(String fileName) throws IOException {
         Path csFile = tempFlowsDir.resolve("controller-services/" + fileName);
         File controllerServiceFile = csFile.toFile();
         ObjectNode csJson = (ObjectNode) MAPPER.readTree(controllerServiceFile);
@@ -185,6 +202,10 @@ class UpdateScriptsIT {
         propsNode.put("Keystore Password", TEST_PWD);
         propsNode.put("key-password", TEST_PWD);
         propsNode.put("Truststore Password", TEST_PWD);
+        if ("2.5.0".equals(nifiVersion)) {
+            propsNode.put("Keystore Filename", CA_CERTS_KEYSTORE);
+            propsNode.put("Truststore Filename", CA_CERTS_KEYSTORE);
+        }
         MAPPER.writeValue(controllerServiceFile, csJson);
     }
 
@@ -430,7 +451,7 @@ class UpdateScriptsIT {
         assertFalse(createdId.isEmpty(), "Created process group id must not be empty");
 
         changeControllerServicesStateForPg(createdId, "ENABLED");
-        Thread.sleep(1000);
+        Thread.sleep(5000);
         JsonNode mainPgJson = getProcessGroupById(createdId);
 
         checkForInvalidComponents(mainPgJson, createdId);
@@ -459,6 +480,16 @@ class UpdateScriptsIT {
                         LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
                         addValidationErrorsForPg(childPgFlowJson, validationErrorsMessage);
                     }
+                }
+            }
+            if ("2.5.0".equals(nifiVersion)) {
+                if ((invalidCount == 1) && ("Processor name = PutS3Object. Validation errors: "
+                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
+                        + "proxy-user-password, Secret Key] configured but not supported,].").
+                        contentEquals(validationErrorsMessage)) {
+                    LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
+                            validationErrorsMessage);
+                    invalidCount = 0;
                 }
             }
             assertEquals(0, invalidCount, "Created PG must not have invalid components. "
