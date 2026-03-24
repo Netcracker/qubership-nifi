@@ -366,7 +366,7 @@ class UpdateScriptsIT {
             String bucketId = mainPgJson.path("component").
                     path("versionControlInformation").path("bucketId").asText();
             changeControllerServicesStateForPg(pgId, "DISABLED");
-            Thread.sleep(500);
+            waitForControllerServicesState(pgId, "DISABLED");
             deleteProcessGroup(pgId, pgVersion);
             NifiRegistrySetup.deleteBucket(nifiRegistryUrl, httpClient, bucketId);
             pgId = null;
@@ -451,8 +451,8 @@ class UpdateScriptsIT {
         assertFalse(createdId.isEmpty(), "Created process group id must not be empty");
 
         changeControllerServicesStateForPg(createdId, "ENABLED");
-        Thread.sleep(5000);
-        JsonNode mainPgJson = getProcessGroupById(createdId);
+        waitForControllerServicesState(createdId, "ENABLED");
+        JsonNode mainPgJson = waitForPgValidation(createdId);
 
         checkForInvalidComponents(mainPgJson, createdId);
     }
@@ -566,6 +566,48 @@ class UpdateScriptsIT {
                 "Expected HTTP 200 when getting PG. Response: " + getPgResponse.body());
 
         return MAPPER.readTree(getPgResponse.body());
+    }
+
+    private static JsonNode getControllerServicesForPg(String pgId) throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + pgId + "/controller-services"))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when getting controller services for PG. Response: " + resp.body());
+        return MAPPER.readTree(resp.body()).path("controllerServices");
+    }
+
+    private static void waitForControllerServicesState(String pgId, String targetState)
+            throws IOException, InterruptedException {
+        LOG.info("Waiting for all controller services in PG {} to reach state {}", pgId, targetState);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .until(() -> {
+                    JsonNode csArray = getControllerServicesForPg(pgId);
+                    if (!csArray.isArray() || csArray.isEmpty()) {
+                        return true;
+                    }
+                    for (JsonNode cs : csArray) {
+                        String state = cs.path("component").path("state").asText();
+                        if (!targetState.equals(state)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+        LOG.info("All controller services in PG {} reached state {}", pgId, targetState);
+    }
+
+    private static JsonNode waitForPgValidation(String pgId) throws IOException, InterruptedException {
+        LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .until(() -> getProcessGroupById(pgId).path("invalidCount").asInt() == 0);
+        LOG.info("PG {} has no invalid components", pgId);
+        return getProcessGroupById(pgId);
     }
 
     private static JsonNode getProcessGroupFlowById(String createdId) throws IOException, InterruptedException {
