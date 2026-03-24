@@ -1,4 +1,4 @@
-# Exclude test resources with synthetic data
-# False positive on property AWS Credentials Provider service
-# referencing credential provider service (not actual credentials)
-dev-tools-integration-tests/src/test/resources/test-flows/flows/Upgrade_Test_PG1.json
+# Exclude test resource with synthetic data.
+# False positive on AWS Credentials Provider service property
+# referencing credential provider service. No credentials are included in test.
+dev-tools-integration-tests/src/test/resources/test-flows/flows/Upgrade_Test_PG1.json:generic-api-key:1083

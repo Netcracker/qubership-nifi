@@ -68,7 +68,7 @@ if [[ "$respCode" != "200" ]]; then
     handle_error "Failed to get target NiFi version"
 fi
 
-targetVer=$(<./flow-about.json jq -r '.about.version') || handle_error "Error determining version of target NiFi"
+targetVer=$(<./flow-about.json jq -r '.about.version') || handle_error "Error determining version of target NiFi. API response: $(cat ./flow-about.json)"
 
 echo "Target NiFi version - $targetVer"
 majorVersion=$(echo "$targetVer" | sed -E 's/([0-9]+).([0-9]+).([0-9]+)/\1/')
