@@ -5,16 +5,14 @@ on:
   push:
     paths:
       - 'dev/update-scripts-2.0/**'
-      - 'dev/update-scripts-2.5/**'
-      - 'dev/update-scripts-2.7/**'
+      - 'dev/update-scripts-prop-2.x/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/oidc/docker-compose.yaml'
   pull_request:
     paths:
       - 'dev/update-scripts-2.0/**'
-      - 'dev/update-scripts-2.5/**'
-      - 'dev/update-scripts-2.7/**'
+      - 'dev/update-scripts-prop-2.x/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/oidc/docker-compose.yaml'
