@@ -483,10 +483,11 @@ class UpdateScriptsIT {
                 }
             }
             if ("2.5.0".equals(nifiVersion)) {
-                if ((invalidCount == 1) && ("Processor name = PutS3Object. Validation errors: "
+                if ((invalidCount == 1) && !validationErrorsMessage.isEmpty()
+                        && validationErrorsMessage.toString().
+                        contains("Processor name = PutS3Object. Validation errors: "
                         + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
-                        + "proxy-user-password, Secret Key] configured but not supported,].").
-                        contentEquals(validationErrorsMessage)) {
+                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
                     LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
                             validationErrorsMessage);
                     invalidCount = 0;
