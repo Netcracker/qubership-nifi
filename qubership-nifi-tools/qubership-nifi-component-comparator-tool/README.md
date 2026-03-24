@@ -5,7 +5,6 @@ The qubership-nifi-component-comparator-tool produces two files:
 A CSV file containing detailed information about the comparison results.
 A JSON file that can be used later when updating Controller Services and Reporting Task exports.
 
-
 ## Prerequisites
 
 - JDK 17 or 21
