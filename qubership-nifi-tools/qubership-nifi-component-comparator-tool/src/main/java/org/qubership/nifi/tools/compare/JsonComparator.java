@@ -21,11 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * Compares NiFi component JSON descriptors between two directory trees.
- * After calling {@link #load} and {@link #compare}, comparison results
- * are available via {@link #getCsvRecords()} and {@link #getTypeToRenamedProperties()}.
- */
 public class JsonComparator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonComparator.class);
@@ -48,7 +43,7 @@ public class JsonComparator {
     private Map<String, String> fileSubfolderMap = new HashMap<>();
     private Map<String, Map<String, String>> dictionaryMappings = new HashMap<>();
     private final List<String[]> csvRecords = new ArrayList<>();
-    private final Map<String, Map<String, String>> typeToRenamedProperties = new HashMap<>();
+    private final Map<String, Map<String, String>> typeToChangedProperties = new HashMap<>();
     private final Map<String, String> typeToFolderMap = new HashMap<>();
 
     private boolean isLoaded = false;
@@ -86,7 +81,7 @@ public class JsonComparator {
     /**
      * Runs the comparison. Must be called after {@link #load}.
      * Results are available via {@link #getCsvRecords()} and
-     * {@link #getTypeToRenamedProperties()}.
+     * {@link #getTypeToChangedProperties()}.
      *
      * @throws IllegalStateException if load() has not been called yet
      */
@@ -113,8 +108,8 @@ public class JsonComparator {
             compareCommonFiles(commonFiles);
         }
 
-        LOGGER.info("Comparison finished. Total CSV records: {}, types with renames: {}",
-                csvRecords.size(), typeToRenamedProperties.size());
+        LOGGER.info("Comparison finished. Total CSV records: {}, types with changes: {}",
+                csvRecords.size(), typeToChangedProperties.size());
     }
 
     /**
@@ -128,14 +123,18 @@ public class JsonComparator {
     }
 
     /**
-     * Returns the rename map produced by {@link #compare()}.
-     * Key is the component type (Java class name), value is
-     * a map of oldApiName → newApiName.
+     * Returns the changed properties map produced by {@link #compare()}.
+     * Key is the component type (Java class name), value is a map where:
+     * <ul>
+     *   <li>rename: oldApiName → newApiName</li>
+     *   <li>dictionary rename: oldDisplayName → newDisplayName</li>
+     *   <li>deleted: apiName → null</li>
+     * </ul>
      *
-     * @return unmodifiable map of type to renamed properties
+     * @return unmodifiable map of type to changed properties
      */
-    public Map<String, Map<String, String>> getTypeToRenamedProperties() {
-        return Collections.unmodifiableMap(typeToRenamedProperties);
+    public Map<String, Map<String, String>> getTypeToChangedProperties() {
+        return Collections.unmodifiableMap(typeToChangedProperties);
     }
 
     /**
@@ -184,7 +183,7 @@ public class JsonComparator {
         fileSubfolderMap.clear();
         dictionaryMappings.clear();
         csvRecords.clear();
-        typeToRenamedProperties.clear();
+        typeToChangedProperties.clear();
         typeToFolderMap.clear();
     }
 
@@ -341,9 +340,19 @@ public class JsonComparator {
                     recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
                 }
             } else {
-                csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
-                        sourceProp.getDisplayName(), "",
-                        sourceProp.getApiName(), ""));
+                ComponentProperties dictMatch = findDictionaryMatch(sourceProp, targetList);
+                if (dictMatch != null) {
+                    csvRecords.add(createCsvRecord(fileName, componentFolder, "rename",
+                            sourceProp.getDisplayName(), dictMatch.getDisplayName(),
+                            sourceProp.getApiName(), dictMatch.getApiName()));
+                    recordDictionaryRename(componentType,
+                            sourceProp.getDisplayName(), dictMatch.getDisplayName());
+                } else {
+                    csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
+                            sourceProp.getDisplayName(), "",
+                            sourceProp.getApiName(), ""));
+                    recordDeleted(componentType, sourceProp.getApiName());
+                }
             }
         }
     }
@@ -360,9 +369,13 @@ public class JsonComparator {
                             : srcProp.compareUniqueDisplayName(targetProp));
 
             if (!existsInSource) {
-                csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
-                        "", targetProp.getDisplayName(),
-                        "", targetProp.getApiName()));
+                boolean matchedByDict = sourceList.stream()
+                        .anyMatch(srcProp -> isDictionaryMatch(srcProp, targetProp));
+                if (!matchedByDict) {
+                    csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
+                            "", targetProp.getDisplayName(),
+                            "", targetProp.getApiName()));
+                }
             }
         }
     }
@@ -381,9 +394,59 @@ public class JsonComparator {
         return null;
     }
 
+    /**
+     * Checks if a source property that was not matched by the standard comparison
+     * can be matched to a target property via the dictionary mapping.
+     * Looks up the source displayName in the dictionary; if found, searches
+     * the target list for a property whose displayName matches the mapped value.
+     *
+     * @param sourceProp the unmatched source property
+     * @param targetList all target properties
+     * @return the matching target property, or null if no dictionary match found
+     */
+    private ComponentProperties findDictionaryMatch(ComponentProperties sourceProp,
+                                                    List<ComponentProperties> targetList) {
+        String sourceDisplay = sourceProp.getDisplayName();
+        if (sourceDisplay == null || !sourceProp.hasEquivalentName(sourceDisplay)) {
+            return null;
+        }
+        String mappedDisplayName = sourceProp.getEquivalentName(sourceDisplay);
+        if (mappedDisplayName == null) {
+            return null;
+        }
+        for (ComponentProperties targetProp : targetList) {
+            if (mappedDisplayName.equalsIgnoreCase(targetProp.getDisplayName())) {
+                return targetProp;
+            }
+        }
+        return null;
+    }
+
+    private boolean isDictionaryMatch(ComponentProperties sourceProp,
+                                      ComponentProperties targetProp) {
+        String sourceDisplay = sourceProp.getDisplayName();
+        if (sourceDisplay == null || !sourceProp.hasEquivalentName(sourceDisplay)) {
+            return false;
+        }
+        String mappedDisplayName = sourceProp.getEquivalentName(sourceDisplay);
+        return mappedDisplayName != null
+                && mappedDisplayName.equalsIgnoreCase(targetProp.getDisplayName());
+    }
+
     private void recordRename(String componentType, String oldApiName, String newApiName) {
-        typeToRenamedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
+        typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
                 .put(oldApiName, newApiName);
+    }
+
+    private void recordDictionaryRename(String componentType,
+                                        String oldDisplayName, String newDisplayName) {
+        typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
+                .put(oldDisplayName, newDisplayName);
+    }
+
+    private void recordDeleted(String componentType, String apiName) {
+        typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
+                .put(apiName, null);
     }
 
     private String getShortTypeName(String fullTypeName) {

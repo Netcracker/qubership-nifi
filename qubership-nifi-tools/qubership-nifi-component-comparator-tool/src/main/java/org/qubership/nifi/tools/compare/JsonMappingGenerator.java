@@ -38,23 +38,32 @@ public class JsonMappingGenerator {
      * Generates the type-mapping JSON file.
      * Components whose subfolder is not in {@link #INCLUDED_FOLDERS}
      * (e.g. processors) are excluded from the output.
+     * <p>
+     * Renamed properties are written as {@code "oldName": "newName"}.
+     * Deleted properties are written as {@code "apiName": null}.
      *
-     * @param typeToRenamedProperties map of componentType to (oldApiName → newApiName) renames
+     * @param typeToChangedProperties map of componentType to (name → newName or null) changes
      * @param typeToFolderMap         map of componentType to subfolder name
      */
-    public void generate(Map<String, Map<String, String>> typeToRenamedProperties,
+    public void generate(Map<String, Map<String, String>> typeToChangedProperties,
                          Map<String, String> typeToFolderMap) {
         LOGGER.info("Generating type mapping JSON...");
 
         ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
-        typeToRenamedProperties.forEach((type, renames) -> {
+        typeToChangedProperties.forEach((type, changes) -> {
             String folder = typeToFolderMap.get(type);
             if (folder != null && !INCLUDED_FOLDERS.contains(folder)) {
                 LOGGER.debug("Skipping type {} from folder '{}' in JSON mapping", type, folder);
                 return;
             }
             ObjectNode typeNode = OBJECT_MAPPER.createObjectNode();
-            renames.forEach(typeNode::put);
+            changes.forEach((key, value) -> {
+                if (value != null) {
+                    typeNode.put(key, value);
+                } else {
+                    typeNode.putNull(key);
+                }
+            });
             rootNode.set(type, typeNode);
         });
 
@@ -62,7 +71,7 @@ public class JsonMappingGenerator {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(rootNode));
             LOGGER.info("Type mapping JSON written to: {}", getOutputPath());
-            LOGGER.info("Total types with renames: {}", rootNode.size());
+            LOGGER.info("Total types with changes: {}", rootNode.size());
         } catch (IOException e) {
             LOGGER.error("Error writing JSON file: {}", e.getMessage(), e);
         }

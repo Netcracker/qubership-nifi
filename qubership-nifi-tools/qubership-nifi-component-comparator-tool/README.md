@@ -1,6 +1,10 @@
 # qubership-nifi-component-comparator-tool
 
 Command-line tool for comparing component properties from two different NiFi versions.
+The qubership-nifi-component-comparator-tool produces two files:
+A CSV file containing detailed information about the comparison results.
+A JSON file that can be used later when updating Controller Services and Reporting Task exports.
+
 
 ## Prerequisites
 
@@ -13,7 +17,7 @@ Run the tool from the repository root via the exec-maven-plugin:
 
 ```shell
 mvn exec:java \
-  -Dexec.mainClass="org.qubership.nifi.NifiComponentComparator" \
+  -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
   -Dexec.args="--sourceDir /path/to/source --targetDir /path/to/target --dictionaryPath /path/to/dict.yaml --outputPath /path/to/output"
 ```
 

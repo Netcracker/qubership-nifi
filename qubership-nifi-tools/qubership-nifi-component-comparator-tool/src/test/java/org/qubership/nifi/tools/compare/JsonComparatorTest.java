@@ -94,7 +94,7 @@ class JsonComparatorTest {
         loadAndCompare();
 
         assertTrue(comparator.getCsvRecords().isEmpty());
-        assertTrue(comparator.getTypeToRenamedProperties().isEmpty());
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty());
     }
 
     @Test
@@ -122,7 +122,7 @@ class JsonComparatorTest {
 
         loadAndCompare();
 
-        Map<String, Map<String, String>> renames = comparator.getTypeToRenamedProperties();
+        Map<String, Map<String, String>> renames = comparator.getTypeToChangedProperties();
         assertTrue(renames.containsKey("org.example.Proc"));
         assertEquals("new-api", renames.get("org.example.Proc").get("old-api"));
     }

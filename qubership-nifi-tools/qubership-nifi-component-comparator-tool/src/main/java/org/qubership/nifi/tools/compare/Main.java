@@ -8,11 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-/**
- * Application entry point that orchestrates the NiFi component comparison
- * pipeline: loading and comparing JSON descriptors, then generating
- * a CSV delta report and a JSON type-mapping file.
- */
 public final class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -71,7 +66,7 @@ public final class Main {
 
             JsonMappingGenerator jsonGenerator = new JsonMappingGenerator(outputDir);
             jsonGenerator.generate(
-                    comparator.getTypeToRenamedProperties(),
+                    comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
             LOGGER.info("Comparison completed successfully!");
