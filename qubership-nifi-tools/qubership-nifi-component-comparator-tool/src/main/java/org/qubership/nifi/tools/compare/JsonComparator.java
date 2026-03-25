@@ -95,13 +95,11 @@ public class JsonComparator {
         Set<String> onlyInSource = getDifference(sourceNames, targetNames);
         if (!onlyInSource.isEmpty()) {
             LOGGER.info("Files deleted completely: {}", onlyInSource.size());
-            onlyInSource.forEach(item -> LOGGER.info("  - {}", item));
         }
 
         Set<String> onlyInTarget = getDifference(targetNames, sourceNames);
         if (!onlyInTarget.isEmpty()) {
             LOGGER.info("Files added completely: {}", onlyInTarget.size());
-            onlyInTarget.forEach(item -> LOGGER.info("  - {}", item));
         }
 
         Set<String> commonFiles = getIntersection(sourceNames, targetNames);
@@ -399,20 +397,11 @@ public class JsonComparator {
                     recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
                 }
             } else {
-                ComponentProperties dictMatch = findDictionaryMatch(sourceProp, targetList);
-                if (dictMatch != null) {
-                    csvRecords.add(createCsvRecord(fileName, componentFolder, "rename",
-                            sourceProp.getDisplayName(), dictMatch.getDisplayName(),
-                            sourceProp.getApiName(), dictMatch.getApiName()));
-                    recordDictionaryRename(componentType,
-                            sourceProp.getDisplayName(), dictMatch.getDisplayName());
-                } else {
-                    csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
-                            sourceProp.getDisplayName(), "",
-                            sourceProp.getApiName(), ""));
-                    if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
-                        recordDeleted(componentType, sourceProp.getApiName());
-                    }
+                csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
+                        sourceProp.getDisplayName(), "",
+                        sourceProp.getApiName(), ""));
+                if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
+                    recordDeleted(componentType, sourceProp.getApiName());
                 }
             }
         }
@@ -430,13 +419,9 @@ public class JsonComparator {
                             : srcProp.compareUniqueDisplayName(targetProp));
 
             if (!existsInSource) {
-                boolean matchedByDict = sourceList.stream()
-                        .anyMatch(srcProp -> isDictionaryMatch(srcProp, targetProp));
-                if (!matchedByDict) {
-                    csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
-                            "", targetProp.getDisplayName(),
-                            "", targetProp.getApiName()));
-                }
+                csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
+                        "", targetProp.getDisplayName(),
+                        "", targetProp.getApiName()));
             }
         }
     }
@@ -455,44 +440,9 @@ public class JsonComparator {
         return null;
     }
 
-    private ComponentProperties findDictionaryMatch(ComponentProperties sourceProp,
-                                                    List<ComponentProperties> targetList) {
-        String sourceDisplay = sourceProp.getDisplayName();
-        if (sourceDisplay == null || !sourceProp.hasEquivalentName(sourceDisplay)) {
-            return null;
-        }
-        String mappedDisplayName = sourceProp.getEquivalentName(sourceDisplay);
-        if (mappedDisplayName == null) {
-            return null;
-        }
-        for (ComponentProperties targetProp : targetList) {
-            if (mappedDisplayName.equalsIgnoreCase(targetProp.getDisplayName())) {
-                return targetProp;
-            }
-        }
-        return null;
-    }
-
-    private boolean isDictionaryMatch(ComponentProperties sourceProp,
-                                      ComponentProperties targetProp) {
-        String sourceDisplay = sourceProp.getDisplayName();
-        if (sourceDisplay == null || !sourceProp.hasEquivalentName(sourceDisplay)) {
-            return false;
-        }
-        String mappedDisplayName = sourceProp.getEquivalentName(sourceDisplay);
-        return mappedDisplayName != null
-                && mappedDisplayName.equalsIgnoreCase(targetProp.getDisplayName());
-    }
-
     private void recordRename(String componentType, String oldApiName, String newApiName) {
         typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
                 .put(oldApiName, newApiName);
-    }
-
-    private void recordDictionaryRename(String componentType,
-                                        String oldDisplayName, String newDisplayName) {
-        typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
-                .put(oldDisplayName, newDisplayName);
     }
 
     private void recordDeleted(String componentType, String apiName) {

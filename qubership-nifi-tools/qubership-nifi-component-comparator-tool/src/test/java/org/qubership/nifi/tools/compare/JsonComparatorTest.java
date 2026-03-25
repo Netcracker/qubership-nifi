@@ -232,6 +232,24 @@ class JsonComparatorTest {
                 "Dictionary mapping should match Old Name to New Name");
     }
 
+
+    @Test
+    void compareDictionaryMappingPreventsDeleteAndAdd2() throws IOException {
+        writeJson(sourceDir, "processors", "Proc.json",
+                "org.example.Proc", prop("same-api1", "Old Name"));
+        writeJson(targetDir, "processors", "Proc.json",
+                "org.example.Proc", prop("same-api2", "New Name"));
+
+        Path dictFile = writeDictionary(
+                "displayNameMapping:\n"
+                        + "- Proc:\n"
+                        + "    old name: New Name\n");
+
+        loadAndCompare(dictFile.toString());
+
+        assertTrue(!comparator.getCsvRecords().isEmpty());
+    }
+
     @Test
     void compareNonUniqueDisplayNameIdenticalPropsNoChanges() throws IOException {
         String props = String.join(",",

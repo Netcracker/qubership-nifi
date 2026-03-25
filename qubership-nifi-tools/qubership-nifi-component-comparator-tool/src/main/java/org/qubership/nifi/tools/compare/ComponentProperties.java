@@ -114,6 +114,10 @@ public class ComponentProperties {
                 && Objects.equals(this.displayName, getEquivalentName(other.displayName))) {
             return true;
         }
+        if (hasEquivalentName(this.displayName)
+                && Objects.equals(other.displayName, getEquivalentName(this.displayName))) {
+            return true;
+        }
         return false;
     }
 
@@ -142,6 +146,11 @@ public class ComponentProperties {
         }
         if (hasEquivalentName(other.displayName)
                 && Objects.equals(this.displayName, getEquivalentName(other.displayName))
+                && descriptionsEqual) {
+            return true;
+        }
+        if (hasEquivalentName(this.displayName)
+                && Objects.equals(other.displayName, getEquivalentName(this.displayName))
                 && descriptionsEqual) {
             return true;
         }

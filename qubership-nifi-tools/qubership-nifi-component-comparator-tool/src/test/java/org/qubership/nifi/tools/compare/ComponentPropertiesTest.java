@@ -113,6 +113,15 @@ class ComponentPropertiesTest {
     }
 
     @Test
+    void compareUniqueMatchesByDictionaryMapping2() {
+        ComponentProperties target = new ComponentProperties("api-1", "New Name", "desc1");
+        target.setEquivalentNameMappings(Map.of("old name", "New Name"));
+
+        ComponentProperties source = new ComponentProperties("api-2", "Old Name", "desc2");
+        assertTrue(target.compareUniqueDisplayName(source));
+    }
+
+    @Test
     void compareUniqueReturnsFalseWhenNothingMatches() {
         ComponentProperties source = new ComponentProperties("api-1", "Display A", "desc1");
         ComponentProperties target = new ComponentProperties("api-2", "Display B", "desc2");
