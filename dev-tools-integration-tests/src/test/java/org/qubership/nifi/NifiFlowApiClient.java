@@ -192,8 +192,7 @@ public class NifiFlowApiClient {
      * @param pgId        process group id
      * @param targetState desired CS state (e.g. {@code "ENABLED"} or {@code "DISABLED"})
      */
-    public void waitForControllerServicesState(final String pgId, final String targetState)
-            throws IOException, InterruptedException {
+    public void waitForControllerServicesState(final String pgId, final String targetState) {
         LOG.info("Waiting for all controller services in PG {} to reach state {}", pgId, targetState);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
