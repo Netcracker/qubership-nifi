@@ -1,0 +1,33 @@
+displayNameMapping:
+- JettyWebSocketClient:
+    User Name: Username
+    User Password: Password
+
+- JettyWebSocketServer:
+    Listen Port: Port
+    SSL Client Authentication: Client Authentication
+    Enable Basic Authentication: Basic Authentication Enabled
+
+propertiesAllowedToDelete:
+- MongoDBControllerService:
+    - Client Auth
+
+- DBCPConnectionPool:
+    - Kerberos Credentials Service
+    - Kerberos Principal
+    - Kerberos Password
+
+- AvroRecordSetWriter:
+    - Schema Protocol Version
+
+- XMLRecordSetWriter:
+    - Schema Protocol Version
+
+- CSVRecordSetWriter:
+    - Schema Protocol Version
+
+- JsonRecordSetWriter:
+    - Schema Protocol Version
+
+- ElasticSearchClientServiceImpl:
+    - Retry timeout

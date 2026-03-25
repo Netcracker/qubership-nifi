@@ -42,6 +42,7 @@ public class JsonComparator {
     private Map<String, String> fileTypeMap = new HashMap<>();
     private Map<String, String> fileSubfolderMap = new HashMap<>();
     private Map<String, Map<String, String>> dictionaryMappings = new HashMap<>();
+    private Map<String, Set<String>> allowedToDelete = new HashMap<>();
     private final List<String[]> csvRecords = new ArrayList<>();
     private final Map<String, Map<String, String>> typeToChangedProperties = new HashMap<>();
     private final Map<String, String> typeToFolderMap = new HashMap<>();
@@ -71,6 +72,7 @@ public class JsonComparator {
         if (dictionaryPath != null && !dictionaryPath.isEmpty()) {
             loadDictionaryMappings(dictionaryPath);
             LOGGER.info("Dictionary mappings loaded: {} types", dictionaryMappings.size());
+            LOGGER.info("Allowed-to-delete loaded: {} types", allowedToDelete.size());
         }
 
         isLoaded = true;
@@ -80,8 +82,6 @@ public class JsonComparator {
 
     /**
      * Runs the comparison. Must be called after {@link #load}.
-     * Results are available via {@link #getCsvRecords()} and
-     * {@link #getTypeToChangedProperties()}.
      *
      * @throws IllegalStateException if load() has not been called yet
      */
@@ -114,7 +114,6 @@ public class JsonComparator {
 
     /**
      * Returns the CSV records produced by {@link #compare()}.
-     * Each array matches the CSV header columns.
      *
      * @return unmodifiable list of CSV record arrays
      */
@@ -124,12 +123,6 @@ public class JsonComparator {
 
     /**
      * Returns the changed properties map produced by {@link #compare()}.
-     * Key is the component type (Java class name), value is a map where:
-     * <ul>
-     *   <li>rename: oldApiName → newApiName</li>
-     *   <li>dictionary rename: oldDisplayName → newDisplayName</li>
-     *   <li>deleted: apiName → null</li>
-     * </ul>
      *
      * @return unmodifiable map of type to changed properties
      */
@@ -139,7 +132,6 @@ public class JsonComparator {
 
     /**
      * Returns the mapping of component type to subfolder name.
-     * Built during {@link #load} from fileTypeMap and fileSubfolderMap.
      *
      * @return unmodifiable map of componentType to subfolder
      */
@@ -182,6 +174,7 @@ public class JsonComparator {
         fileTypeMap.clear();
         fileSubfolderMap.clear();
         dictionaryMappings.clear();
+        allowedToDelete.clear();
         csvRecords.clear();
         typeToChangedProperties.clear();
         typeToFolderMap.clear();
@@ -205,11 +198,16 @@ public class JsonComparator {
 
         try (FileInputStream fis = new FileInputStream(dictPath.toFile())) {
             Map<String, Object> data = new Yaml().loadAs(fis, Map.class);
-            if (data == null || !data.containsKey("displayNameMapping")) {
-                LOGGER.warn("No 'displayNameMapping' found in dictionary file");
+            if (data == null) {
+                LOGGER.warn("Dictionary file is empty");
                 return;
             }
-            parseMappingList(data.get("displayNameMapping"));
+            if (data.containsKey("displayNameMapping")) {
+                parseMappingList(data.get("displayNameMapping"));
+            }
+            if (data.containsKey("propertiesAllowedToDelete")) {
+                parseAllowedToDelete(data.get("propertiesAllowedToDelete"));
+            }
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
@@ -257,6 +255,65 @@ public class JsonComparator {
                 }
             });
         }
+    }
+
+    /**
+     * Parses the propertiesAllowedToDelete section from the dictionary YAML.
+     *
+     * @param allowedObj the parsed YAML object for propertiesAllowedToDelete
+     */
+    @SuppressWarnings("unchecked")
+    private void parseAllowedToDelete(Object allowedObj) {
+        if (!(allowedObj instanceof List)) {
+            return;
+        }
+
+        for (Object item : (List<?>) allowedObj) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+
+            ((Map<?, ?>) item).forEach((key, value) -> {
+                if (!(value instanceof List)) {
+                    return;
+                }
+                Set<String> displayNames = new HashSet<>();
+                for (Object name : (List<?>) value) {
+                    if (name != null) {
+                        displayNames.add(name.toString().toLowerCase());
+                    }
+                }
+                if (!displayNames.isEmpty()) {
+                    allowedToDelete.put(key.toString(), displayNames);
+                    LOGGER.info("Allowed to delete: {} ({} properties)",
+                            key, displayNames.size());
+                }
+            });
+        }
+    }
+
+    /**
+     * Checks if a deleted property is allowed to be recorded in the JSON mapping.
+     * A deleted property is recorded only if it is listed in the
+     * propertiesAllowedToDelete section of the dictionary for its component type.
+     *
+     * @param componentType full component type (e.g. org.apache.nifi.dbcp.DBCPConnectionPool)
+     * @param displayName   the displayName of the deleted property
+     * @return true if the property is in the allow-list
+     */
+    private boolean isDeleteAllowed(String componentType, String displayName) {
+        if (allowedToDelete.isEmpty()) {
+            return false;
+        }
+        String shortType = getShortTypeName(componentType);
+        if (shortType == null) {
+            return false;
+        }
+        Set<String> allowed = allowedToDelete.get(shortType);
+        if (allowed == null) {
+            return false;
+        }
+        return displayName != null && allowed.contains(displayName.toLowerCase());
     }
 
     private void compareCommonFiles(Set<String> commonFiles) {
@@ -351,7 +408,9 @@ public class JsonComparator {
                     csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
                             sourceProp.getDisplayName(), "",
                             sourceProp.getApiName(), ""));
-                    recordDeleted(componentType, sourceProp.getApiName());
+                    if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
+                        recordDeleted(componentType, sourceProp.getApiName());
+                    }
                 }
             }
         }
@@ -394,16 +453,6 @@ public class JsonComparator {
         return null;
     }
 
-    /**
-     * Checks if a source property that was not matched by the standard comparison
-     * can be matched to a target property via the dictionary mapping.
-     * Looks up the source displayName in the dictionary; if found, searches
-     * the target list for a property whose displayName matches the mapped value.
-     *
-     * @param sourceProp the unmatched source property
-     * @param targetList all target properties
-     * @return the matching target property, or null if no dictionary match found
-     */
     private ComponentProperties findDictionaryMatch(ComponentProperties sourceProp,
                                                     List<ComponentProperties> targetList) {
         String sourceDisplay = sourceProp.getDisplayName();

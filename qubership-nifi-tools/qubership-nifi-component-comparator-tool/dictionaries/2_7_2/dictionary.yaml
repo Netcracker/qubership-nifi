@@ -1,0 +1,24 @@
+displayNameMapping:
+- DBCPConnectionPool:
+    Database Driver Location(s): Database Driver Locations
+    Max Idle Connections: Maximum Idle Connections
+    Max Connection Lifetime: Maximum Connection Lifetime
+
+- HikariCPConnectionPool:
+    Database Driver Location(s): Database Driver Locations
+
+- AzureLogAnalyticsReportingTask:
+    Process group ID(s): Process Group IDs
+
+- ElasticSearchClientServiceImpl:
+    Charset: Character Set
+    Suppress Null/Empty Values: Suppress Null and Empty Values
+
+propertiesAllowedToDelete:
+- AWSCredentialsProviderControllerService:
+    - Assume Role STS Signer Override
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+
+- StandardS3EncryptionService:
+    - KMS Region

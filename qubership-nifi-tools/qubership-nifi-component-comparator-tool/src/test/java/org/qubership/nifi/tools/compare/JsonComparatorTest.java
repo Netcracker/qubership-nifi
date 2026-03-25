@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,6 +62,12 @@ class JsonComparatorTest {
     private void loadAndCompare(String dictionaryPath) throws IOException {
         comparator.load(sourceDir.toString(), targetDir.toString(), dictionaryPath);
         comparator.compare();
+    }
+
+    private Path writeDictionary(String yaml) throws IOException {
+        Path dictFile = tempDir.resolve("dictionary.yaml");
+        Files.writeString(dictFile, yaml);
+        return dictFile;
     }
 
     @Test
@@ -214,12 +221,10 @@ class JsonComparatorTest {
         writeJson(targetDir, "processors", "Proc.json",
                 "org.example.Proc", prop("same-api", "New Name"));
 
-        Path dictFile = tempDir.resolve("dict.yaml");
-        Files.writeString(dictFile,
-                """
-                    displayNameMapping:
-                    - Proc:
-                        old name: New Name""");
+        Path dictFile = writeDictionary(
+                "displayNameMapping:\n" +
+                        "- Proc:\n" +
+                        "    old name: New Name\n");
 
         loadAndCompare(dictFile.toString());
 
@@ -334,5 +339,206 @@ class JsonComparatorTest {
         comparator.load(sourceDir.toString(), targetDir.toString(), null);
 
         assertTrue(comparator.getTargetJsonMap().containsKey("P.json"));
+    }
+
+    // -------------------------------------------------------------------------
+    //  propertiesAllowedToDelete
+    // -------------------------------------------------------------------------
+
+    @Test
+    void allowedToDelete_deletedPropertyInAllowList_recordedAsNull() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("kerb-api", "Kerberos Principal"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> props = comparator.getTypeToChangedProperties()
+                .get("org.apache.nifi.dbcp.DBCPConnectionPool");
+        assertTrue(props.containsKey("kerb-api"));
+        assertNull(props.get("kerb-api"));
+    }
+
+    @Test
+    void allowedToDelete_deletedPropertyNotInAllowList_notInChangedProperties() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("other-api", "Other Property"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty(),
+                "Property not in allow-list should not appear in changed properties");
+    }
+
+    @Test
+    void allowedToDelete_deletedPropertyNotInAllowList_stillInCsv() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("other-api", "Other Property"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("deleted", records.get(0)[2]);
+        assertEquals("other-api", records.get(0)[5]);
+    }
+
+    @Test
+    void allowedToDelete_noDictionary_deletedNotInChangedProperties() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("gone-api", "Gone Prop"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        loadAndCompare();
+
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty());
+        assertEquals(1, comparator.getCsvRecords().size());
+        assertEquals("deleted", comparator.getCsvRecords().get(0)[2]);
+    }
+
+    @Test
+    void allowedToDelete_dictionaryWithoutAllowedSection_deletedNotInJson() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("gone-api", "Gone Prop"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "displayNameMapping:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    some old name: Some New Name\n");
+
+        loadAndCompare(dict.toString());
+
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty());
+    }
+
+    @Test
+    void allowedToDelete_caseInsensitiveMatch() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep") + "," + prop("kerb-api", "kerberos principal"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> props = comparator.getTypeToChangedProperties()
+                .get("org.apache.nifi.dbcp.DBCPConnectionPool");
+        assertTrue(props.containsKey("kerb-api"));
+    }
+
+    @Test
+    void allowedToDelete_multipleProperties_onlyAllowedRecorded() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep", "Keep") + ","
+                        + prop("kerb-svc", "Kerberos Credentials Service") + ","
+                        + prop("kerb-princ", "Kerberos Principal") + ","
+                        + prop("kerb-pwd", "Kerberos Password") + ","
+                        + prop("not-allowed", "Some Other Prop"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("keep", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Credentials Service\n" +
+                        "    - Kerberos Principal\n" +
+                        "    - Kerberos Password\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> props = comparator.getTypeToChangedProperties()
+                .get("org.apache.nifi.dbcp.DBCPConnectionPool");
+        assertEquals(3, props.size());
+        assertNull(props.get("kerb-svc"));
+        assertNull(props.get("kerb-princ"));
+        assertNull(props.get("kerb-pwd"));
+        assertFalse(props.containsKey("not-allowed"));
+
+        assertEquals(4, comparator.getCsvRecords().size());
+    }
+
+    @Test
+    void allowedToDelete_differentComponentType_notAffected() throws IOException {
+        writeJson(sourceDir, "controllerService", "Hikari.json",
+                "org.apache.nifi.dbcp.HikariCPConnectionPool",
+                prop("keep", "Keep") + "," + prop("kerb-api", "Kerberos Principal"));
+        writeJson(targetDir, "controllerService", "Hikari.json",
+                "org.apache.nifi.dbcp.HikariCPConnectionPool",
+                prop("keep", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty(),
+                "Allow-list for DBCPConnectionPool should not affect HikariCPConnectionPool");
+    }
+
+    @Test
+    void allowedToDelete_mixedWithRename_bothRecorded() throws IOException {
+        writeJson(sourceDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("old-api", "Display A") + ","
+                        + prop("kerb-api", "Kerberos Principal"));
+        writeJson(targetDir, "controllerService", "Pool.json",
+                "org.apache.nifi.dbcp.DBCPConnectionPool",
+                prop("new-api", "Display A"));
+
+        Path dict = writeDictionary(
+                "propertiesAllowedToDelete:\n" +
+                        "- DBCPConnectionPool:\n" +
+                        "    - Kerberos Principal\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> props = comparator.getTypeToChangedProperties()
+                .get("org.apache.nifi.dbcp.DBCPConnectionPool");
+        assertEquals(2, props.size());
+        assertEquals("new-api", props.get("old-api"));
+        assertNull(props.get("kerb-api"));
     }
 }
