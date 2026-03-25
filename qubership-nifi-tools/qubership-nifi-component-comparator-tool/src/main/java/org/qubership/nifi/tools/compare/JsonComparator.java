@@ -95,11 +95,13 @@ public class JsonComparator {
         Set<String> onlyInSource = getDifference(sourceNames, targetNames);
         if (!onlyInSource.isEmpty()) {
             LOGGER.info("Files deleted completely: {}", onlyInSource.size());
+            onlyInSource.forEach(item -> LOGGER.info("  - {}", item));
         }
 
         Set<String> onlyInTarget = getDifference(targetNames, sourceNames);
         if (!onlyInTarget.isEmpty()) {
             LOGGER.info("Files added completely: {}", onlyInTarget.size());
+            onlyInTarget.forEach(item -> LOGGER.info("  - {}", item));
         }
 
         Set<String> commonFiles = getIntersection(sourceNames, targetNames);
