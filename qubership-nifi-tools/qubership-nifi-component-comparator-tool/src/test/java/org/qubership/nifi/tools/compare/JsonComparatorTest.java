@@ -222,9 +222,9 @@ class JsonComparatorTest {
                 "org.example.Proc", prop("same-api", "New Name"));
 
         Path dictFile = writeDictionary(
-                "displayNameMapping:\n" +
-                        "- Proc:\n" +
-                        "    old name: New Name\n");
+                "displayNameMapping:\n"
+                        + "- Proc:\n"
+                        + "    old name: New Name\n");
 
         loadAndCompare(dictFile.toString());
 
@@ -341,12 +341,8 @@ class JsonComparatorTest {
         assertTrue(comparator.getTargetJsonMap().containsKey("P.json"));
     }
 
-    // -------------------------------------------------------------------------
-    //  propertiesAllowedToDelete
-    // -------------------------------------------------------------------------
-
     @Test
-    void allowedToDelete_deletedPropertyInAllowList_recordedAsNull() throws IOException {
+    void allowedToDeleteDeletedPropertyInAllowListRecordedAsNull() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("kerb-api", "Kerberos Principal"));
@@ -355,9 +351,9 @@ class JsonComparatorTest {
                 prop("keep-api", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
@@ -368,7 +364,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_deletedPropertyNotInAllowList_notInChangedProperties() throws IOException {
+    void allowedToDeleteDeletedPropertyNotInAllowListNotInChangedProperties() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("other-api", "Other Property"));
@@ -377,9 +373,9 @@ class JsonComparatorTest {
                 prop("keep-api", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
@@ -388,7 +384,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_deletedPropertyNotInAllowList_stillInCsv() throws IOException {
+    void allowedToDeleteDeletedPropertyNotInAllowListStillInCsv() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("other-api", "Other Property"));
@@ -397,9 +393,9 @@ class JsonComparatorTest {
                 prop("keep-api", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
@@ -410,7 +406,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_noDictionary_deletedNotInChangedProperties() throws IOException {
+    void allowedToDeleteNoDictionaryDeletedNotInChangedProperties() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("gone-api", "Gone Prop"));
@@ -426,7 +422,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_dictionaryWithoutAllowedSection_deletedNotInJson() throws IOException {
+    void allowedToDeleteDictionaryWithoutAllowedSectionDeletedNotInJson() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("gone-api", "Gone Prop"));
@@ -435,9 +431,9 @@ class JsonComparatorTest {
                 prop("keep-api", "Keep"));
 
         Path dict = writeDictionary(
-                "displayNameMapping:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    some old name: Some New Name\n");
+                "displayNameMapping:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    some old name: Some New Name\n");
 
         loadAndCompare(dict.toString());
 
@@ -445,7 +441,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_caseInsensitiveMatch() throws IOException {
+    void allowedToDeleteCaseInsensitiveMatch() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep-api", "Keep") + "," + prop("kerb-api", "kerberos principal"));
@@ -454,9 +450,9 @@ class JsonComparatorTest {
                 prop("keep-api", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
@@ -466,7 +462,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_multipleProperties_onlyAllowedRecorded() throws IOException {
+    void allowedToDeleteMultiplePropertiesOnlyAllowedRecorded() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("keep", "Keep") + ","
@@ -479,11 +475,11 @@ class JsonComparatorTest {
                 prop("keep", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Credentials Service\n" +
-                        "    - Kerberos Principal\n" +
-                        "    - Kerberos Password\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Credentials Service\n"
+                        + "    - Kerberos Principal\n"
+                        + "    - Kerberos Password\n");
 
         loadAndCompare(dict.toString());
 
@@ -499,7 +495,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_differentComponentType_notAffected() throws IOException {
+    void allowedToDeleteDifferentComponentTypeNotAffected() throws IOException {
         writeJson(sourceDir, "controllerService", "Hikari.json",
                 "org.apache.nifi.dbcp.HikariCPConnectionPool",
                 prop("keep", "Keep") + "," + prop("kerb-api", "Kerberos Principal"));
@@ -508,9 +504,9 @@ class JsonComparatorTest {
                 prop("keep", "Keep"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
@@ -519,7 +515,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void allowedToDelete_mixedWithRename_bothRecorded() throws IOException {
+    void allowedToDeleteMixedWithRenameBothRecorded() throws IOException {
         writeJson(sourceDir, "controllerService", "Pool.json",
                 "org.apache.nifi.dbcp.DBCPConnectionPool",
                 prop("old-api", "Display A") + ","
@@ -529,9 +525,9 @@ class JsonComparatorTest {
                 prop("new-api", "Display A"));
 
         Path dict = writeDictionary(
-                "propertiesAllowedToDelete:\n" +
-                        "- DBCPConnectionPool:\n" +
-                        "    - Kerberos Principal\n");
+                "propertiesAllowedToDelete:\n"
+                        + "- DBCPConnectionPool:\n"
+                        + "    - Kerberos Principal\n");
 
         loadAndCompare(dict.toString());
 
