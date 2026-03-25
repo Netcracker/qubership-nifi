@@ -27,7 +27,7 @@ mvn exec:java \
 | `--sourceDir`      |         | Path to directory with JSON components from the source version of NiFi. |
 | `--targetDir`      |         | Path to directory with JSON components from the target version of NiFi. |
 | `--dictionaryPath` |         | Path to the file with Display Name mapping between different versions.  |
-| `--outputPath`     | `./`    | Path to the folder containing comparison results.                      |
+| `--outputPath`     | `./`    | Path to the folder containing comparison results.                       |
 
 ## Output structure
 
