@@ -52,6 +52,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
+        <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
         <nifi.version>2.7.2</nifi.version>
         <nifi.api.version>2.5.0</nifi.api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
@@ -76,6 +77,8 @@
         <jgit.version>7.6.0.202603022253-r</jgit.version>
         <snakeyaml.version>2.5</snakeyaml.version>
         <commons-csv.version>1.8</commons-csv.version>
+
+        <skipUnitTests>false</skipUnitTests>
 
         <!-- Version for provided artifact -->
         <okhttp.version>5.1.0</okhttp.version>

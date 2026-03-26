@@ -63,6 +63,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
         <pmd.version>3.26.0</pmd.version>
         <jacoco.version>0.8.8</jacoco.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
@@ -74,6 +75,7 @@
         <nifi.version>2.7.2</nifi.version>
         <spring-framework.version>6.2.15</spring-framework.version>
         <slf4j.version>2.0.17</slf4j.version>
+        <skipUnitTests>false</skipUnitTests>
     </properties>
 
     <profiles>
