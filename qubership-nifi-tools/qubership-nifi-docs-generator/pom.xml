@@ -12,8 +12,9 @@
 
     <artifactId>qubership-nifi-docs-generator</artifactId>
     <packaging>maven-plugin</packaging>
-    <name>NiFi Documentation Generator Maven Plugin</name>
-    <description>Maven plugin for generating nifi components documentation</description>
+    <name>qubership-nifi Documentation Generator Maven Plugin</name>
+    <description>Maven plugin that generates Markdown-based documentation
+        from projects containing custom Apache NiFi components</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -174,6 +175,13 @@
                 <version>3.15.1</version>
                 <configuration>
                     <goalPrefix>nifi-doc-gen</goalPrefix>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>false</skip>
                 </configuration>
             </plugin>
         </plugins>
