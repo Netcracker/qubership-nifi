@@ -31,18 +31,26 @@
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Aggregator for NiFi tooling utilities</description>
 
+    <properties>
+        <!-- Skip ITs by default; enable with profile tools-integration-tests -->
+        <skipITs>true</skipITs>
+    </properties>
+
     <modules>
         <module>qubership-nifi-api-export-tool</module>
+        <module>qubership-nifi-api-export-tool-it</module>
         <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-component-comparator-tool</module>
+        <module>qubership-nifi-docs-generator-it</module>
     </modules>
 
     <profiles>
         <profile>
             <id>tools-integration-tests</id>
-            <modules>
-                <module>qubership-nifi-docs-generator-it</module>
-            </modules>
+            <properties>
+                <!-- Enable ITs if running with profile -->
+                <skipITs>false</skipITs>
+            </properties>
         </profile>
     </profiles>
 </project>
