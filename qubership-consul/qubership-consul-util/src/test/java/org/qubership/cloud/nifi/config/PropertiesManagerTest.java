@@ -4,12 +4,15 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.qubership.cloud.nifi.config.spring.ConsulConfiguration;
+import org.qubership.cloud.nifi.config.spring.ConsulPropertiesProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
+import org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration;
 import org.testcontainers.consul.ConsulContainer;
 import org.testcontainers.containers.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -27,8 +30,9 @@ import java.util.List;
 import java.util.Properties;
 
 @Testcontainers
-@SpringBootTest(classes = {PropertiesManager.class})
-@ImportAutoConfiguration(RefreshAutoConfiguration.class)
+@SpringBootTest(classes = {PropertiesManager.class,
+        ConsulConfiguration.class, ConsulPropertiesProvider.class})
+@ImportAutoConfiguration(classes = {RefreshAutoConfiguration.class, ConsulConfigAutoConfiguration.class})
 public class PropertiesManagerTest {
 
     private static final String CONSUL_IMAGE = "hashicorp/consul:1.20";

@@ -17,6 +17,9 @@ import java.util.Set;
  * @param configFileName configuration file name
  * @param propertyPrefix prefix used to filter relevant properties from the source
  * @param readonlyPropertyNames set of property names that must not be configured from the source
+ * @param defaultCustomPropertiesResourceName default custom (unrelated to Apache NiFi)
+ *                                            properties template resource name
+ * @param customPropertyNames set of custom property names that must be loaded into custom.properties file
  * @param propertiesProvider provider for retrieving configuration property values
  */
 public record BasePropertiesManagerConfig(
@@ -28,6 +31,8 @@ public record BasePropertiesManagerConfig(
         String configFileName,
         String propertyPrefix,
         Set<String> readonlyPropertyNames,
+        String defaultCustomPropertiesResourceName,
+        Set<String> customPropertyNames,
         PropertiesProvider propertiesProvider
 ) {
 }

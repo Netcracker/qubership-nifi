@@ -46,6 +46,11 @@
             <artifactId>spring-cloud-context</artifactId>
             <version>${spring-cloud-context.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.qubership.nifi</groupId>
+            <artifactId>qubership-nifi-consul-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!--EXTERNAL-->
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -113,6 +118,12 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.qubership.nifi</groupId>
+            <artifactId>qubership-nifi-consul-templates</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

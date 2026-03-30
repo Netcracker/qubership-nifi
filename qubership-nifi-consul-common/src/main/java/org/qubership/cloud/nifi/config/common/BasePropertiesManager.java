@@ -35,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -66,9 +67,12 @@ public class BasePropertiesManager {
     private String internalPropertiesCommentsResourceName;
     private String configFilePath;
     private File configFile;
+    private File customPropertiesFile;
+    private String defaultCustomPropertiesResourceName;
     private File logConfigFile;
     private String propertyPrefix;
     private Set<String> readonlyPropertyNames;
+    private Set<String> customPropertyNames;
     private PropertiesProvider propertiesProvider;
 
     /**
@@ -83,6 +87,8 @@ public class BasePropertiesManager {
         this.internalPropertiesCommentsResourceName = config.internalPropertiesCommentsResourceName();
         this.configFilePath = config.configFilePath();
         this.configFile = Paths.get(config.configFilePath(), config.configFileName()).toFile();
+        this.customPropertiesFile = Paths.get(config.configFilePath(), "custom.properties").toFile();
+        this.defaultCustomPropertiesResourceName = config.defaultCustomPropertiesResourceName();
         this.logConfigFile = Paths.get(config.configFilePath(), "logback.xml").toFile();
         if (config.propertyPrefix() != null) {
             this.propertyPrefix = config.propertyPrefix().toLowerCase();
@@ -90,6 +96,8 @@ public class BasePropertiesManager {
             this.propertyPrefix = "";
         }
         this.readonlyPropertyNames = config.readonlyPropertyNames();
+        this.customPropertyNames = config.customPropertyNames() != null ? config.customPropertyNames()
+                : Collections.emptySet();
         this.propertiesProvider = config.propertiesProvider();
     }
 
@@ -114,6 +122,7 @@ public class BasePropertiesManager {
             TransformerException, SAXException {
         Map<String, String> consulPropertiesMap = readAndFilterProperties();
         buildPropertiesFile(consulPropertiesMap);
+        buildCustomPropertiesFile(consulPropertiesMap);
         buildLogbackXMLFile(consulPropertiesMap);
         LOG.info("nifi properties and logback.xml files generated");
     }
@@ -164,9 +173,9 @@ public class BasePropertiesManager {
         for (Map.Entry<String, String> consulEntry : consulPropertiesMap.entrySet()) {
             // if key starts with "logger.*" and value is not empty then, check element in logback.xml
             // empty values = removal of logger returning to default behavior
-            if (consulEntry.getKey().toLowerCase().startsWith(LOGGER_PREFIX) &&
-                    consulEntry.getValue() != null &&
-                    !"".equals(consulEntry.getValue())) {
+            if (consulEntry.getKey().toLowerCase().startsWith(LOGGER_PREFIX)
+                    && consulEntry.getValue() != null
+                    && !"".equals(consulEntry.getValue())) {
                 String xmlKey = consulEntry.getKey().substring(LOGGER_PREFIX_LENGTH);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("current xmlKey: {}", xmlKey);
@@ -289,7 +298,9 @@ public class BasePropertiesManager {
         //consul
         for (Map.Entry<String, String> consulEntry: consulPropertiesMap.entrySet()) {
             // if it starts with propertyPrefix, add it in nifiProperties
-            if (consulEntry.getKey().toLowerCase().startsWith(propertyPrefix)) {
+            String consulKey = consulEntry.getKey();
+            if (consulKey.toLowerCase().startsWith(propertyPrefix)
+                    && !customPropertyNames.contains(consulKey)) {
                 combinedNifiProperties.put(consulEntry.getKey(), consulEntry.getValue());
             }
         }
@@ -329,6 +340,38 @@ public class BasePropertiesManager {
             }
         }
         LOG.info("NiFi Properties file created : {}", configFile.getPath());
+    }
+
+    /**
+     * Builds custom.properties file.
+     * @param consulPropertiesMap map with properties loaded from consul
+     * @throws IOException if an I/O error occurs while writing the properties file
+     */
+    public void buildCustomPropertiesFile(Map<String, String> consulPropertiesMap)
+            throws IOException {
+        if (customPropertyNames.isEmpty()) {
+            //custom properties file is not required
+            LOG.info("customPropertyNames not set, skipping custom.properties generation.");
+            return;
+        }
+        Map<String, String> combinedNifiProperties = getOrderedProperties(
+                getResourceAsStream(defaultCustomPropertiesResourceName));
+        for (String consulKey : consulPropertiesMap.keySet()) {
+            // if it's in the custom list, add it
+            if (customPropertyNames.contains(consulKey)) {
+                combinedNifiProperties.put(consulKey, consulPropertiesMap.get(consulKey));
+            }
+        }
+        //write nifiProperties to properties file
+        try (PrintWriter pw = new PrintWriter(new FileOutputStream(customPropertiesFile))) {
+            //Storing the map in properties file in order
+            for (String s : combinedNifiProperties.keySet()) {
+                pw.print(s);
+                pw.print("=");
+                pw.println(combinedNifiProperties.get(s));
+            }
+        }
+        LOG.info("Custom Properties file created : {}", customPropertiesFile.getPath());
     }
 
     /**
