@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<configuration scan="true" scanPeriod="30 seconds">
+    <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook" />
+
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+    <variable name="ROOT_LOG_LEVEL" value="${ROOT_LOG_LEVEL:-INFO}" />
+
+    <appender name="APP_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--
+              For daily rollover, use 'app_%d.log'.
+              For hourly rollover, use 'app_%d{yyyy-MM-dd_HH}.log'.
+              To GZIP rolled files, replace '.log' with '.log.gz'.
+              To ZIP rolled files, replace '.log' with '.log.zip'.
+            -->
+            <fileNamePattern>${org.apache.nifi.bootstrap.config.log.dir}/nifi-app_%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+            <!-- keep 168 (=7 days) log files worth of history -->
+            <maxHistory>168</maxHistory>
+            <!-- keep 512MB log files worth of history -->
+            <totalSizeCap>512MB</totalSizeCap>
+        </rollingPolicy>
+        <immediateFlush>true</immediateFlush>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.SSS}][%-5p] [request_id=%-15X{requestId:--}] [tenant_id=%-36X{tenantId:--}] [thread=%-50.50t] [class=%-60.60c{59}] [method=%-30.30M] [version=${DEPLOYMENT_VERSION}] [originating_bi_id=%-16X{originating_bi_id:--}] [business_identifiers=%-16X{business-identifiers:--}] [traceId=%-16X{traceId:--}] [spanId=%-16X{spanId:--}] [nifiPgPath=%X{processGroupNamePath:--}] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
+
+    <!-- Deprecation Log -->
+    <logger name="deprecation" level="WARN"/>
+    <logger name="org.apache.nifi.processors" level="WARN"/>
+    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
+    <logger name="org.apache.nifi.web.server.RequestLog" level="WARN" />
+    <logger name="org.apache.nifi.web.security" level="WARN" />
+    <logger name="org.apache.parquet.hadoop.InternalParquetRecordReader" level="WARN" />
+    <!-- Hide multiline log messages -->
+    <logger name="org.apache.nifi.nar.StandardExtensionDiscoveringManager" level="WARN" />
+    <!-- Py4J set to WARN to avoid verbose socket communication messages -->
+    <logger name="py4j" level="WARN" />
+
+
+    <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.NettyServerCnxnFactory" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
+    <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
+    <logger name="org.apache.nifi.controller.reporting.LogComponentStatuses" level="ERROR" />
+    <logger name="org.apache.calcite.runtime.CalciteException" level="OFF" />
+    <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
+    <logger name="org.apache.curator.ConnectionState" level="OFF" />
+    <!-- Suppress non-error messages due to excessive logging by class or library -->
+    <logger name="org.springframework" level="ERROR"/>
+    <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
+    <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
+    <!-- Suppress non-error messages due to Jetty AnnotationParser emitting a large amount of WARNS. Issue described in NIFI-5479. -->
+    <logger name="org.eclipse.jetty.annotations.AnnotationParser" level="ERROR"/>
+    <!-- Suppress non-error messages related to Logback ServletContainerInitializer -->
+    <logger name="org.eclipse.jetty.ee11.annotations.AnnotationConfiguration" level="WARN"/>
+
+    <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
+    <logger name="software.amazon.awssdk.kinesis" level="WARN" />
+    <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
+    <logger name="org.apache.atlas" level="WARN"/>
+    <logger name="org.opensaml" level="WARN"/>
+
+    <!-- Suppress non-error messages from JetBrains Xodus FileDataWriter related to FileChannel -->
+    <logger name="jetbrains.exodus.io.FileDataWriter" level="WARN" />
+
+    <!-- Suppress warnings from Lucene Vectorization Provider related to JDK incubator features -->
+    <logger name="org.apache.lucene.internal.vectorization.VectorizationProvider" level="ERROR" />
+    <!-- Suppress information from Lucene Memory Segment Provider related to native access configuration -->
+    <logger name="org.apache.lucene.store.MemorySegmentIndexInputProvider" level="WARN" />
+
+    <!-- Suppress information messages from SSHD HostBoundPubkeyAuthentication which writes on every connection -->
+    <logger name="org.apache.sshd.common.kex.extension.parser.HostBoundPubkeyAuthentication" level="WARN" />
+
+    <!-- Everything written to NiFi's Standard Error will be logged with the logger org.apache.nifi.StdErr at ERROR level -->
+    <logger name="org.apache.nifi.StdErr" level="ERROR"/>
+
+    <root level="${ROOT_LOG_LEVEL}">
+        <appender-ref ref="APP_FILE" />
+    </root>
+
+</configuration>

@@ -1,25 +1,7 @@
-/*
- * Copyright 2020-2025 NetCracker Technology Corporation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-package org.qubership.cloud.nifi.config;
+package org.qubership.cloud.nifi.config.xml;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -34,22 +16,27 @@ import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-/*
-@Component
 public class XmlConfigValidator {
     private static final Logger log = LoggerFactory.getLogger(XmlConfigValidator.class);
-
-    @Value("${config.file.path}")
+    
     private String path;
-    @Value("${config.main.path}")
     private String mainConfigDirectoryPath;
-    @Value("${config.restore.path}")
     private String restoreDirectoryPath;
 
     private String mainAuthorizationsFilePath;
 
     private String mainUsersFilePath;
 
+    /**
+     * Creates new instance of XmlConfigValidator.
+     *
+     * @param config configuration containing all required parameters
+     */
+    public XmlConfigValidator(final XmlConfigValidatorConfig config) {
+        this.path = config.defaultPath();
+        this.mainConfigDirectoryPath = config.defaultMainConfigDirectoryPath();
+        this.restoreDirectoryPath = config.defaultRestoreDirectoryPath();
+    }
 
     public void validate() throws IOException, ParserConfigurationException {
         if (shouldSkipValidation()) return;
@@ -169,6 +156,5 @@ public class XmlConfigValidator {
             Files.copy(srcUser.toPath(),destUser.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
-}
 
- */
+}

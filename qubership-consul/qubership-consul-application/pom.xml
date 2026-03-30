@@ -46,6 +46,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.qubership.nifi</groupId>
+            <artifactId>qubership-nifi-consul-xml</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-consul</artifactId>
             <version>${testcontainers.version}</version>
