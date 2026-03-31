@@ -6,8 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -50,20 +52,181 @@ public class BaseXmlConfigValidatorTest {
         return is;
     }
 
-    void copyResources(Path targetPath) {
+    private String readResourceAsString(String resourceName) {
+        String resourceValue = null;
         try {
-            Files.copy(getResourceAsStream("xml/users.xml"),
-                    targetPath.resolve("users.xml"));
-            Files.copy(getResourceAsStream("xml/authorizations.xml"),
-                    targetPath.resolve("authorizations.xml"));
+            try (InputStream in = new BufferedInputStream(getResourceAsStream(resourceName))) {
+                resourceValue = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            }
         } catch (IOException e) {
-            Assertions.fail("Failed to copy test resources to temp path: " + targetPath.toString(), e);
+            Assertions.fail("Failed to read test resource: " + resourceName, e);
+        }
+        return resourceValue;
+    }
+
+    void copyResource(String resourceName, String targetFileName, Path targetPath) {
+        try {
+            Files.copy(getResourceAsStream(resourceName), targetPath.resolve(targetFileName));
+        } catch (IOException e) {
+            Assertions.fail("Failed to copy test resource " + resourceName
+                    + " to temp path: " + targetPath.toString(), e);
         }
     }
 
     @Test
     void testAllConfigurationsValid() throws IOException, ParserConfigurationException {
-        copyResources(mainConfDir);
+        copyResource("xml/users.xml", "users.xml", mainConfDir);
+        copyResource("xml/authorizations.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
         baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertFalse(restoreUsersXml.toFile().exists(),
+                "users.xml does not exists in restore conf");
+        Assertions.assertFalse(restoreAuthXml.toFile().exists(),
+                "authorizations.xml does not exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testMainAuthorizationsMissing() throws IOException, ParserConfigurationException {
+        copyResource("xml/users.xml", "users.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testMainUsersMissing() throws IOException, ParserConfigurationException {
+        copyResource("xml/authorizations.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testMainEmpty() throws IOException, ParserConfigurationException {
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testInvalidUsersXml() throws IOException, ParserConfigurationException {
+        copyResource("xml/users-invalid.xml", "users.xml", mainConfDir);
+        copyResource("xml/authorizations.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testInvalidAuthorizationsXml() throws IOException, ParserConfigurationException {
+        copyResource("xml/users.xml", "users.xml", mainConfDir);
+        copyResource("xml/authorizations-invalid.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testInvalidUsersAndAuthorizationsXml() throws IOException, ParserConfigurationException {
+        copyResource("xml/users-invalid.xml", "users.xml", mainConfDir);
+        copyResource("xml/authorizations-invalid.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertTrue(restoreUsersXml.toFile().exists(),
+                "users.xml exists in restore conf");
+        Assertions.assertTrue(restoreAuthXml.toFile().exists(),
+                "authorizations.xml exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
     }
 }

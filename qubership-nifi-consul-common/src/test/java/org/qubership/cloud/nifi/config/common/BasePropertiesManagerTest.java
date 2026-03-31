@@ -35,14 +35,22 @@ class BasePropertiesManagerTest {
 
     private void initBasePropertiesManager() {
         initBasePropertiesManager("logback-template.xml", "nifi_registry_default.properties",
-                "./conf/", "nifi-registry.properties", "nifi.registry", Set.of(""),
-                "custom.properties", Set.of(""));
+                "./conf/", "nifi-registry.properties", "nifi.registry", Set.of("")
+        );
     }
 
     private void initBasePropertiesManager(String logbackTemplate, String defaultProperties,
                                            String configFilePath,
                                            String configFileName, String propertyPrefix,
-                                           Set<String> readonlyPropertyNames, String customProperties,
+                                           Set<String> readonlyPropertyNames) {
+        initBasePropertiesManager(logbackTemplate, defaultProperties, configFilePath,
+                configFileName, propertyPrefix, readonlyPropertyNames, null);
+    }
+
+    private void initBasePropertiesManager(String logbackTemplate, String defaultProperties,
+                                           String configFilePath,
+                                           String configFileName, String propertyPrefix,
+                                           Set<String> readonlyPropertyNames,
                                            Set<String> customPropertyNames) {
         this.propertiesProvider = new TestPropertiesProvider();
         this.pm = new BasePropertiesManager(new BasePropertiesManagerConfig(
@@ -54,7 +62,7 @@ class BasePropertiesManagerTest {
                 configFileName,
                 propertyPrefix,
                 readonlyPropertyNames,
-                customProperties,
+                "custom.properties",
                 customPropertyNames,
                 propertiesProvider
         ));
@@ -130,6 +138,8 @@ class BasePropertiesManagerTest {
                 Map.of("org.apache.nifi.registry.StdErr", "INFO",
                         "org.qubership", "DEBUG"),
                 loggerLevels);
+        File customProperties = new File("./conf/custom.properties");
+        Assertions.assertFalse(customProperties.exists(), "custom.properties should not exist");
     }
 
     @Test
@@ -203,8 +213,7 @@ class BasePropertiesManagerTest {
     void testPropertiesLoadWithNullPrefix() throws Exception {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default.properties",
-                "./conf/", "nifi-registry.properties", null, Set.of(""),
-                "custom.properties", Set.of(""));
+                "./conf/", "nifi-registry.properties", null, Set.of(""));
         pm.generateNifiPropertiesAndLogbackConfig();
         File logbackConfig = new File("./conf/logback.xml");
         Assertions.assertTrue(logbackConfig.exists());
@@ -231,8 +240,7 @@ class BasePropertiesManagerTest {
     void testPropertiesLoadWithEmptyPrefix() throws Exception {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default.properties",
-                "./conf/", "nifi-registry.properties", "", Set.of(""),
-                "custom.properties", Set.of(""));
+                "./conf/", "nifi-registry.properties", "", Set.of(""));
         pm.generateNifiPropertiesAndLogbackConfig();
         File logbackConfig = new File("./conf/logback.xml");
         Assertions.assertTrue(logbackConfig.exists());
@@ -260,8 +268,7 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default.properties",
                 "./conf/", "nifi-registry.properties", "",
-                Set.of("nifi.registry.security.identity.mapping.transform.dn"),
-                "custom.properties", Set.of(""));
+                Set.of("nifi.registry.security.identity.mapping.transform.dn"));
         pm.generateNifiPropertiesAndLogbackConfig();
         File logbackConfig = new File("./conf/logback.xml");
         Assertions.assertTrue(logbackConfig.exists());
@@ -290,8 +297,7 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template-not-exists.xml",
                 "nifi_registry_default.properties",
                 "./conf/", "nifi-registry.properties", "",
-                Set.of(),
-                "custom.properties", Set.of(""));
+                Set.of());
         IOException ex = Assertions.assertThrows(IOException.class, pm::generateNifiPropertiesAndLogbackConfig);
         LOG.info("Caught expected exception", ex);
         Assertions.assertEquals("Resource not found: logback-template-not-exists.xml", ex.getMessage());
@@ -302,8 +308,7 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default-not-exists.properties",
                 "./conf/", "nifi-registry.properties", "",
-                Set.of(),
-                "custom.properties", Set.of(""));
+                Set.of());
         IOException ex = Assertions.assertThrows(IOException.class, pm::generateNifiPropertiesAndLogbackConfig);
         LOG.info("Caught expected exception", ex);
         Assertions.assertEquals("Resource not found: nifi_registry_default-not-exists.properties", ex.getMessage());
@@ -314,8 +319,7 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default.properties",
                 "./conf-not-exists/", "nifi-registry.properties", "",
-                Set.of(),
-                "custom.properties", Set.of(""));
+                Set.of());
         IOException ex = Assertions.assertThrows(IOException.class, pm::generateNifiPropertiesAndLogbackConfig);
         LOG.info("Caught expected exception", ex);
         Assertions.assertNotNull(ex.getMessage());
@@ -330,12 +334,58 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template-invalid.xml",
                 "nifi_registry_default.properties",
                 "./conf/", "nifi-registry.properties", "",
-                Set.of(),
-                "custom.properties", Set.of(""));
+                Set.of());
         SAXParseException ex = Assertions.assertThrows(SAXParseException.class,
                 pm::generateNifiPropertiesAndLogbackConfig);
         LOG.info("Caught expected exception", ex);
         Assertions.assertNotNull(ex.getMessage());
+    }
+
+    @Test
+    void testCustomPropertiesLoad() throws Exception {
+        initBasePropertiesManager("logback-template.xml",
+                "nifi_registry_default.properties",
+                "./conf/", "nifi-registry.properties", "nifi.registry",
+                Set.of(), Set.of("nifi.registry.custom.prop1", "nifi.registry.custom.prop2"));
+        propertiesProvider.putProperty("nifi.registry.custom.prop1", "2");
+        propertiesProvider.putProperty("nifi.registry.custom.prop2", "true");
+        pm.generateNifiPropertiesAndLogbackConfig();
+        File logbackConfig = new File("./conf/logback.xml");
+        Assertions.assertTrue(logbackConfig.exists());
+        File nifiRegistryPropsConfig = new File("./conf/nifi-registry.properties");
+        Assertions.assertTrue(nifiRegistryPropsConfig.exists());
+        Properties nifiRegistryProps = new Properties();
+        try (InputStream in = new BufferedInputStream(new FileInputStream(nifiRegistryPropsConfig))) {
+            nifiRegistryProps.load(in);
+            Assertions.assertEquals("200", nifiRegistryProps.getProperty("nifi.registry.web.jetty.threads"));
+            Assertions.assertEquals("15",
+                    nifiRegistryProps.getProperty("nifi.registry.db.maxConnections"));
+            Assertions.assertEquals("10 secs",
+                    nifiRegistryProps.getProperty("nifi.registry.security.user.oidc.connect.timeout"));
+            Assertions.assertEquals("NONE",
+                    nifiRegistryProps.getProperty("nifi.registry.security.identity.mapping.transform.dn"));
+            Assertions.assertFalse(nifiRegistryProps.containsKey("test.non-matching.property"),
+                    "test.non-matching.property property is not filtered by prefix");
+        } catch (IOException e) {
+            Assertions.fail("Failed to read nifi-registry.properties", e);
+        }
+        Map<String, String> loggerLevels = parseLogbackConfig("./conf/logback.xml");
+        Assertions.assertEquals(
+                Map.of("org.apache.nifi.registry.StdErr", "INFO",
+                        "org.qubership", "DEBUG"),
+                loggerLevels);
+        File customProperties = new File("./conf/custom.properties");
+        Assertions.assertTrue(customProperties.exists(), "custom.properties should exist");
+        try (InputStream in = new BufferedInputStream(new FileInputStream(customProperties))) {
+            nifiRegistryProps.load(in);
+            Assertions.assertEquals("2", nifiRegistryProps.getProperty("nifi.registry.custom.prop1"));
+            Assertions.assertEquals("true",
+                    nifiRegistryProps.getProperty("nifi.registry.custom.prop2"));
+            Assertions.assertFalse(nifiRegistryProps.containsKey("nifi.registry.custom.prop3"),
+                    "nifi.registry.custom.prop3 property is not filtered by set of names");
+        } catch (IOException e) {
+            Assertions.fail("Failed to read custom.properties", e);
+        }
     }
 
     @AfterEach
