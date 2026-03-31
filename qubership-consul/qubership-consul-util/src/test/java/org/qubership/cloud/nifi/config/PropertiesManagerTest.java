@@ -1,8 +1,10 @@
 package org.qubership.cloud.nifi.config;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +15,7 @@ import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration;
 import org.testcontainers.consul.ConsulContainer;
 import org.testcontainers.containers.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.BufferedInputStream;
@@ -23,11 +25,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
-@Testcontainers
 @SpringBootTest(classes = {PropertiesManager.class,
         ConsulConfiguration.class, ConsulPropertiesProvider.class})
 @ImportAutoConfiguration(classes = {RefreshAutoConfiguration.class, ConsulConfigAutoConfiguration.class})
@@ -35,7 +36,13 @@ public class PropertiesManagerTest {
 
     private static final String CONSUL_IMAGE = "hashicorp/consul:1.20";
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesManagerTest.class);
-    private static ConsulContainer consul;
+    private static final ConsulContainer CONSUL;
+
+    static {
+        CONSUL = new ConsulContainer(DockerImageName.parse(CONSUL_IMAGE));
+        CONSUL.start();
+        System.setProperty("consul.test.port", String.valueOf(CONSUL.getMappedPort(8500)));
+    }
 
     @Autowired
     private PropertiesManager pm;
@@ -44,7 +51,7 @@ public class PropertiesManagerTest {
     private static void putPropertyToConsul(String propertyName, String propertyValue) {
         Container.ExecResult res = null;
         try {
-            res = consul.execInContainer("consul", "kv", "put", propertyName, propertyValue);
+            res = CONSUL.execInContainer("consul", "kv", "put", propertyName, propertyValue);
             LOG.debug("Result for put {} = {}",
                     propertyName, res.getStdout());
             Assertions.assertTrue(res.getStdout() != null && res.getStdout().contains("Success"),
@@ -62,13 +69,6 @@ public class PropertiesManagerTest {
 
     @BeforeAll
     public static void initContainer() {
-        List<String> consulPorts = new ArrayList<>();
-        consulPorts.add("18500:8500");
-
-        consul = new ConsulContainer(DockerImageName.parse(CONSUL_IMAGE));
-        consul.setPortBindings(consulPorts);
-        consul.start();
-
         //fill initial consul data:
         putPropertyToConsul("config/local/application/logger.org.qubership", "DEBUG");
         putPropertyToConsul("config/local/application/logger.org.apache.nifi.processors", "DEBUG");
@@ -77,7 +77,10 @@ public class PropertiesManagerTest {
         putPropertyToConsul("config/local/application/nifi.queue.swap.threshold", "25000");
         putPropertyToConsul("config/local/application/nifi.web.https.application.protocols", "http/1.1 http/1.1");
         putPropertyToConsul("config/local/application/test.value", "true");
+    }
 
+    @BeforeEach
+    void prepareDirectories() {
         //prepare test directories:
         try {
             Files.createDirectories(Paths.get(".", "conf"));
@@ -86,12 +89,26 @@ public class PropertiesManagerTest {
         }
     }
 
-
     @Test
-    public void testPropertiesLoadOnStart() throws Exception {
-        pm.generateNifiProperties();
+    void testPropertiesLoadOnStart() throws Exception {
         File logbackConfig = new File("./conf/logback.xml");
+        //remove existing logback.xml:
+        try {
+            Files.deleteIfExists(Paths.get(".", "conf", "logback.xml"));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete conf test dir", e);
+        }
+        putPropertyToConsul("config/local/application/logger.org.qubership2", "DEBUG");
+        //wait for logback.xml to be recreated after refresh:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
+        pm.generateNifiProperties();
         Assertions.assertTrue(logbackConfig.exists());
+        LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
+        Map<String, String> loggingLevels = parser.getAllLoggingLevels();
+        Assertions.assertEquals("DEBUG", loggingLevels.get("org.qubership2"));
+        Assertions.assertEquals("ERROR", loggingLevels.get("org.apache.nifi.StdErr"));
+        Assertions.assertEquals("WARN", loggingLevels.get("org.apache.nifi.web.security"));
         File customPropsConfig = new File("./conf/custom.properties");
         Assertions.assertTrue(customPropsConfig.exists());
         File nifiPropsConfig = new File("./conf/nifi.properties");
@@ -115,9 +132,51 @@ public class PropertiesManagerTest {
         }
     }
 
+    @Test
+    void testLoggingLevelsUpdate() throws Exception {
+        //initial load:
+        putPropertyToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        pm.generateNifiProperties();
+        final File logbackConfig = new File("./conf/logback.xml");
+        Assertions.assertTrue(logbackConfig.exists());
+        LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
+        Map<String, String> loggingLevels = parser.getAllLoggingLevels();
+        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
+        Assertions.assertEquals("DEBUG", loggingLevels.get("org.qubership"));
+        File nifiPropsConfig = new File("./conf/nifi.properties");
+        Assertions.assertTrue(nifiPropsConfig.exists());
+        //remove existing logback.xml:
+        try {
+            Files.deleteIfExists(Paths.get(".", "conf", "logback.xml"));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete conf test dir", e);
+        }
+        //update consul:
+        putPropertyToConsul("config/local/application/logger.org.qubership", "INFO");
+        //wait for logback.xml to be recreated after refresh:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
+        Assertions.assertTrue(logbackConfig.exists());
+        loggingLevels = parser.getAllLoggingLevels();
+        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
+        Assertions.assertEquals("INFO", loggingLevels.get("org.qubership"));
+    }
+
+    @AfterEach
+    void cleanUpDirectories() {
+        try {
+            Files.deleteIfExists(Paths.get(".", "conf", "nifi.properties"));
+            Files.deleteIfExists(Paths.get(".", "conf", "custom.properties"));
+            Files.deleteIfExists(Paths.get(".", "conf", "logback.xml"));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete conf test dir", e);
+        }
+    }
+
     @AfterAll
     public static void tearDown() {
-        consul.stop();
+        System.clearProperty("consul.test.port");
+        CONSUL.stop();
         try {
             Files.deleteIfExists(Paths.get(".", "conf", "custom.properties"));
             Files.deleteIfExists(Paths.get(".", "conf", "nifi.properties"));
