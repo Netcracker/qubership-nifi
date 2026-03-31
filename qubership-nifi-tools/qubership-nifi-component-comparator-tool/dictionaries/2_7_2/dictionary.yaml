@@ -14,7 +14,7 @@ displayNameMapping:
     Charset: Character Set
     Suppress Null/Empty Values: Suppress Null and Empty Values
 - AttributeRollingWindow:
-    Sub-window length : Subwindow Length
+    Sub-window length: Subwindow Length
 - CalculateRecordStats:
     record-stats-limit: Record Stats Limit
 - CaptureChangeMySQL:
@@ -118,7 +118,7 @@ displayNameMapping:
     Include all violations: Include Violations
 - ValidateRecord:
     Force Types From Reader's Schema: Force Types From Reader Schema
-    
+
 propertiesAllowedToDelete:
 - AWSCredentialsProviderControllerService:
     - Assume Role STS Signer Override

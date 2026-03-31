@@ -2,6 +2,7 @@
 
 Command-line tool for comparing component properties from two different NiFi versions.
 The qubership-nifi-component-comparator-tool produces three files:
+
 - a CSV file containing detailed information about the comparison results.
 - a Markdown file containing detailed information about the comparison results.
 - a JSON file that can be used later when updating Controller Services and Reporting Task exports.

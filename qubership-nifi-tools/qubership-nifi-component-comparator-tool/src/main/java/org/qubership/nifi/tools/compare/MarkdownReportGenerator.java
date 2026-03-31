@@ -90,6 +90,8 @@ public class MarkdownReportGenerator {
 
     /**
      * Groups records by component type folder, then by component name (sorted).
+     * @param csvRecords list of repords to group
+     * @return Map with groupped records
      */
     private Map<String, Map<String, List<String[]>>> groupRecords(List<String[]> csvRecords) {
         Map<String, Map<String, List<String[]>>> grouped = new LinkedHashMap<>();
