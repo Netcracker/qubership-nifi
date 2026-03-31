@@ -17,8 +17,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class XmlConfigValidator {
-    private static final Logger log = LoggerFactory.getLogger(XmlConfigValidator.class);
-    
+    private static final Logger LOG = LoggerFactory.getLogger(XmlConfigValidator.class);
+
     private String path;
     private String mainConfigDirectoryPath;
     private String restoreDirectoryPath;
@@ -38,10 +38,17 @@ public class XmlConfigValidator {
         this.restoreDirectoryPath = config.defaultRestoreDirectoryPath();
     }
 
+    /**
+     * Validates authorizations.xml and users.xml and restores them from backup, if invalid.
+     * @throws IOException
+     * @throws ParserConfigurationException
+     */
     public void validate() throws IOException, ParserConfigurationException {
-        if (shouldSkipValidation()) return;
+        if (shouldSkipValidation()) {
+            return;
+        }
 
-        log.info("Restore directory path: {}",restoreDirectoryPath);
+        LOG.info("Restore directory path: {}", restoreDirectoryPath);
 
         mainAuthorizationsFilePath =  mainConfigDirectoryPath + "authorizations.xml";
         mainUsersFilePath =  mainConfigDirectoryPath + "users.xml";
@@ -61,7 +68,7 @@ public class XmlConfigValidator {
     private boolean shouldSkipValidation() throws IOException {
         String cleanConf = System.getenv("NIFI_CONF_PV_CLEAN_CONF");
         if ("true".equals(cleanConf)) {
-            log.info("NIFI_CONF_PV_CLEAN_CONF set to true, skipping validation");
+            LOG.info("NIFI_CONF_PV_CLEAN_CONF set to true, skipping validation");
             return true;
         }
 
@@ -77,8 +84,8 @@ public class XmlConfigValidator {
         Boolean isAuthorizationsFileValid = checkIfXmlIsValid(mainAuthorizationsFilePath, builder);
         Boolean isUsersFileValid = checkIfXmlIsValid(mainUsersFilePath, builder);
 
-        if(isAuthorizationsFileValid && isUsersFileValid) {
-            log.info("Deleting config from restore directory, as main config's are valid");
+        if (isAuthorizationsFileValid && isUsersFileValid) {
+            LOG.info("Deleting config from restore directory, as main config's are valid");
             deleteRestoreConfig();
             return;
         }
@@ -120,7 +127,7 @@ public class XmlConfigValidator {
         try {
             builder.parse(new InputSource(xmlFilePath));
         } catch (SAXException ex) {
-            log.error("Error when parsing xml: " + xmlFilePath, ex);
+            LOG.error("Error when parsing xml: " + xmlFilePath, ex);
             return false;
         }
         return true;
@@ -132,28 +139,28 @@ public class XmlConfigValidator {
     }
     private void deleteFile(String filePath) {
         File fileToDelete = new File(filePath);
-        log.info("Deleting file {} ", filePath);
+        LOG.info("Deleting file {} ", filePath);
         fileToDelete.delete();
     }
 
-    private void renameFile(String sourcePath, String destPath){
+    private void renameFile(String sourcePath, String destPath) {
         File oldFile = new File(sourcePath);
         File newFile = new File(destPath);
-        log.info("Renaming file {} to {} ", sourcePath, destPath);
+        LOG.info("Renaming file {} to {} ", sourcePath, destPath);
         oldFile.renameTo(newFile);
     }
 
     private void copyRestoreConfigToMain() throws IOException {
         File srcAuth = new File(restoreDirectoryPath + "authorizations.xml");
         File srcUser = new File(restoreDirectoryPath + "users.xml");
-        if(srcAuth.exists() && srcUser.exists()) {
+        if (srcAuth.exists() && srcUser.exists()) {
             File destAuth = new File(mainAuthorizationsFilePath);
-            log.info("Copying file {} to {} ", srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
-            Files.copy(srcAuth.toPath(),destAuth.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            LOG.info("Copying file {} to {} ", srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
+            Files.copy(srcAuth.toPath(), destAuth.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             File destUser = new File(mainUsersFilePath);
-            log.info("Copying file {} to {} ", srcUser.getAbsolutePath(), destUser.getAbsolutePath());
-            Files.copy(srcUser.toPath(),destUser.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            LOG.info("Copying file {} to {} ", srcUser.getAbsolutePath(), destUser.getAbsolutePath());
+            Files.copy(srcUser.toPath(), destUser.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
