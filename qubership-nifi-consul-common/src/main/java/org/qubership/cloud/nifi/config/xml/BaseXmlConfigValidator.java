@@ -169,7 +169,8 @@ public class BaseXmlConfigValidator {
         File srcUser = Paths.get(restoreDirectoryPath, "users.xml").toFile();
         if (srcAuth.exists() && srcUser.exists()) {
             File destAuth = mainAuthorizationsFilePath.toFile();
-            LOG.info("Copying authorizations.xml file {} to {} ", srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
+            LOG.info("Copying authorizations.xml file {} to {} ",
+                    srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
             Files.copy(srcAuth.toPath(), destAuth.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             File destUser = mainUsersFilePath.toFile();
