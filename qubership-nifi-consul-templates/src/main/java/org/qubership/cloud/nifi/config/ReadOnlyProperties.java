@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * Class providing set of readonly properties for qubership-nifi.
  */
-public class ReadOnlyProperties {
+public final class ReadOnlyProperties {
     private ReadOnlyProperties() {
     }
 
