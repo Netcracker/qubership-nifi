@@ -145,7 +145,7 @@ runs:
         global-vars-file-name: "Global_Vars.postman_globals.json"
         docker-compose-file: ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml"
     - name: Run Qubership NAR test
-      if: ${{ inputs.run-mode == 'oidc' }}
+      if: ${{ inputs.run-mode == 'oidc' || inputs.run-mode == 'oidc-quarkus' }}
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
       with:

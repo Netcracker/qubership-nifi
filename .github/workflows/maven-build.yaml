@@ -16,7 +16,6 @@ on:
       - 'qubership-nifi-tools/**'
       - 'qubership-nifi-consul-common/**'
       - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-consul-xml/**'
       - 'pom.xml'
   pull_request:
     paths:
@@ -32,7 +31,6 @@ on:
       - 'qubership-nifi-tools/**'
       - 'qubership-nifi-consul-common/**'
       - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-consul-xml/**'
       - 'pom.xml'
   workflow_dispatch:
     inputs:

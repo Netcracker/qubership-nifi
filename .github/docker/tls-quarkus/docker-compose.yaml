@@ -32,8 +32,8 @@ services:
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
-      - CONSUL_URL=consul:8500
-      - NIFI_CONSUL_INT_FRAMEWORK=spring
+      - CONSUL_URL=http://consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=quarkus
       - AUTH=tls
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080

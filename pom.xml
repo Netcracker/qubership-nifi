@@ -106,7 +106,6 @@
         <module>dev-tools-integration-tests</module>
         <module>qubership-nifi-consul-common</module>
         <module>qubership-nifi-consul-templates</module>
-        <module>qubership-nifi-consul-xml</module>
         <module>qubership-consul</module>
         <!--<module>qubership-nifi-quarkus-consul</module>-->
     </modules>

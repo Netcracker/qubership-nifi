@@ -1,4 +1,4 @@
-package org.qubership.cloud.nifi.config.spring;
+package org.qubership.cloud.nifi.config;
 
 import org.qubership.cloud.nifi.config.common.PropertiesProvider;
 import org.springframework.beans.factory.annotation.Autowired;

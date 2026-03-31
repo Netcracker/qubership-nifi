@@ -16,8 +16,8 @@ import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class XmlConfigValidator {
-    private static final Logger LOG = LoggerFactory.getLogger(XmlConfigValidator.class);
+public class BaseXmlConfigValidator {
+    private static final Logger LOG = LoggerFactory.getLogger(BaseXmlConfigValidator.class);
 
     private String path;
     private String mainConfigDirectoryPath;
@@ -28,11 +28,11 @@ public class XmlConfigValidator {
     private String mainUsersFilePath;
 
     /**
-     * Creates new instance of XmlConfigValidator.
+     * Creates new instance of BaseXmlConfigValidator.
      *
      * @param config configuration containing all required parameters
      */
-    public XmlConfigValidator(final XmlConfigValidatorConfig config) {
+    public BaseXmlConfigValidator(final XmlConfigValidatorConfig config) {
         this.path = config.defaultPath();
         this.mainConfigDirectoryPath = config.defaultMainConfigDirectoryPath();
         this.restoreDirectoryPath = config.defaultRestoreDirectoryPath();
@@ -137,6 +137,7 @@ public class XmlConfigValidator {
         deleteFile(restoreDirectoryPath + "authorizations.xml");
         deleteFile(restoreDirectoryPath + "users.xml");
     }
+
     private void deleteFile(String filePath) {
         File fileToDelete = new File(filePath);
         LOG.info("Deleting file {} ", filePath);
@@ -155,11 +156,11 @@ public class XmlConfigValidator {
         File srcUser = new File(restoreDirectoryPath + "users.xml");
         if (srcAuth.exists() && srcUser.exists()) {
             File destAuth = new File(mainAuthorizationsFilePath);
-            LOG.info("Copying file {} to {} ", srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
+            LOG.info("Copying authorizations.xml file {} to {} ", srcAuth.getAbsolutePath(), destAuth.getAbsolutePath());
             Files.copy(srcAuth.toPath(), destAuth.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             File destUser = new File(mainUsersFilePath);
-            LOG.info("Copying file {} to {} ", srcUser.getAbsolutePath(), destUser.getAbsolutePath());
+            LOG.info("Copying user.xml file {} to {} ", srcUser.getAbsolutePath(), destUser.getAbsolutePath());
             Files.copy(srcUser.toPath(), destUser.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }

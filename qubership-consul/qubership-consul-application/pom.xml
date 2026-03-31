@@ -47,7 +47,7 @@
         </dependency>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
-            <artifactId>qubership-nifi-consul-xml</artifactId>
+            <artifactId>qubership-nifi-consul-templates</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

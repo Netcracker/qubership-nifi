@@ -10,7 +10,6 @@ on:
       - 'qubership-consul/**'
       - 'qubership-nifi-consul-common/**'
       - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-consul-xml/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -36,7 +35,6 @@ on:
       - 'qubership-consul/**'
       - 'qubership-nifi-consul-common/**'
       - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-consul-xml/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -80,7 +78,9 @@ jobs:
       matrix:
         run-mode:
         - 'tls'
+        - 'tls-quarkus'
         - 'oidc'
+        - 'oidc-quarkus'
         - 'oidc-cassandra'
         - 'oidc-kafka'
         - 'cluster'
