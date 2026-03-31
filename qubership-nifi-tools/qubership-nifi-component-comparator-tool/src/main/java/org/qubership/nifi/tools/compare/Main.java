@@ -69,9 +69,13 @@ public final class Main {
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
+            MarkdownReportGenerator mdGenerator = new MarkdownReportGenerator(outputDir);
+            mdGenerator.generate(comparator.getCsvRecords());
+
             LOGGER.info("Comparison completed successfully!");
-            LOGGER.info("CSV Report:  {}", csvGenerator.getOutputPath());
-            LOGGER.info("JSON Report: {}", jsonGenerator.getOutputPath());
+            LOGGER.info("CSV Report:      {}", csvGenerator.getOutputPath());
+            LOGGER.info("JSON Report:     {}", jsonGenerator.getOutputPath());
+            LOGGER.info("Markdown Report: {}", mdGenerator.getOutputPath());
 
         } catch (IOException e) {
             LOGGER.error("Fatal error during comparison: {}", e.getMessage(), e);
