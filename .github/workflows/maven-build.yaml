@@ -147,7 +147,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run tools integration tests
         if: ${{ !inputs.skip-tools-it }}
-        run: >
+        run: |
           # Run mvn install before tests to ensure all artifacts are published
           mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
           # Run integration tests
