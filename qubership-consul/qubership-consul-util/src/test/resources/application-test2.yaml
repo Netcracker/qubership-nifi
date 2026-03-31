@@ -29,11 +29,12 @@ spring:
   cloud:
     consul:
       config:
-        prefix: config/${NAMESPACE:local}
+        fail-fast: false
+        prefix: config/local
         defaultContext: application
-        enabled: ${CONSUL_ENABLED:true}
+        enabled: false
         watch:
-          enabled: ${CONSUL_ENABLED:true}
+          enabled: false
           delay: 500
           wait-time: 10
 info:
@@ -61,5 +62,5 @@ config:
 spring:
   config:
     activate:
-      on-profile: "!development & !test2"
-    import: consul:localhost:${consul.test.port}
+      on-profile: "!development"
+    import: optional:consul:localhost:8500

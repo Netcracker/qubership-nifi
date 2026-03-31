@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -227,6 +228,35 @@ public class BaseXmlConfigValidatorTest {
         Assertions.assertEquals(readResourceAsString("xml/users-restore.xml"),
                 Files.readString(usersXml, StandardCharsets.UTF_8));
         Assertions.assertEquals(readResourceAsString("xml/authorizations-restore.xml"),
+                Files.readString(authXml, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testPathsWithTrailingSeparator() throws IOException, ParserConfigurationException {
+        //init config validator with paths
+        baseXmlConfigValidator = new BaseXmlConfigValidator(
+                new XmlConfigValidatorConfig(confDir.toString() + File.separator,
+                        mainConfDir.toString() + File.separator,
+                        restoreDir.toString() + File.separator)
+        );
+        copyResource("xml/users.xml", "users.xml", mainConfDir);
+        copyResource("xml/authorizations.xml", "authorizations.xml", mainConfDir);
+        copyResource("xml/users-restore.xml", "users.xml", restoreDir);
+        copyResource("xml/authorizations-restore.xml", "authorizations.xml", restoreDir);
+        baseXmlConfigValidator.validate();
+        Path usersXml = mainConfDir.resolve("users.xml");
+        Path authXml = mainConfDir.resolve("authorizations.xml");
+        Path restoreUsersXml = restoreDir.resolve("users.xml");
+        Path restoreAuthXml = restoreDir.resolve("authorizations.xml");
+        Assertions.assertFalse(restoreUsersXml.toFile().exists(),
+                "users.xml does not exists in restore conf");
+        Assertions.assertFalse(restoreAuthXml.toFile().exists(),
+                "authorizations.xml does not exists in restore conf");
+        Assertions.assertTrue(usersXml.toFile().exists(), "users.xml exists in main conf");
+        Assertions.assertTrue(authXml.toFile().exists(), "authorizations.xml exists in main conf");
+        Assertions.assertEquals(readResourceAsString("xml/users.xml"),
+                Files.readString(usersXml, StandardCharsets.UTF_8));
+        Assertions.assertEquals(readResourceAsString("xml/authorizations.xml"),
                 Files.readString(authXml, StandardCharsets.UTF_8));
     }
 }
