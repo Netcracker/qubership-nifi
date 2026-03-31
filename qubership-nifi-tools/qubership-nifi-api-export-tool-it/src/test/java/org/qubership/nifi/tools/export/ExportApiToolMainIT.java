@@ -18,25 +18,20 @@ package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
  * Integration tests that spin up a real NiFi container via TestContainers,
  * run the full Main pipeline, and verify the output file structure.
- *
  * These tests require Docker and take several minutes each.
  * Run selectively: mvn test -pl qubership-nifi-api-export-tool -Dgroups=docker
  */
-@Tag("docker")
-class MainIntegrationTest {
+class ExportApiToolMainIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -73,13 +68,13 @@ class MainIntegrationTest {
         File csDir = new File(outDir, "controllerService");
         File rtDir = new File(outDir, "reportingTask");
 
-        assertTrue(processorsDir.isDirectory(), "processors/ directory must exist");
-        assertTrue(csDir.isDirectory(), "controllerService/ directory must exist");
-        assertTrue(rtDir.isDirectory(), "reportingTask/ directory must exist");
+        Assertions.assertTrue(processorsDir.isDirectory(), "processors/ directory must exist");
+        Assertions.assertTrue(csDir.isDirectory(), "controllerService/ directory must exist");
+        Assertions.assertTrue(rtDir.isDirectory(), "reportingTask/ directory must exist");
 
-        assertTrue(processorsDir.list().length > 0, "processors/ must contain at least one file");
-        assertTrue(csDir.list().length > 0, "controllerService/ must contain at least one file");
-        assertTrue(rtDir.list().length > 0, "reportingTask/ must contain at least one file");
+        Assertions.assertTrue(processorsDir.list().length > 0, "processors/ must contain at least one file");
+        Assertions.assertTrue(csDir.list().length > 0, "controllerService/ must contain at least one file");
+        Assertions.assertTrue(rtDir.list().length > 0, "reportingTask/ must contain at least one file");
 
         assertValidJsonFile(processorsDir.listFiles()[0]);
         assertValidJsonFile(csDir.listFiles()[0]);
@@ -87,18 +82,18 @@ class MainIntegrationTest {
     }
 
     private void assertValidJsonFile(File jsonFile) throws Exception {
-        assertTrue(jsonFile.getName().endsWith(".json"),
+        Assertions.assertTrue(jsonFile.getName().endsWith(".json"),
                 "Output file must have .json extension: " + jsonFile.getName());
 
         JsonNode root = MAPPER.readTree(jsonFile);
 
-        assertTrue(root.has("type"), "JSON must have 'type' field in: " + jsonFile.getName());
-        assertFalse(root.get("type").asText().isEmpty(),
+        Assertions.assertTrue(root.has("type"), "JSON must have 'type' field in: " + jsonFile.getName());
+        Assertions.assertFalse(root.get("type").asText().isEmpty(),
                 "'type' must be a non-empty FQCN in: " + jsonFile.getName());
 
-        assertTrue(root.has("propertyDescriptors"),
+        Assertions.assertTrue(root.has("propertyDescriptors"),
                 "JSON must have 'propertyDescriptors' field in: " + jsonFile.getName());
-        assertTrue(root.get("propertyDescriptors").isObject(),
+        Assertions.assertTrue(root.get("propertyDescriptors").isObject(),
                 "'propertyDescriptors' must be a JSON object in: " + jsonFile.getName());
     }
 }
