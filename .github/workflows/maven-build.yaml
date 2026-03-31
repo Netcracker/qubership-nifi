@@ -14,6 +14,9 @@ on:
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-services/**'
       - 'qubership-nifi-tools/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-consul-xml/**'
       - 'pom.xml'
   pull_request:
     paths:
@@ -27,6 +30,9 @@ on:
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-services/**'
       - 'qubership-nifi-tools/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-consul-xml/**'
       - 'pom.xml'
   workflow_dispatch:
     inputs:
@@ -83,6 +89,8 @@ permissions:
 
 jobs:
   maven-build-and-test:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Input parameters
@@ -108,8 +116,9 @@ jobs:
         with:
           java-version: ${{ inputs.java-version || '21' }}
           distribution: 'temurin'
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
           gpg-private-key: ${{ secrets.gpg-private-key }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Run local maven build with sonar
@@ -127,6 +136,8 @@ jobs:
           SONAR_ORGANIZATION: "${{ vars.SONAR_ORGANIZATION }}"
           SONAR_PROJECT_KEY: "${{ vars.SONAR_PROJECT_KEY }}"
           SONAR_HOST_URL: "${{ vars.SONAR_HOST_URL }}"
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run local maven build w/o sonar
         if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL }}
         run: >
@@ -134,15 +145,19 @@ jobs:
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run tools integration tests
         if: ${{ !inputs.skip-tools-it }}
         run: >
           mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: maven-unit-test-logs
           path: |
@@ -152,7 +167,7 @@ jobs:
           retention-days: 2
       - name: Upload all Maven target directories
         if: ${{ inputs.upload-artifact }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ inputs.artifact-id }}
           path: '**/target'

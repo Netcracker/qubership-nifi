@@ -8,6 +8,9 @@ on:
       - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-consul-xml/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -31,6 +34,9 @@ on:
       - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-consul-xml/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -150,7 +156,7 @@ jobs:
           fi
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: nifi-autotests-${{ matrix.run-mode }}-logs
           path: |
