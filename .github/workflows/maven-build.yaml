@@ -148,7 +148,10 @@ jobs:
       - name: Run tools integration tests
         if: ${{ !inputs.skip-tools-it }}
         run: >
-          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
+          # Run mvn install before tests to ensure all artifacts are published
+          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
+          # Run integration tests
+          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           GITHUB_ACTOR: ${{ github.actor }}
