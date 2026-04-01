@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * Generates comparison report in markdown format.
+ */
 public class MarkdownReportGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MarkdownReportGenerator.class);
@@ -99,13 +102,13 @@ public class MarkdownReportGenerator {
             grouped.put(folder, new TreeMap<>());
         }
 
-        for (String[] record : csvRecords) {
-            String folder = record[IDX_COMPONENT_TYPE];
-            String componentName = record[IDX_COMPONENT_NAME];
+        for (String[] csvRecord : csvRecords) {
+            String folder = csvRecord[IDX_COMPONENT_TYPE];
+            String componentName = csvRecord[IDX_COMPONENT_NAME];
 
             grouped.computeIfAbsent(folder, k -> new TreeMap<>())
                     .computeIfAbsent(componentName, k -> new ArrayList<>())
-                    .add(record);
+                    .add(csvRecord);
         }
         return grouped;
     }
@@ -177,13 +180,13 @@ public class MarkdownReportGenerator {
                 sb.append(TABLE_HEADER).append("\n");
                 sb.append(TABLE_SEPARATOR).append("\n");
 
-                for (String[] record : entry.getValue()) {
+                for (String[] csvRecord : entry.getValue()) {
                     sb.append("| ")
-                            .append(escapeCell(record[IDX_CHANGE_TYPE])).append(" | ")
-                            .append(escapeCell(record[IDX_OLD_DISPLAY_NAME])).append(" | ")
-                            .append(escapeCell(record[IDX_NEW_DISPLAY_NAME])).append(" | ")
-                            .append(escapeCell(record[IDX_OLD_API_NAME])).append(" | ")
-                            .append(escapeCell(record[IDX_NEW_API_NAME])).append(" |\n");
+                            .append(escapeCell(csvRecord[IDX_CHANGE_TYPE])).append(" | ")
+                            .append(escapeCell(csvRecord[IDX_OLD_DISPLAY_NAME])).append(" | ")
+                            .append(escapeCell(csvRecord[IDX_NEW_DISPLAY_NAME])).append(" | ")
+                            .append(escapeCell(csvRecord[IDX_OLD_API_NAME])).append(" | ")
+                            .append(escapeCell(csvRecord[IDX_NEW_API_NAME])).append(" |\n");
                 }
                 sb.append("\n");
             }

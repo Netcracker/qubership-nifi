@@ -11,6 +11,9 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Generates JSON mapping for update scripts.
+ */
 public class JsonMappingGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingGenerator.class);

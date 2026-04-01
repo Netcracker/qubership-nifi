@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Main entrypoint for component comparator tool.
+ */
 public final class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
