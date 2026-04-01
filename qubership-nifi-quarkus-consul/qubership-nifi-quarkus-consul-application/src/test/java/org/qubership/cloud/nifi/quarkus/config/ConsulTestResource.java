@@ -87,8 +87,8 @@ public class ConsulTestResource implements QuarkusTestResourceLifecycleManager {
 
     private void assertSuccess(Container.ExecResult res, String errorMessage) {
         if (res == null || res.getStdout() == null || !res.getStdout().contains("Success")) {
-            throw new RuntimeException(errorMessage + ": " +
-                    (res != null ? "stdout=" + res.getStdout() + ", stderr=" + res.getStderr() : "null result"));
+            throw new RuntimeException(errorMessage + ": "
+                    + (res != null ? "stdout=" + res.getStdout() + ", stderr=" + res.getStderr() : "null result"));
         }
     }
 
