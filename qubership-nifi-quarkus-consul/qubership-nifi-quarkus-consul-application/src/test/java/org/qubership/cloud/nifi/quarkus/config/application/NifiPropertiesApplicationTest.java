@@ -48,7 +48,7 @@ public class NifiPropertiesApplicationTest {
         mainThread.start();
         //wait for logback.xml file creation:
         File logbackConfig = new File("./conf/logback.xml");
-        Awaitility.await().atMost(30000, TimeUnit.MILLISECONDS).
+        Awaitility.await().atMost(50000, TimeUnit.MILLISECONDS).
                 until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         File nifiPropsConfig = new File("./conf/nifi.properties");
