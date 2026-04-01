@@ -14,27 +14,35 @@ runs:
       run: |
         echo "Preparing env..."
         . .github/workflows/sh/nifi-lib.sh
-        setup_env_before_tests "${{ inputs.run-mode }}"
+        setup_env_before_tests "${RUN_MODE}"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Run local nifi
       shell: bash
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
-        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env up -d
+        docker compose -f .github/docker/${RUN_MODE}/docker-compose.yaml --env-file ./docker.env up -d
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Wait for nifi container to start (plain)
       if: ${{ inputs.run-mode == 'plain' }}
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        wait_nifi_container "15" "60" "localhost" "8080" "false" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}"
+        wait_nifi_container "15" "60" "localhost" "8080" "false" ".github/docker/${RUN_MODE}/docker-compose.yaml" "${RUN_MODE}"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Wait for nifi registry container to start (plain)
       if: ${{ inputs.run-mode == 'plain' }}
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        wait_nifi_reg_container "localhost" "18080" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "false" "5" "30"  "${{ inputs.run-mode }}"
+        wait_nifi_reg_container "localhost" "18080" ".github/docker/${RUN_MODE}/docker-compose.yaml" "false" "5" "30"  "${RUN_MODE}"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Wait for nifi container to start (TLS)
       if: ${{ inputs.run-mode != 'plain' }}
       shell: bash
@@ -42,9 +50,11 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
+        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${RUN_MODE}/docker-compose.yaml" "${RUN_MODE}" \
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
           "$NIFI_CLIENT_PASSWORD"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Wait for nifi registry container to start (TLS)
       if: ${{ inputs.run-mode != 'plain' }}
       shell: bash
@@ -52,16 +62,20 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_reg_container "localhost" "18080" ".github/docker/${{ inputs.run-mode }}/docker-compose.yaml" "true" "5" "30"  "${{ inputs.run-mode }}" \
+        wait_nifi_reg_container "localhost" "18080" ".github/docker/${RUN_MODE}/docker-compose.yaml" "true" "5" "30"  "${RUN_MODE}" \
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
           "$NIFI_CLIENT_PASSWORD"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Test log level configuration
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
-        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${{ inputs.run-mode }}' 'local-nifi' "$CONSUL_TOKEN"
+        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${RUN_MODE}' 'local-nifi' "$CONSUL_TOKEN"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Run collection for setup policies
       if: ${{ inputs.run-mode != 'plain' }}
       continue-on-error: true
@@ -192,5 +206,7 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Stopping and removing containers"
-        docker compose -f .github/docker/${{ inputs.run-mode }}/docker-compose.yaml --env-file ./docker.env down -v
+        docker compose -f .github/docker/${RUN_MODE}/docker-compose.yaml --env-file ./docker.env down -v
         sudo rm -rf ./temp-vol/
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
