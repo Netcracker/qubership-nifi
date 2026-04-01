@@ -48,7 +48,6 @@
         <!--libraries versions-->
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <quarkus-plugin.version>3.27.2</quarkus-plugin.version>
-        <com-google-guava.version>32.0.1-jre</com-google-guava.version>
         <consul-config-source.version>8.4.1</consul-config-source.version>
         <!--test libraries versions-->
         <junit.jupiter.version>5.11.1</junit.jupiter.version>

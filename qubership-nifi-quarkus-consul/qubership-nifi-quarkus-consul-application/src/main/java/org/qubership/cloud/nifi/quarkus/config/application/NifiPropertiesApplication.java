@@ -5,8 +5,8 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.qubership.cloud.nifi.config.xml.BaseXmlConfigValidator;
 import org.qubership.cloud.nifi.quarkus.config.PropertiesManager;
-import org.qubership.cloud.nifi.quarkus.config.XmlConfigValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -34,7 +34,7 @@ public class NifiPropertiesApplication implements QuarkusApplication {
     private PropertiesManager propertiesManager;
 
     @Inject
-    private XmlConfigValidator xmlConfigValidator;
+    private BaseXmlConfigValidator baseXmlConfigValidator;
 
     @Inject
     @ConfigProperty(name = "nifi.notification.path")
@@ -77,7 +77,7 @@ public class NifiPropertiesApplication implements QuarkusApplication {
             SAXException {
         LOG.info("Starting NiFi properties generation...");
         propertiesManager.generateNifiProperties();
-        xmlConfigValidator.validateProperties();
+        baseXmlConfigValidator.validate();
         notifyCompletionToStartScript();
         LOG.info("NiFi properties generation completed successfully");
     }
@@ -85,7 +85,7 @@ public class NifiPropertiesApplication implements QuarkusApplication {
     private void notifyCompletionToStartScript() {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            Path fPath = Paths.get(notificationPath + "initial-config-completed.txt");
+            Path fPath = Paths.get(notificationPath, "initial-config-completed.txt");
             Files.write(fPath, timestamp.getBytes());
             LOG.info("Consul App completion file created:{} ", fPath.toAbsolutePath());
         } catch (Exception e) {

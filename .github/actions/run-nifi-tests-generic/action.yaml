@@ -73,7 +73,7 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
-        test_log_level 'org.qubership.test.pkg2' 'DEBUG' '${RUN_MODE}' 'local-nifi' "$CONSUL_TOKEN"
+        test_log_level 'org.qubership.test.pkg2' 'DEBUG' "${RUN_MODE}" 'local-nifi' "$CONSUL_TOKEN"
       env:
         RUN_MODE: ${{ inputs.run-mode }}
     - name: Run collection for setup policies
