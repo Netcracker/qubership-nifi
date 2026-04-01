@@ -23,6 +23,8 @@ import java.util.Date;
 
 public class BaseXmlConfigValidator {
     private static final Logger LOG = LoggerFactory.getLogger(BaseXmlConfigValidator.class);
+    private static final String AUTHORIZATIONS_FILE_NAME = "authorizations.xml";
+    private static final String USERS_FILE_NAME = "users.xml";
 
     private String path;
     private String mainConfigDirectoryPath;
@@ -54,8 +56,8 @@ public class BaseXmlConfigValidator {
 
         LOG.info("Restore directory path: {}", restoreDirectoryPath);
 
-        mainAuthorizationsFilePath = Paths.get(mainConfigDirectoryPath, "authorizations.xml");
-        mainUsersFilePath = Paths.get(mainConfigDirectoryPath, "users.xml");
+        mainAuthorizationsFilePath = Paths.get(mainConfigDirectoryPath, AUTHORIZATIONS_FILE_NAME);
+        mainUsersFilePath = Paths.get(mainConfigDirectoryPath, USERS_FILE_NAME);
 
         Date date = new Date(System.currentTimeMillis());
         Format formatter = new SimpleDateFormat("yyyyMMdd_hhmmss");
@@ -146,8 +148,8 @@ public class BaseXmlConfigValidator {
     }
 
     private void deleteRestoreConfig() {
-        File restoreAuthXml = Paths.get(restoreDirectoryPath, "authorizations.xml").toFile();
-        File restoreUsersXml = Paths.get(restoreDirectoryPath, "users.xml").toFile();
+        File restoreAuthXml = Paths.get(restoreDirectoryPath, AUTHORIZATIONS_FILE_NAME).toFile();
+        File restoreUsersXml = Paths.get(restoreDirectoryPath, USERS_FILE_NAME).toFile();
         deleteFile(restoreAuthXml);
         deleteFile(restoreUsersXml);
     }
@@ -165,8 +167,8 @@ public class BaseXmlConfigValidator {
     }
 
     private void copyRestoreConfigToMain() throws IOException {
-        File srcAuth = Paths.get(restoreDirectoryPath, "authorizations.xml").toFile();
-        File srcUser = Paths.get(restoreDirectoryPath, "users.xml").toFile();
+        File srcAuth = Paths.get(restoreDirectoryPath, AUTHORIZATIONS_FILE_NAME).toFile();
+        File srcUser = Paths.get(restoreDirectoryPath, USERS_FILE_NAME).toFile();
         if (srcAuth.exists() && srcUser.exists()) {
             File destAuth = mainAuthorizationsFilePath.toFile();
             LOG.info("Copying authorizations.xml file {} to {} ",
