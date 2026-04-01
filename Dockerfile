@@ -109,7 +109,7 @@ COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ora
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/postgresql-*.jar ${NIFI_HOME}/lib/postgresql.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-h2-deps-2-1-210/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-1-214/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-2-220/target/lib/h2-*.jar ${NIFI_HOME}/utility-lib/
 
-COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-consul-application.jar
+COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-nifi-consul-application.jar
 COPY --chown=10001:0 qubership-nifi-quarkus-consul/qubership-nifi-quarkus-consul-application/target/quarkus-app $NIFI_HOME/utility-lib/qubership-nifi-quarkus-consul-application
 
 USER 10001:0
