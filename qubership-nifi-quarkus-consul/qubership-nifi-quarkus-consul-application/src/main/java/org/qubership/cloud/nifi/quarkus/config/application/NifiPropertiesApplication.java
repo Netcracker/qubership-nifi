@@ -5,8 +5,8 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.qubership.cloud.nifi.config.xml.BaseXmlConfigValidator;
 import org.qubership.cloud.nifi.quarkus.config.PropertiesManager;
+import org.qubership.cloud.nifi.quarkus.config.XmlConfigValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -34,7 +34,7 @@ public class NifiPropertiesApplication implements QuarkusApplication {
     private PropertiesManager propertiesManager;
 
     @Inject
-    private BaseXmlConfigValidator baseXmlConfigValidator;
+    private XmlConfigValidator xmlConfigValidator;
 
     @Inject
     @ConfigProperty(name = "nifi.notification.path")
@@ -77,7 +77,7 @@ public class NifiPropertiesApplication implements QuarkusApplication {
             SAXException {
         LOG.info("Starting NiFi properties generation...");
         propertiesManager.generateNifiProperties();
-        baseXmlConfigValidator.validate();
+        xmlConfigValidator.validateProperties();
         notifyCompletionToStartScript();
         LOG.info("NiFi properties generation completed successfully");
     }
