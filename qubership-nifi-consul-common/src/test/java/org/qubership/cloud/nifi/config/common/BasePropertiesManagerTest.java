@@ -346,9 +346,11 @@ class BasePropertiesManagerTest {
         initBasePropertiesManager("logback-template.xml",
                 "nifi_registry_default.properties",
                 "./conf/", "nifi-registry.properties", "nifi.registry",
-                Set.of(), Set.of("nifi.registry.custom.prop1", "nifi.registry.custom.prop2"));
+                Set.of(), Set.of("nifi.registry.custom.prop1", "nifi.registry.custom.prop2",
+                        "nifi.registry.custom.prop3", "nifi.registry.custom.prop4"));
         propertiesProvider.putProperty("nifi.registry.custom.prop1", "2");
         propertiesProvider.putProperty("nifi.registry.custom.prop2", "true");
+        propertiesProvider.putProperty("nifi.registry.custom.prop3", "newValue3");
         pm.generateNifiPropertiesAndLogbackConfig();
         File logbackConfig = new File("./conf/logback.xml");
         Assertions.assertTrue(logbackConfig.exists());
@@ -381,7 +383,11 @@ class BasePropertiesManagerTest {
             Assertions.assertEquals("2", nifiRegistryProps.getProperty("nifi.registry.custom.prop1"));
             Assertions.assertEquals("true",
                     nifiRegistryProps.getProperty("nifi.registry.custom.prop2"));
-            Assertions.assertFalse(nifiRegistryProps.containsKey("nifi.registry.custom.prop3"),
+            Assertions.assertEquals("newValue3",
+                    nifiRegistryProps.getProperty("nifi.registry.custom.prop3"));
+            Assertions.assertEquals("default4",
+                    nifiRegistryProps.getProperty("nifi.registry.custom.prop4"));
+            Assertions.assertFalse(nifiRegistryProps.containsKey("nifi.registry.custom.prop5"),
                     "nifi.registry.custom.prop3 property is not filtered by set of names");
         } catch (IOException e) {
             Assertions.fail("Failed to read custom.properties", e);
