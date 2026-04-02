@@ -26,7 +26,7 @@ public class ConsulPropertiesProvider implements PropertiesProvider {
         // Get all config sources from MicroProfile Config
         for (ConfigSource configSource : config.getConfigSources()) {
             Set<String> allNames = configSource.getPropertyNames();
-            for (String name : allNames){
+            for (String name : allNames) {
                 if (name.toLowerCase().startsWith("logger.") || name.toLowerCase().startsWith("nifi.")) {
                     allPropertyNames.add(name);
                 }
