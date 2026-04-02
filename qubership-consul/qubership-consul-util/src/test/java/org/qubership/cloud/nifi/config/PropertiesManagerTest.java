@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = {PropertiesManager.class,
         ConsulConfiguration.class, ConsulPropertiesProvider.class})
 @ImportAutoConfiguration(classes = {RefreshAutoConfiguration.class, ConsulConfigAutoConfiguration.class})
-public class PropertiesManagerTest {
+class PropertiesManagerTest {
 
     private static final String CONSUL_IMAGE = "hashicorp/consul:1.20";
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesManagerTest.class);

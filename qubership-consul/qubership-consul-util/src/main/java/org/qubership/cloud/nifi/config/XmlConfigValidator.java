@@ -27,7 +27,6 @@ import java.io.IOException;
 
 @Component
 public class XmlConfigValidator {
-    private static final Logger LOG = LoggerFactory.getLogger(XmlConfigValidator.class);
 
     @Autowired
     private BaseXmlConfigValidator baseXmlConfigValidator;
@@ -36,6 +35,7 @@ public class XmlConfigValidator {
      * Default constructor for backward compatibility.
      */
     public XmlConfigValidator() {
+        //Empty default constructor for backward compatibility
     }
 
     /**

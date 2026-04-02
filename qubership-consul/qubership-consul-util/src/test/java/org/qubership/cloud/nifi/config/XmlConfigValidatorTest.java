@@ -22,7 +22,7 @@ import java.nio.file.Paths;
         ConfigValidatorConfiguration.class})
 @ImportAutoConfiguration
 @ActiveProfiles("test2")
-public class XmlConfigValidatorTest {
+class XmlConfigValidatorTest {
 
     @Autowired
     private XmlConfigValidator validator;

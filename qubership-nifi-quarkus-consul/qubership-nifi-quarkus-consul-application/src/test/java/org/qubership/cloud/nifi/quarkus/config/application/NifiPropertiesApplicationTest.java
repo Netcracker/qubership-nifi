@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 @QuarkusMainTest
 @QuarkusTestResource(ConsulTestResource.class)
-public class NifiPropertiesApplicationTest {
+class NifiPropertiesApplicationTest {
     /**
      * Consul container instance.
      * Reserved for future development.

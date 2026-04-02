@@ -71,7 +71,7 @@ public class BaseXmlConfigValidator {
         validateWellFormedXmlConfig(dateString);
     }
 
-    private boolean shouldSkipValidation() throws IOException {
+    private boolean shouldSkipValidation() {
         String cleanConf = System.getenv("NIFI_CONF_PV_CLEAN_CONF");
         if ("true".equals(cleanConf)) {
             LOG.info("NIFI_CONF_PV_CLEAN_CONF set to true, skipping validation");
@@ -91,8 +91,8 @@ public class BaseXmlConfigValidator {
         factory.setNamespaceAware(true);
         DocumentBuilder builder = factory.newDocumentBuilder();
 
-        Boolean isAuthorizationsFileValid = checkIfXmlIsValid(mainAuthorizationsFilePath, builder);
-        Boolean isUsersFileValid = checkIfXmlIsValid(mainUsersFilePath, builder);
+        boolean isAuthorizationsFileValid = checkIfXmlIsValid(mainAuthorizationsFilePath, builder);
+        boolean isUsersFileValid = checkIfXmlIsValid(mainUsersFilePath, builder);
 
         if (isAuthorizationsFileValid && isUsersFileValid) {
             LOG.info("Deleting config from restore directory, as main config's are valid");
@@ -156,14 +156,18 @@ public class BaseXmlConfigValidator {
 
     private void deleteFile(File fileToDelete) {
         LOG.info("Deleting file {} ", fileToDelete.getPath());
-        fileToDelete.delete();
+        if (!fileToDelete.delete()) {
+            LOG.warn("Failed to delete file {} ", fileToDelete.getPath());
+        }
     }
 
     private void renameFile(Path sourcePath, Path destPath) {
         File oldFile = sourcePath.toFile();
         File newFile = destPath.toFile();
         LOG.info("Renaming file {} to {} ", sourcePath, destPath);
-        oldFile.renameTo(newFile);
+        if (!oldFile.renameTo(newFile)) {
+            LOG.warn("Failed to rename file {} to {} ", sourcePath, destPath);
+        }
     }
 
     private void copyRestoreConfigToMain() throws IOException {
