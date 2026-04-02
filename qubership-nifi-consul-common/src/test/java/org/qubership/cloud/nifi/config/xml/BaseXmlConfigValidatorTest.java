@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class BaseXmlConfigValidatorTest {
+class BaseXmlConfigValidatorTest {
     /** Temporary directory provided by JUnit for each test. */
     @TempDir
     private Path tempDir;

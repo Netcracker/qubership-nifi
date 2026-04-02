@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 @QuarkusMainTest
 @QuarkusTestResource(ConsulTestResource.class)
-public class NifiPropertiesApplicationTest {
+class NifiPropertiesApplicationTest {
     /**
      * Consul container instance.
      * Reserved for future development.
@@ -53,7 +53,10 @@ public class NifiPropertiesApplicationTest {
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         File nifiPropsConfig = new File("./conf/nifi.properties");
         Assertions.assertTrue(nifiPropsConfig.exists(), "nifi.properties should exist");
-        Assertions.assertTrue(Files.exists(Paths.get(".", "tmp", "initial-config-completed.txt")));
+        File configCompletedFile = Paths.get(".", "tmp", "initial-config-completed.txt").toFile();
+        Awaitility.await().atMost(5000, TimeUnit.MILLISECONDS).
+                until(configCompletedFile::exists);
+        Assertions.assertTrue(configCompletedFile.exists(), "initial-config-completed.txt should exist");
     }
 
     @AfterEach

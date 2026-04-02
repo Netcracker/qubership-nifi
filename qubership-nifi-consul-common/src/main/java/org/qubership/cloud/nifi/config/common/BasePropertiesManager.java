@@ -356,19 +356,19 @@ public class BasePropertiesManager {
         }
         Map<String, String> combinedNifiProperties = getOrderedProperties(
                 getResourceAsStream(defaultCustomPropertiesResourceName));
-        for (String consulKey : consulPropertiesMap.keySet()) {
+        for (Map.Entry<String, String> consulEntry : consulPropertiesMap.entrySet()) {
             // if it's in the custom list, add it
-            if (customPropertyNames.contains(consulKey)) {
-                combinedNifiProperties.put(consulKey, consulPropertiesMap.get(consulKey));
+            if (customPropertyNames.contains(consulEntry.getKey())) {
+                combinedNifiProperties.put(consulEntry.getKey(), consulEntry.getValue());
             }
         }
         //write nifiProperties to properties file
         try (PrintWriter pw = new PrintWriter(new FileOutputStream(customPropertiesFile))) {
             //Storing the map in properties file in order
-            for (String s : combinedNifiProperties.keySet()) {
-                pw.print(s);
+            for (Map.Entry<String, String> entry : combinedNifiProperties.entrySet()) {
+                pw.print(entry.getKey());
                 pw.print("=");
-                pw.println(combinedNifiProperties.get(s));
+                pw.println(entry.getValue());
             }
         }
         LOG.info("Custom Properties file created : {}", customPropertiesFile.getPath());
@@ -378,7 +378,7 @@ public class BasePropertiesManager {
      * Extension of standard Properties class that holds a copy of loaded properties ordered with insertion order.
      */
     public static class OrderedProperties extends Properties {
-        private final Map<String, String> orderedProperties = new LinkedHashMap<>();
+        private final Map<String, String> innerProperties = new LinkedHashMap<>();
 
         /**
          * Maps the specified key to the specified value in this hashtable. Neither the key nor the value can be null.
@@ -389,7 +389,7 @@ public class BasePropertiesManager {
          */
         @Override
         public synchronized Object put(Object key, Object value) {
-            return orderedProperties.put((String) key, (String) value);
+            return innerProperties.put((String) key, (String) value);
         }
 
         /**
@@ -397,7 +397,7 @@ public class BasePropertiesManager {
          * @return map with properties
          */
         public Map<String, String> getOrderedProperties() {
-            return orderedProperties;
+            return innerProperties;
         }
 
         /**
@@ -414,7 +414,7 @@ public class BasePropertiesManager {
                 return false;
             }
             OrderedProperties that = (OrderedProperties) o;
-            return Objects.equals(orderedProperties, that.orderedProperties);
+            return Objects.equals(innerProperties, that.innerProperties);
         }
 
         /**
@@ -423,7 +423,7 @@ public class BasePropertiesManager {
          */
         @Override
         public synchronized int hashCode() {
-            return Objects.hash(super.hashCode(), orderedProperties);
+            return Objects.hash(super.hashCode(), innerProperties);
         }
     }
 
