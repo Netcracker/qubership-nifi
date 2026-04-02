@@ -90,6 +90,8 @@ public class PropertiesManagerTest {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -118,6 +120,8 @@ public class PropertiesManagerTest {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -148,6 +152,8 @@ public class PropertiesManagerTest {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
