@@ -47,10 +47,16 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
 
       - name: Build Maven artifacts (local image only)
         if: ${{ matrix.nifi.build-local }}
         run: mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build local NiFi Docker image (local image only)
         if: ${{ matrix.nifi.build-local }}

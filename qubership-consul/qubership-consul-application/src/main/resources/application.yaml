@@ -27,9 +27,6 @@ spring:
     namespace: ${NAMESPACE:local}
     cloud_namespace: ${CLOUD_NAMESPACE:local}
   cloud:
-    mvc:
-      token-relay:
-        enabled: false  # WA for spring boot starting
     consul:
       config:
         prefix: config/${NAMESPACE:local}
@@ -65,5 +62,5 @@ config:
 spring:
   config:
     activate:
-      on-profile: "!development"
+      on-profile: "!development & !test"
     import: consul:${CONSUL_URL}

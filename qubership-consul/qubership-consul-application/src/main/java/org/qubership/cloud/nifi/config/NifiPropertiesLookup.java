@@ -16,7 +16,6 @@
 
 package org.qubership.cloud.nifi.config;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,7 +91,7 @@ public class NifiPropertiesLookup implements CommandLineRunner {
     private void notifyCompletionToStartScript() {
         try {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            Path fPath = Paths.get(path + "initial-config-completed.txt");
+            Path fPath = Paths.get(path, "initial-config-completed.txt");
             Files.write(fPath, timestamp.getBytes());
             LOG.info("Consul App completion file created:{} ", fPath.toAbsolutePath());
         } catch (Exception e) {
