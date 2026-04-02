@@ -183,6 +183,8 @@ public class PropertiesManagerTest {
         putToConsul("config/local/application/logger.org.qubership2", "WARN");
         putToConsul("config/local/application/logger.org.qubership3", "ERROR");
         pm.generateNifiProperties();
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
+                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
