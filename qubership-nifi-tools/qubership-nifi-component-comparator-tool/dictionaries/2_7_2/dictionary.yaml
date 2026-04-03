@@ -13,6 +13,111 @@ displayNameMapping:
 - ElasticSearchClientServiceImpl:
     Charset: Character Set
     Suppress Null/Empty Values: Suppress Null and Empty Values
+- AttributeRollingWindow:
+    Sub-window length: Subwindow Length
+- CalculateRecordStats:
+    record-stats-limit: Record Stats Limit
+- CaptureChangeMySQL:
+    MySQL Driver Location(s): MySQL Driver Locations
+- ConnectWebSocket:
+    WebSocket Client ControllerService: WebSocket Client Controller Service
+- ConsumeMQTT:
+    Quality of Service (QoS): Quality of Service
+    Connection Timeout (seconds): Connection Timeout
+    Keep Alive Interval (seconds): Keep Alive
+- CryptographicHashContent:
+    Fail if the content is empty: Fail When Content Empty
+- DeduplicateRecord:
+    Cache the Entry Identifier: Cache Entry Identifier
+- DeleteDynamoDB:
+    Batch items for each request (between 1 and 50): Batch Items Per Request
+- ExecuteProcess:
+    Output MIME type: MIME Type
+- ExecuteSQL:
+    Normalize Table/Column Names: Normalize Table and Column Names
+- ExtractText:
+    Enable named group support: Enable Named Groups
+- FetchFile:
+    Log level when file not found: File not Found Log Level
+    Log level when permission denied: Permission Denied Log Level
+- GetDynamoDB:
+    Json Document attribute: Json Document
+    Batch items for each request (between 1 and 50): Batch Items Per Request
+- GetFTP:
+    Follow symlink: Follow Symbolic Links
+- GetSFTP:
+    Follow symlink: Follow Symbolic Links
+- GetSNMP:
+    Timeout (ms): Timeout
+- HandleHttpRequest:
+    Parameters to Attributes List: Parameters to Attributes
+- HandleHttpResponse:
+    Attributes to add to the HTTP Response (Regex): Attributes for HTTP Response
+- ListFTP:
+    Follow symlink: Follow Symbolic Links
+- ListSFTP:
+    Follow symlink: Follow Symbolic Links
+- ListenHTTP:
+    HTTP Headers to receive as Attributes (Regex): HTTP Headers for Attributes
+- ListenTCP:
+    Max Number of Worker Threads: Worker Threads
+- ListenWebSocket:
+    WebSocket Server ControllerService: WebSocket Server Controller Service
+- LogAttribute:
+    Attributes to Log by Regular Expression: Attributes to Log Regular Expression
+    Attributes to Ignore by Regular Expression: Attributes to Ignore Regular Expression
+- Notify:
+    Attribute Cache Regex: Attribute Cache Regular Expression
+- PublishJMS:
+    Attributes to Send as JMS Headers (Regex): Attributes to Send as JMS Headers
+- PublishMQTT:
+    Quality of Service (QoS): Quality of Service
+    Connection Timeout (seconds): Connection Timeout
+    Keep Alive Interval (seconds): Keep Alive
+- PutDistributedMapCache:
+    Max cache entry size: Max Cache Size
+- PutDynamoDB:
+    Json Document attribute: Json Document
+    Batch items for each request (between 1 and 50): Batch Items Per Request
+    Character set of document: Document Character Set
+- PutElasticsearchJson:
+    Treat "Not Found" as Success: Treat Not Found as Success
+- PutElasticsearchRecord:
+    "@timestamp Value": Timestamp Value
+    Retain ID (Record Path): Retain Record Path ID Field
+    "@timestamp Record Path": Timestamp Record Path
+    Retain @timestamp (Record Path): Retain Record Timestamp
+    Treat "Not Found" as Success: Treat Not Found as Success
+- PutEmail:
+    SMTP STARTTLS: SMTP START TLS
+    Attributes to Send as Headers (Regex): Attributes to Send as Headers Regular Expression
+    Flow file content as message: FlowFile Content as Message
+- PutLambda:
+    Amazon Lambda Qualifier (version): Amazon Lambda Qualifier
+- PutSNS:
+    Amazon Resource Name (ARN): Amazon Resource Name
+- PutWebSocket:
+    WebSocket ControllerService Id: WebSocket Controller Service Id
+- QueryDatabaseTable:
+    Normalize Table/Column Names: Normalize Table and Column Names
+- RetryFlowFile:
+    Fail on Non-numerical Overwrite: Fail on Nonnumerical Overwrite
+- SearchElasticsearch:
+    Restart On Finish?: Restart On Finish
+- SendTrapSNMP:
+    Timeout (ms): Timeout
+- SetSNMP:
+    Timeout (ms): Timeout
+- TailFile:
+    File(s) to Tail: Files to Tail
+    Reread when NUL encountered: Reread on NUL Encountered
+    Pre-Allocated Buffer Size: Preallocated Buffer Size
+- TransformXml:
+    Cache TTL after last access: Cache Duration
+- ValidateCsv:
+    Include all violations: Include Violations
+- ValidateRecord:
+    Force Types From Reader's Schema: Force Types From Reader Schema
 
 propertiesAllowedToDelete:
 - AWSCredentialsProviderControllerService:

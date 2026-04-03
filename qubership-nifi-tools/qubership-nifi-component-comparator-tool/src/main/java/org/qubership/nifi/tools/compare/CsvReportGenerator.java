@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Generates comparison report in CSV format.
+ */
 public class CsvReportGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CsvReportGenerator.class);

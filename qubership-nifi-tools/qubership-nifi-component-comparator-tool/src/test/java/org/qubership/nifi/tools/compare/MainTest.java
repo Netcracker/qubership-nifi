@@ -75,6 +75,10 @@ class MainTest {
         return outputDir.resolve("NiFiTypeMapping.json");
     }
 
+    private Path mdPath() {
+        return outputDir.resolve("NiFiComponentsDelta.md");
+    }
+
     @Test
     void mainCreatesOutputDirectory() throws IOException {
         writeJson(sourceDir, "processors", "P.json", "org.example.P", prop("a", "A"));
@@ -85,6 +89,7 @@ class MainTest {
         assertTrue(Files.exists(outputDir));
         assertTrue(Files.exists(csvPath()));
         assertTrue(Files.exists(jsonPath()));
+        assertTrue(Files.exists(mdPath()));
     }
 
     @Test
@@ -119,6 +124,12 @@ class MainTest {
         JsonNode json = MAPPER.readTree(jsonPath().toFile());
         assertTrue(json.has("org.example.Svc"));
         assertEquals("new-api", json.get("org.example.Svc").get("old-api").asText());
+
+        // Markdown check
+        String md = Files.readString(mdPath());
+        assertTrue(md.contains("rename"));
+        assertTrue(md.contains("old-api"));
+        assertTrue(md.contains("new-api"));
     }
 
     @Test
@@ -196,6 +207,10 @@ class MainTest {
         List<String> lines = Files.readAllLines(csvPath());
         assertEquals(1, lines.size());
         assertTrue(lines.get(0).contains("Component Name"));
+
+        assertTrue(Files.exists(mdPath()));
+        String md = Files.readString(mdPath());
+        assertTrue(md.contains("# NiFi Component Properties Delta Report"));
     }
 
     @Test
@@ -236,6 +251,12 @@ class MainTest {
         assertTrue(json.has("org.example.S"));
         assertTrue(json.has("org.example.T"));
         assertFalse(json.has("org.example.P"));
+
+        // Markdown should have all three sections
+        String md = Files.readString(mdPath());
+        assertTrue(md.contains("## Processors"));
+        assertTrue(md.contains("## Controller Services"));
+        assertTrue(md.contains("## Reporting Tasks"));
     }
 
 }

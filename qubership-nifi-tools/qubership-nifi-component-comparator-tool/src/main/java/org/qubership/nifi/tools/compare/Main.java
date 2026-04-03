@@ -8,6 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Main entrypoint for component comparator tool.
+ */
 public final class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -69,9 +72,13 @@ public final class Main {
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
+            MarkdownReportGenerator mdGenerator = new MarkdownReportGenerator(outputDir);
+            mdGenerator.generate(comparator.getCsvRecords());
+
             LOGGER.info("Comparison completed successfully!");
-            LOGGER.info("CSV Report:  {}", csvGenerator.getOutputPath());
-            LOGGER.info("JSON Report: {}", jsonGenerator.getOutputPath());
+            LOGGER.info("CSV Report:      {}", csvGenerator.getOutputPath());
+            LOGGER.info("JSON Report:     {}", jsonGenerator.getOutputPath());
+            LOGGER.info("Markdown Report: {}", mdGenerator.getOutputPath());
 
         } catch (IOException e) {
             LOGGER.error("Fatal error during comparison: {}", e.getMessage(), e);
