@@ -8,6 +8,25 @@ displayNameMapping:
     SSL Client Authentication: Client Authentication
     Enable Basic Authentication: Basic Authentication Enabled
 
+- ConsumeAMQP:
+    User Name: Username
+    Use Client Certificate Authentication: Client Certificate Authentication Enabled
+- ExecuteSQL:
+    SQL select query: SQL Query
+- ExecuteSQLRecord:
+    SQL select query: SQL Query
+- JoltTransformJSON:
+    Jolt Transformation DSL: Jolt Transform
+- JoltTransformRecord:
+    Jolt Transformation DSL: Jolt Transform
+- ListenFTP:
+    Bind Address: Address
+    Listening Port: Port
+- PublishAMQP:
+    User Name: Username
+    Use Client Certificate Authentication: Client Certificate Authentication Enabled
+- TagS3Object:
+    Version ID: Version
 propertiesAllowedToDelete:
 - MongoDBControllerService:
     - Client Auth
