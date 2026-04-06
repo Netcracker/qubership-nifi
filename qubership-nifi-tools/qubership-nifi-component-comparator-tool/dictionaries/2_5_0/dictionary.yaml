@@ -1,52 +1,52 @@
 displayNameMapping:
-- JettyWebSocketClient:
-    User Name: Username
-    User Password: Password
+  - JettyWebSocketClient:
+      User Name: Username
+      User Password: Password
 
-- JettyWebSocketServer:
-    Listen Port: Port
-    SSL Client Authentication: Client Authentication
-    Enable Basic Authentication: Basic Authentication Enabled
+  - JettyWebSocketServer:
+      Listen Port: Port
+      SSL Client Authentication: Client Authentication
+      Enable Basic Authentication: Basic Authentication Enabled
 
-- ConsumeAMQP:
-    User Name: Username
-    Use Client Certificate Authentication: Client Certificate Authentication Enabled
-- ExecuteSQL:
-    SQL select query: SQL Query
-- ExecuteSQLRecord:
-    SQL select query: SQL Query
-- JoltTransformJSON:
-    Jolt Transformation DSL: Jolt Transform
-- JoltTransformRecord:
-    Jolt Transformation DSL: Jolt Transform
-- ListenFTP:
-    Bind Address: Address
-    Listening Port: Port
-- PublishAMQP:
-    User Name: Username
-    Use Client Certificate Authentication: Client Certificate Authentication Enabled
-- TagS3Object:
-    Version ID: Version
+  - ConsumeAMQP:
+      User Name: Username
+      Use Client Certificate Authentication: Client Certificate Authentication Enabled
+  - ExecuteSQL:
+      SQL select query: SQL Query
+  - ExecuteSQLRecord:
+      SQL select query: SQL Query
+  - JoltTransformJSON:
+      Jolt Transformation DSL: Jolt Transform
+  - JoltTransformRecord:
+      Jolt Transformation DSL: Jolt Transform
+  - ListenFTP:
+      Bind Address: Address
+      Listening Port: Port
+  - PublishAMQP:
+      User Name: Username
+      Use Client Certificate Authentication: Client Certificate Authentication Enabled
+  - TagS3Object:
+      Version ID: Version
 propertiesAllowedToDelete:
-- MongoDBControllerService:
+  - MongoDBControllerService:
     - Client Auth
 
-- DBCPConnectionPool:
+  - DBCPConnectionPool:
     - Kerberos Credentials Service
     - Kerberos Principal
     - Kerberos Password
 
-- AvroRecordSetWriter:
+  - AvroRecordSetWriter:
     - Schema Protocol Version
 
-- XMLRecordSetWriter:
+  - XMLRecordSetWriter:
     - Schema Protocol Version
 
-- CSVRecordSetWriter:
+  - CSVRecordSetWriter:
     - Schema Protocol Version
 
-- JsonRecordSetWriter:
+  - JsonRecordSetWriter:
     - Schema Protocol Version
 
-- ElasticSearchClientServiceImpl:
+  - ElasticSearchClientServiceImpl:
     - Retry timeout

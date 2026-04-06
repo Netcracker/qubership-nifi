@@ -1,8 +1,8 @@
 displayNameMapping:
-- PutKinesisStream:
-    Amazon Kinesis Stream Name: Stream Name
-    Amazon Kinesis Stream Partition Key: Stream Partition Key
-    Max message buffer size (MB): Max Message Buffer Size
-- ListenSyslog:
-    Max Number of TCP Connections: Worker Threads
-propertiesAllowedToDelete:
+  - PutKinesisStream:
+      Amazon Kinesis Stream Name: Stream Name
+      Amazon Kinesis Stream Partition Key: Stream Partition Key
+      Max message buffer size (MB): Max Message Buffer Size
+  - ListenSyslog:
+      Max Number of TCP Connections: Worker Threads
+propertiesAllowedToDelete: null
