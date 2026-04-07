@@ -59,6 +59,12 @@
             <version>${micrometer.version}</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.15.0</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <profiles>
