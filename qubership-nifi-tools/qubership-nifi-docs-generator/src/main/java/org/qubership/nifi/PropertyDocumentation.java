@@ -397,7 +397,8 @@ public class PropertyDocumentation extends AbstractMojo {
                             "; dependency node optional = " + dependencyNode.getOptional() +
                             "; artifact optional = " + artifact.isOptional());
                 }
-                if (!artifact.isOptional()) {
+                if (!artifact.isOptional()
+                        && (dependencyNode.getOptional() == null || !dependencyNode.getOptional())) {
                     artifacts.add(artifact);
                 }
                 return true;

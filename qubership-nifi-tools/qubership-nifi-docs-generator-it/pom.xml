@@ -67,6 +67,7 @@
                     <systemPropertyVariables>
                         <project.rootdir>${session.executionRootDirectory}</project.rootdir>
                         <maven.home>${maven.home}</maven.home>
+                        <docs.generator.version>${project.version}</docs.generator.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
