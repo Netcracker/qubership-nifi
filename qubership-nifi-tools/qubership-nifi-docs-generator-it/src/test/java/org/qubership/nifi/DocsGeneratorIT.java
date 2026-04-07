@@ -61,8 +61,7 @@ class DocsGeneratorIT {
         int generateExitCode = runProcess(projectRoot, List.of(
             resolveMvn(),
             "--batch-mode",
-            "org.qubership.nifi:qubership-nifi-docs-generator:generate",
-            "-X"
+            "org.qubership.nifi:qubership-nifi-docs-generator:generate"
         ));
         assertEquals(SUCCESS_EXIT_CODE, generateExitCode,
             "docs-generator plugin exited with a non-zero code. Check output above.");

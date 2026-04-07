@@ -392,7 +392,9 @@ public class PropertyDocumentation extends AbstractMojo {
             @Override
             public boolean visit(final DependencyNode dependencyNode) {
                 final Artifact artifact = dependencyNode.getArtifact();
-                artifacts.add(artifact);
+                if (!dependencyNode.getOptional()) {
+                    artifacts.add(artifact);
+                }
                 return true;
             }
 
