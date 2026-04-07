@@ -393,9 +393,9 @@ public class PropertyDocumentation extends AbstractMojo {
             public boolean visit(final DependencyNode dependencyNode) {
                 final Artifact artifact = dependencyNode.getArtifact();
                 if (getLog().isDebugEnabled()) {
-                    getLog().debug("Found artifact " + artifact +
-                            "; dependency node optional = " + dependencyNode.getOptional() +
-                            "; artifact optional = " + artifact.isOptional());
+                    getLog().debug("Found artifact " + artifact
+                            + "; dependency node optional = " + dependencyNode.getOptional()
+                            + "; artifact optional = " + artifact.isOptional());
                 }
                 if (!artifact.isOptional()
                         && (dependencyNode.getOptional() == null || !dependencyNode.getOptional())) {
