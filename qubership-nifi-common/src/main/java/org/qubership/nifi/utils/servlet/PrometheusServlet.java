@@ -1,7 +1,7 @@
 package org.qubership.nifi.utils.servlet;
 
-import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,9 +35,9 @@ public class PrometheusServlet extends HttpServlet {
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
         resp.setStatus(HttpServletResponse.SC_OK);
-        resp.setContentType(TextFormat.CONTENT_TYPE_004);
+        resp.setContentType(PrometheusTextFormatWriter.CONTENT_TYPE);
         try (Writer writer = resp.getWriter()) {
-            TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
+            writer.write(meterRegistry.scrape());
             writer.flush();
         } catch (IOException e) {
             log.error("Error while scraping metrics {}", e);

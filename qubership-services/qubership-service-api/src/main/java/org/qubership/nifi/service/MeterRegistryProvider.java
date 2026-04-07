@@ -1,6 +1,6 @@
 package org.qubership.nifi.service;
 
-import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import org.apache.nifi.controller.ControllerService;
 
 /**

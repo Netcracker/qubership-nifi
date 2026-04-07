@@ -17,7 +17,7 @@
 package org.qubership.nifi.service;
 
 import io.micrometer.core.instrument.Meter;
-import io.prometheus.client.exporter.common.TextFormat;
+import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -126,12 +126,12 @@ public class QubershipPrometheusRecordSinkTest {
         Request request = new Request.Builder().url(SERVER_URL).get().build();
         try (Response resp = client.newCall(request).execute()) {
             assertTrue(resp.isSuccessful());
-            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
+            assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
             String responseBody = resp.body().string();
             assertTrue(responseBody.contains("field11{field2=\"value12\",field3=\"value13\",hostname=\"test-hostname\","
-                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\",}"));
+                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\"}"));
             assertTrue(responseBody.contains("field12{field2=\"value12\",field3=\"value13\",hostname=\"test-hostname\","
-                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\",}"));
+                    + "instance=\"test-namespace_test-hostname\",namespace=\"test-namespace\"}"));
         }
     }
 

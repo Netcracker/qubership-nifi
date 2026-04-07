@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.reporting;
 
-import io.prometheus.client.exporter.common.TextFormat;
+import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -122,7 +122,7 @@ public class AbstractPrometheusReportingTaskTest {
             String responseBody = resp.body() != null ? resp.body().string() : null;
             assertTrue(resp.isSuccessful());
             assertNotNull(responseBody);
-            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
+            assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
             System.out.println("responseBody = " + responseBody);
             if (expectedValues != null) {
                 for (String expectedValue : expectedValues) {

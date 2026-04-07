@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.reporting;
 
-import io.prometheus.client.exporter.common.TextFormat;
+import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -585,11 +585,11 @@ public class ComponentPrometheusReportingTaskTest {
         try (Response resp = client.newCall(request).execute()) {
             String responseBody = resp.body() != null ? resp.body().string() : null;
             assertTrue(resp.isSuccessful());
-            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
+            assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
             assertTrue(responseBody.contains("nifi_amount_items_queued{component_id=\"rootId\","
                     + "component_name=\"Nifi Flow\",component_type=\"RootProcessGroup\","
                     + "hostname=\"test-hostname\",instance=\"test-namespace_test-hostname\","
-                    + "namespace=\"test-namespace\",} 2000.0"));
+                    + "namespace=\"test-namespace\"} 2000.0"));
         }
     }
 

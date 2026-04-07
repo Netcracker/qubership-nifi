@@ -115,7 +115,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <version>1.7.3</version>
+            <version>${micrometer.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.ee11</groupId>
