@@ -156,6 +156,7 @@ public class PropertyDocumentation extends AbstractMojo {
         try {
             generateDocumentation(outputFile);
         } catch (Exception e) {
+            getLog().error("Failed to generate documentation for custom components.", e);
             throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
         }
     }
@@ -391,7 +392,15 @@ public class PropertyDocumentation extends AbstractMojo {
             @Override
             public boolean visit(final DependencyNode dependencyNode) {
                 final Artifact artifact = dependencyNode.getArtifact();
-                artifacts.add(artifact);
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug("Found artifact " + artifact
+                            + "; dependency node optional = " + dependencyNode.getOptional()
+                            + "; artifact optional = " + artifact.isOptional());
+                }
+                if (!artifact.isOptional()
+                        && (dependencyNode.getOptional() == null || !dependencyNode.getOptional())) {
+                    artifacts.add(artifact);
+                }
                 return true;
             }
 

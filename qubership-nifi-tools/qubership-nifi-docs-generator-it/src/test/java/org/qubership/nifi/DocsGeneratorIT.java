@@ -49,6 +49,7 @@ class DocsGeneratorIT {
     @Test
     void testDocsGeneratorProducesNoGitChanges() throws Exception {
         String rootDirProp = System.getProperty("project.rootdir");
+        String pluginVersion = System.getProperty("docs.generator.version");
         if (rootDirProp == null || rootDirProp.isEmpty()) {
             throw new IllegalStateException(
                 "System property 'project.rootdir' is not set. "
@@ -61,7 +62,7 @@ class DocsGeneratorIT {
         int generateExitCode = runProcess(projectRoot, List.of(
             resolveMvn(),
             "--batch-mode",
-            "org.qubership.nifi:qubership-nifi-docs-generator:generate"
+            "org.qubership.nifi:qubership-nifi-docs-generator:" + pluginVersion + ":generate"
         ));
         assertEquals(SUCCESS_EXIT_CODE, generateExitCode,
             "docs-generator plugin exited with a non-zero code. Check output above.");
