@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.reporting;
 
-import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
+import io.prometheus.client.exporter.common.TextFormat;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -102,19 +102,19 @@ public class AbstractPrometheusReportingTaskTest {
         //call endpoint 1st time:
         Request request = new Request.Builder().url(SERVER_URL).get().build();
         callMetricsEndpoint(request,
-                List.of("test_metric_name002{tag1=\"tagValue1\",tag2=\"tagValue2\"} 2.5",
+                List.of("test_metric_name002{tag1=\"tagValue1\",tag2=\"tagValue2\",} 2.5",
                         "test_metric_name001{hostname=\"" + expectedHostname + "\",instance=\"local_"
                                 + expectedHostname + "\",namespace=\"local\","
-                                + "tag1=\"tagValue1\",tag2=\"tagValue2\"} 1.5"));
+                                + "tag1=\"tagValue1\",tag2=\"tagValue2\",} 1.5"));
         //change value:
         task.getMetricValue().setLeft(3.5);
         task.getMetricValue().setRight(5.5);
         //call endpoint 2nd time:
         callMetricsEndpoint(request,
-                List.of("test_metric_name002{tag1=\"tagValue1\",tag2=\"tagValue2\"} 5.5",
+                List.of("test_metric_name002{tag1=\"tagValue1\",tag2=\"tagValue2\",} 5.5",
                         "test_metric_name001{hostname=\"" + expectedHostname + "\",instance=\"local_"
                                 + expectedHostname + "\",namespace=\"local\","
-                                + "tag1=\"tagValue1\",tag2=\"tagValue2\"} 3.5"));
+                                + "tag1=\"tagValue1\",tag2=\"tagValue2\",} 3.5"));
     }
 
     private void callMetricsEndpoint(Request request, List<String> expectedValues) throws IOException {
@@ -122,7 +122,7 @@ public class AbstractPrometheusReportingTaskTest {
             String responseBody = resp.body() != null ? resp.body().string() : null;
             assertTrue(resp.isSuccessful());
             assertNotNull(responseBody);
-            assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
+            assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
             System.out.println("responseBody = " + responseBody);
             if (expectedValues != null) {
                 for (String expectedValue : expectedValues) {

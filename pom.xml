@@ -77,7 +77,7 @@
         <jgit.version>7.6.0.202603022253-r</jgit.version>
         <snakeyaml.version>2.5</snakeyaml.version>
         <commons-csv.version>1.8</commons-csv.version>
-        <micrometer.version>1.16.4</micrometer.version>
+        <micrometer.version>1.12.13</micrometer.version>
 
         <skipUnitTests>false</skipUnitTests>
 

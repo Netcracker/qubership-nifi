@@ -1,9 +1,9 @@
 package org.qubership.nifi.utils.servlet;
 
 import io.micrometer.core.instrument.Gauge;
-import io.micrometer.prometheusmetrics.PrometheusConfig;
-import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
-import io.prometheus.metrics.expositionformats.PrometheusTextFormatWriter;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -112,11 +112,11 @@ public class PrometheusServletTest {
         try {
             try (Response resp = client.newCall(request).execute()) {
                 assertTrue(resp.isSuccessful());
-                assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
+                assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
                 assertNotNull(resp.body());
                 String responseBody = resp.body().string();
                 log.debug("Response = {}", responseBody);
-                assertTrue(responseBody.contains("test_metric_name001{tag1=\"tagValue1\",tag2=\"tagValue2\"} 1.5"));
+                assertTrue(responseBody.contains("test_metric_name001{tag1=\"tagValue1\",tag2=\"tagValue2\",} 1.5"));
             }
         } catch (IOException e) {
             Assertions.fail("Failed to call metrics endpoint", e);
@@ -126,12 +126,11 @@ public class PrometheusServletTest {
         try {
             try (Response resp = client.newCall(request).execute()) {
                 assertTrue(resp.isSuccessful());
-                //assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
-                assertEquals(PrometheusTextFormatWriter.CONTENT_TYPE, resp.header("Content-Type"));
+                assertEquals(TextFormat.CONTENT_TYPE_004, resp.header("Content-Type"));
                 assertNotNull(resp.body());
                 String responseBody = resp.body().string();
                 log.debug("Response = {}", responseBody);
-                assertTrue(responseBody.contains("test_metric_name001{tag1=\"tagValue1\",tag2=\"tagValue2\"} 2.5"));
+                assertTrue(responseBody.contains("test_metric_name001{tag1=\"tagValue1\",tag2=\"tagValue2\",} 2.5"));
             }
         } catch (IOException e) {
             Assertions.fail("Failed to call metrics endpoint", e);

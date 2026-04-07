@@ -18,8 +18,8 @@ package org.qubership.nifi.service;
 
 import org.qubership.nifi.service.recordSink.MetricCompositeKey;
 import io.micrometer.core.instrument.Tag;
-import io.micrometer.prometheusmetrics.PrometheusConfig;
-import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
