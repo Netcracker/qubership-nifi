@@ -156,6 +156,7 @@ public class PropertyDocumentation extends AbstractMojo {
         try {
             generateDocumentation(outputFile);
         } catch (Exception e) {
+            getLog().error("Failed to generate documentation for custom components.", e);
             throw new MojoExecutionException("Failed to generate documentation for custom components.", e);
         }
     }
