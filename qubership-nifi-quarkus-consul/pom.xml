@@ -42,6 +42,7 @@
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+        <skipUnitTests>false</skipUnitTests>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--libraries versions-->
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
@@ -193,6 +194,8 @@
                 <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>-Duser.timezone=UTC</argLine>
+                    <!-- Custom property to skip unit tests -->
+                    <skipTests>${skipUnitTests}</skipTests>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                         <maven.home>${maven.home}</maven.home>
