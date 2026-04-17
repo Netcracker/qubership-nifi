@@ -7,7 +7,7 @@ import java.util.Map;
 public class PropertiesManagerTestProfile
         implements QuarkusTestProfile {
 
-    public PropertiesManagerTestProfile () {
+    public PropertiesManagerTestProfile() {
         //default constructor
     }
 
