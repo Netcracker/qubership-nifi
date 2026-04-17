@@ -28,8 +28,8 @@ public class ConsulPropertiesProvider implements PropertiesProvider {
         for (ConfigSource configSource : config.getConfigSources()) {
             String configSourceName = configSource.getName();
             //config source name must start with ConsulConfigSourceFactory.BASE_CONFIG_SOURCE_NAME
-            if (configSourceName != null &&
-                    configSourceName.startsWith(ConsulConfigSourceFactory.BASE_CONFIG_SOURCE_NAME)) {
+            if (configSourceName != null
+                    && configSourceName.startsWith(ConsulConfigSourceFactory.BASE_CONFIG_SOURCE_NAME)) {
                 Set<String> allNames = configSource.getPropertyNames();
                 for (String name : allNames) {
                     if (name.toLowerCase().startsWith("logger.") || name.toLowerCase().startsWith("nifi.")) {
