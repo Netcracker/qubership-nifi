@@ -2,6 +2,7 @@ package org.qubership.cloud.nifi.quarkus.config;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
@@ -13,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.consul.ConsulContainer;
 import org.testcontainers.containers.Container;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 @QuarkusTest
 @QuarkusTestResource(ConsulTestResource.class)
+@TestProfile(PropertiesManagerTestProfile.class)
 public class PropertiesManagerTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(PropertiesManagerTest.class);
@@ -110,6 +111,14 @@ public class PropertiesManagerTest {
             Assertions.assertEquals("10",
                     nifiProps.getProperty("nifi.cluster.flow.election.max.candidates"),
                     "Consul property without default should be loaded");
+            Assertions.assertFalse(nifiProps.containsKey("NIFI_HOME"),
+                    "Env variable NIFI_HOME should not be loaded");
+            Assertions.assertFalse(nifiProps.containsKey("nifi.home"),
+                    "Env variable nifi.home should not be loaded");
+            Assertions.assertFalse(nifiProps.containsKey("nifi.env.prop1"),
+                    "Env variable nifi.env.prop1 should not be loaded");
+            Assertions.assertFalse(nifiProps.containsKey("nifi.env.prop2"),
+                    "Env variable nifi.env.prop2 should not be loaded");
         } catch (IOException e) {
             Assertions.fail("Failed to read nifi.properties", e);
         }
