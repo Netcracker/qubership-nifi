@@ -32,6 +32,7 @@
     <description>Aggregator for NiFi tooling utilities</description>
 
     <properties>
+        <jackson.databind.version>2.20.1</jackson.databind.version>
         <!-- Skip ITs by default; enable with profile tools-integration-tests -->
         <skipITs>true</skipITs>
     </properties>

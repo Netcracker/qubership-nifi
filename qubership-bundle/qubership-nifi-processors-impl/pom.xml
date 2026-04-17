@@ -50,7 +50,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.databind.version}</version>
             <scope>provided</scope>
         </dependency>
         <!--Transitive dependency on json-smart due to json-path lib-->
@@ -111,7 +110,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>${commons.lang3.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -123,7 +121,6 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>${commons.io.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -134,7 +131,6 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>
-            <version>${okhttp.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -189,13 +185,11 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.ee11</groupId>
             <artifactId>jetty-ee11-servlet</artifactId>
-            <version>${jetty.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -223,7 +217,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
             <scope>provided</scope>
         </dependency>
         <!--TEST-->
