@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:cwiki.apache.org)",
+      "Bash(mvn dependency:tree -U)",
+      "Bash(mvn clean *)",
+      "Bash(bash *)",
+      "Bash([ ! -f \"filesCompare/scripts/2.8.0/$f\" ])",
+      "Bash(continue)",
+      "Bash(mkdir -p /tmp/jedis-probe)",
+      "Read(//tmp/**)",
+      "Bash(mvn -q dependency:tree)",
+      "Bash(mvn dependency:tree)",
+      "Bash(mvn exec:java -pl qubership-nifi-tools/qubership-nifi-api-export-tool -Dexec.args=\"--version 2.8.0 --output-dir ./nifi-api-output/2.8.0\")",
+      "Bash(mvn exec:java -pl qubership-nifi-tools/qubership-nifi-api-export-tool -Dexec.args=\"--version 2.7.2 --output-dir ./nifi-api-output/2.7.2\")",
+      "Bash(mvn -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool -am install -DskipTests -Dgpg.skip=true)",
+      "Bash(mvn exec:java -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool -Dexec.args=\"--sourceDir ./nifi-api-output/2.7.2 --targetDir ./nifi-api-output/2.8.0 --outputPath ./nifi-api-output/comparatorResult\")"
+    ]
+  }
+}
