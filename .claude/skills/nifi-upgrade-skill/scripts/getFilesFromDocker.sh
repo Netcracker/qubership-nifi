@@ -12,9 +12,9 @@ BASE_DIR="filesCompare"
 
 echo "Creating directory structure..."
 mkdir -p "${BASE_DIR}/scripts/${OLD_VER}" \
-         "${BASE_DIR}/scripts/${NEW_VER}" \
-         "${BASE_DIR}/config/${OLD_VER}" \
-         "${BASE_DIR}/config/${NEW_VER}"
+        "${BASE_DIR}/scripts/${NEW_VER}" \
+        "${BASE_DIR}/config/${OLD_VER}" \
+        "${BASE_DIR}/config/${NEW_VER}"
 
 extract_files_for_version() {
     local ver="$1"

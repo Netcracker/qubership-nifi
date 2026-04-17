@@ -62,3 +62,7 @@ fabric.properties
 
 # All log files
 /**/*.log
+
+# NiFi upgrade skill: extracted reference files
+filesCompare/
+nifi-api-output/

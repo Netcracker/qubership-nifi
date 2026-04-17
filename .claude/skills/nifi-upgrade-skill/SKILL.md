@@ -106,7 +106,7 @@ In the file `./pom.xml`, locate the `<nifi.version>` property inside the `<prope
 
 ## Step 9: Updating the NiFi API version in pom.xml
 
-On the page https://cwiki.apache.org/confluence/display/NIFI/Release+Notes, find the NiFi API release that was published before the target NiFi version.
+On the page <https://cwiki.apache.org/confluence/display/NIFI/Release+Notes>, find the NiFi API release that was published before the target NiFi version.
 Take that NiFi API version and update the `<nifi.api.version>` property in the `<properties>` section of `./pom.xml`.
 
 ## Step 10: Updating the Jedis version in pom.xml
@@ -136,11 +136,11 @@ Add the `filesCompare` and `nifi-api-output` directory to the `.gitignore` file.
 
 ## Step 12: Check Migration Guidance
 
-Fetch https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance **directly with the WebFetch tool** — do NOT delegate to a subagent (they have returned false "no guidance found" results).
+Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with the WebFetch tool** — do NOT delegate to a subagent (they have returned false "no guidance found" results).
 
 1. Ask WebFetch for the verbatim sections of every version between current (exclusive) and target (inclusive) — e.g. 2.6.0 → 2.7.2 means 2.7.0, 2.7.1, 2.7.2. Request removed features, deprecations, breaking changes, property renames, action items.
 2. If a version section is missing from the response, re-fetch with a prompt naming that specific version. Do not conclude "no guidance" without a targeted re-fetch.
-3. For each item, `Grep` the whole repo (including `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed/renamed properties or processor/service names, and apply changes where matches exist.
+3. For each item, `Grep` the whole repository (including `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed/renamed properties or processor/service names, and apply changes where matches exist.
 4. In the final summary, list every guidance item as **applied** (with paths), **not applicable** (with grep evidence), or **user action required**. Silent omission is not acceptable.
 
 
