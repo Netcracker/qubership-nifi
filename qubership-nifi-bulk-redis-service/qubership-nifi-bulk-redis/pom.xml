@@ -87,7 +87,7 @@
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-redis</artifactId>
-            <version>3.5.1</version>
+            <version>${spring.data.redis.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -151,6 +151,12 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

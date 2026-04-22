@@ -133,7 +133,13 @@ Take the target NiFi version and its SHA256 hash, then replace the `NIFI_VERSION
 ```
    Take the output and update the `<jedis.version>` property in the `<properties>` section of `./pom.xml`.
 
-5. Delete the temporary `pom.xml` file created in step 2.
+5. Extract the Spring Data Redis version and update it in `./pom.xml`:
+```bash
+   mvn help:evaluate -Dexpression=spring.data.redis.version -q -DforceStdout
+```
+   Take the output and update the `<spring.data.redis.version>` property in the `<properties>` section of `./pom.xml`.
+
+6. Delete the temporary `pom.xml` file created in step 2.
 
 ## Step 11: Check Migration Guidance
 
