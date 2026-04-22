@@ -65,24 +65,38 @@ def walk_pgs(node: dict, fn):
 
 
 def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
-    """Replace ${varName} -> #{varName} only for names in parameter_names.
+    """Replace variable references with parameter-context syntax for names in parameter_names.
 
-    NiFi uses the same ${...} syntax for FlowFile attribute expressions, so
-    we must not blindly rewrite every occurrence — only variables that are
-    actually being promoted to a Parameter Context should be substituted.
+    Two forms are rewritten:
+      ${varName}              →  #{varName}
+      ${varName:fn():...}     →  ${#{varName}:fn():...}
+
+    The second form follows the NiFi 2.x user guide: "When referencing a Parameter
+    from within Expression Language, the Parameter reference is evaluated first."
+    FlowFile attribute expressions like ${filename} or ${uuid()} are left untouched.
     """
     count = 0
     pattern = re.compile(r'\$\{([^}]+)\}')
+
+    def _rewrite(m):
+        inner = m.group(1)
+        # Case 1 — bare variable reference: ${varName} → #{varName}
+        if inner in parameter_names:
+            return f'#{{{inner}}}'
+        # Case 2 — EL expression: ${varName:function_chain} → ${#{varName}:function_chain}
+        colon_idx = inner.find(':')
+        if colon_idx > 0 and inner[:colon_idx] in parameter_names:
+            var_part  = inner[:colon_idx]
+            func_part = inner[colon_idx:]   # includes the leading ':'
+            return '${' + '#{' + var_part + '}' + func_part + '}'
+        return m.group(0)
 
     def replace_in_node(node):
         nonlocal count
         props = node.get("properties", {})
         for k, v in list(props.items()):
             if isinstance(v, str) and pattern.search(v):
-                new_v = pattern.sub(
-                    lambda m: f'#{{{m.group(1)}}}' if m.group(1) in parameter_names else m.group(0),
-                    v
-                )
+                new_v = pattern.sub(_rewrite, v)
                 if new_v != v:
                     props[k] = new_v
                     count += 1

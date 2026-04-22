@@ -3,6 +3,7 @@ analysis.py  —  Variable collection and analysis helpers used by the AI agent
                  during parameter context planning.
 """
 
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -15,17 +16,25 @@ from utils import load_json
 
 def _count_refs_in_pg(pg: dict, var_name: str) -> int:
     """Count occurrences of ${var_name} in the direct processors/services of pg only
-    (does not recurse into child process groups)."""
-    needle = "${" + var_name + "}"
+    (does not recurse into child process groups).
+
+    Matches both bare variable references (${varName}) and NiFi EL expressions
+    that apply functions to the variable (${varName:function():...}).
+    """
+    # (?=[:}]) — lookahead ensures we stop at the end of the variable name:
+    #   ${varName}       matched by (?=})
+    #   ${varName:fn()}  matched by (?=:)
+    # This prevents ${foo.bar} from being counted as a reference to variable foo.
+    pattern = re.compile(r'\$\{' + re.escape(var_name) + r'(?=[:}])')
     count = 0
     for proc in pg.get("processors", []):
         for v in proc.get("properties", {}).values():
             if isinstance(v, str):
-                count += v.count(needle)
+                count += len(pattern.findall(v))
     for svc in pg.get("controllerServices", []):
         for v in svc.get("properties", {}).values():
             if isinstance(v, str):
-                count += v.count(needle)
+                count += len(pattern.findall(v))
     return count
 
 
