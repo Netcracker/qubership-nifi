@@ -63,11 +63,11 @@ Using this data, propose a parameter context plan. Specifically:
    Propose a common parameter context for these. Suggest name to include some prefix related to top-level PG name to avoid conflicts with any existing contexts in the flows: e.g. `orchestrator-common-params` if the top-level PG is `Orchestrator`.
 2. **Per-flow context candidates** - variables unique to one PG, or that differ across PGs.
    Propose a per-flow context for each affected PG.
-3. **Hard-coding candidates** - variables defined in only one PG *and* referenced <= 2 times
+3. **Hardcoding candidates** - variables defined in only one PG *and* referenced <= 2 times
    total in that PG's subtree. These may not be worth parameterising.
-4. **Variables with differing values** - propose separate per-flow contexts *or* hard-coding,
+4. **Variables with differing values** - propose separate per-flow contexts *or* hardcoding,
    and note the conflicting values so the user can decide what to do. If the user chooses
-   hard-coding, add one entry to `HARDCODE_PLAN` per PG instead of creating per-flow contexts.
+   hardcoding, add one entry to `HARDCODE_PLAN` per PG instead of creating per-flow contexts.
 
 **Rule for `apply_to`:** Include **every PG that defines a variable** in `apply_to`, even if
 its `reference_count = 0`. A PG with `ref_count = 0` is a variable *source* — `apply_variable_contexts`
@@ -77,7 +77,7 @@ leaves stale NiFi 1.x variable definitions in the flow.
 Then use AskUserQuestion tool to ask the following questions before generating any run script:
 
 - Do the proposed context names work, or should they be different?
-- Should any hard-coding candidates actually be hard-coded instead of parameterised?
+- Should any hardcoding candidates actually be hardcoded instead of parameterised?
   (If so, which ones, and what value should be used?)
 - For variables with differing values across flows: should each flow get its own parameter
   context, or does the user want to unify on one value?
@@ -117,7 +117,7 @@ PARAMETER_CONTEXT_PLAN = [
 ]
 
 # HARDCODE_PLAN - variables excluded from parameterisation (values_differ: true and
-# the user chose hard-coding over per-flow contexts). One entry per PG per variable.
+# the user chose hardcoding over per-flow contexts). One entry per PG per variable.
 HARDCODE_PLAN = [
     # {
     #     "variable": "processing.var2",
@@ -157,7 +157,7 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
 3. Update the processor in the JSON via Edit tool:
    - Set `Script Engine` → `"Groovy"`
    - Set `Script Body` to:
-     ```
+     ```groovy
      // Auto-translated from <language> by apply-upgrade-advisor-recommendations. Review before use.
      <translated Groovy code>
 
@@ -178,7 +178,7 @@ Summarise:
 ## What is automated vs. manual
 
 | Issue type | How handled |
-|---|---|
+| --- | --- |
 | `Script Engine = python/ruby/lua` | Step 5 (AI agent translation) |
 | `Proxy properties in InvokeHTTP` | `apply_csv_transforms` - creates StandardProxyConfigurationService |
 | `Variables are not available` | Steps 2b + 3 - AI-assisted parameter context design |
@@ -203,5 +203,5 @@ Summarise:
   left untouched.
 - `apply_hardcoded_values` replaces `${varName}` → the literal string value directly in
   processor/service properties. Use for variables with `values_differ: true` when the user
-  prefers hard-coding over per-flow parameter contexts. Each flow file is loaded once even
-  when multiple variables in the same file are hard-coded.
+  prefers hardcoding over per-flow parameter contexts. Each flow file is loaded once even
+  when multiple variables in the same file are hardcoded.
