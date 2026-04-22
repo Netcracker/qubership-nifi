@@ -69,6 +69,11 @@ Using this data, propose a parameter context plan. Specifically:
    and note the conflicting values so the user can decide what to do. If the user chooses
    hard-coding, add one entry to `HARDCODE_PLAN` per PG instead of creating per-flow contexts.
 
+**Rule for `apply_to`:** Include **every PG that defines a variable** in `apply_to`, even if
+its `reference_count = 0`. A PG with `ref_count = 0` is a variable *source* — `apply_variable_contexts`
+must still attach the parameter context to it and clear its `variables` dict. Omitting it
+leaves stale NiFi 1.x variable definitions in the flow.
+
 Then use AskUserQuestion tool to ask the following questions before generating any run script:
 
 - Do the proposed context names work, or should they be different?

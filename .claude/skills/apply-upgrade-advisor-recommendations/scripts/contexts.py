@@ -29,11 +29,6 @@ def apply_variable_contexts(
     """
     exports = Path(exports_dir)
 
-    # Build context UUID map (name -> uuid) so parent references can be resolved
-    context_uuids: dict[str, str] = {}
-    for entry in parameter_context_plan:
-        context_uuids[entry["name"]] = new_uuid()
-
     applied = []
 
     # Build cumulative parameter name sets per context (including inherited params).
@@ -58,17 +53,14 @@ def apply_variable_contexts(
 
     for entry in parameter_context_plan:
         ctx_name = entry["name"]
-        ctx_uuid = context_uuids[ctx_name]
         parent_name = entry.get("parent")
         parameters = entry.get("parameters", {})
         apply_to = entry.get("apply_to", [])
 
         # Build context object
         ctx_obj = {
-            "identifier": ctx_uuid,
-            "instanceIdentifier": ctx_uuid,
             "name": ctx_name,
-            "description": "",
+            "componentType": "PARAMETER_CONTEXT",
             "parameters": [
                 {
                     "name": k,
@@ -79,7 +71,7 @@ def apply_variable_contexts(
                 for k, v in parameters.items()
             ],
             "inheritedParameterContexts": (
-                [context_uuids[parent_name]] if parent_name else []
+                [parent_name] if parent_name else []
             ),
         }
 
@@ -90,7 +82,7 @@ def apply_variable_contexts(
                 continue
 
             # Add context to root-level parameterContexts
-            root.setdefault("parameterContexts", {})[ctx_uuid] = ctx_obj
+            root.setdefault("parameterContexts", {})[ctx_name] = ctx_obj
 
             # Find the process group and set its parameterContextName
             flow_contents = root.get("flowContents", root)
