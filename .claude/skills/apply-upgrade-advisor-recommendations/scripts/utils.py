@@ -87,15 +87,10 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
                     props[k] = new_v
                     count += 1
 
-    def process_pg(current_pg):
-        for proc in current_pg.get("processors", []):
-            replace_in_node(proc)
-        for svc in current_pg.get("controllerServices", []):
-            replace_in_node(svc)
-        for child in current_pg.get("processGroups", []):
-            process_pg(child)
-
-    process_pg(pg)
+    for proc in pg.get("processors", []):
+        replace_in_node(proc)
+    for svc in pg.get("controllerServices", []):
+        replace_in_node(svc)
     return count
 
 

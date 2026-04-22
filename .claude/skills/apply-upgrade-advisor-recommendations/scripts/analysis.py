@@ -13,28 +13,42 @@ from utils import load_json
 # Variable collection (structured output for AI analysis)
 # ---------------------------------------------------------------------------
 
-def _count_refs_in_subtree(pg: dict, var_name: str) -> int:
-    """Count occurrences of ${var_name} in all processor/service property values
-    within pg and all its descendant process groups."""
+def _count_refs_in_pg(pg: dict, var_name: str) -> int:
+    """Count occurrences of ${var_name} in the direct processors/services of pg only
+    (does not recurse into child process groups)."""
     needle = "${" + var_name + "}"
     count = 0
-
-    def count_in_node(node):
-        nonlocal count
-        for v in node.get("properties", {}).values():
+    for proc in pg.get("processors", []):
+        for v in proc.get("properties", {}).values():
             if isinstance(v, str):
                 count += v.count(needle)
-
-    def process_pg(current_pg):
-        for proc in current_pg.get("processors", []):
-            count_in_node(proc)
-        for svc in current_pg.get("controllerServices", []):
-            count_in_node(svc)
-        for child in current_pg.get("processGroups", []):
-            process_pg(child)
-
-    process_pg(pg)
+    for svc in pg.get("controllerServices", []):
+        for v in svc.get("properties", {}).values():
+            if isinstance(v, str):
+                count += v.count(needle)
     return count
+
+
+def _find_child_pg_refs(pg: dict, var_name: str, rel_path: str, inherited_value: str) -> list[dict]:
+    """Walk child PGs recursively and return an occurrence entry for each one that
+    directly references ${var_name} in its own processors/services."""
+    results = []
+
+    def walk(current_pg):
+        for child in current_pg.get("processGroups", []):
+            ref_count = _count_refs_in_pg(child, var_name)
+            if ref_count > 0:
+                results.append({
+                    "file":            rel_path,
+                    "pg_id":           child.get("identifier", "?"),
+                    "pg_name":         child.get("name", "?"),
+                    "value":           inherited_value,
+                    "reference_count": ref_count,
+                })
+            walk(child)
+
+    walk(pg)
+    return results
 
 
 def collect_variable_analysis(exports_dir: str) -> dict:
@@ -82,7 +96,7 @@ def collect_variable_analysis(exports_dir: str) -> dict:
             vars_ = pg.get("variables", {})
 
             for var_name, value in vars_.items():
-                ref_count = _count_refs_in_subtree(pg, var_name)
+                ref_count = _count_refs_in_pg(pg, var_name)
                 if var_name not in var_data:
                     var_data[var_name] = {"occurrences": [], "values_differ": False}
                 var_data[var_name]["occurrences"].append({
@@ -92,6 +106,10 @@ def collect_variable_analysis(exports_dir: str) -> dict:
                     "value": value,
                     "reference_count": ref_count,
                 })
+                # Add an occurrence entry for every descendant PG that directly
+                # references ${var_name} in its own processors/services.
+                child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
+                var_data[var_name]["occurrences"].extend(child_refs)
 
             for child in pg.get("processGroups", []):
                 process_pg(child)
