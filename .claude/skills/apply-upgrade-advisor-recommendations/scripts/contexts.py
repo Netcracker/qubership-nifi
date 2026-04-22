@@ -12,6 +12,7 @@ from utils import load_json, save_json, find_pg, replace_var_refs_in_pg
 # Variable context application
 # ---------------------------------------------------------------------------
 
+
 def apply_variable_contexts(
     exports_dir: str,
     parameter_context_plan: list[dict],
@@ -70,9 +71,7 @@ def apply_variable_contexts(
                 }
                 for k, v in parameters.items()
             ],
-            "inheritedParameterContexts": (
-                [parent_name] if parent_name else []
-            ),
+            "inheritedParameterContexts": ([parent_name] if parent_name else []),
         }
 
         for rel_path, pg_uuid in apply_to:
@@ -102,7 +101,7 @@ def apply_variable_contexts(
                 pg["variables"] = {}
 
             applied.append(
-                f"[FIXED] {rel_path} PG={pg.get('name','?')} ({pg_uuid}) — "
+                f"[FIXED] {rel_path} PG={pg.get('name', '?')} ({pg_uuid}) — "
                 f"context '{ctx_name}' applied; {n} property reference(s) updated"
             )
 
@@ -119,6 +118,7 @@ def apply_variable_contexts(
 # ---------------------------------------------------------------------------
 # Hard-coded value substitution
 # ---------------------------------------------------------------------------
+
 
 def _hardcode_var_in_pg(pg: dict, var_name: str, literal_value: str) -> int:
     """Replace ${var_name} with literal_value in all processor/service property values
@@ -191,9 +191,9 @@ def apply_hardcoded_values(
         flow_contents = data.get("flowContents", data)
 
         for entry in entries:
-            pg_uuid  = entry["pg_uuid"]
+            pg_uuid = entry["pg_uuid"]
             var_name = entry["variable"]
-            literal  = entry["value"]
+            literal = entry["value"]
 
             pg = find_pg(flow_contents, pg_uuid)
             if pg is None:

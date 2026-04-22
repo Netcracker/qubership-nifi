@@ -14,6 +14,7 @@ from pathlib import Path
 # I/O helpers
 # ---------------------------------------------------------------------------
 
+
 def load_json(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -32,6 +33,7 @@ def new_uuid() -> str:
 # ---------------------------------------------------------------------------
 # JSON-tree walkers
 # ---------------------------------------------------------------------------
+
 
 def find_component(node: dict, target_id: str):
     """Return (component_dict, containing_pg_dict) or (None, None)."""
@@ -76,19 +78,19 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
     FlowFile attribute expressions like ${filename} or ${uuid()} are left untouched.
     """
     count = 0
-    pattern = re.compile(r'\$\{([^}]+)\}')
+    pattern = re.compile(r"\$\{([^}]+)\}")
 
     def _rewrite(m):
         inner = m.group(1)
         # Case 1 — bare variable reference: ${varName} → #{varName}
         if inner in parameter_names:
-            return f'#{{{inner}}}'
+            return f"#{{{inner}}}"
         # Case 2 — EL expression: ${varName:function_chain} → ${#{varName}:function_chain}
-        colon_idx = inner.find(':')
+        colon_idx = inner.find(":")
         if colon_idx > 0 and inner[:colon_idx] in parameter_names:
-            var_part  = inner[:colon_idx]
-            func_part = inner[colon_idx:]   # includes the leading ':'
-            return '${' + '#{' + var_part + '}' + func_part + '}'
+            var_part = inner[:colon_idx]
+            func_part = inner[colon_idx:]  # includes the leading ':'
+            return "${" + "#{" + var_part + "}" + func_part + "}"
         return m.group(0)
 
     def replace_in_node(node):
@@ -112,7 +114,7 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
 # CSV parsing
 # ---------------------------------------------------------------------------
 
-UUID_RE = re.compile(r'\(([0-9a-f\-]+)\)\s*$', re.IGNORECASE)
+UUID_RE = re.compile(r"\(([0-9a-f\-]+)\)\s*$", re.IGNORECASE)
 
 
 def _extract_uuid(cell: str) -> str | None:
@@ -134,6 +136,7 @@ def parse_csv(csv_path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Controller service skeleton builder
 # ---------------------------------------------------------------------------
+
 
 def _make_service(name: str, svc_type: str, bundle: dict, properties: dict) -> dict:
     uid = new_uuid()

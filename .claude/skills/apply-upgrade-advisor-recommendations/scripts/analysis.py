@@ -14,6 +14,7 @@ from utils import load_json
 # Variable collection (structured output for AI analysis)
 # ---------------------------------------------------------------------------
 
+
 def _count_refs_in_pg(pg: dict, var_name: str) -> int:
     """Count occurrences of ${var_name} in the direct processors/services of pg only
     (does not recurse into child process groups).
@@ -25,7 +26,7 @@ def _count_refs_in_pg(pg: dict, var_name: str) -> int:
     #   ${varName}       matched by (?=})
     #   ${varName:fn()}  matched by (?=:)
     # This prevents ${foo.bar} from being counted as a reference to variable foo.
-    pattern = re.compile(r'\$\{' + re.escape(var_name) + r'(?=[:}])')
+    pattern = re.compile(r"\$\{" + re.escape(var_name) + r"(?=[:}])")
     count = 0
     for proc in pg.get("processors", []):
         for v in proc.get("properties", {}).values():
@@ -38,7 +39,9 @@ def _count_refs_in_pg(pg: dict, var_name: str) -> int:
     return count
 
 
-def _find_child_pg_refs(pg: dict, var_name: str, rel_path: str, inherited_value: str) -> list[dict]:
+def _find_child_pg_refs(
+    pg: dict, var_name: str, rel_path: str, inherited_value: str
+) -> list[dict]:
     """Walk child PGs recursively and return an occurrence entry for each one that
     directly references ${var_name} in its own processors/services."""
     results = []
@@ -47,13 +50,15 @@ def _find_child_pg_refs(pg: dict, var_name: str, rel_path: str, inherited_value:
         for child in current_pg.get("processGroups", []):
             ref_count = _count_refs_in_pg(child, var_name)
             if ref_count > 0:
-                results.append({
-                    "file":            rel_path,
-                    "pg_id":           child.get("identifier", "?"),
-                    "pg_name":         child.get("name", "?"),
-                    "value":           inherited_value,
-                    "reference_count": ref_count,
-                })
+                results.append(
+                    {
+                        "file": rel_path,
+                        "pg_id": child.get("identifier", "?"),
+                        "pg_name": child.get("name", "?"),
+                        "value": inherited_value,
+                        "reference_count": ref_count,
+                    }
+                )
             walk(child)
 
     walk(pg)
@@ -108,13 +113,15 @@ def collect_variable_analysis(exports_dir: str) -> dict:
                 ref_count = _count_refs_in_pg(pg, var_name)
                 if var_name not in var_data:
                     var_data[var_name] = {"occurrences": [], "values_differ": False}
-                var_data[var_name]["occurrences"].append({
-                    "file": rel_path,
-                    "pg_id": pg_id,
-                    "pg_name": pg_name,
-                    "value": value,
-                    "reference_count": ref_count,
-                })
+                var_data[var_name]["occurrences"].append(
+                    {
+                        "file": rel_path,
+                        "pg_id": pg_id,
+                        "pg_name": pg_name,
+                        "value": value,
+                        "reference_count": ref_count,
+                    }
+                )
                 # Add an occurrence entry for every descendant PG that directly
                 # references ${var_name} in its own processors/services.
                 child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
@@ -136,6 +143,7 @@ def collect_variable_analysis(exports_dir: str) -> dict:
 # ---------------------------------------------------------------------------
 # Legacy analysis helpers (used by --analyze CSV summary in upgrade_nifi_lib)
 # ---------------------------------------------------------------------------
+
 
 def _collect_variables(exports_dir: str) -> list[tuple]:
     """
@@ -179,7 +187,7 @@ def _propose_context_hierarchy(
             inventory[k][(rel_path, pg_id)] = v
 
     # Classify
-    common_vars: dict[str, str] = {}    # name -> value
+    common_vars: dict[str, str] = {}  # name -> value
     for var_name, occurrences in inventory.items():
         values = list(occurrences.values())
         if len(occurrences) >= 2 and len(set(values)) == 1:
@@ -193,31 +201,36 @@ def _propose_context_hierarchy(
         # (all that define at least one common var)
         common_apply_to = set()
         for var_name in common_vars:
-            for (rel_path, pg_id) in inventory[var_name]:
+            for rel_path, pg_id in inventory[var_name]:
                 common_apply_to.add((rel_path, pg_id))
 
-        plan.append({
-            "name": "shared-params",
-            "parent": None,
-            "parameters": dict(common_vars),
-            "apply_to": sorted(common_apply_to),
-        })
+        plan.append(
+            {
+                "name": "shared-params",
+                "parent": None,
+                "parameters": dict(common_vars),
+                "apply_to": sorted(common_apply_to),
+            }
+        )
 
     # Per-PG child entries
     pg_lookup = {(r, p): n for r, p, n, _ in pg_variable_list}
     for rel_path, pg_id, pg_name, vars_ in pg_variable_list:
         # Variables not in common (or with different values)
         extra = {
-            k: v for k, v in vars_.items()
+            k: v
+            for k, v in vars_.items()
             if k not in common_vars or common_vars.get(k) != v
         }
         if extra:
-            plan.append({
-                "name": f"{pg_name}-params",
-                "parent": "shared-params" if common_vars else None,
-                "parameters": extra,
-                "apply_to": [(rel_path, pg_id)],
-            })
+            plan.append(
+                {
+                    "name": f"{pg_name}-params",
+                    "parent": "shared-params" if common_vars else None,
+                    "parameters": extra,
+                    "apply_to": [(rel_path, pg_id)],
+                }
+            )
         # else: PG only has common vars -> will be handled by the DIRECT reference above
 
     # Build display text
@@ -226,9 +239,7 @@ def _propose_context_hierarchy(
         "-" * 60,
     ]
     for entry in plan:
-        parent_str = (
-            f"  inherits '{entry['parent']}'" if entry["parent"] else ""
-        )
+        parent_str = f"  inherits '{entry['parent']}'" if entry["parent"] else ""
         lines.append(f"  [{entry['name']}]{parent_str}")
         for k, v in entry["parameters"].items():
             lines.append(f"    {k!r} = {v!r}")
@@ -241,7 +252,8 @@ def _propose_context_hierarchy(
     # Flows that get a DIRECT reference (no child context needed)
     for rel_path, pg_id, pg_name, vars_ in pg_variable_list:
         extra = {
-            k: v for k, v in vars_.items()
+            k: v
+            for k, v in vars_.items()
             if k not in common_vars or common_vars.get(k) != v
         }
         if not extra and common_vars:

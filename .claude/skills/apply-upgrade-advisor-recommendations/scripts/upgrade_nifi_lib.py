@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys as _sys
+
 if hasattr(_sys.stdout, "reconfigure"):
     _sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(_sys.stderr, "reconfigure"):
@@ -25,14 +26,15 @@ import json
 import sys
 from pathlib import Path
 
-from utils    import parse_csv
-from fixes    import _classify_row
+from utils import parse_csv
+from fixes import _classify_row
 from analysis import collect_variable_analysis
 
 
 # ---------------------------------------------------------------------------
 # CSV summary printer (CLI --analyze mode)
 # ---------------------------------------------------------------------------
+
 
 def detect_exports_dir(csv_path: str, search_root: str = ".") -> None:
     """Derive exports_dir from the CSV's Flow name values by locating a matching file."""
@@ -43,7 +45,7 @@ def detect_exports_dir(csv_path: str, search_root: str = ".") -> None:
     flow_name = rows[0]["Flow name"].strip().replace("\\", "/")
     root = Path(search_root).resolve()
     for candidate in root.rglob("*.json"):
-        rel = candidate.as_posix()[len(root.as_posix()) + 1:]
+        rel = candidate.as_posix()[len(root.as_posix()) + 1 :]
         if rel.endswith(flow_name):
             exports_dir = rel[: -len(flow_name)].rstrip("/") or "."
             print(exports_dir)
@@ -74,14 +76,14 @@ def analyze(csv_path: str, exports_dir: str) -> None:
                 "manual": "[MANUAL]",
             }.get(handler, "[AUTO]")
             proc_cell = row.get("Processor") or row.get("Process Group") or "?"
-            print(
-                f"  {tag:15s} {row['Flow name']} — {proc_cell[:60]}"
-            )
+            print(f"  {tag:15s} {row['Flow name']} — {proc_cell[:60]}")
     else:
         print("\n  (No CSV provided or CSV is empty — skipping row summary)")
 
     print("\n")
-    print("Run --collect-vars to get variable data for AI-assisted parameter context planning.")
+    print(
+        "Run --collect-vars to get variable data for AI-assisted parameter context planning."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -93,18 +95,38 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="NiFi 1.x->2.x upgrade helper library")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--analyze", action="store_true",
-                       help="Print CSV row summary (AUTO/AI Agent/CONTEXT PLAN/MANUAL tags)")
-    group.add_argument("--collect-vars", action="store_true",
-                       help="Collect variable analysis from flow JSON files; output as JSON to stdout")
-    group.add_argument("--detect-exports-dir", action="store_true",
-                       help="Derive exports_dir from the CSV's Flow name values; prints the result")
-    group.add_argument("--apply", action="store_true",
-                       help="Not used directly; use apply_csv_transforms() from generated run script")
-    parser.add_argument("csv_path", nargs="?", default=None,
-                        help="Path to upgradeAdvisorReport.csv (required for --analyze; use /dev/null to skip)")
-    parser.add_argument("exports_dir", nargs="?", default=None,
-                        help="Root directory containing NiFi JSON flow exports (not needed for --detect-exports-dir)")
+    group.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Print CSV row summary (AUTO/AI Agent/CONTEXT PLAN/MANUAL tags)",
+    )
+    group.add_argument(
+        "--collect-vars",
+        action="store_true",
+        help="Collect variable analysis from flow JSON files; output as JSON to stdout",
+    )
+    group.add_argument(
+        "--detect-exports-dir",
+        action="store_true",
+        help="Derive exports_dir from the CSV's Flow name values; prints the result",
+    )
+    group.add_argument(
+        "--apply",
+        action="store_true",
+        help="Not used directly; use apply_csv_transforms() from generated run script",
+    )
+    parser.add_argument(
+        "csv_path",
+        nargs="?",
+        default=None,
+        help="Path to upgradeAdvisorReport.csv (required for --analyze; use /dev/null to skip)",
+    )
+    parser.add_argument(
+        "exports_dir",
+        nargs="?",
+        default=None,
+        help="Root directory containing NiFi JSON flow exports (not needed for --detect-exports-dir)",
+    )
     args = parser.parse_args()
 
     if args.analyze:
@@ -115,5 +137,7 @@ if __name__ == "__main__":
     elif args.detect_exports_dir:
         detect_exports_dir(args.csv_path, args.exports_dir or ".")
     else:
-        print("Use apply_csv_transforms() and apply_variable_contexts() from the generated run script.")
+        print(
+            "Use apply_csv_transforms() and apply_variable_contexts() from the generated run script."
+        )
         sys.exit(1)

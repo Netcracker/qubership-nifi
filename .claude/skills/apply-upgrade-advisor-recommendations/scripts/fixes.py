@@ -7,12 +7,19 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from utils import load_json, save_json, new_uuid, find_component, parse_csv, _make_service
+from utils import (
+    load_json,
+    save_json,
+    find_component,
+    parse_csv,
+    _make_service,
+)
 
 
 # ---------------------------------------------------------------------------
 # Individual fix handlers  (called by apply_csv_transforms)
 # ---------------------------------------------------------------------------
+
 
 def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict) -> list[str]:
     """
@@ -20,9 +27,9 @@ def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict) -> list[str]:
     reference it from the processor, remove the old inline properties.
     """
     prop_map = {
-        "Proxy Host":     "proxy-configuration-service.proxy-server-host",
-        "Proxy Port":     "proxy-configuration-service.proxy-server-port",
-        "Proxy Type":     "proxy-configuration-service.proxy-type",
+        "Proxy Host": "proxy-configuration-service.proxy-server-host",
+        "Proxy Port": "proxy-configuration-service.proxy-server-port",
+        "Proxy Type": "proxy-configuration-service.proxy-type",
         "Proxy Username": "proxy-configuration-service.proxy-user-name",
         "Proxy Password": "proxy-configuration-service.proxy-user-password",
     }
@@ -175,83 +182,83 @@ AZURE_RENAME_TABLE: dict[str, tuple[str, dict]] = {
     "GetAzureQueueStorage": (
         "GetAzureQueueStorage_v12",
         {
-            "storage-queue-name":        "Queue Name",
-            "auto-delete-messages":      "Auto Delete Messages",
-            "batch-size":                "Message Batch Size",
-            "visibility-timeout":        "Visibility Timeout",
+            "storage-queue-name": "Queue Name",
+            "auto-delete-messages": "Auto Delete Messages",
+            "batch-size": "Message Batch Size",
+            "visibility-timeout": "Visibility Timeout",
             "storage-credentials-service": None,
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
         },
     ),
     "PutAzureQueueStorage": (
         "PutAzureQueueStorage_v12",
         {
-            "storage-queue-name":        "Queue Name",
-            "time-to-live":              "Message Time To Live",
-            "visibility-delay":          "Visibility Timeout",
+            "storage-queue-name": "Queue Name",
+            "time-to-live": "Message Time To Live",
+            "visibility-delay": "Visibility Timeout",
             "storage-credentials-service": "Credentials Service",
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
         },
     ),
     "DeleteAzureBlobStorage": (
         "DeleteAzureBlobStorage_v12",
         {
-            "blob":                      "blob-name",
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
-            "storage-endpoint-suffix":   None,
+            "blob": "blob-name",
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
     "FetchAzureBlobStorage": (
         "FetchAzureBlobStorage_v12",
         {
-            "blob":                      "blob-name",
-            "cse-key-type":              "Client-Side Encryption Key Type",
-            "cse-key-id":                "Client-Side Encryption Key ID",
-            "cse-symmetric-key-hex":     "Client-Side Encryption Local Key",
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
-            "storage-endpoint-suffix":   None,
+            "blob": "blob-name",
+            "cse-key-type": "Client-Side Encryption Key Type",
+            "cse-key-id": "Client-Side Encryption Key ID",
+            "cse-symmetric-key-hex": "Client-Side Encryption Local Key",
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
     "ListAzureBlobStorage": (
         "ListAzureBlobStorage_v12",
         {
-            "prefix":                    "blob-name-prefix",
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
-            "storage-endpoint-suffix":   None,
+            "prefix": "blob-name-prefix",
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
     "PutAzureBlobStorage": (
         "PutAzureBlobStorage_v12",
         {
-            "blob":                      "blob-name",
-            "azure-create-container":    "create-container",
-            "cse-key-type":              "Client-Side Encryption Key Type",
-            "cse-key-id":                "Client-Side Encryption Key ID",
-            "cse-symmetric-key-hex":     "Client-Side Encryption Local Key",
-            "storage-account-name":      None,
-            "storage-account-key":       None,
-            "storage-sas-token":         None,
-            "storage-endpoint-suffix":   None,
+            "blob": "blob-name",
+            "azure-create-container": "create-container",
+            "cse-key-type": "Client-Side Encryption Key Type",
+            "cse-key-id": "Client-Side Encryption Key ID",
+            "cse-symmetric-key-hex": "Client-Side Encryption Local Key",
+            "storage-account-name": None,
+            "storage-account-key": None,
+            "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
 }
 
 # Kafka class-name patterns -> target suffix
 KAFKA_RENAME_TABLE = {
-    re.compile(r'ConsumeKafka_[12]_0$'):        "ConsumeKafka_2_6",
-    re.compile(r'PublishKafka_[12]_0$'):         "PublishKafka_2_6",
-    re.compile(r'ConsumeKafkaRecord_[12]_0$'):   "ConsumeKafkaRecord_2_6",
-    re.compile(r'PublishKafkaRecord_[12]_0$'):   "PublishKafkaRecord_2_6",
+    re.compile(r"ConsumeKafka_[12]_0$"): "ConsumeKafka_2_6",
+    re.compile(r"PublishKafka_[12]_0$"): "PublishKafka_2_6",
+    re.compile(r"ConsumeKafkaRecord_[12]_0$"): "ConsumeKafkaRecord_2_6",
+    re.compile(r"PublishKafkaRecord_[12]_0$"): "PublishKafkaRecord_2_6",
 }
 
 
@@ -269,7 +276,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
     for pattern, new_suffix in KAFKA_RENAME_TABLE.items():
         if pattern.search(old_type):
             old_suffix = old_type.rsplit(".", 1)[-1]
-            proc["type"] = old_type[:old_type.rfind(old_suffix)] + new_suffix
+            proc["type"] = old_type[: old_type.rfind(old_suffix)] + new_suffix
             if "bundle" in proc:
                 proc["bundle"]["artifact"] = "nifi-kafka-2-6-nar"
             applied.append(
@@ -282,7 +289,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
     old_suffix = old_type.rsplit(".", 1)[-1]
     if old_suffix in AZURE_RENAME_TABLE and "_v12" not in old_suffix:
         new_suffix, prop_map = AZURE_RENAME_TABLE[old_suffix]
-        proc["type"] = old_type[:old_type.rfind(old_suffix)] + new_suffix
+        proc["type"] = old_type[: old_type.rfind(old_suffix)] + new_suffix
 
         props = proc.get("properties", {})
         new_props = {}
@@ -313,6 +320,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
 # Dispatch table and main entry point
 # ---------------------------------------------------------------------------
 
+
 def _classify_row(row: dict) -> str:
     """Return a handler key or 'manual'."""
     issue = row.get("Issue", "").lower()
@@ -326,13 +334,16 @@ def _classify_row(row: dict) -> str:
     if "proxy properties in invokehttp" in issue:
         return "fix_invokehttp_proxy"
     if "variables are not available" in issue:
-        return "fix_variables"       # handled via PARAMETER_CONTEXT_PLAN
+        return "fix_variables"  # handled via PARAMETER_CONTEXT_PLAN
     if re.search(r"access key id|secret access key", issue):
         return "fix_s3_credentials"
     if "convertjsontosql" in issue:
         return "fix_convert_json_to_sql"
-    if re.search(r"consume ?kafka_[12]_0|publish ?kafka_[12]_0|"
-                 r"consume ?kafkarecord_[12]_0|publish ?kafkarecord_[12]_0", issue):
+    if re.search(
+        r"consume ?kafka_[12]_0|publish ?kafka_[12]_0|"
+        r"consume ?kafkarecord_[12]_0|publish ?kafkarecord_[12]_0",
+        issue,
+    ):
         return "fix_type_rename"
     if re.search(r"(get|put|fetch|list|delete)azure(queue|blob)storage(?!_v12)", issue):
         return "fix_type_rename"
@@ -381,17 +392,17 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
 
             if handler == "manual":
                 manual.append(
-                    f"[MANUAL][{row.get('Level','?')}] {rel_path} — "
+                    f"[MANUAL][{row.get('Level', '?')}] {rel_path} — "
                     f"{row.get('Processor', row.get('Process Group', '?'))} — "
-                    f"{row.get('Issue','?')}\n"
-                    f"    Solution: {row.get('Solution','?')}"
+                    f"{row.get('Issue', '?')}\n"
+                    f"    Solution: {row.get('Solution', '?')}"
                 )
                 continue
 
             if handler == "fix_script_engine":
                 skipped_for_ai_agent.append(
                     f"[AI Agent] {rel_path} — "
-                    f"{row.get('Processor','?')} — Script engine rewrite needed"
+                    f"{row.get('Processor', '?')} — Script engine rewrite needed"
                 )
                 continue
 
@@ -443,7 +454,9 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
         print("  (none)")
 
     if skipped_for_ai_agent:
-        print("\n=== Script Engine Rewrites (handled by AI Agent after this script) ===")
+        print(
+            "\n=== Script Engine Rewrites (handled by AI Agent after this script) ==="
+        )
         for m in skipped_for_ai_agent:
             print(" ", m)
 
