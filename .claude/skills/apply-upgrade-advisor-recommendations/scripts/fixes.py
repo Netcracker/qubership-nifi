@@ -270,8 +270,11 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
         if pattern.search(old_type):
             old_suffix = old_type.rsplit(".", 1)[-1]
             proc["type"] = old_type[:old_type.rfind(old_suffix)] + new_suffix
+            if "bundle" in proc:
+                proc["bundle"]["artifact"] = "nifi-kafka-2-6-nar"
             applied.append(
-                f"[FIXED] {proc_label} — type renamed: {old_suffix} -> {new_suffix}"
+                f"[FIXED] {proc_label} — type renamed: {old_suffix} -> {new_suffix}; "
+                f"bundle.artifact -> nifi-kafka-2-6-nar"
             )
             return applied, manual
 
