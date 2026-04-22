@@ -22,18 +22,18 @@ grep -oP 'NIFI_VERSION=\K[0-9.]+' ./Dockerfile
 
 ## Step 3: Run the script to receive files
 
-Pass both versions to the script — current first, target second and run scripts without asking the user for confirmation:
+Pass both versions to the script — current first, target second and run scripts:
 
 ```bash
-bash .claude/skills/nifi-upgrade-skill/scripts/getFilesFromDocker.sh
+bash .claude/skills/nifi-upgrade-skill/scripts/getFilesFromDocker.sh <current_version> <target_version>
 ```
 
 ## Step 4: Compare and apply script changes
 
 Compare the scripts between the current and target NiFi versions
-and apply the differences to the project's working copies without asking the user for confirmation.
+and apply the differences to the project's working copies.
 
-Source scripts (from Docker image or release archive):
+Source scripts (from Docker image):
 - secure.sh
 - start.sh
 - common.sh
@@ -43,8 +43,8 @@ For each file:
 
 1. Generate a diff between the current and target version:
 ```bash
-diff .claude/skills/nifi-upgrade-skill/scripts/current/<FILE> \
-     .claude/skills/nifi-upgrade-skill/scripts/target/<FILE>
+diff .upgrade-temp-data/nifi-files-to-compare/scripts/current/<FILE> \
+     .upgrade-temp-data/nifi-files-to-compare/scripts/target/<FILE>
 ```
 
 2. If there are differences — apply them directly to the
@@ -74,7 +74,7 @@ For each file:
 
 2. If there are differences, apply them directly to the corresponding file in the project's `nifi-config/` directory.
 
-3. Changes for `logback.xml` must also be applied to the resource file in the `qubership-nifi-consul-templates` module.
+3. Changes for `logback.xml` must be applied to the resource file in the `qubership-nifi-consul-templates` module.
 
 4. After all files are processed, show a brief summary of what was changed (which files, how many lines added/removed).
 
@@ -82,7 +82,7 @@ If a file doesn't exist in the target version, keep the current version and note
 
 ## Step 6: Compare and apply changes in nifi.properties
 
-Compare the `nifi.properties` file located at `/config/nifi.properties` between the current and target NiFi versions.
+Compare the `nifi.properties` file from Docker image between the current and target NiFi versions.
 
 1. Generate a diff between the current and target version:
 ```bash
@@ -100,41 +100,42 @@ Compare the `nifi.properties` file located at `/config/nifi.properties` between 
 
 Take the target NiFi version and its SHA256 hash, then replace the `NIFI_VERSION` and `NIFI_VERSION_SHA256` values in `./Dockerfile`.
 
-## Step 8: Updating the NiFi version in pom.xml
+## Step 8: Updating versions in pom.xml
 
-In the file `./pom.xml`, locate the `<nifi.version>` property inside the `<properties>` section and replace its value with the target NiFi version.
+1. In the file `./pom.xml`, locate the `<nifi.version>` property inside the `<properties>` section and replace its value with the target NiFi version.
 
-## Step 9: Updating the NiFi API version in pom.xml
-
-On the page <https://cwiki.apache.org/confluence/display/NIFI/Release+Notes>, find the NiFi API release that was published before the target NiFi version.
-Take that NiFi API version and update the `<nifi.api.version>` property in the `<properties>` section of `./pom.xml`.
-
-## Step 10: Updating the Jedis version in pom.xml
-
-1. Create a minimal `pom.xml` file with the following dependency:
+2. Create a temporary minimal `pom.xml` file in a separate directory:
 ```xml
-   <dependency>
-       <groupId>org.apache.nifi</groupId>
-       <artifactId>nifi-redis-service-api</artifactId>
-       <version>${nifi.version}</version>
-   </dependency>
+   <project xmlns="http://maven.apache.org/POM/4.0.0"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+       <modelVersion>4.0.0</modelVersion>
+       <parent>
+           <groupId>org.apache.nifi</groupId>
+           <artifactId>nifi-redis-bundle</artifactId>
+           <version>${TARGET_NIFI_VERSION}</version>
+       </parent>
+       <artifactId>qubership-nifi-tmp-test</artifactId>
+       <packaging>pom</packaging>
+   </project>
 ```
    Set the `<version>` to the target NiFi version.
 
-2. Run the command:
+3. Extract the NiFi API version and update it in `./pom.xml`:
 ```bash
-   mvn dependency:tree
+   mvn help:evaluate -Dexpression=nifi-api.version -q -DforceStdout
 ```
+   Take the output and update the `<nifi.api.version>` property in the `<properties>` section of `./pom.xml`.
 
-3. From the command output, extract the Jedis version.
+4. Extract the Jedis version and update it in `./pom.xml`:
+```bash
+   mvn help:evaluate -Dexpression=jedis.version -q -DforceStdout
+```
+   Take the output and update the `<jedis.version>` property in the `<properties>` section of `./pom.xml`.
 
-4. Update the `<jedis.version>` property in the project's `./pom.xml` with the extracted version.
+5. Delete the temporary `pom.xml` file created in step 2.
 
-## Step 11: Add the filesCompare and nifi-api-output directory in gitIgnore
-
-Add the `filesCompare` and `nifi-api-output` directory to the `.gitignore` file.
-
-## Step 12: Check Migration Guidance
+## Step 11: Check Migration Guidance
 
 Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with the WebFetch tool** — do NOT delegate to a subagent (they have returned false "no guidance found" results).
 
@@ -144,21 +145,21 @@ Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **di
 4. In the final summary, list every guidance item as **applied** (with paths), **not applicable** (with grep evidence), or **user action required**. Silent omission is not acceptable.
 
 
-## Step 13: Compile the project
+## Step 12: Compile the project
 
 Compile the project in two stages:
 
 1. First, compile without tests:
 ```bash
-   mvn clean compile -DskipTests
+   mvn clean install -DskipTests
 ```
 
 2. Then, compile with tests:
 ```bash
-   mvn clean compile
+   mvn clean install
 ```
 
-## Step 14: Run qubership-nifi-api-export-tool
+## Step 13: Run qubership-nifi-api-export-tool
 
 Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target NiFi version:
 
@@ -166,23 +167,23 @@ Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target Ni
 ```bash
    mvn exec:java \
      -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
-     -Dexec.args="--version <TARGET_NIFI_VERSION> --output-dir ./nifi-api-output/<TARGET_NIFI_VERSION>"
+     -Dexec.args="--version <TARGET_NIFI_VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<TARGET_NIFI_VERSION>"
 ```
 
 2. Export API for the current NiFi version:
 ```bash
    mvn exec:java \
      -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
-     -Dexec.args="--version <CURRENT_NIFI_VERSION> --output-dir ./nifi-api-output/<CURRENT_NIFI_VERSION>"
+     -Dexec.args="--version <CURRENT_NIFI_VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<CURRENT_NIFI_VERSION>"
 ```
 
-## Step 15: Run qubership-nifi-component-comparator-tool
+## Step 14: Run qubership-nifi-component-comparator-tool
 
 Run the following command, substituting the actual current and target NiFi versions:
 ```bash
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
-  -Dexec.args="--sourceDir ./nifi-api-output/${CURRENT_NIFI_VERSION} --targetDir ./nifi-api-output/${TARGET_NIFI_VERSION} --outputPath ./nifi-api-output/comparatorResult"
+  -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/${CURRENT_NIFI_VERSION} --targetDir ./upgrade-temp-data/nifi-property-exports/${TARGET_NIFI_VERSION} --outputPath ./upgrade-temp-data/nifi-property-comparison"
 ```
 
 - `${CURRENT_NIFI_VERSION}` — the current NiFi version from the project

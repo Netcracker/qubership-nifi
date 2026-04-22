@@ -32,10 +32,29 @@
     <description>Aggregator for NiFi tooling utilities</description>
 
     <properties>
-        <jackson.databind.version>2.20.1</jackson.databind.version>
+        <jetty.version>12.1.5</jetty.version>
         <!-- Skip ITs by default; enable with profile tools-integration-tests -->
         <skipITs>true</skipITs>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.15.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-bom</artifactId>
+                <version>2.0.13</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <modules>
         <module>qubership-nifi-api-export-tool</module>

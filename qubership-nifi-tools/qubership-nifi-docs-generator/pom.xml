@@ -153,6 +153,7 @@
         <dependency>
             <groupId>org.eclipse.jetty.ee11</groupId>
             <artifactId>jetty-ee11-servlet</artifactId>
+            <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

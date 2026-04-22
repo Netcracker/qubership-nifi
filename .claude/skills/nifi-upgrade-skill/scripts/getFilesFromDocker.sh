@@ -8,7 +8,7 @@ if [[ $# -ne 2 ]]; then
 fi
 OLD_VER="$1"
 NEW_VER="$2"
-BASE_DIR="filesCompare"
+BASE_DIR="upgrade-temp-data/nifi-files-to-compare"
 
 echo "Creating directory structure..."
 mkdir -p "${BASE_DIR}/scripts/${OLD_VER}" \
@@ -46,8 +46,4 @@ extract_files_for_version "$NEW_VER"
 
 echo -e "\nDone! Files saved in '${BASE_DIR}/'"
 echo "Resulting structure:"
-if command -v tree &>/dev/null; then
-    tree "${BASE_DIR}"
-else
-    find "${BASE_DIR}" -type f | sort
-fi
+find "${BASE_DIR}" -type f | sort
