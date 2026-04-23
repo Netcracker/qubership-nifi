@@ -391,6 +391,64 @@ def upgrade_azure_credentials_service(flow_contents: dict) -> tuple[list[str], l
     return applied, manual
 
 
+def upgrade_prometheus_record_sink(flow_contents: dict) -> tuple[list[str], list[str]]:
+    """
+    Find PrometheusRecordSink controller services and replace them with
+    QubershipPrometheusRecordSink, remapping properties accordingly.
+    SSL Context and Client Authentication are dropped (not supported in target).
+    """
+    applied = []
+    manual = []
+    old_suffix = "PrometheusRecordSink"
+    new_type = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
+    new_bundle = {
+        "group": "org.qubership.nifi",
+        "artifact": "qubership-service-nar",
+        "version": "1.0.7",
+    }
+    prop_map = {
+        "prometheus-reporting-task-metrics-endpoint-port": "prometheus-sink-metrics-endpoint-port",
+        "prometheus-reporting-task-instance-id": "prometheus-sink-instance-id",
+        "prometheus-reporting-task-ssl-context": None,
+        "prometheus-reporting-task-client-auth": None,
+    }
+
+    for svc, _pg in find_services_by_type_suffix(flow_contents, old_suffix):
+        if "qubership" in svc.get("type", "").lower():
+            continue  # already upgraded
+
+        label = f"{svc.get('name', '?')} ({svc.get('identifier', '?')})"
+
+        svc["type"] = new_type
+        svc["bundle"] = new_bundle
+
+        props = svc.get("properties", {})
+        ssl_ctx = props.get("prometheus-reporting-task-ssl-context")
+        if ssl_ctx:
+            manual.append(
+                f"[MANUAL] {label} — SSL Context Service was set to '{ssl_ctx}'; "
+                f"QubershipPrometheusRecordSink does not support SSL — configure manually"
+            )
+
+        new_props = {}
+        for k, v in list(props.items()):
+            if k in prop_map:
+                target = prop_map[k]
+                if target is not None:
+                    new_props[target] = v
+                # else: drop
+            else:
+                new_props[k] = v
+        svc["properties"] = new_props
+
+        applied.append(
+            f"[FIXED] {label} — PrometheusRecordSink upgraded to QubershipPrometheusRecordSink; "
+            f"properties remapped"
+        )
+
+    return applied, manual
+
+
 # ---------------------------------------------------------------------------
 # Dispatch table and main entry point
 # ---------------------------------------------------------------------------
@@ -462,6 +520,13 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
         flow_contents = root.get("flowContents", root)
 
         svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
+        if svc_applied:
+            applied.extend([f"{rel_path} — {m}" for m in svc_applied])
+            file_dirty[rel_path] = True
+        if svc_manual:
+            manual.extend([f"{rel_path} — {m}" for m in svc_manual])
+
+        svc_applied, svc_manual = upgrade_prometheus_record_sink(flow_contents)
         if svc_applied:
             applied.extend([f"{rel_path} — {m}" for m in svc_applied])
             file_dirty[rel_path] = True
