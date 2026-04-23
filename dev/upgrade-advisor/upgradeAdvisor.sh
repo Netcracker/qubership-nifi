@@ -840,7 +840,7 @@ for flowName in "${exportFlow[@]}"; do
     if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ]
     else if type == "object" and .type != null and .type == "org.apache.nifi.processors.standard.InvokeHTTP"
         then
-            if .properties | with_entries(select(.key | startswith("Proxy "))) | length > 0
+            if .properties | with_entries(select(.key == "Proxy Host")) | length > 0
                 then
                     .checkLevel = "Warning" |
                     .checkIssue = "Proxy properties in InvokeHTTP processor with name - " + .name + " is not available in Apache NiFi 2.x." |
