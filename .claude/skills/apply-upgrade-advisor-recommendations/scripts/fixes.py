@@ -11,6 +11,7 @@ from utils import (
     load_json,
     save_json,
     find_component,
+    find_services_by_type_suffix,
     parse_csv,
     _make_service,
 )
@@ -186,10 +187,11 @@ AZURE_RENAME_TABLE: dict[str, tuple[str, dict]] = {
             "auto-delete-messages": "Auto Delete Messages",
             "batch-size": "Message Batch Size",
             "visibility-timeout": "Visibility Timeout",
-            "storage-credentials-service": None,
+            "storage-credentials-service": "Credentials Service",
             "storage-account-name": None,
             "storage-account-key": None,
             "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
     "PutAzureQueueStorage": (
@@ -202,6 +204,7 @@ AZURE_RENAME_TABLE: dict[str, tuple[str, dict]] = {
             "storage-account-name": None,
             "storage-account-key": None,
             "storage-sas-token": None,
+            "storage-endpoint-suffix": None,
         },
     ),
     "DeleteAzureBlobStorage": (
@@ -292,6 +295,22 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
         proc["type"] = old_type[: old_type.rfind(old_suffix)] + new_suffix
 
         props = proc.get("properties", {})
+
+        uses_credentials_service = bool(props.get("storage-credentials-service"))
+        if not uses_credentials_service:
+            dropped_with_values = [
+                k for k, target in prop_map.items()
+                if target is None and props.get(k)
+            ]
+            if dropped_with_values:
+                manual.append(
+                    f"[MANUAL] {proc_label} — processor-level Azure credentials were "
+                    f"removed during rename to {new_suffix}. Configure a "
+                    f"AzureStorageCredentialsControllerService_v12 and set 'Credentials "
+                    f"Service'. Previously non-empty properties: "
+                    f"{', '.join(dropped_with_values)}"
+                )
+
         new_props = {}
         for k, v in list(props.items()):
             if k in prop_map:
@@ -304,14 +323,70 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
                 new_props[k] = v
         proc["properties"] = new_props
 
+        old_descriptors = proc.get("propertyDescriptors", {})
+        new_descriptors = {}
+        for k, v in old_descriptors.items():
+            if k in prop_map:
+                target = prop_map[k]
+                if target is not None:
+                    new_descriptors[target] = {**v, "name": target}
+            else:
+                new_descriptors[k] = v
+        proc["propertyDescriptors"] = new_descriptors
+
         applied.append(
             f"[FIXED] {proc_label} — type renamed: {old_suffix} -> {new_suffix}; "
-            "properties migrated per rename table"
+            "properties migrated per rename table; propertyDescriptors updated"
         )
-        manual.append(
-            f"[MANUAL] {proc_label} — credentials service must be updated to "
-            "AzureStorageCredentialsService_v12 (interface changed)"
-        )
+
+    return applied, manual
+
+
+def upgrade_azure_credentials_service(flow_contents: dict) -> tuple[list[str], list[str]]:
+    """
+    Find AzureStorageCredentialsControllerService in the flow tree and upgrade
+    its type and controllerServiceApis interface type to the _v12 variants.
+    Also sets credentials-type based on which credential property is present.
+    """
+    applied = []
+    manual = []
+    old_suffix = "AzureStorageCredentialsControllerService"
+    new_suffix = "AzureStorageCredentialsControllerService_v12"
+    old_api_suffix = "AzureStorageCredentialsService"
+
+    for svc, _pg in find_services_by_type_suffix(flow_contents, old_suffix):
+        if "_v12" in svc.get("type", ""):
+            continue  # already upgraded
+        old_t = svc["type"]
+        svc["type"] = old_t[: old_t.rfind(old_suffix)] + new_suffix
+        for api in svc.get("controllerServiceApis", []):
+            t = api.get("type", "")
+            if t.endswith(old_api_suffix) and "_v12" not in t:
+                api["type"] = t + "_v12"
+        label = f"{svc.get('name', '?')} ({svc.get('identifier', '?')})"
+        applied.append(f"[FIXED] {label} — type upgraded to {new_suffix}")
+
+        props = svc.setdefault("properties", {})
+        has_key = bool(props.get("storage-account-key"))
+        has_sas = bool(props.get("storage-sas-token"))
+
+        if has_key and has_sas:
+            manual.append(
+                f"[MANUAL] {label} — both storage-account-key and storage-sas-token are set; "
+                f"configuration is ambiguous — set credentials-type to ACCOUNT_KEY or SAS_TOKEN "
+                f"manually and remove the unused credential"
+            )
+        elif has_key:
+            props["credentials-type"] = "ACCOUNT_KEY"
+            applied.append(f"[FIXED] {label} — credentials-type set to ACCOUNT_KEY")
+        elif has_sas:
+            props["credentials-type"] = "SAS_TOKEN"
+            applied.append(f"[FIXED] {label} — credentials-type set to SAS_TOKEN")
+        else:
+            manual.append(
+                f"[MANUAL] {label} — credentials-type not set; "
+                f"set it manually in NiFi (ACCOUNT_KEY, SAS_TOKEN, MANAGED_IDENTITY, or SERVICE_PRINCIPAL)"
+            )
 
     return applied, manual
 
@@ -385,6 +460,13 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
 
         root = file_cache[rel_path]
         flow_contents = root.get("flowContents", root)
+
+        svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
+        if svc_applied:
+            applied.extend([f"{rel_path} — {m}" for m in svc_applied])
+            file_dirty[rel_path] = True
+        if svc_manual:
+            manual.extend([f"{rel_path} — {m}" for m in svc_manual])
 
         for row in rows_for_file:
             handler = _classify_row(row)

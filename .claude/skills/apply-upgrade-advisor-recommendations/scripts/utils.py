@@ -66,6 +66,17 @@ def walk_pgs(node: dict, fn):
         walk_pgs(pg, fn)
 
 
+def find_services_by_type_suffix(node: dict, suffix: str) -> list[tuple[dict, dict]]:
+    """Return [(svc, containing_pg)] for every controllerService whose type ends with suffix."""
+    results = []
+    for svc in node.get("controllerServices", []):
+        if svc.get("type", "").endswith(suffix):
+            results.append((svc, node))
+    for pg in node.get("processGroups", []):
+        results.extend(find_services_by_type_suffix(pg, suffix))
+    return results
+
+
 def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
     """Replace variable references with parameter-context syntax for names in parameter_names.
 
