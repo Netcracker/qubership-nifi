@@ -42,6 +42,7 @@
         <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-component-comparator-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
+        <module>qubership-nifi-openapi-spec-enricher-tool</module>
     </modules>
 
     <profiles>

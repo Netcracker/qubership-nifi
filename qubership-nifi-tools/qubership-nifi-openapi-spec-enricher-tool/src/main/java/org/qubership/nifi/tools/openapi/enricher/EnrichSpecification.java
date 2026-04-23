@@ -1,0 +1,119 @@
+package org.qubership.nifi.tools.openapi.enricher;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+
+public class EnrichSpecification {
+    private static final Logger LOG = LoggerFactory.getLogger(EnrichSpecification.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass APIHUB validations.
+     * @param spec JsonNode with Apache NiFi OpenAPI specification
+     * @return modified specification
+     */
+    public JsonNode enrichNiFi(JsonNode spec) {
+        addServerIfMissing(spec, "/nifi-api");
+        addMissingOperationDescriptions(spec);
+        addTagsDescriptions(spec);
+        return spec;
+    }
+
+    private void addServerIfMissing(JsonNode spec, String url) {
+        JsonNode serversNode = spec.path("servers");
+        if (serversNode.isNull() || serversNode.isMissingNode()) {
+            ArrayNode serversArray = MAPPER.createArrayNode();
+            ObjectNode serverObject = MAPPER.createObjectNode();
+            serverObject.put("url", url);
+            serversArray.add(serverObject);
+            ((ObjectNode) spec).set("servers", serversArray);
+        }
+    }
+
+    /**
+     * Get resource as input stream from classpath.
+     *
+     * @param resourceName the resource name
+     * @return input stream for the resource
+     * @throws IOException if resource not found
+     */
+    private static InputStream getResourceAsStream(String resourceName) throws IOException {
+        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
+        if (is == null) {
+            throw new IOException("Resource not found: " + resourceName);
+        }
+        return is;
+    }
+
+    private String getDefaultResponseDescription(String responseCode) {
+        if ("200".equals(responseCode)) {
+            return "successful operation";
+        } else if ("201".equals(responseCode)) {
+            return "successful operation";
+        } else if ("202".equals(responseCode)) {
+            return "successful operation";
+        } else if ("default".equals(responseCode)) {
+            return "successful operation";
+        }
+        return null;
+    }
+
+    private void addMissingResponseDescriptions(ObjectNode methodNode) {
+        ObjectNode responsesNodeObj = (ObjectNode) methodNode.path("responses");
+
+        for (Map.Entry<String, JsonNode> responseEntry : responsesNodeObj.properties()) {
+            ObjectNode responseNodeObj = (ObjectNode) responseEntry.getValue();
+            if (!responseNodeObj.has("description")) {
+                String defaultDescription = getDefaultResponseDescription(responseEntry.getKey());
+                if (defaultDescription != null) {
+                    responseNodeObj.put("description", defaultDescription);
+                }
+            }
+        }
+    }
+
+    private void addMissingOperationDescriptions(JsonNode spec) {
+        ObjectNode pathsNode = (ObjectNode) spec.path("paths");
+        for (JsonNode pathNode : pathsNode) {
+            if (pathNode.isObject()) {
+                //the only case:
+                ObjectNode pathNodeObj = (ObjectNode) pathNode;
+                for (Map.Entry<String, JsonNode> methodEntry : pathNodeObj.properties()) {
+                    if (methodEntry.getValue().isObject()) {
+                        //the only case:
+                        ObjectNode methodNodeObj = (ObjectNode) methodEntry.getValue();
+                        addMissingResponseDescriptions(methodNodeObj);
+                        //
+                        if (!methodNodeObj.has("description")) {
+                            //if no description is set, set description = summary
+                            methodNodeObj.put("description", methodNodeObj.get("summary").asText());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void addTagsDescriptions(JsonNode spec) {
+        JsonNode defaultTags = null;
+        try (InputStream in = getResourceAsStream("tagDescriptions.json")) {
+            defaultTags = MAPPER.readTree(in);
+        } catch (IOException e) {
+            LOG.error("Failed to read tagDescriptions.json from resources");
+            throw new RuntimeException(e);
+        }
+        JsonNode tagsNode = spec.path("tags");
+        if (tagsNode.isNull() || tagsNode.isMissingNode()) {
+            ((ObjectNode) spec).set("tags", defaultTags.path("tags"));
+        }
+    }
+
+}
