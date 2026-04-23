@@ -810,7 +810,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Deprecated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -840,7 +840,7 @@ for flowName in "${exportFlow[@]}"; do
     if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ]
     else if type == "object" and .type != null and .type == "org.apache.nifi.processors.standard.InvokeHTTP"
         then
-            if .properties | with_entries(select(.key | startswith("Proxy "))) | length > 0
+            if .properties | with_entries(select(.key == "Proxy Host")) | length > 0
                 then
                     .checkLevel = "Warning" |
                     .checkIssue = "Proxy properties in InvokeHTTP processor with name - " + .name + " is not available in Apache NiFi 2.x." |
