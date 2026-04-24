@@ -107,70 +107,142 @@ def fix_s3_credentials(proc: dict, pg: dict, row: dict, nifi_version: str = "1.2
     ]
 
 
-def fix_convert_json_to_sql(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
+def fix_convert_json_to_sql(
+    proc: dict,
+    pg: dict,
+    _row: dict,
+    nifi_version: str = "1.28.1",
+    root_pg: dict | None = None,
+    existing_reader_id: str | None = None,
+) -> tuple[list[str], str]:
     """
-    Replace ConvertJSONToSQL with PutDatabaseRecord + a new JsonTreeReader service.
+    Replace ConvertJSONToSQL + downstream PutSQL with PutDatabaseRecord + a DefaultJsonTreeReader service.
+    Returns (messages, reader_service_id). reader_service_id is "" on early-exit paths.
     """
-    props = proc.get("properties", {})
+    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
+    proc_id = proc["identifier"]
 
-    # Create JsonTreeReader service
-    svc = _make_service(
-        name="JsonTreeReader",
-        svc_type="org.apache.nifi.json.JsonTreeReader",
-        bundle={
-            "group": "org.apache.nifi",
-            "artifact": "nifi-record-serialization-services-nar",
-            "version": nifi_version,
-        },
-        properties={},
+    # --- Find the downstream PutSQL connected via the "sql" relationship ---
+    connections = pg.get("connections", [])
+    sql_conn = next(
+        (c for c in connections
+         if c.get("source", {}).get("id") == proc_id
+         and "sql" in c.get("selectedRelationships", [])),
+        None,
     )
-    pg.setdefault("controllerServices", []).append(svc)
+    if sql_conn is None:
+        return [
+            f"[MANUAL] {proc_label}  -- ConvertJSONToSQL has no outgoing 'sql' connection; "
+            f"cannot safely replace with PutDatabaseRecord. Fix the flow manually."
+        ], ""
 
-    # Property rename map
-    rename = {
-        "JDBC Connection Pool": "Database Connection Pooling Service",
-    }
-    # Keys to drop
-    drop = {
-        "Update Keys",
-        "jts-quoted-identifiers",
-        "jts-quoted-table-identifiers",
-        "jts-sql-param-attr-prefix",
-        "table-schema-cache-size",
-    }
-    # Keys that carry over as-is
-    keep = {
-        "Statement Type",
-        "Table Name",
-        "Catalog Name",
-        "Schema Name",
-        "Translate Field Names",
-        "Unmatched Field Behavior",
-        "Unmatched Column Behavior",
+    putsql_id = sql_conn["destination"]["id"]
+    putsql_proc = next(
+        (p for p in pg.get("processors", []) if p.get("identifier") == putsql_id),
+        None,
+    )
+    if putsql_proc is None or not putsql_proc.get("type", "").endswith("PutSQL"):
+        return [
+            f"[MANUAL] {proc_label}  -- downstream processor on 'sql' connection is not PutSQL "
+            f"(found: {putsql_proc.get('type') if putsql_proc else 'not found'}); "
+            f"cannot safely replace with PutDatabaseRecord. Fix the flow manually."
+        ], ""
+
+    # --- Build new properties from ConvertJSONToSQL ---
+    # Maps ConvertJSONToSQL property key -> PutDatabaseRecord internal key (None = drop)
+    prop_map = {
+        "JDBC Connection Pool":        "put-db-record-dcbp-service",
+        "Statement Type":              "put-db-record-statement-type",
+        "Table Name":                  "put-db-record-table-name",
+        "Catalog Name":                "put-db-record-catalog-name",
+        "Schema Name":                 "put-db-record-schema-name",
+        "Translate Field Names":       "put-db-record-translate-field-names",
+        "Unmatched Field Behavior":    "put-db-record-unmatched-field-behavior",
+        "Unmatched Column Behavior":   "put-db-record-unmatched-column-behavior",
+        "Update Keys":                 "put-db-record-update-keys",
+        "jts-quoted-identifiers":      "put-db-record-quoted-identifiers",
+        "jts-quoted-table-identifiers": "put-db-record-quoted-table-identifiers",
+        "table-schema-cache-size":     "table-schema-cache-size",
+        "jts-sql-param-attr-prefix":   None,  # drop — no equivalent
     }
 
+    msgs = []
     new_props = {}
-    for k, v in list(props.items()):
-        if k in drop:
-            continue
-        if k in rename:
-            new_props[rename[k]] = v
-        elif k in keep:
-            new_props[k] = v
-        # else: drop unknown props silently
+    for k, v in list(proc.get("properties", {}).items()):
+        if k in prop_map:
+            target = prop_map[k]
+            if target is not None:
+                new_props[target] = v
+            # else: drop
+        # else: unknown ConvertJSONToSQL prop — drop silently
 
-    new_props["Record Reader"] = svc["identifier"]
-    proc["properties"] = new_props
+    # --- Migrate relevant PutSQL properties ---
+    putsql_props = putsql_proc.get("properties", {})
+    for putsql_key, pdr_key in [
+        ("rollback-on-failure",       "rollback-on-failure"),
+        ("database-session-autocommit", "database-session-autocommit"),
+        ("Batch Size",                "put-db-record-max-batch-size"),
+    ]:
+        if putsql_key in putsql_props:
+            new_props[pdr_key] = putsql_props[putsql_key]
 
+    obtain_keys = putsql_props.get("Obtain Generated Keys")
+    if obtain_keys and obtain_keys.lower() == "true":
+        msgs.append(
+            f"[MANUAL] {proc_label}  -- PutSQL had 'Obtain Generated Keys = true'; "
+            f"PutDatabaseRecord does not support this feature — handle manually."
+        )
+
+    # --- Create or reuse DefaultJsonTreeReader service at the root PG level ---
+    target_pg = root_pg if root_pg is not None else pg
+    if existing_reader_id:
+        reader_id = existing_reader_id
+    else:
+        svc = _make_service(
+            name="DefaultJsonTreeReader",
+            svc_type="org.apache.nifi.json.JsonTreeReader",
+            bundle={
+                "group": "org.apache.nifi",
+                "artifact": "nifi-record-serialization-services-nar",
+                "version": nifi_version,
+            },
+            properties={},
+        )
+        target_pg.setdefault("controllerServices", []).append(svc)
+        reader_id = svc["identifier"]
+    new_props["put-db-record-record-reader"] = reader_id
+
+    # --- Apply new properties to processor ---
     old_type = proc.get("type", "")
+    proc["properties"] = new_props
+    proc["propertyDescriptors"] = {}
     proc["type"] = "org.apache.nifi.processors.standard.PutDatabaseRecord"
 
-    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
-    return [
-        f"[FIXED] {proc_label}  -- ConvertJSONToSQL -> PutDatabaseRecord; "
-        f"JsonTreeReader service created ({svc['identifier']}). "
-        f"Old type: {old_type}"
+    # --- Rewire connections: point former PutSQL outgoing connections to PutDatabaseRecord ---
+    for conn in connections:
+        if conn.get("source", {}).get("id") == putsql_id:
+            conn["source"]["id"] = proc_id
+            conn["source"]["instanceIdentifier"] = proc.get("instanceIdentifier", proc_id)
+            conn["source"]["name"] = proc.get("name", "ConvertJSONToSQL")
+
+    # Remove ConvertJSONToSQL → PutSQL "sql" connection and PutSQL processor
+    pg["connections"] = [c for c in connections if c is not sql_conn]
+    pg["processors"] = [p for p in pg.get("processors", []) if p.get("identifier") != putsql_id]
+
+    # Inherit autoTerminatedRelationships from PutSQL (filtered to valid PutDatabaseRecord names)
+    valid_rels = {"success", "retry", "failure"}
+    proc["autoTerminatedRelationships"] = [
+        r for r in putsql_proc.get("autoTerminatedRelationships", [])
+        if r in valid_rels
     ]
+
+    action = "reused" if existing_reader_id else "created"
+    msgs.insert(0,
+        f"[FIXED] {proc_label}  -- ConvertJSONToSQL -> PutDatabaseRecord; "
+        f"PutSQL ({putsql_id}) absorbed; DefaultJsonTreeReader service {action} ({reader_id}). "
+        f"Old type: {old_type}"
+    )
+    return msgs, reader_id
 
 
 # ---------------------------------------------------------------------------
@@ -521,6 +593,7 @@ def apply_csv_transforms(
     # Load all affected JSON files once
     file_cache: dict[str, dict] = {}
     file_dirty: dict[str, bool] = {}
+    reader_ids_per_file: dict[str, str] = {}
     for rel_path in by_file:
         abs_path = exports / rel_path
         if abs_path.exists():
@@ -597,7 +670,15 @@ def apply_csv_transforms(
             elif handler == "fix_s3_credentials":
                 msgs = fix_s3_credentials(comp, pg, row, nifi_version)
             elif handler == "fix_convert_json_to_sql":
-                msgs = fix_convert_json_to_sql(comp, pg, row, nifi_version)
+                all_msgs, reader_id = fix_convert_json_to_sql(
+                    comp, pg, row, nifi_version,
+                    root_pg=flow_contents,
+                    existing_reader_id=reader_ids_per_file.get(rel_path),
+                )
+                if reader_id:
+                    reader_ids_per_file[rel_path] = reader_id
+                msgs = [m for m in all_msgs if not m.startswith("[MANUAL]")]
+                manual.extend([f"{rel_path}  -- {m}" for m in all_msgs if m.startswith("[MANUAL]")])
             elif handler == "fix_type_rename":
                 app_msgs, man_msgs = fix_type_rename(comp, pg, row)
                 msgs = app_msgs
