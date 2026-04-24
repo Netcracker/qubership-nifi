@@ -636,7 +636,7 @@ def apply_csv_transforms(
     else:
         print("  (none)")
 
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"  Fixes applied : {len(applied)}")
     print(f"  Script rewrites (AI Agent) : {len(skipped_for_ai_agent)}")
     print(f"  Manual items  : {len(manual)}")

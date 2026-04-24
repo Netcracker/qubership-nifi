@@ -13,7 +13,7 @@ Accept as positional args: `/apply-upgrade-advisor-recommendations [csv_path] [e
 If either argument is missing:
 - For `csv_path`: use Glob to find `**/upgradeAdvisorReport.csv` in the workspace.
 - For `exports_dir`: once the CSV is found, run:
-  ```
+  ```bash
   python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
     --detect-exports-dir <csv_path>
   ```
@@ -98,7 +98,7 @@ If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains a PrometheusRecordSin
 whose `Issue` or `Solution` references `PrometheusRecordSink`), also ask the user what target
 type, bundle, and property mapping to use for the upgrade, showing these defaults:
 
-```
+```python
 new_type   = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
 new_bundle = {"group": "org.qubership.nifi", "artifact": "qubership-service-nar", "version": "1.0.7"}
 prop_map   = {

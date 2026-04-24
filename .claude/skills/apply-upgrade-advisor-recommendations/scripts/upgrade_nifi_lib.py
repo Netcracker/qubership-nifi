@@ -22,13 +22,13 @@ Public API for the generated run-script:
     from contexts import apply_variable_contexts, apply_hardcoded_values
 """
 
-import json
-import sys
-from pathlib import Path
+import json  # noqa: E402
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-from utils import parse_csv
-from fixes import _classify_row
-from analysis import collect_variable_analysis
+from utils import parse_csv  # noqa: E402
+from fixes import _classify_row  # noqa: E402
+from analysis import collect_variable_analysis  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
