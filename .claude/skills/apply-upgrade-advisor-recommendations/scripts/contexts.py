@@ -1,5 +1,5 @@
 """
-contexts.py  —  Parameter context promotion and hard-coded value substitution.
+contexts.py   --  Parameter context promotion and hard-coded value substitution.
 """
 
 from collections import defaultdict
@@ -101,7 +101,7 @@ def apply_variable_contexts(
                 pg["variables"] = {}
 
             applied.append(
-                f"[FIXED] {rel_path} PG={pg.get('name', '?')} ({pg_uuid}) — "
+                f"[FIXED] {rel_path} PG={pg.get('name', '?')} ({pg_uuid})  -- "
                 f"context '{ctx_name}' applied; {n} property reference(s) updated"
             )
 
@@ -202,7 +202,7 @@ def apply_hardcoded_values(
 
             n = _hardcode_var_in_pg(pg, var_name, literal)
             applied.append(
-                f"[FIXED] {rel_path} PG={pg.get('name', '?')} ({pg_uuid}) — "
+                f"[FIXED] {rel_path} PG={pg.get('name', '?')} ({pg_uuid})  -- "
                 f"hard-coded ${{{var_name}}} -> '{literal}' in {n} property value(s)"
             )
 

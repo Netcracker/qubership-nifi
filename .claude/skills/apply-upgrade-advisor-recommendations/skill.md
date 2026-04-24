@@ -23,6 +23,19 @@ If either argument is missing:
 
 If either path was discovered automatically, use AskUserQuestion tool to confirm both paths with the user before proceeding.
 
+Once `exports_dir` is confirmed, detect the source NiFi version:
+
+```bash
+python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/detect_nifi_version.py \
+  <exports_dir>
+```
+
+- **Exit 0, one version printed**: use it directly as `NIFI_SOURCE_VERSION`.
+- **Exit 0, multiple versions printed**: use AskUserQuestion to ask which version to use, listing all options.
+- **Exit 1** (no `org.apache.nifi` bundles found): use AskUserQuestion to ask the user to supply the source NiFi version.
+
+Report the resolved `NIFI_SOURCE_VERSION` to the user before continuing.
+
 ---
 
 ## Steps
@@ -81,6 +94,24 @@ its `reference_count = 0`. A PG with `ref_count = 0` is a variable *source* — 
 must still attach the parameter context to it and clear its `variables` dict. Omitting it
 leaves stale NiFi 1.x variable definitions in the flow.
 
+If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains a PrometheusRecordSink issue (any row
+whose `Issue` or `Solution` references `PrometheusRecordSink`), also ask the user what target
+type, bundle, and property mapping to use for the upgrade, showing these defaults:
+
+```
+new_type   = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
+new_bundle = {"group": "org.qubership.nifi", "artifact": "qubership-service-nar", "version": "1.0.7"}
+prop_map   = {
+    "prometheus-reporting-task-metrics-endpoint-port": "prometheus-sink-metrics-endpoint-port",
+    "prometheus-reporting-task-instance-id":           "prometheus-sink-instance-id",
+    "prometheus-reporting-task-ssl-context":           None,  # dropped
+    "prometheus-reporting-task-client-auth":           None,  # dropped
+}
+```
+
+If the user accepts the defaults, use them as-is. Skip this question when
+`NIFI_SOURCE_VERSION >= 1.28.1` or no PrometheusRecordSink issue is present in the CSV.
+
 Then use AskUserQuestion tool to ask the following questions before generating any run script:
 
 - Do the proposed context names work, or should they be different?
@@ -134,7 +165,19 @@ HARDCODE_PLAN = [
     # },
 ]
 
-apply_csv_transforms(CSV_PATH, EXPORTS_DIR)
+# Detected (or user-confirmed) source NiFi version — used for new Apache NiFi bundle versions.
+NIFI_SOURCE_VERSION = "<detected_version>"
+
+# Empty dict = use defaults (NiFi >= 1.28.1).
+# For older NiFi, fill with user-confirmed values:
+#   {"new_type": "...", "new_bundle": {...}, "prop_map": {...}}
+PROMETHEUS_UPGRADE_PARAMS = {}
+
+apply_csv_transforms(
+    CSV_PATH, EXPORTS_DIR,
+    nifi_version=NIFI_SOURCE_VERSION,
+    prometheus_params=PROMETHEUS_UPGRADE_PARAMS,
+)
 apply_variable_contexts(EXPORTS_DIR, PARAMETER_CONTEXT_PLAN)
 apply_hardcoded_values(EXPORTS_DIR, HARDCODE_PLAN)
 ```

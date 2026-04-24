@@ -1,5 +1,5 @@
 """
-fixes.py  —  Individual fix handlers, rename tables, and the main
+fixes.py   --  Individual fix handlers, rename tables, and the main
               apply_csv_transforms entry point.
 """
 
@@ -22,7 +22,7 @@ from utils import (
 # ---------------------------------------------------------------------------
 
 
-def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict) -> list[str]:
+def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
     """
     Create a StandardProxyConfigurationService from InvokeHTTP Proxy* properties,
     reference it from the processor, remove the old inline properties.
@@ -51,7 +51,7 @@ def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict) -> list[str]:
         bundle={
             "group": "org.apache.nifi",
             "artifact": "nifi-standard-services-api-nar",
-            "version": "1.28.1",
+            "version": nifi_version,
         },
         properties=svc_props,
     )
@@ -60,13 +60,13 @@ def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict) -> list[str]:
 
     proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
     return [
-        f"[FIXED] {proc_label} — Proxy properties migrated to new "
+        f"[FIXED] {proc_label}  -- Proxy properties migrated to new "
         f"StandardProxyConfigurationService ({svc['identifier']}); "
         f"removed: {', '.join(removed_keys)}"
     ]
 
 
-def fix_s3_credentials(proc: dict, pg: dict, row: dict) -> list[str]:
+def fix_s3_credentials(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
     """
     Move hardcoded Access Key ID / Secret Access Key into a new
     AWSCredentialsProviderControllerService.
@@ -93,7 +93,7 @@ def fix_s3_credentials(proc: dict, pg: dict, row: dict) -> list[str]:
         bundle={
             "group": "org.apache.nifi",
             "artifact": "nifi-aws-nar",
-            "version": "1.28.1",
+            "version": nifi_version,
         },
         properties=svc_props,
     )
@@ -102,12 +102,12 @@ def fix_s3_credentials(proc: dict, pg: dict, row: dict) -> list[str]:
 
     proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
     return [
-        f"[FIXED] {proc_label} — AWS credentials moved to new "
+        f"[FIXED] {proc_label}  -- AWS credentials moved to new "
         f"AWSCredentialsProviderControllerService ({svc['identifier']})"
     ]
 
 
-def fix_convert_json_to_sql(proc: dict, pg: dict, row: dict) -> list[str]:
+def fix_convert_json_to_sql(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
     """
     Replace ConvertJSONToSQL with PutDatabaseRecord + a new JsonTreeReader service.
     """
@@ -120,7 +120,7 @@ def fix_convert_json_to_sql(proc: dict, pg: dict, row: dict) -> list[str]:
         bundle={
             "group": "org.apache.nifi",
             "artifact": "nifi-record-serialization-services-nar",
-            "version": "1.28.1",
+            "version": nifi_version,
         },
         properties={},
     )
@@ -167,7 +167,7 @@ def fix_convert_json_to_sql(proc: dict, pg: dict, row: dict) -> list[str]:
 
     proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
     return [
-        f"[FIXED] {proc_label} — ConvertJSONToSQL -> PutDatabaseRecord; "
+        f"[FIXED] {proc_label}  -- ConvertJSONToSQL -> PutDatabaseRecord; "
         f"JsonTreeReader service created ({svc['identifier']}). "
         f"Old type: {old_type}"
     ]
@@ -283,7 +283,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
             if "bundle" in proc:
                 proc["bundle"]["artifact"] = "nifi-kafka-2-6-nar"
             applied.append(
-                f"[FIXED] {proc_label} — type renamed: {old_suffix} -> {new_suffix}; "
+                f"[FIXED] {proc_label}  -- type renamed: {old_suffix} -> {new_suffix}; "
                 f"bundle.artifact -> nifi-kafka-2-6-nar"
             )
             return applied, manual
@@ -304,7 +304,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
             ]
             if dropped_with_values:
                 manual.append(
-                    f"[MANUAL] {proc_label} — processor-level Azure credentials were "
+                    f"[MANUAL] {proc_label}  -- processor-level Azure credentials were "
                     f"removed during rename to {new_suffix}. Configure a "
                     f"AzureStorageCredentialsControllerService_v12 and set 'Credentials "
                     f"Service'. Previously non-empty properties: "
@@ -335,7 +335,7 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
         proc["propertyDescriptors"] = new_descriptors
 
         applied.append(
-            f"[FIXED] {proc_label} — type renamed: {old_suffix} -> {new_suffix}; "
+            f"[FIXED] {proc_label}  -- type renamed: {old_suffix} -> {new_suffix}; "
             "properties migrated per rename table; propertyDescriptors updated"
         )
 
@@ -364,7 +364,7 @@ def upgrade_azure_credentials_service(flow_contents: dict) -> tuple[list[str], l
             if t.endswith(old_api_suffix) and "_v12" not in t:
                 api["type"] = t + "_v12"
         label = f"{svc.get('name', '?')} ({svc.get('identifier', '?')})"
-        applied.append(f"[FIXED] {label} — type upgraded to {new_suffix}")
+        applied.append(f"[FIXED] {label}  -- type upgraded to {new_suffix}")
 
         props = svc.setdefault("properties", {})
         has_key = bool(props.get("storage-account-key"))
@@ -372,46 +372,55 @@ def upgrade_azure_credentials_service(flow_contents: dict) -> tuple[list[str], l
 
         if has_key and has_sas:
             manual.append(
-                f"[MANUAL] {label} — both storage-account-key and storage-sas-token are set; "
-                f"configuration is ambiguous — set credentials-type to ACCOUNT_KEY or SAS_TOKEN "
+                f"[MANUAL] {label}  -- both storage-account-key and storage-sas-token are set; "
+                f"configuration is ambiguous  -- set credentials-type to ACCOUNT_KEY or SAS_TOKEN "
                 f"manually and remove the unused credential"
             )
         elif has_key:
             props["credentials-type"] = "ACCOUNT_KEY"
-            applied.append(f"[FIXED] {label} — credentials-type set to ACCOUNT_KEY")
+            applied.append(f"[FIXED] {label}  -- credentials-type set to ACCOUNT_KEY")
         elif has_sas:
             props["credentials-type"] = "SAS_TOKEN"
-            applied.append(f"[FIXED] {label} — credentials-type set to SAS_TOKEN")
+            applied.append(f"[FIXED] {label}  -- credentials-type set to SAS_TOKEN")
         else:
             manual.append(
-                f"[MANUAL] {label} — credentials-type not set; "
+                f"[MANUAL] {label}  -- credentials-type not set; "
                 f"set it manually in NiFi (ACCOUNT_KEY, SAS_TOKEN, MANAGED_IDENTITY, or SERVICE_PRINCIPAL)"
             )
 
     return applied, manual
 
 
-def upgrade_prometheus_record_sink(flow_contents: dict) -> tuple[list[str], list[str]]:
+def upgrade_prometheus_record_sink(
+    flow_contents: dict,
+    new_type: str | None = None,
+    new_bundle: dict | None = None,
+    prop_map: dict | None = None,
+) -> tuple[list[str], list[str]]:
     """
     Find PrometheusRecordSink controller services and replace them with
     QubershipPrometheusRecordSink, remapping properties accordingly.
     SSL Context and Client Authentication are dropped (not supported in target).
+    Optional new_type/new_bundle/prop_map override the defaults for older NiFi versions.
     """
     applied = []
     manual = []
     old_suffix = "PrometheusRecordSink"
-    new_type = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
-    new_bundle = {
-        "group": "org.qubership.nifi",
-        "artifact": "qubership-service-nar",
-        "version": "1.0.7",
-    }
-    prop_map = {
-        "prometheus-reporting-task-metrics-endpoint-port": "prometheus-sink-metrics-endpoint-port",
-        "prometheus-reporting-task-instance-id": "prometheus-sink-instance-id",
-        "prometheus-reporting-task-ssl-context": None,
-        "prometheus-reporting-task-client-auth": None,
-    }
+    if new_type is None:
+        new_type = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
+    if new_bundle is None:
+        new_bundle = {
+            "group": "org.qubership.nifi",
+            "artifact": "qubership-service-nar",
+            "version": "1.0.7",
+        }
+    if prop_map is None:
+        prop_map = {
+            "prometheus-reporting-task-metrics-endpoint-port": "prometheus-sink-metrics-endpoint-port",
+            "prometheus-reporting-task-instance-id": "prometheus-sink-instance-id",
+            "prometheus-reporting-task-ssl-context": None,
+            "prometheus-reporting-task-client-auth": None,
+        }
 
     for svc, _pg in find_services_by_type_suffix(flow_contents, old_suffix):
         if "qubership" in svc.get("type", "").lower():
@@ -426,8 +435,8 @@ def upgrade_prometheus_record_sink(flow_contents: dict) -> tuple[list[str], list
         ssl_ctx = props.get("prometheus-reporting-task-ssl-context")
         if ssl_ctx:
             manual.append(
-                f"[MANUAL] {label} — SSL Context Service was set to '{ssl_ctx}'; "
-                f"QubershipPrometheusRecordSink does not support SSL — configure manually"
+                f"[MANUAL] {label}  -- SSL Context Service was set to '{ssl_ctx}'; "
+                f"QubershipPrometheusRecordSink does not support SSL  -- configure manually"
             )
 
         new_props = {}
@@ -442,7 +451,7 @@ def upgrade_prometheus_record_sink(flow_contents: dict) -> tuple[list[str], list
         svc["properties"] = new_props
 
         applied.append(
-            f"[FIXED] {label} — PrometheusRecordSink upgraded to QubershipPrometheusRecordSink; "
+            f"[FIXED] {label}  -- PrometheusRecordSink upgraded to QubershipPrometheusRecordSink; "
             f"properties remapped"
         )
 
@@ -480,11 +489,18 @@ def _classify_row(row: dict) -> str:
         return "fix_type_rename"
     if re.search(r"(get|put|fetch|list|delete)azure(queue|blob)storage(?!_v12)", issue):
         return "fix_type_rename"
+    if "prometheusrecordsink" in issue:
+        return "fix_prometheus"  # handled by upgrade_prometheus_record_sink()
 
     return "manual"
 
 
-def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
+def apply_csv_transforms(
+    csv_path: str,
+    exports_dir: str,
+    nifi_version: str = "1.28.1",
+    prometheus_params: dict | None = None,
+) -> None:
     """
     Main entry point for applying CSV-driven transforms.
     Skips fix_script_engine (handled by AI Agent) and fix_variables (handled by
@@ -521,17 +537,19 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
 
         svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
         if svc_applied:
-            applied.extend([f"{rel_path} — {m}" for m in svc_applied])
+            applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
             file_dirty[rel_path] = True
         if svc_manual:
-            manual.extend([f"{rel_path} — {m}" for m in svc_manual])
+            manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
 
-        svc_applied, svc_manual = upgrade_prometheus_record_sink(flow_contents)
+        svc_applied, svc_manual = upgrade_prometheus_record_sink(
+            flow_contents, **(prometheus_params or {})
+        )
         if svc_applied:
-            applied.extend([f"{rel_path} — {m}" for m in svc_applied])
+            applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
             file_dirty[rel_path] = True
         if svc_manual:
-            manual.extend([f"{rel_path} — {m}" for m in svc_manual])
+            manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
 
         for row in rows_for_file:
             handler = _classify_row(row)
@@ -539,8 +557,8 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
 
             if handler == "manual":
                 manual.append(
-                    f"[MANUAL][{row.get('Level', '?')}] {rel_path} — "
-                    f"{row.get('Processor', row.get('Process Group', '?'))} — "
+                    f"[MANUAL][{row.get('Level', '?')}] {rel_path}  -- "
+                    f"{row.get('Processor', row.get('Process Group', '?'))}  -- "
                     f"{row.get('Issue', '?')}\n"
                     f"    Solution: {row.get('Solution', '?')}"
                 )
@@ -548,8 +566,8 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
 
             if handler == "fix_script_engine":
                 skipped_for_ai_agent.append(
-                    f"[AI Agent] {rel_path} — "
-                    f"{row.get('Processor', '?')} — Script engine rewrite needed"
+                    f"[AI Agent] {rel_path}  -- "
+                    f"{row.get('Processor', '?')}  -- Script engine rewrite needed"
                 )
                 continue
 
@@ -557,34 +575,38 @@ def apply_csv_transforms(csv_path: str, exports_dir: str) -> None:
                 # Handled separately via apply_variable_contexts
                 continue
 
+            if handler == "fix_prometheus":
+                # Already handled by upgrade_prometheus_record_sink() above
+                continue
+
             if not proc_uuid:
                 manual.append(
-                    f"[WARN] {rel_path} — no processor UUID in row: {row.get('Processor')}"
+                    f"[WARN] {rel_path}  -- no processor UUID in row: {row.get('Processor')}"
                 )
                 continue
 
             comp, pg = find_component(flow_contents, proc_uuid)
             if comp is None:
                 manual.append(
-                    f"[WARN] {rel_path} — processor {proc_uuid} not found in JSON"
+                    f"[WARN] {rel_path}  -- processor {proc_uuid} not found in JSON"
                 )
                 continue
 
             if handler == "fix_invokehttp_proxy":
-                msgs = fix_invokehttp_proxy(comp, pg, row)
+                msgs = fix_invokehttp_proxy(comp, pg, row, nifi_version)
             elif handler == "fix_s3_credentials":
-                msgs = fix_s3_credentials(comp, pg, row)
+                msgs = fix_s3_credentials(comp, pg, row, nifi_version)
             elif handler == "fix_convert_json_to_sql":
-                msgs = fix_convert_json_to_sql(comp, pg, row)
+                msgs = fix_convert_json_to_sql(comp, pg, row, nifi_version)
             elif handler == "fix_type_rename":
                 app_msgs, man_msgs = fix_type_rename(comp, pg, row)
                 msgs = app_msgs
-                manual.extend([f"{rel_path} — {m}" for m in man_msgs])
+                manual.extend([f"{rel_path}  -- {m}" for m in man_msgs])
             else:
                 msgs = []
 
             if msgs:
-                applied.extend([f"{rel_path} — {m}" for m in msgs])
+                applied.extend([f"{rel_path}  -- {m}" for m in msgs])
                 file_dirty[rel_path] = True
 
     # Write modified files

@@ -7,7 +7,7 @@ if hasattr(_sys.stdout, "reconfigure"):
 if hasattr(_sys.stderr, "reconfigure"):
     _sys.stderr.reconfigure(encoding="utf-8")
 """
-upgrade_nifi_lib.py  —  CLI entry point for the apply-upgrade-advisor-recommendations
+upgrade_nifi_lib.py   --  CLI entry point for the apply-upgrade-advisor-recommendations
                          AI Agent skill.
 
 Handles all automatable NiFi 1.x -> 2.x upgrade fixes derived from an
@@ -61,7 +61,7 @@ def analyze(csv_path: str, exports_dir: str) -> None:
     then proposes parameter contexts interactively with the user.
     """
     print("=" * 70)
-    print("upgrade_nifi_lib  —  CSV Row Summary")
+    print("upgrade_nifi_lib   --  CSV Row Summary")
     print("=" * 70)
 
     if csv_path and Path(csv_path).exists() and Path(csv_path).stat().st_size > 0:
@@ -76,9 +76,9 @@ def analyze(csv_path: str, exports_dir: str) -> None:
                 "manual": "[MANUAL]",
             }.get(handler, "[AUTO]")
             proc_cell = row.get("Processor") or row.get("Process Group") or "?"
-            print(f"  {tag:15s} {row['Flow name']} — {proc_cell[:60]}")
+            print(f"  {tag:15s} {row['Flow name']}  -- {proc_cell[:60]}")
     else:
-        print("\n  (No CSV provided or CSV is empty — skipping row summary)")
+        print("\n  (No CSV provided or CSV is empty  -- skipping row summary)")
 
     print("\n")
     print(
