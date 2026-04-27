@@ -2,6 +2,7 @@
 contexts.py   --  Parameter context promotion and hard-coded value substitution.
 """
 
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -123,16 +124,32 @@ def apply_variable_contexts(
 def _hardcode_var_in_pg(pg: dict, var_name: str, literal_value: str) -> int:
     """Replace ${var_name} with literal_value in all processor/service property values
     within pg and its descendant process groups.  Remove var_name from pg["variables"]
-    if present.  Returns the count of property values changed."""
-    needle = "${" + var_name + "}"
+    if present.  Returns the count of property values changed.
+
+    Two forms are handled:
+      ${varName}              →  literal_value
+      ${varName:fn1():fn2()}  →  ${literal("literal_value"):fn1():fn2()}
+
+    The second form preserves the EL function chain using NiFi's literal() function.
+    """
+    pattern = re.compile(r"\$\{" + re.escape(var_name) + r"(:[^}]*)?\}")
     count = 0
+
+    def _make_replacement(m):
+        func_chain = m.group(1)
+        if func_chain:
+            escaped = literal_value.replace("\\", "\\\\").replace('"', '\\"')
+            return '${literal("' + escaped + '")' + func_chain + "}"
+        return literal_value
 
     def replace_in_node(node):
         nonlocal count
         for k, v in list(node.get("properties", {}).items()):
-            if isinstance(v, str) and needle in v:
-                node["properties"][k] = v.replace(needle, literal_value)
-                count += 1
+            if isinstance(v, str) and pattern.search(v):
+                new_v = pattern.sub(_make_replacement, v)
+                if new_v != v:
+                    node["properties"][k] = new_v
+                    count += 1
 
     def process_pg(current_pg):
         for proc in current_pg.get("processors", []):

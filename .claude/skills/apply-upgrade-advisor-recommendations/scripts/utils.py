@@ -80,39 +80,47 @@ def find_services_by_type_suffix(node: dict, suffix: str) -> list[tuple[dict, di
 def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
     """Replace variable references with parameter-context syntax for names in parameter_names.
 
-    Two forms are rewritten:
+    Three forms are rewritten:
       ${varName}              →  #{varName}
       ${varName:fn():...}     →  ${#{varName}:fn():...}
+      ${fn(${varName}):...}   →  ${fn(#{varName}):...}   (nested as fn argument)
 
     The second form follows the NiFi 2.x user guide: "When referencing a Parameter
     from within Expression Language, the Parameter reference is evaluated first."
     FlowFile attribute expressions like ${filename} or ${uuid()} are left untouched.
     """
+    if not parameter_names:
+        return 0
     count = 0
-    pattern = re.compile(r"\$\{([^}]+)\}")
+    names_alt = "|".join(re.escape(pn) for pn in sorted(parameter_names))
+    pattern = re.compile(r"\$\{(" + names_alt + r")(:[^}]*)?\}")
 
     def _rewrite(m):
-        inner = m.group(1)
-        # Case 1 — bare variable reference: ${varName} → #{varName}
-        if inner in parameter_names:
-            return f"#{{{inner}}}"
-        # Case 2 — EL expression: ${varName:function_chain} → ${#{varName}:function_chain}
-        colon_idx = inner.find(":")
-        if colon_idx > 0 and inner[:colon_idx] in parameter_names:
-            var_part = inner[:colon_idx]
-            func_part = inner[colon_idx:]  # includes the leading ':'
+        var_part = m.group(1)
+        func_part = m.group(2)  # None or ":fn1():fn2()..."
+        if func_part:
             return "${" + "#{" + var_part + "}" + func_part + "}"
-        return m.group(0)
+        return f"#{{{var_part}}}"
 
     def replace_in_node(node):
         nonlocal count
         props = node.get("properties", {})
         for k, v in list(props.items()):
-            if isinstance(v, str) and pattern.search(v):
-                new_v = pattern.sub(_rewrite, v)
-                if new_v != v:
-                    props[k] = new_v
-                    count += 1
+            if not isinstance(v, str):
+                continue
+            orig = v
+            # Pre-pass: replace bare ${paramName} → #{paramName} for each known
+            # parameter. Handles params nested inside EL function arguments —
+            # e.g. equalsIgnoreCase(${paramName}) — where the outer ${...} regex
+            # match would otherwise swallow the inner reference.
+            for pn in parameter_names:
+                v = v.replace(f"${{{pn}}}", f"#{{{pn}}}")
+            # Main pass: convert ${paramName:fn_chain} → ${#{paramName}:fn_chain}
+            if pattern.search(v):
+                v = pattern.sub(_rewrite, v)
+            if v != orig:
+                props[k] = v
+                count += 1
 
     for proc in pg.get("processors", []):
         replace_in_node(proc)

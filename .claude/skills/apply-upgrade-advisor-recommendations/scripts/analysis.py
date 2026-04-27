@@ -111,6 +111,12 @@ def collect_variable_analysis(exports_dir: str) -> dict:
 
             for var_name, value in vars_.items():
                 ref_count = _count_refs_in_pg(pg, var_name)
+                # Collect descendant refs first so we can roll their counts
+                # into the defining PG's reference_count (subtree-wide total).
+                child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
+                subtree_count = ref_count + sum(
+                    r["reference_count"] for r in child_refs
+                )
                 if var_name not in var_data:
                     var_data[var_name] = {"occurrences": [], "values_differ": False}
                 var_data[var_name]["occurrences"].append(
@@ -119,12 +125,9 @@ def collect_variable_analysis(exports_dir: str) -> dict:
                         "pg_id": pg_id,
                         "pg_name": pg_name,
                         "value": value,
-                        "reference_count": ref_count,
+                        "reference_count": subtree_count,
                     }
                 )
-                # Add an occurrence entry for every descendant PG that directly
-                # references ${var_name} in its own processors/services.
-                child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
                 var_data[var_name]["occurrences"].extend(child_refs)
 
             for child in pg.get("processGroups", []):
