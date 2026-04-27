@@ -1,10 +1,12 @@
-# apply-upgrade-advisor-recommendations
-
-You help users apply NiFi 1.x → 2.x upgrade recommendations produced by the
-`dev/upgrade-advisor/upgradeAdvisor.sh` script. The static transformation library is at:
-`.claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py`
-
 ---
+name: apply-upgrade-advisor-recommendations
+description: >-
+  Use this skill to apply NiFi 1.x to 2.x upgrade recommendations produced by the
+  [upgradeAdvisor](https://github.com/Netcracker/qubership-nifi/tree/main/dev/upgrade-advisor) script. The static transformation library is at:
+  `.claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py`
+---
+
+# Apply Upgrade Advisor Recommendations
 
 ## Inputs
 
