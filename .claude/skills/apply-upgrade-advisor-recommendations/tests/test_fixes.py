@@ -11,6 +11,7 @@ from fixes import (
     upgrade_azure_credentials_service,
     upgrade_prometheus_record_sink,
     _classify_row,
+    _proxy_service_name,
     apply_csv_transforms,
 )
 from utils import load_json
@@ -180,6 +181,34 @@ def test_fix_invokehttp_proxy_cross_file_different_files(tmp_path):
     assert proc_on_disk["properties"].get("proxy-configuration-service") == svc_id
 
 
+def test_fix_invokehttp_proxy_service_name_includes_host_port():
+    proc = _proc("p1", {"Proxy Host": "proxy.example.com", "Proxy Port": "3128"})
+    pg = _pg()
+    fix_invokehttp_proxy(proc, pg, {})
+    assert pg["controllerServices"][0]["name"] == "ProxyConfigurationService-proxy.example.com-3128"
+
+
+def test_fix_invokehttp_proxy_two_services_have_unique_names():
+    proc1 = _proc("p1", {"Proxy Host": "host-a", "Proxy Port": "8080"})
+    proc2 = _proc("p2", {"Proxy Host": "host-b", "Proxy Port": "9090"})
+    pg = _pg()
+    pg["processors"] = [proc1, proc2]
+    fix_invokehttp_proxy(proc1, pg, {})
+    fix_invokehttp_proxy(proc2, pg, {})
+    names = [svc["name"] for svc in pg["controllerServices"]]
+    assert names[0] != names[1]
+    assert names[0] == "ProxyConfigurationService-host-a-8080"
+    assert names[1] == "ProxyConfigurationService-host-b-9090"
+
+
+def test_proxy_service_name_host_only():
+    assert _proxy_service_name({"Proxy Host": "myhost"}) == "ProxyConfigurationService-myhost"
+
+
+def test_proxy_service_name_no_props():
+    assert _proxy_service_name({}) == "ProxyConfigurationService"
+
+
 # ---------------------------------------------------------------------------
 # fix_s3_credentials
 # ---------------------------------------------------------------------------
@@ -187,7 +216,7 @@ def test_fix_invokehttp_proxy_cross_file_different_files(tmp_path):
 def test_fix_s3_credentials_creates_service():
     proc = _proc("p1", {"Access Key": "AKID", "Secret Key": "SECRET"})
     pg = _pg()
-    msgs = fix_s3_credentials(proc, pg, {})
+    msgs, _ = fix_s3_credentials(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
     assert "AWSCredentialsProviderControllerService" in pg["controllerServices"][0]["type"]
     assert msgs
@@ -196,7 +225,7 @@ def test_fix_s3_credentials_creates_service():
 def test_fix_s3_credentials_only_access_key():
     proc = _proc("p1", {"Access Key": "AKID"})
     pg = _pg()
-    msgs = fix_s3_credentials(proc, pg, {})
+    msgs, _ = fix_s3_credentials(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
     assert pg["controllerServices"][0]["properties"].get("Access Key") == "AKID"
     assert msgs
@@ -205,9 +234,10 @@ def test_fix_s3_credentials_only_access_key():
 def test_fix_s3_credentials_no_creds():
     proc = _proc("p1", {"Bucket": "my-bucket"})
     pg = _pg()
-    msgs = fix_s3_credentials(proc, pg, {})
-    assert len(pg["controllerServices"]) == 1
-    assert any("[MANUAL]" in m for m in msgs)
+    msgs, svc_id = fix_s3_credentials(proc, pg, {})
+    assert msgs == []
+    assert svc_id == ""
+    assert pg["controllerServices"] == []
 
 
 def test_fix_s3_credentials_sets_reference():
@@ -250,17 +280,15 @@ def test_fix_s3_credentials_no_creds_cross_file(tmp_path):
     parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
     child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
     pg = _pg()
-    msgs = fix_s3_credentials(
+    msgs, svc_id = fix_s3_credentials(
         proc, pg, {},
         parent_pg_path=str(parent_file),
         child_pg_path=str(child_file),
     )
+    assert msgs == []
+    assert svc_id == ""
     parent_result = load_json(parent_file)
-    assert len(parent_result["flowContents"]["controllerServices"]) == 1
-    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
-    child_result = load_json(child_file)
-    assert svc_id in child_result.get("externalControllerServices", {})
-    assert any("[MANUAL]" in m for m in msgs)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -850,7 +878,7 @@ def test_apply_csv_transforms_s3_manual_message_routing(tmp_path, capsys):
     proc = {
         "identifier": S3_PROC_UUID, "instanceIdentifier": S3_PROC_UUID,
         "name": "PutS3Object", "type": "org.apache.nifi.processors.aws.s3.PutS3Object",
-        "properties": {"Bucket": "my-bucket"},
+        "properties": {"Bucket": "my-bucket", "Access Key": "", "Secret Key": ""},
         "propertyDescriptors": {}, "autoTerminatedRelationships": [],
     }
     _write_flow(tmp_path, "flow.json", _flow("root", processors=[proc]))

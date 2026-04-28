@@ -22,6 +22,22 @@ from utils import (
 # ---------------------------------------------------------------------------
 
 
+def _proxy_service_name(props: dict) -> str:
+    """Derive a unique service name from Proxy Host / Proxy Port properties."""
+    host = props.get("Proxy Host", "")
+    port = props.get("Proxy Port", "")
+    parts = [p for p in [host, port] if p]
+    return "ProxyConfigurationService-" + "-".join(parts) if parts else "ProxyConfigurationService"
+
+
+def _aws_credentials_service_name(props: dict) -> str:
+    """Derive a unique service name from Bucket / Region processor properties."""
+    bucket = props.get("Bucket", "")
+    region = props.get("Region", "")
+    parts = [p for p in [bucket, region] if p]
+    return "AWSCredentialsProviderService-" + "-".join(parts) if parts else "AWSCredentialsProviderService"
+
+
 def fix_invokehttp_proxy(
     proc: dict,
     pg: dict,
@@ -30,6 +46,7 @@ def fix_invokehttp_proxy(
     parent_pg_path: str | None = None,
     child_pg_path: str | None = None,
     reuse_svc_id: str | None = None,
+    reuse_svc_name: str | None = None,
 ) -> tuple[list[str], str]:
     """Migrate InvokeHTTP Proxy* inline properties to a StandardProxyConfigurationService.
 
@@ -62,7 +79,7 @@ def fix_invokehttp_proxy(
             child_data = load_json(Path(child_pg_path))
             child_data.setdefault("externalControllerServices", {})[reuse_svc_id] = {
                 "identifier": reuse_svc_id,
-                "name":       "ProxyConfigurationService",
+                "name":       reuse_svc_name or "ProxyConfigurationService",
             }
             child_proc, _ = find_component(child_data.get("flowContents", child_data), proc_id)
             if child_proc is not None:
@@ -96,7 +113,7 @@ def fix_invokehttp_proxy(
 
     # --- Build the controller service ---
     svc = _make_service(
-        name="ProxyConfigurationService",
+        name=_proxy_service_name(props),
         svc_type="org.apache.nifi.proxy.StandardProxyConfigurationService",
         bundle={
             "group": "org.apache.nifi",
@@ -159,13 +176,22 @@ def fix_s3_credentials(
     nifi_version: str = "1.28.1",
     parent_pg_path: str | None = None,
     child_pg_path: str | None = None,
-) -> list[str]:
-    """Create AWSCredentialsProviderControllerService from processor credentials (empty if absent)."""
+    reuse_svc_id: str | None = None,
+    reuse_svc_name: str | None = None,
+) -> tuple[list[str], str]:
+    """Create AWSCredentialsProviderControllerService from processor credentials (empty if absent).
+
+    Returns (messages, svc_id).  svc_id is the UUID of the created or reused service
+    (empty string when nothing was done).  Pass reuse_svc_id to skip service creation
+    and wire the processor to an already-created service instead (mirrors fix_invokehttp_proxy).
+    """
     proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
     proc_id = proc["identifier"]
 
-    # --- Read credentials from the processor (may be absent) ---
     props = proc.get("properties", {})
+
+    if "Access Key" not in props and "Secret Key" not in props:
+        return [], ""
     access_key = props.get("Access Key")
     secret_key = props.get("Secret Key")
 
@@ -178,9 +204,35 @@ def fix_s3_credentials(
         svc_props["Secret Key"] = secret_key
         removed_keys.append("Secret Key")
 
-    # --- Build the controller service (always created, even with empty credentials) ---
+    # --- Reuse mode: service already created by a previous call ---
+    if reuse_svc_id:
+        if parent_pg_path and child_pg_path and Path(parent_pg_path) != Path(child_pg_path):
+            child_data = load_json(Path(child_pg_path))
+            child_data.setdefault("externalControllerServices", {})[reuse_svc_id] = {
+                "identifier": reuse_svc_id,
+                "name":       reuse_svc_name or "AWSCredentialsProviderService",
+            }
+            child_proc, _ = find_component(child_data.get("flowContents", child_data), proc_id)
+            if child_proc is not None:
+                child_props = child_proc.get("properties", {})
+                child_props["AWS Credentials Provider service"] = reuse_svc_id
+                for key in removed_keys:
+                    child_props.pop(key, None)
+            save_json(Path(child_pg_path), child_data)
+
+        props["AWS Credentials Provider service"] = reuse_svc_id
+        for key in removed_keys:
+            props.pop(key, None)
+
+        return [
+            f"[FIXED] {proc_label}  -- AWS credentials migrated to existing "
+            f"AWSCredentialsProviderControllerService ({reuse_svc_id}); "
+            + (f"removed: {', '.join(removed_keys)}" if removed_keys else "empty credentials")
+        ], reuse_svc_id
+
+    # --- Build the controller service ---
     svc = _make_service(
-        name="AWSCredentialsProviderService",
+        name=_aws_credentials_service_name(props),
         svc_type=(
             "org.apache.nifi.processors.aws.credentials.provider.service"
             ".AWSCredentialsProviderControllerService"
@@ -200,11 +252,11 @@ def fix_s3_credentials(
             f"({svc['identifier']}) created with empty credentials.\n"
             f"    To complete this step manually in NiFi UI:\n"
             f"    1. Open the process group that contains the service\n"
-            f"    2. Go to Controller Services and find 'AWSCredentialsProviderService' "
+            f"    2. Go to Controller Services and find '{svc['name']}' "
             f"(ID: {svc['identifier']})\n"
             f"    3. Click Edit, then set:\n"
-            f"       - Access Key  = <your AWS Access Key ID>\n"
-            f"       - Secret Key  = <your AWS Secret Access Key>\n"
+            f"       - Access Key ID      = <your AWS Access Key ID>\n"
+            f"       - Secret Access Key  = <your AWS Secret Access Key>\n"
             f"    4. Save and enable the service"
         )
 
@@ -236,7 +288,7 @@ def fix_s3_credentials(
             f"({svc['identifier']}) created in {Path(parent_pg_path).name}; "
             f"externalControllerServices updated in {Path(child_pg_path).name}"
         )
-        return msgs
+        return msgs, svc["identifier"]
 
     # --- Default mode: CS in the same PG as the processor ---
     pg.setdefault("controllerServices", []).append(svc)
@@ -248,7 +300,7 @@ def fix_s3_credentials(
         f"[FIXED] {proc_label}  -- AWSCredentialsProviderControllerService "
         f"({svc['identifier']}) created"
     )
-    return msgs
+    return msgs, svc["identifier"]
 
 
 def fix_convert_json_to_sql(
@@ -735,7 +787,8 @@ def apply_csv_transforms(
     applied: list[str] = []
     manual: list[str] = []
     skipped_for_ai_agent: list[str] = []
-    proxy_group_cache: dict[str, str] = {}  # group_key -> svc_id for shared proxy services
+    proxy_group_cache: dict[str, tuple[str, str]] = {}  # group_key -> (svc_id, svc_name)
+    s3_group_cache: dict[str, tuple[str, str]] = {}     # group_key -> (svc_id, svc_name)
 
     # Load all affected JSON files once
     file_cache: dict[str, dict] = {}
@@ -815,22 +868,33 @@ def apply_csv_transforms(
             if handler == "fix_invokehttp_proxy":
                 cross = (invokehttp_cross_file or {}).get(proc_uuid, {})
                 group_key = cross.get("group_key")
-                reuse_svc_id = proxy_group_cache.get(group_key) if group_key else None
+                cached = proxy_group_cache.get(group_key) if group_key else None
+                reuse_svc_id = cached[0] if cached else None
+                reuse_svc_name = cached[1] if cached else None
                 msgs, svc_id = fix_invokehttp_proxy(
                     comp, pg, row, nifi_version,
                     parent_pg_path=cross.get("parent_pg_path"),
                     child_pg_path=cross.get("child_pg_path"),
                     reuse_svc_id=reuse_svc_id,
+                    reuse_svc_name=reuse_svc_name,
                 )
                 if group_key and svc_id and group_key not in proxy_group_cache:
-                    proxy_group_cache[group_key] = svc_id
+                    proxy_group_cache[group_key] = (svc_id, _proxy_service_name(comp.get("properties", {})))
             elif handler == "fix_s3_credentials":
                 cross = (s3_cross_file or {}).get(proc_uuid, {})
-                all_s3_msgs = fix_s3_credentials(
+                s3_group_key = cross.get("group_key")
+                s3_cached = s3_group_cache.get(s3_group_key) if s3_group_key else None
+                s3_reuse_svc_id = s3_cached[0] if s3_cached else None
+                s3_reuse_svc_name = s3_cached[1] if s3_cached else None
+                all_s3_msgs, s3_svc_id = fix_s3_credentials(
                     comp, pg, row, nifi_version,
                     parent_pg_path=cross.get("parent_pg_path"),
                     child_pg_path=cross.get("child_pg_path"),
+                    reuse_svc_id=s3_reuse_svc_id,
+                    reuse_svc_name=s3_reuse_svc_name,
                 )
+                if s3_group_key and s3_svc_id and s3_group_key not in s3_group_cache:
+                    s3_group_cache[s3_group_key] = (s3_svc_id, _aws_credentials_service_name(comp.get("properties", {})))
                 msgs = [m for m in all_s3_msgs if not m.startswith("[MANUAL]")]
                 manual.extend([f"{rel_path}  -- {m}" for m in all_s3_msgs if m.startswith("[MANUAL]")])
             elif handler == "fix_convert_json_to_sql":
