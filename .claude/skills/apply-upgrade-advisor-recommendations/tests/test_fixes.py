@@ -93,7 +93,7 @@ def test_fix_invokehttp_proxy_sets_reference():
     pg = _pg()
     fix_invokehttp_proxy(proc, pg, {})
     svc_id = pg["controllerServices"][0]["identifier"]
-    assert proc["properties"].get("Proxy Configuration Service") == svc_id
+    assert proc["properties"].get("proxy-configuration-service") == svc_id
 
 
 def test_fix_invokehttp_proxy_removes_old_props():
@@ -116,9 +116,68 @@ def test_fix_invokehttp_proxy_partial_props():
 def test_fix_invokehttp_proxy_no_proxy_props():
     proc = _proc("p1", {"HTTP Method": "GET"})
     pg = _pg()
-    msgs = fix_invokehttp_proxy(proc, pg, {})
+    msgs, _ = fix_invokehttp_proxy(proc, pg, {})
     assert msgs == []
     assert pg["controllerServices"] == []
+
+
+def test_fix_invokehttp_proxy_proxy_type_normalized():
+    proc = _proc("p1", {"Proxy Host": "h", "Proxy Type": "direct"})
+    pg = _pg()
+    fix_invokehttp_proxy(proc, pg, {})
+    svc_props = pg["controllerServices"][0]["properties"]
+    assert svc_props.get("proxy-type") == "DIRECT"
+
+
+def test_fix_invokehttp_proxy_reuse_mode():
+    proc = _proc("p1", {"Proxy Host": "h", "Proxy Port": "3128"})
+    pg = _pg()
+    msgs, svc_id = fix_invokehttp_proxy(proc, pg, {}, reuse_svc_id="existing-uuid")
+    assert pg["controllerServices"] == []
+    assert proc["properties"].get("proxy-configuration-service") == "existing-uuid"
+    assert "Proxy Host" not in proc["properties"]
+    assert any("existing" in m.lower() for m in msgs)
+
+
+def test_fix_invokehttp_proxy_reuse_mode_returns_provided_svc_id():
+    proc = _proc("p1", {"Proxy Host": "h"})
+    pg = _pg()
+    _, svc_id = fix_invokehttp_proxy(proc, pg, {}, reuse_svc_id="my-specific-uuid")
+    assert svc_id == "my-specific-uuid"
+
+
+def test_fix_invokehttp_proxy_cross_file_same_file(tmp_path):
+    proc = _proc("p1", {"Proxy Host": "h", "Proxy Port": "3128"})
+    flow_file = _write_flow(tmp_path, "flow.json", _flow("root", processors=[proc]))
+    pg = _pg()
+    fix_invokehttp_proxy(
+        proc, pg, {},
+        parent_pg_path=str(flow_file),
+        child_pg_path=str(flow_file),
+    )
+    result = load_json(flow_file)
+    assert len(result["flowContents"]["controllerServices"]) == 1
+    assert "externalControllerServices" not in result
+    proc_on_disk = result["flowContents"]["processors"][0]
+    assert "proxy-configuration-service" in proc_on_disk["properties"]
+
+
+def test_fix_invokehttp_proxy_cross_file_different_files(tmp_path):
+    proc = _proc("p1", {"Proxy Host": "h"})
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
+    pg = _pg()
+    msgs, svc_id = fix_invokehttp_proxy(
+        proc, pg, {},
+        parent_pg_path=str(parent_file),
+        child_pg_path=str(child_file),
+    )
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    child_result = load_json(child_file)
+    assert svc_id in child_result.get("externalControllerServices", {})
+    proc_on_disk = child_result["flowContents"]["processors"][0]
+    assert proc_on_disk["properties"].get("proxy-configuration-service") == svc_id
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +185,7 @@ def test_fix_invokehttp_proxy_no_proxy_props():
 # ---------------------------------------------------------------------------
 
 def test_fix_s3_credentials_creates_service():
-    proc = _proc("p1", {"Access Key ID": "AKID", "Secret Access Key": "SECRET"})
+    proc = _proc("p1", {"Access Key": "AKID", "Secret Key": "SECRET"})
     pg = _pg()
     msgs = fix_s3_credentials(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
@@ -135,11 +194,11 @@ def test_fix_s3_credentials_creates_service():
 
 
 def test_fix_s3_credentials_only_access_key():
-    proc = _proc("p1", {"Access Key ID": "AKID"})
+    proc = _proc("p1", {"Access Key": "AKID"})
     pg = _pg()
     msgs = fix_s3_credentials(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
-    assert pg["controllerServices"][0]["properties"].get("Access Key ID") == "AKID"
+    assert pg["controllerServices"][0]["properties"].get("Access Key") == "AKID"
     assert msgs
 
 
@@ -147,16 +206,61 @@ def test_fix_s3_credentials_no_creds():
     proc = _proc("p1", {"Bucket": "my-bucket"})
     pg = _pg()
     msgs = fix_s3_credentials(proc, pg, {})
-    assert msgs == []
-    assert pg["controllerServices"] == []
+    assert len(pg["controllerServices"]) == 1
+    assert any("[MANUAL]" in m for m in msgs)
 
 
 def test_fix_s3_credentials_sets_reference():
-    proc = _proc("p1", {"Access Key ID": "AK", "Secret Access Key": "SK"})
+    proc = _proc("p1", {"Access Key": "AK", "Secret Key": "SK"})
     pg = _pg()
     fix_s3_credentials(proc, pg, {})
     svc_id = pg["controllerServices"][0]["identifier"]
     assert proc["properties"].get("AWS Credentials Provider service") == svc_id
+
+
+def test_fix_s3_credentials_removes_old_props():
+    proc = _proc("p1", {"Access Key": "AK", "Secret Key": "SK", "Bucket": "my-bucket"})
+    pg = _pg()
+    fix_s3_credentials(proc, pg, {})
+    assert "Access Key" not in proc["properties"]
+    assert "Secret Key" not in proc["properties"]
+
+
+def test_fix_s3_credentials_cross_file_different_files(tmp_path):
+    proc = _proc("p1", {"Access Key": "AK", "Secret Key": "SK"})
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
+    pg = _pg()
+    fix_s3_credentials(
+        proc, pg, {},
+        parent_pg_path=str(parent_file),
+        child_pg_path=str(child_file),
+    )
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
+    child_result = load_json(child_file)
+    assert svc_id in child_result.get("externalControllerServices", {})
+    proc_on_disk = child_result["flowContents"]["processors"][0]
+    assert proc_on_disk["properties"].get("AWS Credentials Provider service") == svc_id
+
+
+def test_fix_s3_credentials_no_creds_cross_file(tmp_path):
+    proc = _proc("p1", {"Bucket": "my-bucket"})
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
+    pg = _pg()
+    msgs = fix_s3_credentials(
+        proc, pg, {},
+        parent_pg_path=str(parent_file),
+        child_pg_path=str(child_file),
+    )
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
+    child_result = load_json(child_file)
+    assert svc_id in child_result.get("externalControllerServices", {})
+    assert any("[MANUAL]" in m for m in msgs)
 
 
 # ---------------------------------------------------------------------------
@@ -681,3 +785,82 @@ def test_apply_csv_transforms_script_engine_ai_agent(tmp_path, capsys):
     apply_csv_transforms(csv_path, str(tmp_path))
     out = capsys.readouterr().out
     assert "AI Agent" in out
+
+
+P1_UUID = "eeeeaaaa-0000-0000-0000-000000000001"
+P2_UUID = "eeeeaaaa-0000-0000-0000-000000000002"
+S3_PROC_UUID = "ffff1111-0000-0000-0000-000000000001"
+
+
+def test_apply_csv_transforms_invokehttp_cross_file(tmp_path):
+    proc = {
+        "identifier": PROC_UUID, "instanceIdentifier": PROC_UUID,
+        "name": "InvokeHTTP", "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+        "properties": {"Proxy Host": "proxy.example.com"},
+        "propertyDescriptors": {}, "autoTerminatedRelationships": [],
+    }
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
+    csv_path = _write_csv(tmp_path, [
+        _csv_row("child.json", "proxy properties in InvokeHTTP", proc=f"InvokeHTTP ({PROC_UUID})")
+    ])
+    apply_csv_transforms(
+        csv_path, str(tmp_path),
+        invokehttp_cross_file={
+            PROC_UUID: {
+                "parent_pg_path": str(parent_file),
+                "child_pg_path": str(child_file),
+            }
+        },
+    )
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    child_result = load_json(child_file)
+    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
+    assert svc_id in child_result.get("externalControllerServices", {})
+
+
+def test_apply_csv_transforms_proxy_group_cache(tmp_path):
+    def _invoke_proc(pid):
+        return {
+            "identifier": pid, "instanceIdentifier": pid,
+            "name": f"InvokeHTTP-{pid[:4]}", "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+            "properties": {"Proxy Host": "proxy.example.com"},
+            "propertyDescriptors": {}, "autoTerminatedRelationships": [],
+        }
+
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[
+        _invoke_proc(P1_UUID), _invoke_proc(P2_UUID),
+    ]))
+    csv_path = _write_csv(tmp_path, [
+        _csv_row("child.json", "proxy properties in InvokeHTTP", proc=f"P1 ({P1_UUID})"),
+        _csv_row("child.json", "proxy properties in InvokeHTTP", proc=f"P2 ({P2_UUID})"),
+    ])
+    cross = {
+        P1_UUID: {"group_key": "shared-pg", "parent_pg_path": str(parent_file), "child_pg_path": str(child_file)},
+        P2_UUID: {"group_key": "shared-pg", "parent_pg_path": str(parent_file), "child_pg_path": str(child_file)},
+    }
+    apply_csv_transforms(csv_path, str(tmp_path), invokehttp_cross_file=cross)
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+
+
+def test_apply_csv_transforms_s3_manual_message_routing(tmp_path, capsys):
+    proc = {
+        "identifier": S3_PROC_UUID, "instanceIdentifier": S3_PROC_UUID,
+        "name": "PutS3Object", "type": "org.apache.nifi.processors.aws.s3.PutS3Object",
+        "properties": {"Bucket": "my-bucket"},
+        "propertyDescriptors": {}, "autoTerminatedRelationships": [],
+    }
+    _write_flow(tmp_path, "flow.json", _flow("root", processors=[proc]))
+    csv_path = _write_csv(tmp_path, [
+        _csv_row("flow.json", "Access Key ID should be moved to AWSCredentialsProvider",
+                 proc=f"PutS3Object ({S3_PROC_UUID})")
+    ])
+    apply_csv_transforms(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    applied_section = out.split("=== Applied Changes ===")[1].split("===")[0]
+    manual_section = out.split("=== Manual Action Required ===")[1].split("===")[0]
+    assert "[MANUAL]" not in applied_section
+    assert "[MANUAL]" in manual_section
