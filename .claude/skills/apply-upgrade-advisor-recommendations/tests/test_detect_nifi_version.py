@@ -1,6 +1,4 @@
 import json
-import pytest
-from pathlib import Path
 
 from detect_nifi_version import detect_versions
 

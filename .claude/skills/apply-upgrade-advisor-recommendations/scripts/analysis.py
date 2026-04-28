@@ -4,7 +4,6 @@ analysis.py  —  Variable collection and analysis helpers used by the AI agent
 """
 
 import re
-from collections import defaultdict
 from pathlib import Path
 
 from utils import load_json

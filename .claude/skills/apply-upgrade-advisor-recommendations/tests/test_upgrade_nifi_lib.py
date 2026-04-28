@@ -4,7 +4,6 @@ import sys
 import subprocess
 import pytest
 from pathlib import Path
-from unittest.mock import patch
 
 from upgrade_nifi_lib import detect_exports_dir, analyze
 

@@ -1,5 +1,4 @@
 import json
-import pytest
 from pathlib import Path
 
 from contexts import apply_variable_contexts, apply_hardcoded_values
