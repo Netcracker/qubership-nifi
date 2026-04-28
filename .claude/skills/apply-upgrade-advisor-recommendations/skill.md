@@ -114,6 +114,20 @@ prop_map   = {
 If the user accepts the defaults, use them as-is. Skip this question when
 `NIFI_SOURCE_VERSION >= 1.28.1` or no PrometheusRecordSink issue is present in the CSV.
 
+If the CSV contains a Proxy property warning (any row whose `Warning` or `Solution` references `Proxy properties in InvokeHTTP`), list the process group from `exports_dir` and ask the user in which process group the Proxy Configuration Service should be created. Compare the InvokeHTTP property values ​​of the processors. If they are the same, you will need to create a single shared Controller Service for all processors. If the values ​​differ, you will need to create multiple Controller Services. If you are going create multiple Controller Services, you must assign them unique names.
+
+Skip this question when no Proxy properties warning is present in the CSV.
+
+If the CSV contains a Access Key ID and Secret Access Key warning (any row whose `Warning` or `Solution` references `Access Key ID and Secret Access Key`), list the process group from `exports_dir` and ask the user in which process group the AWS Credentials Provider service should be created.
+
+For each affected processor, check whether the `Access Key ID` and `Secret Access Key` properties are present in the processor. If both are absent or empty, inform the user that the `AWSCredentialsProviderControllerService` will be created with empty credentials and that they will need to configure it manually in NiFi UI after the script runs:
+1. Open the process group that contains the service
+2. Go to Controller Services and find `AWSCredentialsProviderService`
+3. Click Edit, set `Access Key` and `Secret Key`, then enable the service
+If you are going create multiple Controller Services, you must assign them unique names.
+
+Skip this question when no Access Key ID and Secret Access Key warning is present in the CSV.
+
 Then use AskUserQuestion tool to ask the following questions before generating any run script:
 
 - Do the proposed context names work, or should they be different?
@@ -219,7 +233,11 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
      */
      ```
 
-### Step 6 - Report
+### Step 6 - Checking accompanying files
+
+Check the files in the repository and identify the files related to the changes. If you find files related to the changes, apply the changes to them.
+
+### Step 7 - Report
 
 Summarise:
 - Files modified and what changed in each
@@ -234,7 +252,7 @@ Summarise:
 | `Script Engine = python/ruby/lua` | Step 5 (AI agent translation) |
 | `Proxy properties in InvokeHTTP` | `apply_csv_transforms` - creates StandardProxyConfigurationService |
 | `Variables are not available` | Steps 2b + 3 - AI-assisted parameter context design |
-| S3 hardcoded credentials | `apply_csv_transforms` - creates AWSCredentialsProviderControllerService |
+| S3 hardcoded credentials | `apply_csv_transforms` - creates AWSCredentialsProviderControllerService; if `Access Key ID` and `Secret Access Key` are absent from the processor, credentials must be filled in manually in NiFi UI after the script runs |
 | `ConvertJSONToSQL` | `apply_csv_transforms` - migrates to PutDatabaseRecord + JsonTreeReader |
 | Kafka version upgrades (1_0/2_0 → 2_6) | `apply_csv_transforms` - type rename only |
 | Azure Storage → _v12 | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual** |

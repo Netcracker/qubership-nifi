@@ -22,68 +22,163 @@ from utils import (
 # ---------------------------------------------------------------------------
 
 
-def fix_invokehttp_proxy(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
+def fix_invokehttp_proxy(
+    proc: dict,
+    pg: dict,
+    _row: dict,
+    nifi_version: str = "1.28.1",
+    parent_pg_path: str | None = None,
+    child_pg_path: str | None = None,
+    reuse_svc_id: str | None = None,
+) -> tuple[list[str], str]:
+    """Migrate InvokeHTTP Proxy* inline properties to a StandardProxyConfigurationService.
+
+    Returns (messages, svc_id).  svc_id is the UUID of the created or reused service
+    (empty string when nothing was done).  Pass reuse_svc_id to skip service creation
+    and wire the processor to an already-created service instead.
     """
-    Create a StandardProxyConfigurationService from InvokeHTTP Proxy* properties,
-    reference it from the processor, remove the old inline properties.
-    """
+    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
+    proc_id = proc["identifier"]
+
     prop_map = {
-        "Proxy Host": "proxy-configuration-service.proxy-server-host",
-        "Proxy Port": "proxy-configuration-service.proxy-server-port",
-        "Proxy Type": "proxy-configuration-service.proxy-type",
-        "Proxy Username": "proxy-configuration-service.proxy-user-name",
-        "Proxy Password": "proxy-configuration-service.proxy-user-password",
+        "Proxy Host":     "proxy-server-host",
+        "Proxy Port":     "proxy-server-port",
+        "Proxy Type":     "proxy-type",
+        "Proxy Username": "proxy-user-name",
+        "Proxy Password": "proxy-user-password",
     }
+    proxy_type_map = {
+        "DIRECT": "DIRECT", "direct": "DIRECT",
+        "HTTP":   "HTTP",   "http":   "HTTP",
+        "SOCKS":  "SOCKS",  "socks":  "SOCKS",
+    }
+
     props = proc.get("properties", {})
+    removed_keys = [k for k in prop_map if k in props]
+
+    # --- Reuse mode: service already created by a previous call ---
+    if reuse_svc_id:
+        if parent_pg_path and child_pg_path and Path(parent_pg_path) != Path(child_pg_path):
+            child_data = load_json(Path(child_pg_path))
+            child_data.setdefault("externalControllerServices", {})[reuse_svc_id] = {
+                "identifier": reuse_svc_id,
+                "name":       "ProxyConfigurationService",
+            }
+            child_proc, _ = find_component(child_data.get("flowContents", child_data), proc_id)
+            if child_proc is not None:
+                child_props = child_proc.get("properties", {})
+                child_props["proxy-configuration-service"] = reuse_svc_id
+                for key in removed_keys:
+                    child_props.pop(key, None)
+            save_json(Path(child_pg_path), child_data)
+
+        props["proxy-configuration-service"] = reuse_svc_id
+        for key in removed_keys:
+            props.pop(key, None)
+
+        return [
+            f"[FIXED] {proc_label}  -- Proxy properties migrated to existing "
+            f"StandardProxyConfigurationService ({reuse_svc_id}); "
+            f"removed: {', '.join(removed_keys)}"
+        ], reuse_svc_id
+
+    # --- Collect proxy properties for new service ---
     svc_props = {}
-    removed_keys = []
     for old_key, new_key in prop_map.items():
         if old_key in props:
-            svc_props[new_key] = props.pop(old_key)
-            removed_keys.append(old_key)
+            value = props[old_key]
+            if old_key == "Proxy Type":
+                value = proxy_type_map.get(value, value)
+            svc_props[new_key] = value
 
     if not removed_keys:
-        return []
+        return [], ""
 
+    # --- Build the controller service ---
     svc = _make_service(
         name="ProxyConfigurationService",
         svc_type="org.apache.nifi.proxy.StandardProxyConfigurationService",
         bundle={
             "group": "org.apache.nifi",
-            "artifact": "nifi-standard-services-api-nar",
+            "artifact": "nifi-proxy-configuration-nar",
             "version": nifi_version,
         },
         properties=svc_props,
     )
-    pg.setdefault("controllerServices", []).append(svc)
-    props["Proxy Configuration Service"] = svc["identifier"]
 
-    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
+    # --- Cross-file mode: CS lives in a different PG file from the processor ---
+    if parent_pg_path and child_pg_path:
+        same_file = Path(parent_pg_path) == Path(child_pg_path)
+
+        parent_data = load_json(Path(parent_pg_path))
+        parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
+        save_json(Path(parent_pg_path), parent_data)
+
+        child_data = load_json(Path(child_pg_path))
+        if not same_file:
+            child_data.setdefault("externalControllerServices", {})[svc["identifier"]] = {
+                "identifier": svc["identifier"],
+                "name":       svc["name"],
+            }
+        child_proc, _ = find_component(child_data.get("flowContents", child_data), proc_id)
+        if child_proc is not None:
+            child_props = child_proc.get("properties", {})
+            child_props["proxy-configuration-service"] = svc["identifier"]
+            for key in removed_keys:
+                child_props.pop(key, None)
+        save_json(Path(child_pg_path), child_data)
+
+        props["proxy-configuration-service"] = svc["identifier"]
+        for key in removed_keys:
+            props.pop(key, None)
+
+        return [
+            f"[FIXED] {proc_label}  -- Proxy properties migrated to new "
+            f"StandardProxyConfigurationService ({svc['identifier']}) "
+            f"in {Path(parent_pg_path).name}; "
+            + (f"externalControllerServices updated in {Path(child_pg_path).name}; " if not same_file else "")
+            + f"removed: {', '.join(removed_keys)}"
+        ], svc["identifier"]
+
+    # --- Default mode: CS in the same PG as InvokeHTTP ---
+    pg.setdefault("controllerServices", []).append(svc)
+    props["proxy-configuration-service"] = svc["identifier"]
+    for key in removed_keys:
+        props.pop(key, None)
+
     return [
         f"[FIXED] {proc_label}  -- Proxy properties migrated to new "
         f"StandardProxyConfigurationService ({svc['identifier']}); "
         f"removed: {', '.join(removed_keys)}"
-    ]
+    ], svc["identifier"]
 
+def fix_s3_credentials(
+    proc: dict,
+    pg: dict,
+    _row: dict,
+    nifi_version: str = "1.28.1",
+    parent_pg_path: str | None = None,
+    child_pg_path: str | None = None,
+) -> list[str]:
+    """Create AWSCredentialsProviderControllerService from processor credentials (empty if absent)."""
+    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
+    proc_id = proc["identifier"]
 
-def fix_s3_credentials(proc: dict, pg: dict, row: dict, nifi_version: str = "1.28.1") -> list[str]:
-    """
-    Move hardcoded Access Key ID / Secret Access Key into a new
-    AWSCredentialsProviderControllerService.
-    """
+    # --- Read credentials from the processor (may be absent) ---
     props = proc.get("properties", {})
-    access_key = props.pop("Access Key ID", None)
-    secret_key = props.pop("Secret Access Key", None)
-
-    if not access_key and not secret_key:
-        return []
+    access_key = props.get("Access Key")
+    secret_key = props.get("Secret Key")
 
     svc_props = {}
+    removed_keys = []
     if access_key:
-        svc_props["Access Key ID"] = access_key
+        svc_props["Access Key"] = access_key
+        removed_keys.append("Access Key")
     if secret_key:
-        svc_props["Secret Access Key"] = secret_key
+        svc_props["Secret Key"] = secret_key
+        removed_keys.append("Secret Key")
 
+    # --- Build the controller service (always created, even with empty credentials) ---
     svc = _make_service(
         name="AWSCredentialsProviderService",
         svc_type=(
@@ -97,14 +192,63 @@ def fix_s3_credentials(proc: dict, pg: dict, row: dict, nifi_version: str = "1.2
         },
         properties=svc_props,
     )
+
+    msgs = []
+    if not access_key and not secret_key:
+        msgs.append(
+            f"[MANUAL] {proc_label}  -- AWSCredentialsProviderControllerService "
+            f"({svc['identifier']}) created with empty credentials.\n"
+            f"    To complete this step manually in NiFi UI:\n"
+            f"    1. Open the process group that contains the service\n"
+            f"    2. Go to Controller Services and find 'AWSCredentialsProviderService' "
+            f"(ID: {svc['identifier']})\n"
+            f"    3. Click Edit, then set:\n"
+            f"       - Access Key  = <your AWS Access Key ID>\n"
+            f"       - Secret Key  = <your AWS Secret Access Key>\n"
+            f"    4. Save and enable the service"
+        )
+
+    # --- Cross-file mode: CS lives in a different file from the processor ---
+    if parent_pg_path and child_pg_path:
+        parent_data = load_json(Path(parent_pg_path))
+        parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
+        save_json(Path(parent_pg_path), parent_data)
+
+        child_data = load_json(Path(child_pg_path))
+        child_data.setdefault("externalControllerServices", {})[svc["identifier"]] = {
+            "identifier": svc["identifier"],
+            "name":       svc["name"],
+        }
+        child_proc, _ = find_component(child_data.get("flowContents", child_data), proc_id)
+        if child_proc is not None:
+            child_props = child_proc.get("properties", {})
+            child_props["AWS Credentials Provider service"] = svc["identifier"]
+            for key in removed_keys:
+                child_props.pop(key, None)
+        save_json(Path(child_pg_path), child_data)
+
+        props["AWS Credentials Provider service"] = svc["identifier"]
+        for key in removed_keys:
+            props.pop(key, None)
+
+        msgs.insert(0,
+            f"[FIXED] {proc_label}  -- AWSCredentialsProviderControllerService "
+            f"({svc['identifier']}) created in {Path(parent_pg_path).name}; "
+            f"externalControllerServices updated in {Path(child_pg_path).name}"
+        )
+        return msgs
+
+    # --- Default mode: CS in the same PG as the processor ---
     pg.setdefault("controllerServices", []).append(svc)
     props["AWS Credentials Provider service"] = svc["identifier"]
+    for key in removed_keys:
+        props.pop(key, None)
 
-    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
-    return [
-        f"[FIXED] {proc_label}  -- AWS credentials moved to new "
-        f"AWSCredentialsProviderControllerService ({svc['identifier']})"
-    ]
+    msgs.insert(0,
+        f"[FIXED] {proc_label}  -- AWSCredentialsProviderControllerService "
+        f"({svc['identifier']}) created"
+    )
+    return msgs
 
 
 def fix_convert_json_to_sql(
@@ -572,6 +716,8 @@ def apply_csv_transforms(
     exports_dir: str,
     nifi_version: str = "1.28.1",
     prometheus_params: dict | None = None,
+    invokehttp_cross_file: dict | None = None,
+    s3_cross_file: dict | None = None,
 ) -> None:
     """
     Main entry point for applying CSV-driven transforms.
@@ -589,6 +735,7 @@ def apply_csv_transforms(
     applied: list[str] = []
     manual: list[str] = []
     skipped_for_ai_agent: list[str] = []
+    proxy_group_cache: dict[str, str] = {}  # group_key -> svc_id for shared proxy services
 
     # Load all affected JSON files once
     file_cache: dict[str, dict] = {}
@@ -666,9 +813,26 @@ def apply_csv_transforms(
                 continue
 
             if handler == "fix_invokehttp_proxy":
-                msgs = fix_invokehttp_proxy(comp, pg, row, nifi_version)
+                cross = (invokehttp_cross_file or {}).get(proc_uuid, {})
+                group_key = cross.get("group_key")
+                reuse_svc_id = proxy_group_cache.get(group_key) if group_key else None
+                msgs, svc_id = fix_invokehttp_proxy(
+                    comp, pg, row, nifi_version,
+                    parent_pg_path=cross.get("parent_pg_path"),
+                    child_pg_path=cross.get("child_pg_path"),
+                    reuse_svc_id=reuse_svc_id,
+                )
+                if group_key and svc_id and group_key not in proxy_group_cache:
+                    proxy_group_cache[group_key] = svc_id
             elif handler == "fix_s3_credentials":
-                msgs = fix_s3_credentials(comp, pg, row, nifi_version)
+                cross = (s3_cross_file or {}).get(proc_uuid, {})
+                all_s3_msgs = fix_s3_credentials(
+                    comp, pg, row, nifi_version,
+                    parent_pg_path=cross.get("parent_pg_path"),
+                    child_pg_path=cross.get("child_pg_path"),
+                )
+                msgs = [m for m in all_s3_msgs if not m.startswith("[MANUAL]")]
+                manual.extend([f"{rel_path}  -- {m}" for m in all_s3_msgs if m.startswith("[MANUAL]")])
             elif handler == "fix_convert_json_to_sql":
                 all_msgs, reader_id = fix_convert_json_to_sql(
                     comp, pg, row, nifi_version,
@@ -689,6 +853,21 @@ def apply_csv_transforms(
             if msgs:
                 applied.extend([f"{rel_path}  -- {m}" for m in msgs])
                 file_dirty[rel_path] = True
+
+    # Reload child files that were saved directly to disk by cross-file operations so
+    # that externalControllerServices entries are not overwritten by the stale cache.
+    for cross_map in (invokehttp_cross_file, s3_cross_file):
+        for _uuid, cross in (cross_map or {}).items():
+            parent_path = cross.get("parent_pg_path")
+            child_path = cross.get("child_pg_path")
+            if parent_path and child_path and Path(parent_path) != Path(child_path):
+                try:
+                    # Use as_posix() so the key matches CSV-sourced forward-slash paths
+                    child_rel = Path(child_path).relative_to(exports).as_posix()
+                    if child_rel in file_cache and (exports / child_rel).exists():
+                        file_cache[child_rel] = load_json(exports / child_rel)
+                except ValueError:
+                    pass
 
     # Write modified files
     for rel_path, dirty in file_dirty.items():
