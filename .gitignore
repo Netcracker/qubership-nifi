@@ -62,3 +62,6 @@ fabric.properties
 
 # All log files
 /**/*.log
+
+# Python cache
+/**/__pycache__
