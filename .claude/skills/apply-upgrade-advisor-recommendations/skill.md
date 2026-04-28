@@ -114,7 +114,10 @@ prop_map   = {
 If the user accepts the defaults, use them as-is. Skip this question when
 `NIFI_SOURCE_VERSION >= 1.28.1` or no PrometheusRecordSink issue is present in the CSV.
 
-If the CSV contains a Proxy property warning (any row whose `Warning` or `Solution` references `Proxy properties in InvokeHTTP`), list the process group from `exports_dir` and ask the user in which process group the Proxy Configuration Service should be created. Compare the InvokeHTTP property values ​​of the processors. If they are the same, you will need to create a single shared Controller Service for all processors. If the values ​​differ, you will need to create multiple Controller Services. If you are going create multiple Controller Services, you must assign them unique names.
+If the CSV contains a Proxy property warning (any row whose `Warning` or `Solution` references `Proxy properties in InvokeHTTP`), list the process group from `exports_dir` and ask the user in which process group the Proxy Configuration Service should be created.
+Compare the InvokeHTTP property values ​​of the processors affected by the Proxy properties warning:
+1. If they are the same, create a single shared Controller Service.
+2. If the values ​​differ, create multiple Controller Services with unique names.
 
 Skip this question when no Proxy properties warning is present in the CSV.
 
