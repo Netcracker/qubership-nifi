@@ -25,7 +25,7 @@ grep -oP 'NIFI_VERSION=\K[0-9.]+' ./Dockerfile
 Pass both versions to the script — current first, target second and run scripts:
 
 ```bash
-bash .claude/skills/nifi-upgrade-skill/scripts/getFilesFromDocker.sh <current_version> <target_version>
+bash .claude/skills/nifi-upgrade-skill/scripts/getFilesFromDocker.sh <CURRENT_NIFI_VERSION> <TARGET_NIFI_VERSION>
 ```
 
 ## Step 4: Compare and apply script changes
@@ -43,8 +43,8 @@ For each file:
 
 1. Generate a diff between the current and target version:
 ```bash
-diff .upgrade-temp-data/nifi-files-to-compare/scripts/current/<FILE> \
-     .upgrade-temp-data/nifi-files-to-compare/scripts/target/<FILE>
+diff upgrade-temp-data/nifi-files-to-compare/scripts/<CURRENT_NIFI_VERSION>/<FILE> \
+     upgrade-temp-data/nifi-files-to-compare/scripts/<TARGET_NIFI_VERSION>/<FILE>
 ```
 
 2. If there are differences — apply them directly to the
@@ -68,8 +68,8 @@ For each file:
 
 1. Generate a diff between the current and target version:
 ```bash
-   diff .claude/skills/nifi-upgrade-skill/config/current/<FILE> \
-        .claude/skills/nifi-upgrade-skill/config/target/<FILE>
+diff upgrade-temp-data/nifi-files-to-compare/config/<CURRENT_NIFI_VERSION>/<FILE> \
+     upgrade-temp-data/nifi-files-to-compare/config/<TARGET_NIFI_VERSION>/<FILE>
 ```
 
 2. If there are differences, apply them directly to the corresponding file in the project's `nifi-config/` directory.
@@ -86,8 +86,8 @@ Compare the `nifi.properties` file from Docker image between the current and tar
 
 1. Generate a diff between the current and target version:
 ```bash
-   diff .claude/skills/nifi-upgrade-skill/config/current/nifi.properties \
-        .claude/skills/nifi-upgrade-skill/config/target/nifi.properties
+diff upgrade-temp-data/nifi-files-to-compare/config/<CURRENT_NIFI_VERSION>/nifi.properties \
+     upgrade-temp-data/nifi-files-to-compare/config/<TARGET_NIFI_VERSION>/nifi.properties
 ```
 2. If there are differences, apply the relevant changes to the following files in the `qubership-nifi-consul-templates` module:
    - `nifi_default.properties`
@@ -104,7 +104,7 @@ Take the target NiFi version and its SHA256 hash, then replace the `NIFI_VERSION
 
 1. In the file `./pom.xml`, locate the `<nifi.version>` property inside the `<properties>` section and replace its value with the target NiFi version.
 
-2. Create a temporary minimal `pom.xml` file in a separate directory:
+2. Create a temporary minimal `upgrade-temp-data/nifi-helper-pom.xml` file:
 ```xml
    <project xmlns="http://maven.apache.org/POM/4.0.0"
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -123,25 +123,23 @@ Take the target NiFi version and its SHA256 hash, then replace the `NIFI_VERSION
 
 3. Extract the NiFi API version and update it in `./pom.xml`:
 ```bash
-   mvn help:evaluate -Dexpression=nifi-api.version -q -DforceStdout
+   mvn help:evaluate -f upgrade-temp-data/nifi-helper-pom.xml -Dexpression=nifi-api.version -q -DforceStdout
 ```
    Take the output and update the `<nifi.api.version>` property in the `<properties>` section of `./pom.xml`.
 
 4. Extract the Jedis version and update it in `./pom.xml`:
 ```bash
-   mvn help:evaluate -Dexpression=jedis.version -q -DforceStdout
+   mvn help:evaluate -f upgrade-temp-data/nifi-helper-pom.xml -Dexpression=jedis.version -q -DforceStdout
 ```
    Take the output and update the `<jedis.version>` property in the `<properties>` section of `./pom.xml`.
 
 5. Extract the Spring Data Redis version and update it in `./pom.xml`:
 ```bash
-   mvn help:evaluate -Dexpression=spring.data.redis.version -q -DforceStdout
+   mvn help:evaluate -f upgrade-temp-data/nifi-helper-pom.xml -Dexpression=spring.data.redis.version -q -DforceStdout
 ```
    Take the output and update the `<spring.data.redis.version>` property in the `<properties>` section of `./pom.xml`.
 
-6. Delete the temporary `pom.xml` file created in step 2.
-
-## Step 11: Check Migration Guidance
+## Step 9: Check Migration Guidance
 
 Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with the WebFetch tool** — do NOT delegate to a subagent (they have returned false "no guidance found" results).
 
@@ -151,7 +149,7 @@ Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **di
 4. In the final summary, list every guidance item as **applied** (with paths), **not applicable** (with grep evidence), or **user action required**. Silent omission is not acceptable.
 
 
-## Step 12: Compile the project
+## Step 10: Compile the project
 
 Compile the project in two stages:
 
@@ -165,7 +163,7 @@ Compile the project in two stages:
    mvn clean install
 ```
 
-## Step 13: Run qubership-nifi-api-export-tool
+## Step 11: Run qubership-nifi-api-export-tool
 
 Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target NiFi version:
 
@@ -183,7 +181,7 @@ Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target Ni
      -Dexec.args="--version <CURRENT_NIFI_VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<CURRENT_NIFI_VERSION>"
 ```
 
-## Step 14: Run qubership-nifi-component-comparator-tool
+## Step 12: Run qubership-nifi-component-comparator-tool
 
 Run the following command, substituting the actual current and target NiFi versions:
 ```bash
@@ -194,3 +192,32 @@ mvn exec:java \
 
 - `${CURRENT_NIFI_VERSION}` — the current NiFi version from the project
 - `${TARGET_NIFI_VERSION}` — the target NiFi version specified by the user
+
+## Step 13: Analysis of the received files after comparison
+
+Analyze the CSV file `./upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.csv`.
+
+Check whether the list contains properties recorded as an added/deleted pair, but in reality only their `Display Name` has been changed. If such properties exist, build a dictionary file at `./upgrade-temp-data/nifi-property-comparison/dictionary.yaml` with the following structure:
+
+```yaml
+displayNameMapping:
+  - ComponentName1:
+      Old_Display_Name1: New_Display_Name1
+      Old_Display_Name2: New_Display_Name2
+  - ComponentName2:
+      Old_Display_Name1: New_Display_Name1
+      Old_Display_Name2: New_Display_Name2
+      Old_Display_Name3: New_Display_Name3
+```
+
+If the dictionary has been created, run the following command:
+
+```bash
+mvn exec:java \
+  -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
+  -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/${CURRENT_NIFI_VERSION} --targetDir ./upgrade-temp-data/nifi-property-exports/${TARGET_NIFI_VERSION} --dictionaryPath ./upgrade-temp-data/nifi-property-comparison/dictionary.yaml --outputPath ./upgrade-temp-data/nifi-property-comparison"
+```
+
+- `${CURRENT_NIFI_VERSION}` — the current NiFi version from the project
+- `${TARGET_NIFI_VERSION}` — the target NiFi version specified by the user
+
