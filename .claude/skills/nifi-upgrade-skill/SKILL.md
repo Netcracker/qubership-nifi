@@ -155,12 +155,12 @@ Compile the project in two stages:
 
 1. First, compile without tests:
 ```bash
-   mvn clean install -DskipTests
+   mvn clean install -DskipTests -q
 ```
 
 2. Then, compile with tests:
 ```bash
-   mvn clean install
+   mvn clean install -q
 ```
 
 ## Step 11: Run qubership-nifi-api-export-tool
@@ -169,14 +169,14 @@ Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target Ni
 
 1. Export API for the target NiFi version:
 ```bash
-   mvn exec:java \
+   mvn exec:java -q \
      -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
      -Dexec.args="--version <TARGET_NIFI_VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<TARGET_NIFI_VERSION>"
 ```
 
 2. Export API for the current NiFi version:
 ```bash
-   mvn exec:java \
+   mvn exec:java -q \
      -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
      -Dexec.args="--version <CURRENT_NIFI_VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<CURRENT_NIFI_VERSION>"
 ```
@@ -185,7 +185,7 @@ Run the following commands, replacing `<TARGET_NIFI_VERSION>` with the target Ni
 
 Run the following command, substituting the actual current and target NiFi versions:
 ```bash
-mvn exec:java \
+mvn exec:java -q \
   -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/${CURRENT_NIFI_VERSION} --targetDir ./upgrade-temp-data/nifi-property-exports/${TARGET_NIFI_VERSION} --outputPath ./upgrade-temp-data/nifi-property-comparison"
 ```
@@ -213,7 +213,7 @@ displayNameMapping:
 If the dictionary has been created, run the following command:
 
 ```bash
-mvn exec:java \
+mvn exec:java -q \
   -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/${CURRENT_NIFI_VERSION} --targetDir ./upgrade-temp-data/nifi-property-exports/${TARGET_NIFI_VERSION} --dictionaryPath ./upgrade-temp-data/nifi-property-comparison/dictionary.yaml --outputPath ./upgrade-temp-data/nifi-property-comparison"
 ```
