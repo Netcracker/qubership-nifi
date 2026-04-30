@@ -9,7 +9,7 @@ description: Upgrades Apache NiFi to a target version. Updates scripts, configs,
 - Ask the user for **target NiFi version** and **SHA256 hash** if not provided. Don't proceed without both.
 - Get current version from Dockerfile:
 ```bash
-  grep -oP 'NIFI_VERSION=\K[0-9.]+' ./Dockerfile
+sed -n "s/.*NIFI_VERSION='\([0-9.]*\)'.*/\1/p" ./Dockerfile | head -1
 ```
 
 ## 2. Fetch reference files
@@ -26,8 +26,10 @@ For each file in `nifi-scripts/` (`secure.sh`, `start.sh`, `common.sh`, `update_
 ## 4. Sync bootstrap.conf
 Same diff-and-apply process for `bootstrap.conf` in `nifi-config/`.
 
-## 5. Sync logback.xml
-Same diff-and-apply process for `logback.xml` in `qubership-nifi-consul-templates`.
+## 5. Sync logback-template.xml
+Diff `logback.xml` between versions. Apply changes to `qubership-nifi-consul-templates/src/main/resources/logback-template.xml`:
+- **New loggers** that suppress extra log noise (level WARN/ERROR/OFF): add them to our template.
+- All other changes (level tweaks on loggers not present in our template): note in the final report only, do not apply.
 
 ## 6. Sync nifi.properties
 Diff `nifi.properties` between versions. Apply relevant changes to these files in `qubership-nifi-consul-templates`:
@@ -42,7 +44,7 @@ Replace `NIFI_VERSION` and `NIFI_VERSION_SHA256` with target values.
 1. Set `<nifi.version>` to target.
 2. Create `upgrade-temp-data/nifi-helper-pom.xml` with parent `nifi-redis-bundle:<TARGET>`.
 3. Use `mvn help:evaluate -f upgrade-temp-data/nifi-helper-pom.xml -Dexpression=<PROP> -q -DforceStdout` to extract and update in `./pom.xml`:
-   - `nifi-api.version` becomes `<nifi.api.version>`
+   - `nifi-api.version` becomes `<nifi-api.version>`
    - `jedis.version` becomes `<jedis.version>`
    - `spring.data.redis.version` becomes `<spring.data.redis.version>`
 
@@ -50,12 +52,22 @@ Replace `NIFI_VERSION` and `NIFI_VERSION_SHA256` with target values.
 Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with WebFetch** (no subagents, they return false negatives).
 - Get verbatim sections for every version between current (exclusive) and target (inclusive).
 - Re-fetch by name if any version section is missing. Don't conclude "no guidance" without a targeted re-fetch.
-- `Grep` the whole repository (incl. `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed or renamed properties and processor/service names. Apply changes where matched.
+- `Grep` the whole repository for removed or renamed properties and processor/service names. Apply changes where matched.
+```bash
+grep -rn '<term>' \
+  qubership-bundle/ qubership-nifi-db-bundle/ qubership-nifi-bulk-redis-service/ \
+  qubership-nifi-consul-templates/ nifi-config/ nifi-scripts/ \
+  qubership-nifi-common/ qubership-nifi-bundle-common/ \
+  qubership-consul/ qubership-nifi-lookup-services/ \
+  qubership-nifi-quarkus-consul/ qubership-services/ \
+  --include='*.xml' --include='*.json' --include='*.yaml' --include='*.yml' \
+  --include='*.properties' --include='*.sh' --include='*.java' 2>/dev/null | grep -v '/target/'
+```
 - Final summary must classify every guidance item as: **applied** (with paths), **not applicable** (with grep evidence), or **user action required**.
 
 ## 10. Build and test
 ```bash
-mvn clean install -DskipTests -q
+mvn clean install -DskipUnitTests=true -q
 mvn clean install -q
 ```
 
