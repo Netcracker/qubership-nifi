@@ -48,7 +48,7 @@ Replace `NIFI_VERSION` and `NIFI_VERSION_SHA256` with target values.
 Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with WebFetch** (no subagents, they return false negatives).
 - Get verbatim sections for every version between current (exclusive) and target (inclusive).
 - Re-fetch by name if any version section is missing. Don't conclude "no guidance" without a targeted re-fetch.
-- `Grep` the whole repo (incl. `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed or renamed properties and processor/service names. Apply changes where matched.
+- `Grep` the whole repository (incl. `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed or renamed properties and processor/service names. Apply changes where matched.
 - Final summary must classify every guidance item as: **applied** (with paths), **not applicable** (with grep evidence), or **user action required**.
 
 ## 9. Build
