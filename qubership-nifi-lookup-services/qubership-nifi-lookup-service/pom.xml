@@ -38,7 +38,6 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp-jvm</artifactId>
-            <version>${okhttp.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -80,7 +79,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>${nifi.api.version}</version>
+            <version>${nifi-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -54,7 +54,7 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
         <nifi.version>2.7.2</nifi.version>
-        <nifi.api.version>2.5.0</nifi.api.version>
+        <nifi-api.version>2.5.0</nifi-api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
         <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
@@ -78,19 +78,16 @@
         <snakeyaml.version>2.5</snakeyaml.version>
         <commons-csv.version>1.8</commons-csv.version>
         <micrometer.version>1.12.13</micrometer.version>
-
-        <skipUnitTests>false</skipUnitTests>
+        <!--jackson and slf4j versions for direct dependencies-->
+        <!--NiFi NARs use imported dependencies from NiFi BOMs-->
+        <jackson.databind.version>2.20.1</jackson.databind.version>
+        <slf4j.version>2.0.17</slf4j.version>
 
         <!-- Version for provided artifact -->
-        <okhttp.version>5.1.0</okhttp.version>
-        <jackson.databind.version>2.20.1</jackson.databind.version>
-        <commons.lang3.version>3.18.0</commons.lang3.version>
-        <commons.io.version>2.21.0</commons.io.version>
-        <jetty.version>12.1.5</jetty.version>
-        <slf4j.version>2.0.17</slf4j.version>
         <jedis.version>6.0.0</jedis.version>
-        <jackson.version>2.20.1</jackson.version>
-
+        <spring.data.redis.version>3.5.1</spring.data.redis.version>
+        <!--skipUnitTests default value-->
+        <skipUnitTests>false</skipUnitTests>
     </properties>
 
     <modules>

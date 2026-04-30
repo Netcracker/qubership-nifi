@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>${nifi.api.version}</version>
+            <version>${nifi-api.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -118,7 +118,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.databind.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
