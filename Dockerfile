@@ -94,7 +94,6 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && chmod 775 $NIFI_HOME/python_extensions
 
 COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
-COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
