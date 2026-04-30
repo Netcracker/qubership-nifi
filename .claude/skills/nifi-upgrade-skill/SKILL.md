@@ -67,8 +67,8 @@ grep -rn '<term>' \
 
 ## 10. Build and test
 ```bash
-mvn clean install -DskipUnitTests=true -q
-mvn clean install -q
+mvn clean install -DskipUnitTests=true -Dgpg.skip=true -q
+mvn clean install 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
 ```
 
 ## 11. Export & compare nifi component properties
