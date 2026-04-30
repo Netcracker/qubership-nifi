@@ -24,8 +24,7 @@ For each file in `nifi-scripts/` (`secure.sh`, `start.sh`, `common.sh`, `update_
 - Summarize changes at the end (files touched, lines +/-).
 
 ## 4. Sync configs
-Same diff-and-apply process for `logback.xml` and `bootstrap.conf` in `nifi-config/`.
-- `logback.xml` changes also apply to `qubership-nifi-consul-templates`.
+Same diff-and-apply process for `bootstrap.conf` in `nifi-config/` and for `logback.xml` in `qubership-nifi-consul-templates`.
 
 ## 5. Sync nifi.properties
 Diff `nifi.properties` between versions. Apply relevant changes to these files in `qubership-nifi-consul-templates`:
