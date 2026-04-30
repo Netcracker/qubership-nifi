@@ -54,7 +54,7 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
         <nifi.version>2.7.2</nifi.version>
-        <nifi.api.version>2.5.0</nifi.api.version>
+        <nifi-api.version>2.5.0</nifi-api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
         <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
