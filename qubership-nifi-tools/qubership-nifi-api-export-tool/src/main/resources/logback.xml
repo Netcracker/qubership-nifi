@@ -29,7 +29,7 @@
 
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
 
-    <root level="INFO">
+    <root level="${ROOT_LOG_LEVEL:-INFO}">
         <appender-ref ref="CONSOLE" />
     </root>
 

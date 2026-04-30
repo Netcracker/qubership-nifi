@@ -62,12 +62,14 @@ Export both versions:
 ```bash
 mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
+  -DROOT_LOG_LEVEL=ERROR \
   -Dexec.args="--version <VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<VERSION>"
 ```
 Compare:
 ```bash
 mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
+  -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
                --targetDir ./upgrade-temp-data/nifi-property-exports/<TARGET> \
                --outputPath ./upgrade-temp-data/nifi-property-comparison"
