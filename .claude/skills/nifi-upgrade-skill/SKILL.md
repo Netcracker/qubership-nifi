@@ -23,19 +23,22 @@ For each file in `nifi-scripts/` (`secure.sh`, `start.sh`, `common.sh`, `update_
 - Apply differences directly. If file missing in target, keep current and note it.
 - Summarize changes at the end (files touched, lines +/-).
 
-## 4. Sync configs
-Same diff-and-apply process for `bootstrap.conf` in `nifi-config/` and for `logback.xml` in `qubership-nifi-consul-templates`.
+## 4. Sync bootstrap.conf
+Same diff-and-apply process for `bootstrap.conf` in `nifi-config/`.
 
-## 5. Sync nifi.properties
+## 5. Sync logback.xml
+Same diff-and-apply process for `logback.xml` in `qubership-nifi-consul-templates`.
+
+## 6. Sync nifi.properties
 Diff `nifi.properties` between versions. Apply relevant changes to these files in `qubership-nifi-consul-templates`:
 - `nifi_default.properties`
 - `nifi_internal.properties`
 - `nifi_internal_comments.properties`
 
-## 6. Update Dockerfile
+## 7. Update Dockerfile
 Replace `NIFI_VERSION` and `NIFI_VERSION_SHA256` with target values.
 
-## 7. Update pom.xml versions
+## 8. Update pom.xml versions
 1. Set `<nifi.version>` to target.
 2. Create `upgrade-temp-data/nifi-helper-pom.xml` with parent `nifi-redis-bundle:<TARGET>`.
 3. Use `mvn help:evaluate -f upgrade-temp-data/nifi-helper-pom.xml -Dexpression=<PROP> -q -DforceStdout` to extract and update in `./pom.xml`:
@@ -43,20 +46,20 @@ Replace `NIFI_VERSION` and `NIFI_VERSION_SHA256` with target values.
    - `jedis.version` becomes `<jedis.version>`
    - `spring.data.redis.version` becomes `<spring.data.redis.version>`
 
-## 8. Migration guidance
+## 9. Migration guidance
 Fetch <https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance> **directly with WebFetch** (no subagents, they return false negatives).
 - Get verbatim sections for every version between current (exclusive) and target (inclusive).
 - Re-fetch by name if any version section is missing. Don't conclude "no guidance" without a targeted re-fetch.
 - `Grep` the whole repository (incl. `qubership-consul/**`, `nifi-config/**`, `nifi-scripts/**`) for removed or renamed properties and processor/service names. Apply changes where matched.
 - Final summary must classify every guidance item as: **applied** (with paths), **not applicable** (with grep evidence), or **user action required**.
 
-## 9. Build
+## 10. Build and test
 ```bash
 mvn clean install -DskipTests -q
 mvn clean install -q
 ```
 
-## 10. Export & compare APIs
+## 11. Export & compare nifi component properties
 Export both versions:
 ```bash
 mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
@@ -74,11 +77,14 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
                --outputPath ./upgrade-temp-data/nifi-property-comparison"
 ```
 
-## 11. Resolve display-name renames
-Inspect `NiFiComponentsDelta.csv`. If "added/deleted" pairs are actually just `Display Name` renames, build `dictionary.yaml`:
+## 12. Resolve display-name renames
+Inspect `./upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.csv`.
+If "added/deleted" pairs are actually just `Display Name` renames, build `dictionary.yaml`:
 ```yaml
 displayNameMapping:
   - ComponentName:
       Old_Display_Name: New_Display_Name
 ```
-Then re-run the comparator with `--dictionaryPath ./upgrade-temp-data/nifi-property-comparison/dictionary.yaml`.
+Put `dictionary.yaml` into `qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>`,
+where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replaced with `_`.
+Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml`.
