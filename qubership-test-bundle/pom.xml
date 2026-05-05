@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.5.1-SNAPSHOT</version>
+        <version>2.5.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -14,4 +14,30 @@
         <module>qubership-nifi-test-processors</module>
         <module>qubership-nifi-test-nar</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-shared-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-extension-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

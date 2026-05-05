@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-tools</artifactId>
-        <version>2.5.1-SNAPSHOT</version>
+        <version>2.5.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -46,13 +46,11 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -67,6 +65,7 @@
                     <systemPropertyVariables>
                         <project.rootdir>${session.executionRootDirectory}</project.rootdir>
                         <maven.home>${maven.home}</maven.home>
+                        <docs.generator.version>${project.version}</docs.generator.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

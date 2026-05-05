@@ -435,7 +435,7 @@ public class ValidateJsonTest {
         assertTrue(notJsonFFs.get(0).getAttribute(ValidateJson.ERROR_ATTR).matches(
                 "Not json content in Flow file: Unrecognized token 'ioioiooo': was expecting "
                         + "\\(JSON String, Number, Array, Object or token 'null', 'true' or 'false'\\)\n"
-                        + " at \\[Source: .*; line: 1, column: 9]"));
+                        + " at \\[Source: .*; line: 1, column: \\d+]"));
     }
 
     private void testTransferToValidRelation() {
