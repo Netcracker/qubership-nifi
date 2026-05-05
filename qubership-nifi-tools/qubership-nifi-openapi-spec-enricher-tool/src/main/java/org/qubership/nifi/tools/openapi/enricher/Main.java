@@ -52,7 +52,6 @@ public final class Main {
     public static void main(final String[] args) throws Exception {
         String outputDir = DEFAULT_OUTPUT_DIR;
 
-
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--output-dir":

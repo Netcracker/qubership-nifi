@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-tools</artifactId>
-        <version>2.5.1-SNAPSHOT</version>
+        <version>2.5.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -22,6 +22,7 @@
             <artifactId>nifi-web-api</artifactId>
             <version>${nifi.version}</version>
             <type>war</type>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -59,8 +60,20 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
+                <dependencies>
+                    <!--By default, project's WAR dependency is ignored by exec-maven-plugin-->
+                    <!--this explicit dependency and includePluginDependencies are needed to include WAR in classpath-->
+                    <dependency>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-web-api</artifactId>
+                        <version>${nifi.version}</version>
+                        <type>war</type>
+                        <scope>runtime</scope>
+                    </dependency>
+                </dependencies>
                 <configuration>
                     <mainClass>org.qubership.nifi.tools.openapi.enricher.Main</mainClass>
+                    <includePluginDependencies>true</includePluginDependencies>
                 </configuration>
             </plugin>
         </plugins>
