@@ -49,17 +49,15 @@
             <artifactId>spring-cloud-context</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-consul-common</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.ecwid.consul</groupId>
-            <artifactId>consul-api</artifactId>
-            <version>${consul-api.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <!--EXTERNAL-->
+        <!--TEST-->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

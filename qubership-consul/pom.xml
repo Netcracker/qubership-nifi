@@ -55,7 +55,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.9</version>
+        <version>4.0.3</version>
         <relativePath />
     </parent>
 
@@ -65,13 +65,13 @@
         <skipUnitTests>false</skipUnitTests>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
-        <spring-cloud.version>2025.0.1</spring-cloud.version>
+        <spring-cloud.version>2025.1.1</spring-cloud.version>
         <consul-api.version>1.4.5</consul-api.version>
         <httpclient.version>4.5.14</httpclient.version>
         <httpcore.version>4.4.16</httpcore.version>
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
         <testcontainers.version>2.0.2</testcontainers.version>
-        <spring-framework.version>6.2.17</spring-framework.version>
+        <spring-framework.version>7.0.5</spring-framework.version>
         <slf4j.version>2.0.17</slf4j.version>
         <!--plugin versions-->
         <pmd.version>3.26.0</pmd.version>
