@@ -15,6 +15,8 @@
  */
 package org.qubership.nifi.tools.openapi.enricher;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -22,7 +24,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -70,8 +71,11 @@ public final class Main {
         node = enrich.enrichNiFi(node);
         Files.createDirectories(Paths.get(outputDir));
         Path outputPath = Paths.get(outputDir, "openapi.json");
-        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(outputPath))) {
-            mapper.writerWithDefaultPrettyPrinter().writeValue(out, node);
+        try (JsonGenerator gen = mapper.getFactory().createGenerator(
+                     new BufferedOutputStream(Files.newOutputStream(outputPath)))) {
+            gen.setPrettyPrinter(new DefaultPrettyPrinter());
+            mapper.writeValue(gen, node);
+            gen.writeRaw('\n');
         }
 
         LOG.info("Done. Output written to: {}", outputPath);

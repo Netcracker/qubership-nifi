@@ -1,12 +1,13 @@
 {
   "openapi": "3.0.1",
+  "info": { "title": "Test Spec", "version": "1.0.0" },
   "paths": {
     "/flow/about": {
       "get": {
         "summary": "Get about info",
         "tags": ["Flow"],
         "responses": {
-          "200": {},
+          "200": { "description": "OK" },
           "404": { "description": "Not found" }
         }
       }

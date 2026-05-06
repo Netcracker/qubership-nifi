@@ -1,6 +1,10 @@
 {
   "openapi": "3.0.1",
   "info": { "title": "NiFi REST API", "version": "test" },
+  "security": [
+    { "HTTPBearerJWT": [] },
+    { "CookieSecureAuthorizationBearer": [] }
+  ],
   "paths": {
     "/nifi-api/resources": {
       "get": {
@@ -10,6 +14,22 @@
           "200": { "content": {} },
           "404": { "description": "Not found" }
         }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "HTTPBearerJWT": {
+        "bearerFormat": "JWT",
+        "description": "HTTP Bearer authentication with JSON Web Token",
+        "scheme": "Bearer",
+        "type": "http"
+      },
+      "CookieSecureAuthorizationBearer": {
+        "description": "JSON Web Token authentication with session cookie",
+        "in": "cookie",
+        "name": "__Secure-Authorization-Bearer",
+        "type": "apiKey"
       }
     }
   }

@@ -1,13 +1,17 @@
 {
   "openapi": "3.0.1",
+  "info": { "title": "Test Spec", "version": "1.0.0" },
   "paths": {
     "/flow/about": {
       "get": {
         "summary": "Get about info",
-        "responses": { "200": {} }
+        "responses": { "200": { "description": "OK" } }
       }
     },
     "/processors/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
       "get": {
         "summary": "Get processor",
         "description": "Pre-existing description",
@@ -15,7 +19,7 @@
       },
       "delete": {
         "summary": "Delete processor",
-        "responses": { "200": {}, "404": {} }
+        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
       }
     }
   }
