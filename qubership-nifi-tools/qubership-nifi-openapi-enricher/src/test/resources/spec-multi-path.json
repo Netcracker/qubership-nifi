@@ -1,0 +1,22 @@
+{
+  "openapi": "3.0.1",
+  "paths": {
+    "/flow/about": {
+      "get": {
+        "summary": "Get about info",
+        "responses": { "200": {} }
+      }
+    },
+    "/processors/{id}": {
+      "get": {
+        "summary": "Get processor",
+        "description": "Pre-existing description",
+        "responses": { "200": { "description": "OK" } }
+      },
+      "delete": {
+        "summary": "Delete processor",
+        "responses": { "200": {}, "404": {} }
+      }
+    }
+  }
+}

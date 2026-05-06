@@ -1,0 +1,18 @@
+{
+  "openapi": "3.0.1",
+  "paths": {
+    "/processors": {
+      "post": {
+        "summary": "Create processor",
+        "responses": {
+          "200": {},
+          "201": {},
+          "202": {},
+          "default": {},
+          "404": {},
+          "400": {}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "openapi": "3.0.1",
+  "paths": {
+    "/flow/about": {
+      "get": {
+        "summary": "Get about info",
+        "tags": ["Flow"],
+        "responses": {
+          "200": {},
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}

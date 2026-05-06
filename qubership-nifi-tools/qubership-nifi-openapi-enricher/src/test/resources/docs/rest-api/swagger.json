@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "info": { "title": "NiFi REST API", "version": "test" },
+  "paths": {
+    "/nifi-api/resources": {
+      "get": {
+        "summary": "Gets the resources",
+        "tags": ["Resources"],
+        "responses": {
+          "200": { "content": {} },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  }
+}

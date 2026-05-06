@@ -1,8 +1,9 @@
-# qubership-nifi-openapi-spec-enricher-tool
+# qubership-nifi-openapi-enricher
 
 Command-line tool for enriching OpenAPI specification from Apache NiFi to pass APIHUB validation rules.
 
 It loads Apache NiFi OpenAPI specification and makes the following changes:
+
 1. adds servers, if they are missing
 2. adds default descriptions (`successful operation`) for all 2xx responses
 3. adds default descriptions = summary for all operations without description
@@ -21,7 +22,7 @@ Run the tool from the repository root via the exec-maven-plugin:
 
 ```shell
 mvn exec:java \
-  -pl qubership-nifi-tools/qubership-nifi-openapi-spec-enricher-tool \
+  -pl qubership-nifi-tools/qubership-nifi-openapi-enricher \
   -Dexec.args="--output-dir ./openapi"
 ```
 
@@ -38,5 +39,12 @@ Parameters are optional; omit any to use the default value.
 Unit tests:
 
 ```shell
-mvn test -pl qubership-nifi-tools/qubership-nifi-openapi-spec-enricher-tool
+mvn test -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
+```
+
+Integration tests:
+
+```shell
+mvn verify -P tools-integration-tests -DskipUnitTests=true -Dgpg.skip=true \
+    -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
 ```

@@ -1,0 +1,16 @@
+{
+  "openapi": "3.0.1",
+  "servers": [{ "url": "https://example.com" }],
+  "paths": {
+    "/flow/about": {
+      "get": {
+        "summary": "Get about info",
+        "description": "Already has description",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    }
+  },
+  "tags": [{ "name": "Flow", "description": "Custom Flow description" }]
+}

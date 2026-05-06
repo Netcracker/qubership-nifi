@@ -1,0 +1,5 @@
+{
+  "openapi": "3.0.1",
+  "paths": {},
+  "tags": [{ "name": "Flow", "description": "Custom Flow description" }]
+}

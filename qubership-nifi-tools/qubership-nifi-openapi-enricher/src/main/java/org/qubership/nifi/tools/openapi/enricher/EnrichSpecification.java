@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
+/**
+ * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass APIHUB validations.
+ */
 public class EnrichSpecification {
     private static final Logger LOG = LoggerFactory.getLogger(EnrichSpecification.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -36,21 +39,6 @@ public class EnrichSpecification {
             serversArray.add(serverObject);
             ((ObjectNode) spec).set("servers", serversArray);
         }
-    }
-
-    /**
-     * Get resource as input stream from classpath.
-     *
-     * @param resourceName the resource name
-     * @return input stream for the resource
-     * @throws IOException if resource not found
-     */
-    private static InputStream getResourceAsStream(String resourceName) throws IOException {
-        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
-        if (is == null) {
-            throw new IOException("Resource not found: " + resourceName);
-        }
-        return is;
     }
 
     private String getDefaultResponseDescription(String responseCode) {
@@ -104,7 +92,7 @@ public class EnrichSpecification {
 
     private void addTagsDescriptions(JsonNode spec) {
         JsonNode defaultTags = null;
-        try (InputStream in = getResourceAsStream("tagDescriptions.json")) {
+        try (InputStream in = ResourceUtils.getResourceAsStream("tagDescriptions.json")) {
             defaultTags = MAPPER.readTree(in);
         } catch (IOException e) {
             LOG.error("Failed to read tagDescriptions.json from resources");
@@ -115,5 +103,4 @@ public class EnrichSpecification {
             ((ObjectNode) spec).set("tags", defaultTags.path("tags"));
         }
     }
-
 }

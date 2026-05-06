@@ -2,13 +2,10 @@ package org.qubership.nifi.tools.openapi.enricher;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -16,30 +13,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * CLI entry point. Parses arguments and writes JSON output.
+ * CLI entry point. Parses arguments and writes OpenAPI specification in JSON format.
  */
 public final class Main {
 
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
-
     private static final String DEFAULT_OUTPUT_DIR = "./openapi";
 
     private Main() { }
-
-    /**
-     * Get resource as input stream from classpath.
-     *
-     * @param resourceName the resource name
-     * @return input stream for the resource
-     * @throws IOException if resource not found
-     */
-    private static InputStream getResourceAsStream(String resourceName) throws IOException {
-        InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourceName);
-        if (is == null) {
-            throw new IOException("Resource not found: " + resourceName);
-        }
-        return is;
-    }
 
     /**
      * Application entry point.
@@ -53,13 +34,12 @@ public final class Main {
         String outputDir = DEFAULT_OUTPUT_DIR;
 
         for (int i = 0; i < args.length; i++) {
-            switch (args[i]) {
-                case "--output-dir":
-                    outputDir = args[++i];
-                    break;
-                default:
-                    // ignore unknown flags
-                    break;
+            // ignore unknown flags
+            if (args[i].equals("--output-dir")) {
+                if (i + 1 >= args.length) {
+                    throw new IllegalArgumentException("--output-dir requires a value");
+                }
+                outputDir = args[++i];
             }
         }
 
@@ -68,7 +48,7 @@ public final class Main {
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode node = null;
-        try (InputStream in = getResourceAsStream("docs/rest-api/swagger.json")) {
+        try (InputStream in = ResourceUtils.getResourceAsStream("docs/rest-api/swagger.json")) {
             node = mapper.readTree(in);
         }
 
