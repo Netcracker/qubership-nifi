@@ -5,7 +5,7 @@ Command-line tool for enriching OpenAPI specification from Apache NiFi to pass A
 It loads Apache NiFi OpenAPI specification and makes the following changes:
 
 1. adds servers, if they are missing
-2. adds default descriptions (`successful operation`) for all 2xx responses
+2. adds default descriptions (`successful operation`) for 200-202 and `default` responses
 3. adds default descriptions = summary for all operations without description
 4. adds tags with descriptions to specification root, if not present.
 
@@ -23,14 +23,14 @@ Run the tool from the repository root via the exec-maven-plugin:
 ```shell
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-openapi-enricher \
-  -Dexec.args="--output-dir ./openapi"
+  -Dexec.args="--output-dir ./docs/openapi"
 ```
 
 ## Parameters
 
-| Parameter      | Default     | Description                                   |
-|----------------|-------------|-----------------------------------------------|
-| `--output-dir` | `./openapi` | Directory where JSON output files are written |
+| Parameter      | Default          | Description                                   |
+|----------------|------------------|-----------------------------------------------|
+| `--output-dir` | `./docs/openapi` | Directory where JSON output files are written |
 
 Parameters are optional; omit any to use the default value.
 

@@ -19,6 +19,13 @@ public class EnrichSpecification {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
+     * Default constructor.
+     */
+    public EnrichSpecification() {
+        //default constructor
+    }
+
+    /**
      * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass APIHUB validations.
      * @param spec JsonNode with Apache NiFi OpenAPI specification
      * @return modified specification
@@ -72,17 +79,23 @@ public class EnrichSpecification {
         ObjectNode pathsNode = (ObjectNode) spec.path("paths");
         for (JsonNode pathNode : pathsNode) {
             if (pathNode.isObject()) {
-                //the only case:
                 ObjectNode pathNodeObj = (ObjectNode) pathNode;
                 for (Map.Entry<String, JsonNode> methodEntry : pathNodeObj.properties()) {
                     if (methodEntry.getValue().isObject()) {
-                        //the only case:
                         ObjectNode methodNodeObj = (ObjectNode) methodEntry.getValue();
                         addMissingResponseDescriptions(methodNodeObj);
-                        //
                         if (!methodNodeObj.has("description")) {
                             //if no description is set, set description = summary
-                            methodNodeObj.put("description", methodNodeObj.get("summary").asText());
+                            JsonNode summaryNode = methodNodeObj.path("summary");
+                            if (summaryNode.isMissingNode()) {
+                                LOG.warn("Skipping description update for node: summary not found for operationId = {}",
+                                        methodNodeObj.path("operationId").asText());
+                            } else if (summaryNode.isNull()) {
+                                LOG.warn("Skipping description update for node: summary is null for operationId = {}",
+                                        methodNodeObj.path("operationId").asText());
+                            } else {
+                                methodNodeObj.put("description", summaryNode.asText());
+                            }
                         }
                     }
                 }

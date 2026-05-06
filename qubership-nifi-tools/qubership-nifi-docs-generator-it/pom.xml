@@ -60,7 +60,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.4</version>
+                <version>${failsafe-plugin.version}</version>
                 <configuration>
                     <systemPropertyVariables>
                         <project.rootdir>${session.executionRootDirectory}</project.rootdir>

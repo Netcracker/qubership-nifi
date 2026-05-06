@@ -49,7 +49,7 @@ class OpenApiEnricherIT {
     private static final int SUCCESS_EXIT_CODE = 0;
     private static final int MVN_TIMEOUT_SECONDS = 60;
     private static final int DRAIN_THREAD_BUFFER_SIZE = 4096;
-    private static final int DRAIN_THREAD_TIMEOUT_MS = 120000;
+    private static final int DRAIN_THREAD_TIMEOUT_MS = 45000;
 
     @Test
     void testEnricherProducesNoGitChanges() throws Exception {
@@ -67,30 +67,30 @@ class OpenApiEnricherIT {
             "--batch-mode",
             "exec:java",
             "-pl", "qubership-nifi-tools/qubership-nifi-openapi-enricher",
-            "-Dexec.args=--output-dir ./openapi"
+            "-Dexec.args=--output-dir ./docs/openapi"
         ));
         assertEquals(SUCCESS_EXIT_CODE, exitCode,
             "openapi-spec-enricher exec:java exited with a non-zero code. Check output above.");
 
-        File openapiJson = new File(projectRoot, "openapi/openapi.json");
+        File openapiJson = new File(projectRoot, "docs/openapi/openapi.json");
         assertTrue(openapiJson.exists(),
-            "openapi/openapi.json was not generated. Make sure the tool ran successfully.");
+            "docs/openapi/openapi.json was not generated. Make sure the tool ran successfully.");
 
         try (Git git = Git.open(projectRoot)) {
             Set<String> untracked = git.status().call().getUntracked();
-            assertFalse(untracked.contains("openapi/openapi.json"),
-                "openapi/openapi.json is untracked. "
+            assertFalse(untracked.contains("docs/openapi/openapi.json"),
+                "docs/openapi/openapi.json is untracked. "
                 + "Generate the file and commit it first: "
                 + "mvn exec:java -pl qubership-nifi-tools/qubership-nifi-openapi-enricher");
 
             List<DiffEntry> diffResult = git.diff()
-                .setPathFilter(PathFilter.create("openapi/openapi.json"))
+                .setPathFilter(PathFilter.create("docs/openapi/openapi.json"))
                 .call();
             assertEquals(0, diffResult.size(),
-                "openapi/openapi.json has local changes after running the enricher tool. "
+                "docs/openapi/openapi.json has local changes after running the enricher tool. "
                 + "The committed file is out of date. Re-run "
                 + "'mvn exec:java -pl qubership-nifi-tools/qubership-nifi-openapi-enricher' "
-                + "and commit the result.");
+                + "check and commit the result.");
         }
     }
 

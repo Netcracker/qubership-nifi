@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -21,6 +22,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
