@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2025 NetCracker Technology Corporation
+ * Copyright 2020-2026 NetCracker Technology Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration test that invokes the openapi-spec-enricher tool against the project
- * and verifies that openapi/openapi.json has no uncommitted changes.
+ * and verifies that docs/openapi/openapi.json has no uncommitted changes.
  *
  * <p>Run via: {@code mvn verify -P tools-integration-tests -DskipUnitTests=true -Dgpg.skip=true
  * -pl qubership-nifi-tools/qubership-nifi-openapi-enricher}
