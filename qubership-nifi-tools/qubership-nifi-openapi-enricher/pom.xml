@@ -14,7 +14,7 @@
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>CLI tool that enriches Apache NiFi openapi spec with additional parameters to pass APIHUB validations.</description>
+    <description>CLI tool that enriches Apache NiFi openapi spec with additional parameters to pass API Hub validations.</description>
 
     <dependencies>
         <dependency>

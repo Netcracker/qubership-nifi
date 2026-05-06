@@ -1,6 +1,6 @@
 # qubership-nifi-openapi-enricher
 
-Command-line tool for enriching OpenAPI specification from Apache NiFi to pass APIHUB validation rules.
+Command-line tool for enriching OpenAPI specification from Apache NiFi to pass API Hub validation rules.
 
 It loads Apache NiFi OpenAPI specification and makes the following changes:
 

@@ -27,7 +27,7 @@ import java.io.InputStream;
 import java.util.Map;
 
 /**
- * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass APIHUB validations.
+ * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass API Hub validations.
  */
 public class EnrichSpecification {
     private static final Logger LOG = LoggerFactory.getLogger(EnrichSpecification.class);
@@ -41,7 +41,7 @@ public class EnrichSpecification {
     }
 
     /**
-     * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass APIHUB validations.
+     * Enriches Apache NiFi JSON OpenAPI specification with additional data to pass API Hub validations.
      * @param spec JsonNode with Apache NiFi OpenAPI specification
      * @return modified specification
      */
