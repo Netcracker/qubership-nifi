@@ -101,7 +101,7 @@ Put `dictionary.yaml` into `qubership-nifi-tools/qubership-nifi-component-compar
 where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replaced with `_`.
 Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml`.
 
-## 13. Update openapi specification
+## 13. Update OpenAPI specification
 ```bash
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
