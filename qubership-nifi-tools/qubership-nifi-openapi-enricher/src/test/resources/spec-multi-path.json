@@ -5,7 +5,7 @@
     "/flow/about": {
       "get": {
         "summary": "Get about info",
-        "responses": { "200": { "description": "OK" } }
+        "responses": { "200": {} }
       }
     },
     "/processors/{id}": {
@@ -19,7 +19,7 @@
       },
       "delete": {
         "summary": "Delete processor",
-        "responses": { "200": { "description": "OK" }, "404": { "description": "Not found" } }
+        "responses": { "200": {}, "404": {} }
       }
     }
   }

@@ -7,7 +7,7 @@
         "summary": "Get about info",
         "tags": ["Flow"],
         "responses": {
-          "200": { "description": "OK" },
+          "200": {},
           "404": { "description": "Not found" }
         }
       }
