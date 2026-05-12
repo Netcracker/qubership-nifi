@@ -236,7 +236,7 @@ deprecatedComponents='{
     },
     "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage": {
         "level": "Warning",
-        "version": "1.22.0",
+        "version": "1.16.0",
         "issue": "The DeleteAzureBlobStorage Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use DeleteAzureBlobStorage_v12 Processor instead of DeleteAzureBlobStorage."
     },
@@ -247,7 +247,7 @@ deprecatedComponents='{
     },
     "org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage": {
         "level": "Warning",
-        "version": "1.22.0",
+        "version": "1.16.0",
         "issue": "The FetchAzureBlobStorage Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use FetchAzureBlobStorage_v12 Processor instead of FetchAzureBlobStorage."
     },
@@ -364,7 +364,7 @@ deprecatedComponents='{
     },
     "org.apache.nifi.processors.azure.storage.ListAzureBlobStorage": {
         "level": "Warning",
-        "version": "1.22.0",
+        "version": "1.16.0",
         "issue": "The ListAzureBlobStorage Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use ListAzureBlobStorage_v12 Processor instead of ListAzureBlobStorage."
     },
@@ -421,7 +421,7 @@ deprecatedComponents='{
     },
     "org.apache.nifi.processors.azure.storage.PutAzureBlobStorage": {
         "level": "Warning",
-        "version": "1.22.0",
+        "version": "1.16.0",
         "issue": "The PutAzureBlobStorage Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use PutAzureBlobStorage_v12 Processor instead of PutAzureBlobStorage."
     },
@@ -707,6 +707,12 @@ deprecatedComponents='{
         "level": "Error",
         "issue": "The KafkaRecordSink_2_6 Controller Service is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+    },
+    "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService": {
+        "level": "Warning",
+        "version": "1.16.0",
+        "issue": "The AzureStorageCredentialsControllerService Controller Service is not available in Apache NiFi 2.x.",
+        "solution": "Update the flow to use AzureStorageCredentialsControllerService_v12 Controller Service instead of AzureStorageCredentialsControllerService."
     }
 }'
 
@@ -809,7 +815,7 @@ for flowName in "${exportFlow[@]}"; do
     $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
-    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .name + " (" + (if has("identifier") then .identifier else .id end) + ")" + "\"" + $csvSeparator +
     "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Deprecated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
