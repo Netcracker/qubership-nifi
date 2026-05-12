@@ -67,82 +67,15 @@ python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nif
 - `--collect-vars` outputs a JSON object mapping each variable name to its occurrences
   (file path, PG name/UUID, value, reference count within the PG subtree) and a
   `values_differ` flag.
-- `--analyze` summarises every CSV row as AUTO, AI Agent, CONTEXT PLAN, or MANUAL.
+- `--analyze` summarises every CSV row as AUTO, AI Agent, CONTEXT PLAN, or MANUAL. AUTO rows include the processor name and UUID - use these directly in subsequent steps; do not re-discover UUIDs by searching flow JSON files.
 
-### Step 2b - AI analysis of variable data
+### Step 2b - Prepare upgrade decision plan
 
-Read the JSON produced by `--collect-vars`. For each variable, note:
-
-- **How many files/PGs define it** - appears in 1 vs. multiple flows
-- **Whether values differ** (`values_differ: true`) - means it can never go into a
-  common parameter context with a single value
-- **Total reference count per PG** - how many times `${varName}` appears in properties
-  within that PG's subtree
-
-Using this data, propose a parameter context plan. Specifically:
-
-1. **Common context candidates** - variables that appear in ≥ 2 PGs with the *same* value.
-   Propose a common parameter context for these. Suggest name to include some prefix related to top-level PG name to avoid conflicts with any existing contexts in the flows: e.g. `orchestrator-common-params` if the top-level PG is `Orchestrator`.
-2. **Per-flow context candidates** - variables unique to one PG, or that differ across PGs.
-   Propose a per-flow context for each affected PG.
-3. **Hardcoding candidates** - variables defined in only one PG *and* referenced <= 2 times
-   total in that PG's subtree. These may not be worth parameterising.
-4. **Variables with differing values** - propose separate per-flow contexts *or* hardcoding,
-   and note the conflicting values so the user can decide what to do. If the user chooses
-   hardcoding, add one entry to `HARDCODE_PLAN` per PG instead of creating per-flow contexts.
-
-**Rule for `apply_to`:** Include **every PG that defines a variable** in `apply_to`, even if
-its `reference_count = 0`. A PG with `ref_count = 0` is a variable *source* — `apply_variable_contexts`
-must still attach the parameter context to it and clear its `variables` dict. Omitting it
-leaves stale NiFi 1.x variable definitions in the flow.
-
-If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains a PrometheusRecordSink issue (any row
-whose `Issue` or `Solution` references `PrometheusRecordSink`), also ask the user what target
-type, bundle, and property mapping to use for the upgrade, showing these defaults:
-
-```python
-new_type   = "org.qubership.nifi.service.QubershipPrometheusRecordSink"
-new_bundle = {"group": "org.qubership.nifi", "artifact": "qubership-service-nar", "version": "1.0.7"}
-prop_map   = {
-    "prometheus-reporting-task-metrics-endpoint-port": "prometheus-sink-metrics-endpoint-port",
-    "prometheus-reporting-task-instance-id":           "prometheus-sink-instance-id",
-    "prometheus-reporting-task-ssl-context":           None,  # dropped
-    "prometheus-reporting-task-client-auth":           None,  # dropped
-}
-```
-
-If the user accepts the defaults, use them as-is. Skip this question when
-`NIFI_SOURCE_VERSION >= 1.28.1` or no PrometheusRecordSink issue is present in the CSV.
-
-If the CSV contains a Proxy property warning (any row whose `Warning` or `Solution` references `Proxy properties in InvokeHTTP`), list the process group from `exports_dir` and ask the user in which process group the Proxy Configuration Service should be created.
-Compare the InvokeHTTP property values ​​of the processors affected by the Proxy properties warning:
-1. If they are the same, create a single shared Controller Service.
-2. If the values ​​differ, create multiple Controller Services with unique names.
-
-Skip this question when no Proxy properties warning is present in the CSV.
-
-If the CSV contains a Access Key ID and Secret Access Key warning (any row whose `Warning` or `Solution` references `Access Key ID and Secret Access Key`), list the process group from `exports_dir` and ask the user in which process group the AWS Credentials Provider service should be created.
-
-For each affected processor, check whether the `Access Key ID` and `Secret Access Key` properties are present in the processor. If both are absent or empty, inform the user that the `AWSCredentialsProviderControllerService` will be created with empty credentials and that they will need to configure it manually in NiFi UI after the script runs:
-1. Open the process group that contains the service
-2. Go to Controller Services and find `AWSCredentialsProviderService`
-3. Click Edit, set `Access Key` and `Secret Key`, then enable the service
-If you are going create multiple Controller Services, you must assign them unique names.
-
-Skip this question when no Access Key ID and Secret Access Key warning is present in the CSV.
-
-Then use AskUserQuestion tool to ask the following questions before generating any run script:
-
-- Do the proposed context names work, or should they be different?
-- Should any hardcoding candidates actually be hardcoded instead of parameterised?
-  (If so, which ones, and what value should be used?)
-- For variables with differing values across flows: should each flow get its own parameter
-  context, or does the user want to unify on one value?
-- Are there variables that should be excluded from parameterisation entirely?
-- Any other questions you judge relevant given what you see in the data (e.g. consolidating
-  many small per-PG contexts into one, grouping by environment, etc.)
-
-Only proceed to Step 3 once the user has answered.
+1. If the `--analyze` output contains any `[CONTEXT PLAN]` rows, **or** if the JSON produced by `--collect-vars` is not empty (variables present in the flow but not flagged by the advisor), open and follow `references/parameter-context-planning.md`.
+2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains any row whose `Issue` references `PrometheusRecordSink`, open and follow `references/prometheus-record-sink-analysis.md`.
+3. If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`), open and follow `references/proxy-properties-handling.md`.
+4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references `Access Key ID and Secret Access Key`), open and follow `references/aws-components-analysis.md`.
+5. Ensure all user questions  from the applicable reference files have complete answers before proceeding to Step 3.
 
 ### Step 3 - Generate the run script
 
@@ -192,10 +125,33 @@ NIFI_SOURCE_VERSION = "<detected_version>"
 #   {"new_type": "...", "new_bundle": {...}, "prop_map": {...}}
 PROMETHEUS_UPGRADE_PARAMS = {}
 
+# Only needed when a StandardProxyConfigurationService should live in a different file
+# than the InvokeHTTP processor. Keyed by processor UUID (from --analyze output).
+# Leave as {} if the CS should be created in the same file as the processor.
+INVOKEHTTP_CROSS_FILE = {
+    # "<invokehttp-processor-uuid>": {
+    #     "group_key":      "<any-unique-string-for-deduplication>",
+    #     "parent_pg_path": "<exports_dir>/relative/path/to/parent.json",
+    #     "child_pg_path":  "<exports_dir>/relative/path/to/child.json",
+    # },
+}
+
+# Same structure as INVOKEHTTP_CROSS_FILE, for AWSCredentialsProviderControllerService.
+# Leave as {} if the CS should be in the same file as the S3 processor.
+S3_CROSS_FILE = {
+    # "<s3-processor-uuid>": {
+    #     "group_key":      "<any-unique-string-for-deduplication>",
+    #     "parent_pg_path": "<exports_dir>/relative/path/to/parent.json",
+    #     "child_pg_path":  "<exports_dir>/relative/path/to/child.json",
+    # },
+}
+
 apply_csv_transforms(
     CSV_PATH, EXPORTS_DIR,
     nifi_version=NIFI_SOURCE_VERSION,
     prometheus_params=PROMETHEUS_UPGRADE_PARAMS,
+    invokehttp_cross_file=INVOKEHTTP_CROSS_FILE or None,
+    s3_cross_file=S3_CROSS_FILE or None,
 )
 apply_variable_contexts(EXPORTS_DIR, PARAMETER_CONTEXT_PLAN)
 apply_hardcoded_values(EXPORTS_DIR, HARDCODE_PLAN)
@@ -224,7 +180,7 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
      `session.transfer(ff, REL_SUCCESS)`, `session.transfer(ff, REL_FAILURE)`
    - If translation is uncertain, emit a Groovy stub with the original in a comment block
 3. Update the processor in the JSON via Edit tool:
-   - Set `Script Engine` → `"Groovy"`
+   - Set `Script Engine` = `"Groovy"`
    - Set `Script Body` to:
      ```groovy
      // Auto-translated from <language> by apply-upgrade-advisor-recommendations. Review before use.
@@ -236,9 +192,10 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
      */
      ```
 
-### Step 6 - Checking accompanying files
+### Step 6 - Adapt other repository files
 
-Check the files in the repository and identify the files related to the changes. If you find files related to the changes, apply the changes to them.
+1. Enumerate candidate files, then **filter out** the following before reading anything: `tmp/`, `<exports_dir>/`, `<csv_path>`, `.claude/skills/apply-upgrade-advisor-recommendations/`, build artifacts and `.git/`. Only read files that survive the filter.
+2. For each remaining file, check whether the changes from steps 4–5 require a corresponding update — for example: adding new controller service to an enable-list, a renamed property referenced in config, a parameterised variable mentioned in configuration or documentation file. If in doubt, propose the change and ask the user to confirm before applying it.
 
 ### Step 7 - Report
 
@@ -257,8 +214,8 @@ Summarise:
 | `Variables are not available` | Steps 2b + 3 - AI-assisted parameter context design |
 | S3 hardcoded credentials | `apply_csv_transforms` - creates AWSCredentialsProviderControllerService; if `Access Key ID` and `Secret Access Key` are absent from the processor, credentials must be filled in manually in NiFi UI after the script runs |
 | `ConvertJSONToSQL` | `apply_csv_transforms` - migrates to PutDatabaseRecord + JsonTreeReader |
-| Kafka version upgrades (1_0/2_0 → 2_6) | `apply_csv_transforms` - type rename only |
-| Azure Storage → _v12 | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual** |
+| Kafka version upgrades (1_0/2_0 to 2_6) | `apply_csv_transforms` - type rename only |
+| Azure Storage to _v12 | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual** |
 | Level = Error | Always manual - report the solution from the CSV |
 | `ConvertExcelToCSVProcessor`, `ConvertAvroToJSON` | Manual - complex restructuring needed |
 
@@ -270,11 +227,11 @@ Summarise:
 - JSON files are written with `indent=4`, key order preserved.
 - If a processor UUID from the CSV is not found in the flow JSON, a `[WARN]` is logged and
   the row is skipped (does not abort the run).
-- `apply_variable_contexts` replaces `${varName}` → `#{varName}` **only** for variable names
+- `apply_variable_contexts` replaces `${varName}` with `#{varName}` **only** for variable names
   that are part of the parameter context plan for the given PG (including inherited parameters
   from parent contexts). FlowFile attribute expressions like `${filename}` or `${uuid()}` are
   left untouched.
-- `apply_hardcoded_values` replaces `${varName}` → the literal string value directly in
+- `apply_hardcoded_values` replaces `${varName}` with the literal string value directly in
   processor/service properties. Use for variables with `values_differ: true` when the user
   prefers hardcoding over per-flow parameter contexts. Each flow file is loaded once even
   when multiple variables in the same file are hardcoded.

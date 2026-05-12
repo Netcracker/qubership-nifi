@@ -892,3 +892,78 @@ def test_apply_csv_transforms_s3_manual_message_routing(tmp_path, capsys):
     manual_section = out.split("=== Manual Action Required ===")[1].split("===")[0]
     assert "[MANUAL]" not in applied_section
     assert "[MANUAL]" in manual_section
+
+
+# ---------------------------------------------------------------------------
+# Standalone controller-service file tests (REST API format)
+# ---------------------------------------------------------------------------
+
+def _write_standalone_service(tmp_path: Path, rel_path: str, component: dict) -> Path:
+    """Write a NiFi REST API format controller-service file."""
+    svc_file = tmp_path / rel_path
+    svc_file.parent.mkdir(parents=True, exist_ok=True)
+    svc_file.write_text(json.dumps({"component": component}))
+    return svc_file
+
+
+def test_apply_csv_transforms_standalone_azure_credentials(tmp_path, capsys):
+    component = {
+        "name": "CommonAzureStorageCredentialsControllerService",
+        "type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService",
+        "bundle": {"group": "org.apache.nifi", "artifact": "nifi-azure-nar", "version": "1.28.1"},
+        "controllerServiceApis": [
+            {"type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsService",
+             "bundle": {"group": "org.apache.nifi", "artifact": "nifi-azure-services-api-nar", "version": "1.28.1"}}
+        ],
+        "properties": {"storage-account-key": "key123", "storage-sas-token": None},
+    }
+    svc_file = _write_standalone_service(tmp_path, "controller-services/MyAzureSvc.json", component)
+    csv_path = _write_csv(tmp_path, [
+        _csv_row(
+            "controller-services/MyAzureSvc.json",
+            "The AzureStorageCredentialsControllerService Controller Service is not available in Apache NiFi 2.x.",
+            proc="AzureStorageCredentialsControllerService ()",
+        )
+    ])
+    apply_csv_transforms(csv_path, str(tmp_path))
+
+    result = json.loads(svc_file.read_text())
+    comp = result["component"]
+    assert comp["type"].endswith("AzureStorageCredentialsControllerService_v12")
+    assert comp["controllerServiceApis"][0]["type"].endswith("AzureStorageCredentialsService_v12")
+    assert comp["properties"]["credentials-type"] == "ACCOUNT_KEY"
+
+    out = capsys.readouterr().out
+    assert "[FIXED]" in out
+    assert "[MANUAL]" not in out.split("=== Manual Action Required ===")[1].split("===")[0]
+
+
+def test_apply_csv_transforms_standalone_prometheus(tmp_path, capsys):
+    component = {
+        "name": "CommonPrometheusRecordSink",
+        "type": "org.apache.nifi.reporting.prometheus.PrometheusRecordSink",
+        "bundle": {"group": "org.apache.nifi", "artifact": "nifi-prometheus-nar", "version": "1.28.1"},
+        "properties": {
+            "prometheus-reporting-task-metrics-endpoint-port": "19192",
+            "prometheus-reporting-task-instance-id": "${hostname(true)}",
+            "prometheus-reporting-task-client-auth": "No Authentication",
+        },
+    }
+    svc_file = _write_standalone_service(tmp_path, "controller-services/MyPromSvc.json", component)
+    csv_path = _write_csv(tmp_path, [
+        _csv_row(
+            "controller-services/MyPromSvc.json",
+            "The PrometheusRecordSink Controller Service is not available in Apache NiFi 2.x.",
+            proc="CommonPrometheusRecordSink ()",
+        )
+    ])
+    apply_csv_transforms(csv_path, str(tmp_path))
+
+    result = json.loads(svc_file.read_text())
+    comp = result["component"]
+    assert "qubership" in comp["type"].lower()
+    assert "prometheus-sink-metrics-endpoint-port" in comp["properties"]
+    assert comp["properties"]["prometheus-sink-metrics-endpoint-port"] == "19192"
+    assert "prometheus-sink-instance-id" in comp["properties"]
+    assert "prometheus-reporting-task-metrics-endpoint-port" not in comp["properties"]
+    assert "prometheus-reporting-task-client-auth" not in comp["properties"]

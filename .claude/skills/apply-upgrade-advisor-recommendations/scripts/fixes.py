@@ -61,8 +61,8 @@ def fix_invokehttp_proxy(
         "Proxy Host":     "proxy-server-host",
         "Proxy Port":     "proxy-server-port",
         "Proxy Type":     "proxy-type",
-        "Proxy Username": "proxy-user-name",
-        "Proxy Password": "proxy-user-password",
+        "invokehttp-proxy-user": "proxy-user-name",
+        "invokehttp-proxy-password": "proxy-user-password",
     }
     proxy_type_map = {
         "DIRECT": "DIRECT", "direct": "DIRECT",
@@ -759,6 +759,8 @@ def _classify_row(row: dict) -> str:
         return "fix_type_rename"
     if "prometheusrecordsink" in issue:
         return "fix_prometheus"  # handled by upgrade_prometheus_record_sink()
+    if re.search(r"azurestoragecredentialscontrollerservice", issue.replace(" ", "")):
+        return "fix_azure_credentials"  # handled by upgrade_azure_credentials_service()
 
     return "manual"
 
@@ -806,7 +808,11 @@ def apply_csv_transforms(
             continue
 
         root = file_cache[rel_path]
-        flow_contents = root.get("flowContents", root)
+        # REST API format (standalone controller-service exports) has "component" but not "flowContents"
+        if "component" in root and "flowContents" not in root:
+            flow_contents = {"controllerServices": [root["component"]]}
+        else:
+            flow_contents = root.get("flowContents", root)
 
         svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
         if svc_applied:
@@ -850,6 +856,10 @@ def apply_csv_transforms(
 
             if handler == "fix_prometheus":
                 # Already handled by upgrade_prometheus_record_sink() above
+                continue
+
+            if handler == "fix_azure_credentials":
+                # Already handled by upgrade_azure_credentials_service() above
                 continue
 
             if not proc_uuid:
