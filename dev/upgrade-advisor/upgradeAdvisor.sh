@@ -64,7 +64,7 @@ deprecatedComponents='{
         "level": "Warning",
         "version": "1.23.0",
         "issue": "The ConvertExcelToCSVProcessor Processor is not available in Apache NiFi 2.x.",
-        "solution": "Update the flow to use ConvertRecord Processor instead of ConvertExcelToCSVProcessor. This may require adjusting the properties and connections in the flow, as well as creation of necessary ExcelReader and CSVRecordSetWriter."
+        "solution": "Update the flow to use ConvertRecord Processor instead of ConvertExcelToCSVProcessor. This may require adjusting the properties and connections in the flow, as well as creation of necessary ExcelReader and CSVRecordSetWriter. Note: if multiple sheets are parsed, ConvertExcelToCSVProcessor creates separate FlowFile for each sheet, whereas ConvertRecord+ExcelReader creates single FlowFile for all sheets."
     },
     "org.apache.nifi.couchbase.CouchbaseClusterService": {
         "level": "Error",
