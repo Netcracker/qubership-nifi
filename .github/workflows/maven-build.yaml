@@ -123,7 +123,7 @@ jobs:
           server-password: GITHUB_TOKEN
       - name: Run local maven build with sonar
         #skip if explicit skip is set or when SONAR_HOST_URL or SONAR_TOKEN are empty
-        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && secrets.SONAR_TOKEN }}
+        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && env.SONAR_TOKEN }}
         run: >
           mvn --batch-mode package
           -Dgpg.skip=true
@@ -139,10 +139,12 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run local maven build w/o sonar
-        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL }}
+        #execute if explicit skip is set or when either SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL || !env.SONAR_TOKEN }}
         run: >
           mvn --batch-mode package -Dgpg.skip=true
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run tools integration tests
