@@ -1,0 +1,69 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Test Spec",
+        "version": "1.0.0"
+    },
+    "security": [
+        {
+            "HTTPBearerJWT": []
+        },
+        {
+            "CookieSecureAuthorizationBearer": []
+        }
+    ],
+    "paths": {
+        "/flow/about": {
+            "get": {
+                "summary": "Get about info",
+                "responses": {
+                    "200": {}
+                }
+            }
+        },
+        "/processors/{id}": {
+            "parameters": [
+                {
+                    "name": "id",
+                    "in": "path",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ],
+            "get": {
+                "summary": "Get processor",
+                "description": "Pre-existing description",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete processor",
+                "responses": {
+                    "200": {},
+                    "404": {}
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "HTTPBearerJWT": {
+                "bearerFormat": "JWT",
+                "description": "HTTP Bearer authentication with JSON Web Token",
+                "scheme": "Bearer",
+                "type": "http"
+            },
+            "CookieSecureAuthorizationBearer": {
+                "description": "JSON Web Token authentication with session cookie",
+                "in": "cookie",
+                "name": "__Secure-Authorization-Bearer",
+                "type": "apiKey"
+            }
+        }
+    }
+}

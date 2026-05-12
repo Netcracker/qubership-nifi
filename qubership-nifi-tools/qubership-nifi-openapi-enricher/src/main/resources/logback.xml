@@ -15,21 +15,22 @@
  limitations under the License.
 -->
 
-<configuration scan="false" scanPeriod="30 seconds">
-    <shutdownHook class="ch.qos.logback.core.hook.DefaultShutdownHook" />
 
+<configuration scan="true" scanPeriod="30 seconds">
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>
     </contextListener>
-    <variable name="ROOT_LOG_LEVEL" value="${ROOT_LOG_LEVEL:-INFO}" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.SSS}][%-5p] [request_id=%-15X{requestId:--}] [tenant_id=%-36X{tenantId:--}] [thread=%-25.25t] [class=%-60.60c{59}] [method=%-30.30M] [version=${DEPLOYMENT_VERSION}] [originating_bi_id=%-16X{originating_bi_id:--}] [business_identifiers=%-16X{business-identifiers:--}] [traceId=%-16X{traceId:--}] [spanId=%-16X{spanId:--}] %m%n</pattern>
+            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
         </encoder>
     </appender>
 
-    <root level="${ROOT_LOG_LEVEL}">
+    <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
+
+    <root level="${ROOT_LOG_LEVEL:-INFO}">
         <appender-ref ref="CONSOLE" />
     </root>
+
 </configuration>

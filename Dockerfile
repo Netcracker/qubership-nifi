@@ -15,8 +15,8 @@
 ARG NIFI_VERSION='2.7.2'
 ARG NIFI_VERSION_SHA256='sha256:f6a1d2bcca0819f825cdc0a6719dfaca58e9986c97b696831597e69bdaf5364f'
 
-ARG BASE_IMAGE_VERSION='21-alpine-2.2.6'
-ARG BASE_IMAGE_VERSION_SHA256='sha256:61249d23501cec4c1ce883f61f241f5e3daea87214c88c68675ea222c8000c4a'
+ARG BASE_IMAGE_VERSION='21-alpine-2.2.13'
+ARG BASE_IMAGE_VERSION_SHA256='sha256:ed0ee1413fa27f2484f683efd2295e6f63bb0b3441873b8fa2c14e785313d0cb'
 
 FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
@@ -94,7 +94,6 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && chmod 775 $NIFI_HOME/python_extensions
 
 COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
-COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/

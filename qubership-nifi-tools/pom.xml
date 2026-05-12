@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.5.2-SNAPSHOT</version>
+        <version>2.5.5-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -32,9 +32,29 @@
     <description>Aggregator for NiFi tooling utilities</description>
 
     <properties>
+        <jetty.version>12.1.5</jetty.version>
         <!-- Skip ITs by default; enable with profile tools-integration-tests -->
         <skipITs>true</skipITs>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.databind.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-bom</artifactId>
+                <version>${slf4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <modules>
         <module>qubership-nifi-api-export-tool</module>
@@ -42,6 +62,7 @@
         <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-component-comparator-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
+        <module>qubership-nifi-openapi-enricher</module>
     </modules>
 
     <profiles>

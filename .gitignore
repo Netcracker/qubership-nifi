@@ -63,5 +63,8 @@ fabric.properties
 # All log files
 /**/*.log
 
+# NiFi upgrade skill: extracted reference files
+upgrade-temp-data/
+
 # Python cache
 /**/__pycache__

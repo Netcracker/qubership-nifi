@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -21,6 +22,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -119,10 +121,9 @@ jobs:
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
-          gpg-private-key: ${{ secrets.gpg-private-key }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Run local maven build with sonar
-        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL }}
+        #skip if explicit skip is set or when SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && env.SONAR_TOKEN }}
         run: >
           mvn --batch-mode package
           -Dgpg.skip=true
@@ -130,7 +131,6 @@ jobs:
           -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.organization=${SONAR_ORGANIZATION}
           -Dsonar.host.url=${SONAR_HOST_URL}
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PLUGIN_VERSION: "${{ vars.SONAR_PLUGIN_VERSION }}"
           SONAR_ORGANIZATION: "${{ vars.SONAR_ORGANIZATION }}"
@@ -139,11 +139,11 @@ jobs:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run local maven build w/o sonar
-        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL }}
+        #execute if explicit skip is set or when either SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL || !env.SONAR_TOKEN }}
         run: >
-          mvn --batch-mode package
+          mvn --batch-mode package -Dgpg.skip=true
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -155,7 +155,6 @@ jobs:
           # Run integration tests
           mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test results
