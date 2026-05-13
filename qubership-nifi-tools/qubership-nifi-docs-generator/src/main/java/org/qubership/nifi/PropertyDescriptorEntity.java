@@ -203,6 +203,6 @@ public class PropertyDescriptorEntity {
             return str;
         }
 
-        return str.replaceAll("\\$", "\\\\\\$");
+        return str.replace("$", "\\$");
     }
 }
