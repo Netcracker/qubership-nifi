@@ -38,17 +38,16 @@ public class MarkdownUtils {
             "<!-- End of additional reporting tasks description. DO NOT REMOVE. -->";
 
 
-    private static final String HEADER_BASE = " | NAR                 | Description        |";
-    private static final String HEADER_PROCESSORS = "| Processor " + HEADER_BASE;
-    private static final String HEADER_CONTROLLER_SERVICES = "| Controller Service " + HEADER_BASE;
-    private static final String HEADER_REPORTING_TASKS = "| Reporting Task " + HEADER_BASE;
-    private static final String TITLE_SEPARATOR = "|----------------------|--------------------|--------------------|";
+    private static final String HEADER_BASE = "|NAR|Description|";
+    private static final String HEADER_PROCESSORS = "|Processor" + HEADER_BASE;
+    private static final String HEADER_CONTROLLER_SERVICES = "|Controller Service" + HEADER_BASE;
+    private static final String HEADER_REPORTING_TASKS = "|Reporting Task" + HEADER_BASE;
+    private static final String TITLE_SEPARATOR = "|---|---|---|";
 
-    private static final String PROPERTIES_DESCRIPTION_HEADER = "| Display Name                      | API Name        "
-            + "    | Default Value      | Allowable Values   | Description        |";
+    private static final String PROPERTIES_DESCRIPTION_HEADER = "|Display Name|API Name"
+            + "|Default Value|Allowable Values|Description|";
 
-    private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|-----------------------------------|------"
-            + "---------------|--------------------|--------------------|--------------------|";
+    private static final String PROPERTIES_DESCRIPTION_TITLE_SEPARATOR = "|---|---|---|---|---|";
 
     private static final int DEFAULT_HEADER_LEVEL = 3;
     private static final int MIN_HEADER_LEVEL = 1;
@@ -171,13 +170,13 @@ public class MarkdownUtils {
         List<String> newTableRows = new ArrayList<>();
         if (!customComponentList.isEmpty()) {
             for (CustomComponentEntity customComponentEntity : customComponentList) {
-                String tableRow = "| "
+                String tableRow = "|"
                         + customComponentEntity.getComponentName()
-                        + " | "
+                        + "|"
                         + customComponentEntity.getComponentNar()
-                        + " | "
+                        + "|"
                         + customComponentEntity.getComponentDescription().replaceAll("\\r?\\n|\\r", "")
-                        + " |";
+                        + "|";
                 newTableRows.add(tableRow);
             }
         }
@@ -297,8 +296,8 @@ public class MarkdownUtils {
                                     ? entity.getAllowableValuesAsString() : "";
                             String description = entity.getDescriptionAsString() != null
                                     ? entity.getDescriptionAsString() : "";
-                            descriptionLines.add("| " + displayName + " | " + apiName + " | " + defaultValue + " | "
-                                    + allowableValuesStr + " | " + description + " |");
+                            descriptionLines.add("|" + displayName + "|" + apiName + "|" + defaultValue + "|"
+                                    + allowableValuesStr + "|" + description + "|");
                         } else {
                             getLog().error("Found null entity in list for component '"
                                     + componentName + "'");
