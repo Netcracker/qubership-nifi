@@ -21,6 +21,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 | BackupAttributes | migration-nifi-processors-open | Backups all FlowFile attributes by adding prefix to their names. |
 | PutGeneratedRecord | migration-nifi-processors-open | A processor that generates Records based on its properties and sends them to a destination specified by a Record Destination Service (i.e., record sink). The record source is defined by the 'Source Type' property, which can be either 'Dynamic Properties' or 'JSON Property'. If 'Source Type' is set to 'Dynamic Properties', each dynamic property becomes a field in the Record, with the field type automatically determined by the value type: string, double, or Record (if the dynamic property contains a JSON value and is listed in the 'List JSON Dynamic Property' property). If 'Source Type' is set to 'JSON Property', the Record is generated directly from the JSON value in the 'JSON Property'. |
 | QueryDatabaseToCSV | migration-nifi-processors-open | Fetches data from DB using specified query and transforms it to CSV in particular CSV format.The processor allows to split query result into several FlowFiles and select CSV format for output. |
+| QueryIdsAndFetchTableToJson | migration-nifi-processors-open |  |
 | PutSQLRecord | qubership-nifi-db-processors-nar | Executes given SQL statement using data from input records. All records within single  FlowFile are processed within single transaction. |
 | PostgreSQLBulkLoader | qubership-nifi-db-processors-nar | The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.It is also possible to copy from DB to FlowFile content. |
 
@@ -146,6 +147,24 @@ The processor allows to split query result into several FlowFiles and select CSV
 | Batch Size | batch-size | 0 |  | The maximum number of rows from the result set to be saved in a single FlowFile. If set to 0, then the whole result set is saved to a single FlowFile. |
 | Fetch Size | fetch-size | 10000 |  | The number of result rows to be fetched from the result set at a time.  This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
 | Write By Batch | write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
+
+### QueryIdsAndFetchTableToJson
+
+
+
+| Display Name                      | API Name            | Default Value      | Allowable Values   | Description        |
+|-----------------------------------|---------------------|--------------------|--------------------|--------------------|
+| Database Connection Pooling Service | Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the source database. |
+| Ids Database Connection Pooling Service | Ids Database Connection Pooling Service |  |  | The Controller Service that is used to obtain a connection to the mapping database. |
+| Prepared Statement Provider | prepared-statement-provider-service |  |  | The Controller Service that is used to create a prepared statement. |
+| Custom Query | custom-query |  |  | Custom query for Source Data Base. |
+| Ids Custom Query | ids-custom-query | ${mapping.db.query} |  | Custom request to get a list of id. |
+| Batch Size | batch-size | 1 |  | The maximum number of rows in table from source database from the result set to be saved  in a single FlowFile. |
+| Ids Batch Size | ids-batch-size | 1 |  | The maximum number of rows in table from ids database from the result. |
+| Fetch Size | fetch-size | 1 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact.  If the value specified is zero, then the hint is ignored. |
+| Ids Fetch Size | ids-fetch-size | 1 |  | The number of result rows to be fetched from the result set at a time. This is a hint to the database driver and may not be honored and/or exact. If the value specified is zero, then the hint is ignored. |
+| Write By Batch | write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
+| Ids Write By Batch | ids-write-by-batch | false | true, false | Write a type that corresponds to the behavior of appearing FlowFiles in the queue. |
 
 ### PutSQLRecord
 
