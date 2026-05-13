@@ -18,6 +18,7 @@ package org.qubership.nifi.processors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.qubership.nifi.NiFiUtils;
 import org.qubership.nifi.service.PreparedStatementProvider;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -53,6 +54,11 @@ import java.util.UUID;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"JSON", "DB"})
+@CapabilityDescription("Fetches data from source DB into JSON using query (Custom Query) and\n"
+        + " ids obtained from IDs DB with query (IDs Custom Query). IDs query is executed first, then\n"
+        + " for each batch of ids, main query is executed to get data and transform it to JSON. Data is\n"
+        + "collected until Batch Size is reached, then it is loaded into FlowFile.\n"
+        + " Data collection continues until all rows are processed.")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets mime.type = application/json"),
         @WritesAttribute(attribute = "fetch.id", description = "Sets to UUID"),
@@ -82,10 +88,11 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Mapping DB Connection property descriptor.
+     * IDs DB Connection property descriptor.
      */
     public static final PropertyDescriptor IDS_DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Ids Database Connection Pooling Service")
+            .displayName("IDs Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the mapping database.")
             .required(true)
             .identifiesControllerService(DBCPService.class)
@@ -116,12 +123,12 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids batch size property descriptor.
+     * IDs batch size property descriptor.
      */
     public static final PropertyDescriptor IDS_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-batch-size")
-            .displayName("Ids Batch Size")
-            .description("The maximum number of rows in table from ids database from the result.")
+            .displayName("IDs Batch Size")
+            .description("The maximum number of rows in table from IDs database from the result.")
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -142,11 +149,11 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids fetch size property descriptor.
+     * IDs fetch size property descriptor.
      */
     public static final PropertyDescriptor IDS_FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("ids-fetch-size")
-            .displayName("Ids Fetch Size")
+            .displayName("IDs Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. "
                     + "This is a hint to the database driver and may not be "
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
@@ -168,12 +175,12 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids custom query property descriptor.
+     * IDs custom query property descriptor.
      */
     public static final PropertyDescriptor IDS_CUSTOM_QUERY = new PropertyDescriptor.Builder()
             .name("ids-custom-query")
-            .displayName("Ids Custom Query")
-            .description("Custom request to get a list of id.")
+            .displayName("IDs Custom Query")
+            .description("Custom request to get a list of IDs.")
             .defaultValue("${mapping.db.query}")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -194,11 +201,11 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
             .build();
 
     /**
-     * Ids write by batch property descriptor.
+     * IDs write by batch property descriptor.
      */
     public static final PropertyDescriptor IDS_WRITE_BY_BATCH = new PropertyDescriptor.Builder()
             .name("ids-write-by-batch")
-            .displayName("Ids Write By Batch")
+            .displayName("IDs Write By Batch")
             .description("Write a type that corresponds to the behavior of appearing FlowFiles in the queue.")
             .required(false)
             .allowableValues("true", "false")
