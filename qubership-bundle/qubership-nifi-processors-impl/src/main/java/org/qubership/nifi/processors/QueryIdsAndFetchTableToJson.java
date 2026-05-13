@@ -55,8 +55,8 @@ import java.util.UUID;
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"JSON", "DB"})
 @CapabilityDescription("Fetches data from source DB into JSON using query (Custom Query) and\n"
-        + " ids obtained from IDs DB with query (IDs Custom Query). IDs query is executed first, then\n"
-        + " for each batch of ids, main query is executed to get data and transform it to JSON. Data is\n"
+        + " IDs obtained from IDs DB with query (IDs Custom Query). IDs query is executed first, then\n"
+        + " for each batch of IDs, main query is executed to get data and transform it to JSON. Data is\n"
         + "collected until Batch Size is reached, then it is loaded into FlowFile.\n"
         + " Data collection continues until all rows are processed.")
 @WritesAttributes({
@@ -93,7 +93,7 @@ public class QueryIdsAndFetchTableToJson extends AbstractProcessor {
     public static final PropertyDescriptor IDS_DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("Ids Database Connection Pooling Service")
             .displayName("IDs Database Connection Pooling Service")
-            .description("The Controller Service that is used to obtain a connection to the mapping database.")
+            .description("The Controller Service that is used to obtain a connection to the IDs database.")
             .required(true)
             .identifiesControllerService(DBCPService.class)
             .build();

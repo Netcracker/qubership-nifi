@@ -170,9 +170,9 @@ public class MarkdownUtils {
         List<String> newTableRows = new ArrayList<>();
         if (!customComponentList.isEmpty()) {
             for (CustomComponentEntity customComponentEntity : customComponentList) {
-                String tableRow = "|"
+                String tableRow = "|`"
                         + customComponentEntity.getComponentName()
-                        + "|"
+                        + "`|"
                         + customComponentEntity.getComponentNar()
                         + "|"
                         + customComponentEntity.getComponentDescription().replaceAll("\\r?\\n|\\r", "")
@@ -296,7 +296,7 @@ public class MarkdownUtils {
                                     ? entity.getAllowableValuesAsString() : "";
                             String description = entity.getDescriptionAsString() != null
                                     ? entity.getDescriptionAsString() : "";
-                            descriptionLines.add("|" + displayName + "|" + apiName + "|" + defaultValue + "|"
+                            descriptionLines.add("|" + displayName + "|`" + apiName + "`|" + defaultValue + "|"
                                     + allowableValuesStr + "|" + description + "|");
                         } else {
                             getLog().error("Found null entity in list for component '"
