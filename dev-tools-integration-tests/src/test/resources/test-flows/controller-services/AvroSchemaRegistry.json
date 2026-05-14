@@ -1,0 +1,99 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 2
+  },
+  "id": "1f7c4916-019d-1000-49a7-4df3e68ff83a",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f7c4916-019d-1000-49a7-4df3e68ff83a",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f7c4916-019d-1000-49a7-4df3e68ff83a",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "AvroSchemaRegistry",
+    "type": "org.apache.nifi.schemaregistry.services.AvroSchemaRegistry",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-registry-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.schemaregistry.services.SchemaRegistry",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "avro-reg-validated-field-names": "true",
+      "schema1": "{\n   \"type\":\"record\",\n   \"name\":\"TestRecord\",\n   \"fields\":[\n      {\n         \"name\":\"field1\",\n         \"type\":\"string\"\n      },\n      {\n         \"name\":\"field2\",\n         \"type\":\"string\"\n      }\n   ]\n}"
+    },
+    "descriptors": {
+      "avro-reg-validated-field-names": {
+        "name": "avro-reg-validated-field-names",
+        "displayName": "Validate Field Names",
+        "description": "Whether or not to validate the field names in the Avro schema based on Avro naming rules. If set to true, all field names must be valid Avro names, which must begin with [A-Za-z_], and subsequently contain only [A-Za-z0-9_]. If set to false, no validation will be performed on the field names.",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "schema1": {
+        "name": "schema1",
+        "displayName": "schema1",
+        "description": "",
+        "required": false,
+        "sensitive": false,
+        "dynamic": true,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "revision": {
+    "clientId": "06250f1e-019d-1000-6725-25fb4d6f1e6c",
+    "version": 2
+  },
+  "id": "06265b44-019d-1000-8d26-c56a4b86904e",
+  "uri": "https://localhost:8080/nifi-api/controller-services/06265b44-019d-1000-8d26-c56a4b86904e",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "06265b44-019d-1000-8d26-c56a4b86904e",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "StandardRestrictedSSLContextService",
+    "type": "org.apache.nifi.ssl.StandardRestrictedSSLContextService",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-ssl-context-service-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.ssl.RestrictedSSLContextService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      },
+      {
+        "type": "org.apache.nifi.ssl.SSLContextService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "Keystore Filename": "/etc/ssl/certs/java/cacerts",
+      "Keystore Password": "********",
+      "key-password": "********",
+      "Keystore Type": "JKS",
+      "Truststore Filename": "/etc/ssl/certs/java/cacerts",
+      "Truststore Password": "********",
+      "Truststore Type": "JKS",
+      "SSL Protocol": "TLSv1.3"
+    },
+    "descriptors": {
+      "Keystore Filename": {
+        "name": "Keystore Filename",
+        "displayName": "Keystore Filename",
+        "description": "The fully-qualified filename of the Keystore",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Keystore Password": {
+        "name": "Keystore Password",
+        "displayName": "Keystore Password",
+        "description": "The password for the Keystore",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "key-password": {
+        "name": "key-password",
+        "displayName": "Key Password",
+        "description": "The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Keystore Type": {
+        "name": "Keystore Type",
+        "displayName": "Keystore Type",
+        "description": "The Type of the Keystore",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "BCFKS",
+              "value": "BCFKS"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "PKCS12",
+              "value": "PKCS12"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "JKS",
+              "value": "JKS"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Truststore Filename": {
+        "name": "Truststore Filename",
+        "displayName": "Truststore Filename",
+        "description": "The fully-qualified filename of the Truststore",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Truststore Password": {
+        "name": "Truststore Password",
+        "displayName": "Truststore Password",
+        "description": "The password for the Truststore",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Truststore Type": {
+        "name": "Truststore Type",
+        "displayName": "Truststore Type",
+        "description": "The Type of the Truststore",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "BCFKS",
+              "value": "BCFKS"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "PKCS12",
+              "value": "PKCS12"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "JKS",
+              "value": "JKS"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "SSL Protocol": {
+        "name": "SSL Protocol",
+        "displayName": "TLS Protocol",
+        "description": "TLS Protocol Version for encrypted connections. Supported versions depend on the specific version of Java used.",
+        "defaultValue": "TLS",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "TLS",
+              "value": "TLS",
+              "description": "Negotiate latest protocol version based on platform supported versions"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "TLSv1.3",
+              "value": "TLSv1.3",
+              "description": "Require TLSv1.3 protocol version"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "TLSv1.2",
+              "value": "TLSv1.2",
+              "description": "Require TLSv1.2 protocol version"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

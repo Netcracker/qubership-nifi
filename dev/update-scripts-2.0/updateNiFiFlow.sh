@@ -7,7 +7,7 @@ handle_error() {
 }
 
 delete_tmp_file() {
-    rm -f ./proc_type_resp.json
+    rm -f ./flow-about.json
 }
 
 pathToFlow=$1
@@ -56,15 +56,15 @@ done
 
 echo "Flow for update: " "${listForUpdate[@]}"
 
-#Checking that the target version of NiFi is different from the one from which the export was made
-respCode=$(eval curl -sS -w '%{response_code}' -o ./proc_type_resp.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/processor-types")
+#Checking the target version of NiFi
+respCode=$(eval curl -sS -w '%{response_code}' -o ./flow-about.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/about")
 if [[ "$respCode" != "200" ]]; then
-    echo "Failed to get types of processors that this NiFi supports. Response code = $respCode. Error message:"
-    cat ./proc_type_resp.json
-    handle_error "Failed to define NiFi target version"
+    echo "Failed to GET /nifi-api/flow/about. Response code = $respCode. Error message:"
+    cat ./flow-about.json
+    handle_error "Failed to get target NiFi version"
 fi
 
-targetVer=$(<./proc_type_resp.json jq -r '.processorTypes[] | select(.type == "org.apache.nifi.processors.attributes.UpdateAttribute") | .bundle.version') || handle_error "Error determining version of target NiFi"
+targetVer=$(<./flow-about.json jq -r '.about.version') || handle_error "Error determining version of target NiFi. API response: $(cat ./flow-about.json)"
 
 echo "Target NiFi version - $targetVer"
 
@@ -72,5 +72,6 @@ echo "Target NiFi version - $targetVer"
 if [[ "$targetVer" =~ ^2\.[0-9]+\.[0-9]+$ ]]; then
     . ./increaseNiFiVersionUpdate.sh
 fi
+delete_tmp_file
 
 echo "Finish update flow process"

@@ -39,19 +39,31 @@ import static com.jayway.jsonpath.Option.ALWAYS_RETURN_LIST;
 
 public class JsonPathHelper {
 
+    /**
+     * JsonNode configuration with ALWAYS_RETURN_LIST option.
+     */
     public static final Configuration JACKSON_ALL_AS_LIST_CONFIGURATION = Configuration.builder()
             .options(ALWAYS_RETURN_LIST)
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .build();
 
+    /**
+     * Default JsonNode configuration.
+     */
     public static final Configuration DEFAULT_JACKSON_CONFIGURATION = Configuration.defaultConfiguration()
             .jsonProvider(new JacksonJsonNodeJsonProvider());
 
+    /**
+     * JsonNode configuration with SUPPRESS_EXCEPTIONS option.
+     */
     public static final Configuration CONFIGURATION_SUPPRESS_EXCEPTIONS = Configuration.builder()
             .options(Option.SUPPRESS_EXCEPTIONS)
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .build();
 
+    /**
+     * JsonNode configuration with AS_PATH_LIST option.
+     */
     public static final Configuration CONFIGURATION_GET_PATH_LIST_OF_ATTRIBUTE = Configuration.builder()
             .jsonProvider(new JacksonJsonNodeJsonProvider())
             .options(Option.AS_PATH_LIST)
@@ -63,6 +75,7 @@ public class JsonPathHelper {
 
     /**
      * Gets JSON document.
+     *
      * @return JSON document
      */
     public DocumentContext getJson() {
@@ -71,33 +84,28 @@ public class JsonPathHelper {
 
     /**
      * Create instance of JsonPathHelper.
+     *
      * @param input input JSON
      */
     public JsonPathHelper(final JsonNode input) {
-        this.json =
-                JsonPath.parse(
-                        input,
-                        JACKSON_ALL_AS_LIST_CONFIGURATION
-                );
+        this.json = JsonPath.parse(input, JACKSON_ALL_AS_LIST_CONFIGURATION);
     }
 
     /**
      * Creates instance of JsonPathHelper.
-     * @param input input JSON
+     *
+     * @param input         input JSON
      * @param configuration parser configuration
      */
     public JsonPathHelper(final JsonNode input, final Configuration configuration) {
-        this.json =
-                JsonPath.parse(
-                        input,
-                        configuration
-                );
+        this.json = JsonPath.parse(input, configuration);
     }
 
     /**
      * Extracts values from input JSON using specified JSON path and key.
+     *
      * @param path JSON path
-     * @param key key to use in addition to path to find values
+     * @param key  key to use in addition to path to find values
      * @return a list of values
      */
     public List<String> extractValuesByKey(String path, String key) {
@@ -107,12 +115,12 @@ public class JsonPathHelper {
         for (JsonNode node : resultNodes) {
             result.add(node.asText());
         }
-
         return result;
     }
 
     /**
      * Extracts values from input JSON using specified JSON path.
+     *
      * @param path JSON path
      * @return a list of values
      */
@@ -123,12 +131,12 @@ public class JsonPathHelper {
         for (JsonNode node : resultNodes) {
             result.add(node.asText());
         }
-
         return result;
     }
 
     /**
      * Merges JSONs in accordance with supplied context.
+     *
      * @param context JSON merge context that defines how and what to merge
      * @throws NodeToInsertNotFoundException
      * @throws KeyNodeNotExistsException
@@ -152,12 +160,13 @@ public class JsonPathHelper {
     }
 
     private boolean isValuesPresent(ArrayNode array) {
-        return array == null || array.size() == 0;
+        return array == null || array.isEmpty();
     }
 
     /**
      * Converts array node to map of JSON nodes with key from specified attribute.
-     * @param key attribute to use as Map key
+     *
+     * @param key   attribute to use as Map key
      * @param nodes input array node
      * @return map of keys and JSON nodes
      * @throws KeyNodeNotExistsException
@@ -187,6 +196,7 @@ public class JsonPathHelper {
 
     /**
      * Reads array node by JSON path.
+     *
      * @param path JSON path
      * @return array node
      * @throws NodeToInsertNotFoundException
@@ -194,7 +204,7 @@ public class JsonPathHelper {
     public ArrayNode readNodesByPath(String path) throws NodeToInsertNotFoundException {
         ArrayNode result = json.read(path);
 
-        if (result.size() == 0) {
+        if (result.isEmpty()) {
             throw new NodeToInsertNotFoundException("The path to objects is wrong: + " + path);
         }
 
@@ -272,29 +282,28 @@ public class JsonPathHelper {
     private void mergeValues(JsonMergeContext context) throws NodeToInsertNotFoundException {
         final ArrayNode nodesInWhichInsert = readNodesByPath(context.getPathToInsert());
 
-        context
-                .getNodes()
-                .forEach(
-                        value -> nodesInWhichInsert.forEach(
-                                node -> {
-                                    if (node.isObject()) {
-                                        if (context.isArray()) {
-                                            ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
-                                        } else {
-                                            ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
-                                        }
-                                    } else if (node.isArray()) {
-                                        ((ArrayNode) node).add(value);
-                                    }
+        context.getNodes().forEach(
+                value -> nodesInWhichInsert.forEach(
+                        node -> {
+                            if (node.isObject()) {
+                                if (context.isArray()) {
+                                    ((ObjectNode) node).withArray(context.getKeyToInsertTarget()).add(value);
+                                } else {
+                                    ((ObjectNode) node).set(context.getKeyToInsertTarget(), value);
                                 }
-                        )
-                );
+                            } else if (node.isArray()) {
+                                ((ArrayNode) node).add(value);
+                            }
+                        }
+                )
+        );
     }
 
     /**
      * Removes JSON node under specified path.
+     *
      * @param path JSON path
-     * @param key key within JSON path to remove
+     * @param key  key within JSON path to remove
      */
     public void cleanUp(String path, String key) {
         json.delete(path + JSON_PATH_DELIMITER + key);
@@ -302,6 +311,7 @@ public class JsonPathHelper {
 
     /**
      * Get JSON as JsonNode.
+     *
      * @return JsonNode
      */
     public JsonNode getJsonNode() {

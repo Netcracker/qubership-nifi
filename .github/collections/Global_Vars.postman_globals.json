@@ -6,6 +6,12 @@
             "value": "",
             "type": "default",
             "enabled": true
+        },
+        {
+            "key": "global.redis.pass",
+            "value": "",
+            "type": "default",
+            "enabled": true
         }
     ],
     "name": "My Workspace Globals",

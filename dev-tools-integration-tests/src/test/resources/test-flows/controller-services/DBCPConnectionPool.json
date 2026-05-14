@@ -1,0 +1,296 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 2
+  },
+  "id": "1f80681e-019d-1000-2a72-9dfc3d8ef03c",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f80681e-019d-1000-2a72-9dfc3d8ef03c",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f80681e-019d-1000-2a72-9dfc3d8ef03c",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "DBCPConnectionPool",
+    "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-dbcp-service-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.dbcp.DBCPService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": true,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": true,
+    "properties": {
+      "Database Connection URL": "jdbc:postgresql://postgresql:5432/postgres",
+      "Database Driver Class Name": "org.postgresql.Driver",
+      "database-driver-locations": null,
+      "kerberos-user-service": null,
+      "kerberos-credentials-service": null,
+      "kerberos-principal": null,
+      "kerberos-password": null,
+      "Database User": "postgres",
+      "Password": "********",
+      "Max Wait Time": "500 millis",
+      "Max Total Connections": "8",
+      "Validation-query": null,
+      "dbcp-min-idle-conns": "0",
+      "dbcp-max-idle-conns": "8",
+      "dbcp-max-conn-lifetime": "-1",
+      "dbcp-time-between-eviction-runs": "-1",
+      "dbcp-min-evictable-idle-time": "30 mins",
+      "dbcp-soft-min-evictable-idle-time": "-1"
+    },
+    "descriptors": {
+      "Database Connection URL": {
+        "name": "Database Connection URL",
+        "displayName": "Database Connection URL",
+        "description": "A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters. The exact syntax of a database connection URL is specified by your DBMS.",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Database Driver Class Name": {
+        "name": "Database Driver Class Name",
+        "displayName": "Database Driver Class Name",
+        "description": "Database driver class name",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "database-driver-locations": {
+        "name": "database-driver-locations",
+        "displayName": "Database Driver Location(s)",
+        "description": "Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "kerberos-user-service": {
+        "name": "kerberos-user-service",
+        "displayName": "Kerberos User Service",
+        "description": "Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos",
+        "allowableValues": [],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.kerberos.KerberosUserService",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": []
+      },
+      "kerberos-credentials-service": {
+        "name": "kerberos-credentials-service",
+        "displayName": "Kerberos Credentials Service",
+        "description": "Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos",
+        "allowableValues": [],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.kerberos.KerberosCredentialsService",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": []
+      },
+      "kerberos-principal": {
+        "name": "kerberos-principal",
+        "displayName": "Kerberos Principal",
+        "description": "The principal to use when specifying the principal and password directly in the processor for authenticating via Kerberos.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "kerberos-password": {
+        "name": "kerberos-password",
+        "displayName": "Kerberos Password",
+        "description": "The password to use when specifying the principal and password directly in the processor for authenticating via Kerberos.",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Database User": {
+        "name": "Database User",
+        "displayName": "Database User",
+        "description": "Database user name",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Password": {
+        "name": "Password",
+        "displayName": "Password",
+        "description": "The password for the database user",
+        "required": false,
+        "sensitive": true,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Max Wait Time": {
+        "name": "Max Wait Time",
+        "displayName": "Max Wait Time",
+        "description": "The maximum amount of time that the pool will wait (when there are no available connections)  for a connection to be returned before failing, or -1 to wait indefinitely. ",
+        "defaultValue": "500 millis",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Max Total Connections": {
+        "name": "Max Total Connections",
+        "displayName": "Max Total Connections",
+        "description": "The maximum number of active connections that can be allocated from this pool at the same time,  or negative for no limit.",
+        "defaultValue": "8",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "Validation-query": {
+        "name": "Validation-query",
+        "displayName": "Validation query",
+        "description": "Validation query used to validate connections before returning them. When connection is invalid, it gets dropped and new valid connection will be returned. Note!! Using validation might have some performance penalty.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-min-idle-conns": {
+        "name": "dbcp-min-idle-conns",
+        "displayName": "Minimum Idle Connections",
+        "description": "The minimum number of connections that can remain idle in the pool without extra ones being created. Set to or zero to allow no idle connections.",
+        "defaultValue": "0",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-max-idle-conns": {
+        "name": "dbcp-max-idle-conns",
+        "displayName": "Max Idle Connections",
+        "description": "The maximum number of connections that can remain idle in the pool without extra ones being released. Set to any negative value to allow unlimited idle connections.",
+        "defaultValue": "8",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-max-conn-lifetime": {
+        "name": "dbcp-max-conn-lifetime",
+        "displayName": "Max Connection Lifetime",
+        "description": "The maximum lifetime of a connection. After this time is exceeded the connection will fail the next activation, passivation or validation test. A value of zero or less means the connection has an infinite lifetime.",
+        "defaultValue": "-1",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-time-between-eviction-runs": {
+        "name": "dbcp-time-between-eviction-runs",
+        "displayName": "Time Between Eviction Runs",
+        "description": "The time period to sleep between runs of the idle connection evictor thread. When non-positive, no idle connection evictor thread will be run.",
+        "defaultValue": "-1",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-min-evictable-idle-time": {
+        "name": "dbcp-min-evictable-idle-time",
+        "displayName": "Minimum Evictable Idle Time",
+        "description": "The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.",
+        "defaultValue": "30 mins",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      },
+      "dbcp-soft-min-evictable-idle-time": {
+        "name": "dbcp-soft-min-evictable-idle-time",
+        "displayName": "Soft Minimum Evictable Idle Time",
+        "description": "The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction by the idle connection evictor, with the extra condition that at least a minimum number of idle connections remain in the pool. When the not-soft version of this option is set to a positive value, it is examined first by the idle connection evictor: when idle connections are visited by the evictor, idle time is first compared against it (without considering the number of idle connections in the pool) and then against this soft option, including the minimum idle connections constraint.",
+        "defaultValue": "-1",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry Only",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

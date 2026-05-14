@@ -1,0 +1,176 @@
+---
+name: maven-build-and-test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
+      - 'qubership-bundle/**'
+      - 'qubership-consul/**'
+      - 'qubership-nifi-bulk-redis-service/**'
+      - 'qubership-nifi-bundle-common/**'
+      - 'qubership-nifi-common/**'
+      - 'qubership-nifi-db-bundle/**'
+      - 'qubership-nifi-lookup-services/**'
+      - 'qubership-services/**'
+      - 'qubership-nifi-tools/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-quarkus-consul/**'
+      - 'pom.xml'
+  pull_request:
+    paths:
+      - '.github/workflows/maven-build.yaml'
+      - 'docs/openapi/**'
+      - 'qubership-bundle/**'
+      - 'qubership-consul/**'
+      - 'qubership-nifi-bulk-redis-service/**'
+      - 'qubership-nifi-bundle-common/**'
+      - 'qubership-nifi-common/**'
+      - 'qubership-nifi-db-bundle/**'
+      - 'qubership-nifi-lookup-services/**'
+      - 'qubership-services/**'
+      - 'qubership-nifi-tools/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-quarkus-consul/**'
+      - 'pom.xml'
+  workflow_dispatch:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: "21"
+        description: 'Java version (e.g., 21)'
+      upload-artifact:
+        required: false
+        type: boolean
+        default: false
+        description: 'If set, uploads build results to action run'
+      artifact-id:
+        default: artifact
+        required: false
+        type: string
+        description: 'Artifact name to use for artifact upload'
+      skip-sonar:
+        default: false
+        required: false
+        type: boolean
+        description: 'If set, skips sonar cloud analysis'
+      skip-tools-it:
+        default: false
+        required: false
+        type: boolean
+        description: 'If set, skips tools integration tests'
+  workflow_call:
+    inputs:
+      java-version:
+        required: false
+        type: string
+        default: "21"
+      upload-artifact:
+        required: false
+        type: boolean
+        default: false
+      artifact-id:
+        default: artifact
+        required: false
+        type: string
+      skip-sonar:
+        default: false
+        required: false
+        type: boolean
+      skip-tools-it:
+        default: false
+        required: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  maven-build-and-test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Input parameters
+        run: |
+          echo "Java version: ${JAVA_VERSION}" >> $GITHUB_STEP_SUMMARY
+        env:
+          JAVA_VERSION: "${{ github.event.inputs.java-version || '21' }}"
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Cache Maven dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up JDK
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          java-version: ${{ inputs.java-version || '21' }}
+          distribution: 'temurin'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+      - name: Run local maven build with sonar
+        #skip if explicit skip is set or when SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && env.SONAR_TOKEN }}
+        run: >
+          mvn --batch-mode package
+          -Dgpg.skip=true
+          org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_PLUGIN_VERSION}:sonar
+          -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.organization=${SONAR_ORGANIZATION}
+          -Dsonar.host.url=${SONAR_HOST_URL}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PLUGIN_VERSION: "${{ vars.SONAR_PLUGIN_VERSION }}"
+          SONAR_ORGANIZATION: "${{ vars.SONAR_ORGANIZATION }}"
+          SONAR_PROJECT_KEY: "${{ vars.SONAR_PROJECT_KEY }}"
+          SONAR_HOST_URL: "${{ vars.SONAR_HOST_URL }}"
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run local maven build w/o sonar
+        #execute if explicit skip is set or when either SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL || !env.SONAR_TOKEN }}
+        run: >
+          mvn --batch-mode package -Dgpg.skip=true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run tools integration tests
+        if: ${{ !inputs.skip-tools-it }}
+        run: |
+          # Run mvn install before tests to ensure all artifacts are published
+          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
+          # Run integration tests
+          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload test results
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: maven-unit-test-logs
+          path: |
+            **/target/surefire-reports/**/*.xml
+            **/target/failsafe-reports/**/*.xml
+            **/target/failsafe-reports/**/*.txt
+          retention-days: 2
+      - name: Upload all Maven target directories
+        if: ${{ inputs.upload-artifact }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ inputs.artifact-id }}
+          path: '**/target'
+          retention-days: 1

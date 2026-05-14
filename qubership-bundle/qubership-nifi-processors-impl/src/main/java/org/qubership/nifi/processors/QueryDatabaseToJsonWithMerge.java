@@ -54,7 +54,7 @@ import static org.qubership.nifi.NiFiUtils.readJsonNodeFromFlowFile;
 @Tags({"JSON", "DB"})
 @CapabilityDescription("Executes custom query to fetch rows from table and merge them with the main JSON object \n"
         + "which is in the content of incoming FlowFile. \n"
-        + " The Path property supports JsonPath syntax to find source id attributes in the main object. \n"
+        + " The Path property supports JsonPath syntax to find source ID attributes in the main object. \n"
         + " The main and queried objects are merged by join key properties.\n"
         + "You can specify where exactly to insert queried objects and by what key with path \n"
         + " to insert and key to insert properties.")
@@ -83,7 +83,7 @@ public class QueryDatabaseToJsonWithMerge extends AbstractSingleQueryDatabaseToJ
     public static final PropertyDescriptor PATH = new PropertyDescriptor.Builder()
             .name("path")
             .displayName("Path")
-            .description("A JsonPath expression that specifies path to source id attribute inside the array"
+            .description("A JsonPath expression that specifies path to source ID attribute inside the array"
                     + " in the incoming FlowFile.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

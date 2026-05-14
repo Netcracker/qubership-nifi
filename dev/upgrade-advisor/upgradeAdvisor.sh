@@ -45,11 +45,6 @@ deprecatedComponents='{
         "issue": "The Base64EncodeContent Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use EncodeContent Processor instead of Base64EncodeContent."
     },
-    "org.apache.nifi.service.CassandraSessionProvider": {
-        "level": "Error",
-        "issue": "The CassandraSessionProvider Controller Service is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
     "org.apache.nifi.processors.cybersecurity.CompareFuzzyHash": {
         "level": "Error",
         "issue": "The CompareFuzzyHash Processor is not available in Apache NiFi 2.x.",
@@ -419,16 +414,6 @@ deprecatedComponents='{
         "issue": "The PostSlack Processor is not available in Apache NiFi 2.x.",
         "solution": "Update the flow to use PublishSlack Processor instead of PostSlack."
     },
-    "org.apache.nifi.processors.cassandra.PutCassandraQL": {
-        "level": "Error",
-        "issue": "The PutCassandraQL Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
-    "org.apache.nifi.processors.cassandra.PutCassandraRecord": {
-        "level": "Error",
-        "issue": "The PutCassandraRecord Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
     "org.apache.nifi.processors.couchbase.PutCouchbaseKey": {
         "level": "Error",
         "issue": "The PutCouchbaseKey Processor is not available in Apache NiFi 2.x.",
@@ -570,11 +555,6 @@ deprecatedComponents='{
         "issue": "The PutSolrRecord Processor is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
     },
-    "org.apache.nifi.processors.cassandra.QueryCassandra": {
-        "level": "Error",
-        "issue": "The QueryCassandra Processor is not available in Apache NiFi 2.x.",
-        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
-    },
     "org.apache.nifi.processors.enrich.QueryDNS": {
         "level": "Error",
         "issue": "The QueryDNS Processor is not available in Apache NiFi 2.x.",
@@ -674,76 +654,44 @@ deprecatedComponents='{
         "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use Stateless Process Group instead of ExecuteStateless processor; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafka_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafka_2_6 Processor instead of ConsumeKafka_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafka_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The ConsumeKafka_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafka_2_6 Processor instead of ConsumeKafka_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafkaRecord_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafkaRecord_2_6 Processor instead of ConsumeKafkaRecord_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The ConsumeKafkaRecord_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The ConsumeKafkaRecord_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use ConsumeKafkaRecord_2_6 Processor instead of ConsumeKafkaRecord_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use ConsumeKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafka_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafka_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafka_2_6 Processor instead of PublishKafka_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafka_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.PublishKafka_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The PublishKafka_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafka_2_6 Processor instead of PublishKafka_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_1_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafkaRecord_1_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafkaRecord_2_6 Processor instead of PublishKafkaRecord_1_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_0": {
-        "level": "Error",
-        "version": "2.x",
+        "level": "Warning",
         "issue": "The PublishKafkaRecord_2_0 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
-    },
-    "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_2_6": {
-        "level": "Error",
-        "version": "2.x",
-        "issue": "The PublishKafkaRecord_2_6 Processor is not available in Apache NiFi 2.x.",
-        "solution": "1) Upgrade to Apache NiFi 2.x; 2) Update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties; 3) [Optional] If both 1.x and 2.x must be supported, two versions of the flow must be stored and maintained in parallel."
+        "solution": "Before upgrade to 2.x: update the flow to use PublishKafkaRecord_2_6 Processor instead of PublishKafkaRecord_2_0. After upgrade to 2.x: if there is no requirement to support both 1.x and 2.x versions, update the flow to use PublishKafka + Kafka3ConnectionService: create new processors and controller services and fill in their properties."
     },
     "org.apache.nifi.record.sink.kafka.KafkaRecordSink_1_0": {
         "level": "Error",
@@ -862,7 +810,7 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + .checkSolution + "\"" + $csvSeparator +
     "\"" + .checkVersion + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
-    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Depracated Components in Exported Flow - $flowName"
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Deprecated Components in Exported Flow - $flowName"
 
     echo "Checking for deprecated Script Engines in ExecuteScript processors - $flowName"
     jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" 'walk(
@@ -892,7 +840,7 @@ for flowName in "${exportFlow[@]}"; do
     if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then .name as $groupName | .processors = [ .processors[] | .groupName = $groupName ]
     else if type == "object" and .type != null and .type == "org.apache.nifi.processors.standard.InvokeHTTP"
         then
-            if .properties | with_entries(select(.key | startswith("Proxy "))) | length > 0
+            if .properties | with_entries(select(.key == "Proxy Host")) | length > 0
                 then
                     .checkLevel = "Warning" |
                     .checkIssue = "Proxy properties in InvokeHTTP processor with name - " + .name + " is not available in Apache NiFi 2.x." |
@@ -924,6 +872,28 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + "\"" + $csvSeparator +
     "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Variables in Exported Flow - $flowName"
+
+    echo "Checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
+    jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" '
+    walk(
+        if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then
+        .name as $groupName | .processors |= map(. + {groupName: $groupName})
+        elif type == "object" and .type != null and IN(.type; "org.apache.nifi.processors.aws.s3.DeleteS3Object", "org.apache.nifi.processors.aws.s3.FetchS3Object", "org.apache.nifi.processors.aws.s3.ListS3", "org.apache.nifi.processors.aws.s3.PutS3Object", "org.apache.nifi.processors.aws.s3.TagS3Object") then
+            if .properties | has("AWS Credentials Provider service") | not
+                then
+                    .checkLevel = "Warning" |
+                    .checkIssue = "The " + .type + " processor may contain the \"Access Key ID\" and \"Secret Access Key\" properties which are not available in Apache NiFi 2.x." |
+                    .checkSolution = "Update the flow to use AWS Credentials Provider Service property: 1) Create new AWS Credentials Provider Service; 2) Fill its properties based on the documentation and the properties from the S3 processor"
+                else
+                    .
+            end
+        else .
+    end)| .. | objects | select(has("checkIssue")) |
+    $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+    "\"" + .checkSolution + "\"" + $csvSeparator +
+    "\"" + "\"" + $csvSeparator +
+    "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+    "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"

@@ -18,7 +18,6 @@ package org.qubership.nifi.reporting;
 
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -31,14 +30,12 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.Writer;
+import org.qubership.nifi.service.MeterRegistryProvider;
+import org.qubership.nifi.utils.servlet.PrometheusServlet;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -81,6 +78,10 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     protected int port;
 
+    /**
+     * Meter Registry Provider.
+     */
+    protected MeterRegistryProvider meterRegistryProvider;
 
     /**
      * Server Port property descriptor.
@@ -88,10 +89,19 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
             .displayName("Server Port")
-            .description("")
-            .required(true)
+            .description("The Port where prometheus metrics can be accessed.")
             .defaultValue("9192")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    /**
+     * Reporting Controller Service property descriptor.
+     */
+    public static final PropertyDescriptor METER_REGISTRY_PROVIDER = new PropertyDescriptor.Builder()
+            .name("meter-registry-provider")
+            .displayName("Meter Registry Provider")
+            .description("Identifier of Controller Services, which is used to obtain the Meter Registry.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     /**
@@ -101,6 +111,7 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
     protected List<PropertyDescriptor> initProperties() {
         final List<PropertyDescriptor> prop = new ArrayList<>();
         prop.add(PORT);
+        prop.add(METER_REGISTRY_PROVIDER);
         return prop;
     }
 
@@ -131,23 +142,30 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     @OnScheduled
     public void onScheduled(final ConfigurationContext context) {
-        meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        port = context.getProperty(PORT).asInteger();
+        meterRegistryProvider = context.getProperty(METER_REGISTRY_PROVIDER)
+                .asControllerService(MeterRegistryProvider.class);
         namespace = getNamespace();
         hostname = getHostname();
         instance = namespace + "_" + hostname;
+        if (meterRegistryProvider != null) {
+            meterRegistry = meterRegistryProvider.getMeterRegistry();
+        } else {
+            meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+            port = context.getProperty(PORT).asInteger();
 
-        try {
-            httpServer = new Server(port);
-            ServletContextHandler servletContextHandler = new ServletContextHandler();
-            servletContextHandler.setContextPath("/");
-            servletContextHandler.addServlet(new ServletHolder(new PrometheusServlet()), "/metrics");
-            httpServer.setHandler(servletContextHandler);
+            try {
+                httpServer = new Server(port);
+                ServletContextHandler servletContextHandler = new ServletContextHandler();
+                servletContextHandler.setContextPath("/");
+                servletContextHandler.addServlet(new ServletHolder(
+                        new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
+                httpServer.setHandler(servletContextHandler);
 
-            httpServer.start();
-        } catch (Exception e) {
-            getLogger().error("Error while starting Jetty server {}", e);
-            throw new ProcessException("Error while starting Jetty server {}", e);
+                httpServer.start();
+            } catch (Exception e) {
+                getLogger().error("Error while starting Jetty server {}", e);
+                throw new ProcessException("Error while starting Jetty server {}", e);
+            }
         }
     }
 
@@ -202,34 +220,16 @@ public abstract class AbstractPrometheusReportingTask extends AbstractReportingT
      */
     public abstract void registerMetrics(ReportingContext context);
 
-    protected class PrometheusServlet extends HttpServlet {
-
-        /**
-         * Handles get requests for the server. Gets metrics in prometheus format.
-         * @param req http request
-         * @param resp http response
-         */
-        @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.setContentType(TextFormat.CONTENT_TYPE_004);
-
-            try (Writer writer = resp.getWriter()) {
-                TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
-                writer.flush();
-            } catch (IOException e) {
-                getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
-            }
-        }
-    }
-
     /**
-     * Gets meter registry.
-     * @return meter registry
+     * Gets prometheus meter registry.
+     * @return PrometheusMeterRegistry object
      */
     public PrometheusMeterRegistry getMeterRegistry() {
-        return meterRegistry;
+        if (meterRegistryProvider != null) {
+            return meterRegistryProvider.getMeterRegistry();
+        } else {
+            return meterRegistry;
+        }
     }
 
     /**

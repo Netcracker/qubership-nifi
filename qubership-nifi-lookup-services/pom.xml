@@ -19,14 +19,14 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.0.1-SNAPSHOT</version>
+        <version>2.5.5-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>qubership-nifi-lookup-services</artifactId>
     <groupId>org.qubership.nifi</groupId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.5.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -37,4 +37,29 @@
         <module>qubership-nifi-lookup-service-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-shared-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-extension-bom</artifactId>
+                <version>${nifi.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

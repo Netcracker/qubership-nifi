@@ -1,0 +1,679 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 1
+  },
+  "id": "1f7f8bd3-019d-1000-3845-61f0ca6d7cac",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f7f8bd3-019d-1000-3845-61f0ca6d7cac",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f7f8bd3-019d-1000-3845-61f0ca6d7cac",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "CSVReader",
+    "type": "org.apache.nifi.csv.CSVReader",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-record-serialization-services-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.serialization.RecordReaderFactory",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "schema-access-strategy": "infer-schema",
+      "schema-registry": null,
+      "schema-name": "${schema.name}",
+      "schema-version": null,
+      "schema-branch": null,
+      "schema-text": "${avro.schema}",
+      "csv-reader-csv-parser": "commons-csv",
+      "Date Format": null,
+      "Time Format": null,
+      "Timestamp Format": null,
+      "CSV Format": "custom",
+      "Value Separator": ",",
+      "Record Separator": "\\n",
+      "Skip Header Line": "false",
+      "ignore-csv-header": "false",
+      "Quote Character": "\"",
+      "Escape Character": "\\",
+      "Comment Marker": null,
+      "Null String": null,
+      "Trim Fields": "true",
+      "csvutils-character-set": "UTF-8",
+      "csvutils-allow-duplicate-header-names": "true",
+      "Trim double quote": "true"
+    },
+    "descriptors": {
+      "schema-access-strategy": {
+        "name": "schema-access-strategy",
+        "displayName": "Schema Access Strategy",
+        "description": "Specifies how to obtain the schema that is to be used for interpreting the data.",
+        "defaultValue": "infer-schema",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Name' Property",
+              "value": "schema-name",
+              "description": "The name of the Schema to use is specified by the 'Schema Name' Property. The value of this property is used to lookup the Schema in the configured Schema Registry service."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Text' Property",
+              "value": "schema-text-property",
+              "description": "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Schema Reference Attributes",
+              "value": "hwx-schema-ref-attributes",
+              "description": "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Content-Encoded Schema Reference",
+              "value": "hwx-content-encoded-schema",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, found at https://github.com/hortonworks/registry"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Confluent Content-Encoded Schema Reference",
+              "value": "confluent-encoded",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single 'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. This is based on version 3.2.x of the Confluent Schema Registry."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Use String Fields From Header",
+              "value": "csv-header-derived",
+              "description": "The first non-comment line of the CSV file is a header line that contains the names of the columns. The schema will be derived by using the column names in the header and assuming that all columns are of type String."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Infer Schema",
+              "value": "infer-schema",
+              "description": "The Schema of the data will be inferred automatically when the data is read. See component Usage and Additional Details for information about how the schema is inferred."
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "schema-registry": {
+        "name": "schema-registry",
+        "displayName": "Schema Registry",
+        "description": "Specifies the Controller Service to use for the Schema Registry",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "AvroSchemaRegistry",
+              "value": "1f7c4916-019d-1000-49a7-4df3e68ff83a"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.schemaregistry.services.SchemaRegistry",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "confluent-encoded",
+              "schema-name",
+              "hwx-schema-ref-attributes",
+              "hwx-content-encoded-schema"
+            ]
+          }
+        ]
+      },
+      "schema-name": {
+        "name": "schema-name",
+        "displayName": "Schema Name",
+        "description": "Specifies the name of the schema to lookup in the Schema Registry property",
+        "defaultValue": "${schema.name}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-version": {
+        "name": "schema-version",
+        "displayName": "Schema Version",
+        "description": "Specifies the version of the schema to lookup in the Schema Registry. If not specified then the latest version of the schema will be retrieved.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-branch": {
+        "name": "schema-branch",
+        "displayName": "Schema Branch",
+        "description": "Specifies the name of the branch to use when looking up the schema in the Schema Registry property. If the chosen Schema Registry does not support branching, this value will be ignored.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-text": {
+        "name": "schema-text",
+        "displayName": "Schema Text",
+        "description": "The text of an Avro-formatted Schema",
+        "defaultValue": "${avro.schema}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-text-property"
+            ]
+          }
+        ]
+      },
+      "csv-reader-csv-parser": {
+        "name": "csv-reader-csv-parser",
+        "displayName": "CSV Parser",
+        "description": "Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality and may also exhibit different levels of performance.",
+        "defaultValue": "commons-csv",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Apache Commons CSV",
+              "value": "commons-csv",
+              "description": "The CSV parser implementation from the Apache Commons CSV library."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Jackson CSV",
+              "value": "jackson-csv",
+              "description": "The CSV parser implementation from the Jackson Dataformats library."
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Date Format": {
+        "name": "Date Format",
+        "displayName": "Date Format",
+        "description": "Specifies the format to use when reading/writing Date fields. If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Time Format": {
+        "name": "Time Format",
+        "displayName": "Time Format",
+        "description": "Specifies the format to use when reading/writing Time fields. If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Timestamp Format": {
+        "name": "Timestamp Format",
+        "displayName": "Timestamp Format",
+        "description": "Specifies the format to use when reading/writing Timestamp fields. If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "CSV Format": {
+        "name": "CSV Format",
+        "displayName": "CSV Format",
+        "description": "Specifies which \"format\" the CSV data is in, or specifies if custom formatting should be used.",
+        "defaultValue": "custom",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Custom Format",
+              "value": "custom",
+              "description": "The format of the CSV is configured by using the properties of this Controller Service, such as Value Separator"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "RFC 4180",
+              "value": "rfc-4180",
+              "description": "CSV data follows the RFC 4180 Specification defined at https://tools.ietf.org/html/rfc4180"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Microsoft Excel",
+              "value": "excel",
+              "description": "CSV data follows the format used by Microsoft Excel"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Tab-Delimited",
+              "value": "tdf",
+              "description": "CSV data is Tab-Delimited instead of Comma Delimited"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "MySQL Format",
+              "value": "mysql",
+              "description": "CSV data follows the format used by MySQL"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Informix Unload",
+              "value": "informix-unload",
+              "description": "The format used by Informix when issuing the UNLOAD TO file_name command"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Informix Unload Escape Disabled",
+              "value": "informix-unload-csv",
+              "description": "The format used by Informix when issuing the UNLOAD TO file_name command with escaping disabled"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Value Separator": {
+        "name": "Value Separator",
+        "displayName": "Value Separator",
+        "description": "The character that is used to separate values/fields in a CSV Record. If the property has been specified via Expression Language but the expression gets evaluated to an invalid Value Separator at runtime, then it will be skipped and the default Value Separator will be used.",
+        "defaultValue": ",",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Record Separator": {
+        "name": "Record Separator",
+        "displayName": "Record Separator",
+        "description": "Specifies the characters to use in order to separate CSV Records",
+        "defaultValue": "\\n",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Skip Header Line": {
+        "name": "Skip Header Line",
+        "displayName": "Treat First Line as Header",
+        "description": "Specifies whether or not the first line of CSV should be considered a Header or should be considered a record. If the Schema Access Strategy indicates that the columns must be defined in the header, then this property will be ignored, since the header must always be present and won't be processed as a Record. Otherwise, if 'true', then the first line of CSV data will not be processed as a record and if 'false',then the first line will be interpreted as a record.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "ignore-csv-header": {
+        "name": "ignore-csv-header",
+        "displayName": "Ignore CSV Header Column Names",
+        "description": "If the first line of a CSV is a header, and the configured schema does not match the fields named in the header line, this controls how the Reader will interpret the fields. If this property is true, then the field names mapped to each column are driven only by the configured schema and any fields not in the schema will be ignored. If this property is false, then the field names found in the CSV Header will be used as the names of the fields.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Quote Character": {
+        "name": "Quote Character",
+        "displayName": "Quote Character",
+        "description": "The character that is used to quote values so that escape characters do not have to be used. If the property has been specified via Expression Language but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.",
+        "defaultValue": "\"",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Escape Character": {
+        "name": "Escape Character",
+        "displayName": "Escape Character",
+        "description": "The character that is used to escape characters that would otherwise have a specific meaning to the CSV Parser. If the property has been specified via Expression Language but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used. Setting it to an empty string means no escape character should be used.",
+        "defaultValue": "\\",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Comment Marker": {
+        "name": "Comment Marker",
+        "displayName": "Comment Marker",
+        "description": "The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Null String": {
+        "name": "Null String",
+        "displayName": "Null String",
+        "description": "Specifies a String that, if present as a value in the CSV, should be considered a null field instead of using the literal value.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Trim Fields": {
+        "name": "Trim Fields",
+        "displayName": "Trim Fields",
+        "description": "Whether or not white space should be removed from the beginning and end of fields",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "csvutils-character-set": {
+        "name": "csvutils-character-set",
+        "displayName": "Character Set",
+        "description": "The Character Encoding that is used to encode/decode the CSV file",
+        "defaultValue": "UTF-8",
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "csvutils-allow-duplicate-header-names": {
+        "name": "csvutils-allow-duplicate-header-names",
+        "displayName": "Allow Duplicate Header Names",
+        "description": "Whether duplicate header names are allowed. Header names are case-sensitive, for example \"name\" and \"Name\" are treated as separate fields. Handling of duplicate header names is CSV Parser specific (where applicable):\n* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most duplicate CSV column",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "custom"
+            ]
+          }
+        ]
+      },
+      "Trim double quote": {
+        "name": "Trim double quote",
+        "displayName": "Trim double quote",
+        "description": "Whether or not to trim starting and ending double quotes. For example: with trim string '\"test\"' would be parsed to 'test', without trim would be parsed to '\"test\"'.If set to 'false' it means full compliance with RFC-4180. Default value is true, with trim.",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "CSV Format",
+            "dependentValues": [
+              "rfc-4180"
+            ]
+          }
+        ]
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

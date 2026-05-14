@@ -47,7 +47,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.qubership.nifi.reporting.metrics.component.ConnectionMetricName;
 import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
-import org.springframework.util.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
@@ -315,7 +314,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     }
 
     private void registerGaugesForConnections(Map<String, ConnectionStatus> connectionStatuses) {
-        if (CollectionUtils.isEmpty(connectionStatuses)) {
+        if (isEmpty(connectionStatuses)) {
             return;
         }
 
@@ -386,7 +385,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     }
 
     private void registerGaugesForProcessors(Map<String, ProcessorStatus> processorStatuses) {
-        if (CollectionUtils.isEmpty(processorStatuses)) {
+        if (isEmpty(processorStatuses)) {
             return;
         }
 
@@ -423,7 +422,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     }
 
     private void registerGaugesForBulletins(Map<BulletinKey, BulletinSummary> bulletinSummaries) {
-        if (CollectionUtils.isEmpty(bulletinSummaries)) {
+        if (isEmpty(bulletinSummaries)) {
             return;
         }
         if (logger != null) {
@@ -603,7 +602,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
 
     private void registerGaugesForProcessGroups(ProcessGroupStatus topProcessGroup,
                                                 Map<String, ProcessGroupStatus> processGroupsStatus) {
-        if (CollectionUtils.isEmpty(processGroupsStatus)) {
+        if (isEmpty(processGroupsStatus)) {
             return;
         }
 
@@ -772,7 +771,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     public void removeMetricFromRegistry(String metricName, String tagName, String tagValue) {
         Collection<Gauge> gauges = getMeterRegistry().find(metricName).tag(tagName, tagValue).gauges();
 
-        if (CollectionUtils.isEmpty(gauges)) {
+        if (isEmpty(gauges)) {
             return;
         }
 
@@ -795,7 +794,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                 .tag("level", level)
                 .gauges();
 
-        if (CollectionUtils.isEmpty(gauges)) {
+        if (isEmpty(gauges)) {
             return;
         }
 
@@ -1049,5 +1048,13 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
             }
         });
         return groupPath;
+    }
+
+    private static boolean isEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
+    private static boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
     }
 }

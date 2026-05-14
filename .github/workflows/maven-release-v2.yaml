@@ -52,21 +52,27 @@ on:
       build-docker:
         description: "Build Docker image"
         required: false
-        default: false
+        default: true
         type: boolean
+      mark-as-latest:
+        description: "Mark release and Docker image if any as 'latest'"
+        type: boolean
+        required: false
+        default: true
 
 permissions:
   contents: read
 
 jobs:
   dry-run-build:
+    name: "Dry Run Maven Build and Publish"
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    runs-on: ubuntu-latest
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@de43c4115d6d3b1547060e7ef2a137aa9ab60fc1 #v1.0.5
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -81,25 +87,27 @@ jobs:
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           dry-run: "true"
   deploy:
+    name: "Maven Build and Publish"
+    needs: [dry-run-build]
     if: ${{ needs.dry-run-build.result == 'success' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-    needs: dry-run-build
-    runs-on: ubuntu-latest
     outputs:
       release-version: ${{ steps.build-and-publish.outputs.release-version }}
     steps:
       # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule
       - name: "Prepare app token"
-        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
         id: app-token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
           private-key: ${{ secrets.GH_BUMP_VERSION_APP_KEY }}
+
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@de43c4115d6d3b1547060e7ef2a137aa9ab60fc1 #v1.0.5
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -114,22 +122,23 @@ jobs:
           gpg-passphrase: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           dry-run: "false"
 
-      - name: Upload all Maven target directories
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - name: "Upload all Maven target directories"
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: ${{ github.event.repository.name }}
-          path: "${{ github.event.repository.name }}/**/target"
-
+          path: "${{ github.event.repository.name }}/**/target" # Upload all target directories in the repository
   check-dockerfile:
+    name: "Check Dockerfile Existence"
+    needs: [deploy]
     if: ${{ github.event.inputs.build-docker == 'true' }}
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-    runs-on: ubuntu-latest
-    needs: [deploy]
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: "Checkout code"
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
       - name: "Check Dockerfile existence"
@@ -146,6 +155,7 @@ jobs:
           cat "$GITHUB_OUTPUT"
 
   docker-build:
+    name: "Docker Build and Publish"
     if: ${{ github.event.inputs.build-docker == 'true' && needs.check-dockerfile.outputs.dockerfile_exists == 'exists' }}
     permissions:
       contents: read
@@ -153,22 +163,39 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check-dockerfile, deploy]
     steps:
+      - name: "Prepare Docker tags"
+        if: ${{ github.event.inputs.mark-as-latest != 'true' }}
+        id: meta
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+        with:
+          default-template: "{{major}}.{{minor}}.{{patch}},{{major}}.{{minor}},{{major}}"
+          ref: ${{ needs.deploy.outputs.release-version }}
+          default-tag: ${{ needs.deploy.outputs.release-version }}
+      - name: Set env
+        if: ${{ github.event.inputs.mark-as-latest != 'true' }}
+        run: |
+          echo "TAGS=$META_STEP_RESULT" >> $GITHUB_ENV
+        env:
+          META_STEP_RESULT: ${{ steps.meta.outputs.result }}
+
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@b3bf0caa5f3a96a979d0913c04d7aa59cdc11775 #v1.0.6
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
         with:
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
-          download-artifact-path: "."
+          tags: ${{ env.TAGS }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
   github-release:
-    if: ${{ needs.deploy.result == 'success' }}
+    name: "Create GitHub Release"
+    needs: [deploy]
     permissions:
       contents: write
-    needs: [deploy]
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@v1.0.5
+    if: ${{ needs.deploy.result == 'success' }}
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true
+      latest: "${{ inputs.mark-as-latest }}"

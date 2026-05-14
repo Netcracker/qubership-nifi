@@ -1,0 +1,3 @@
+[codespell]
+ignore-words-list = AfterAll, atMost, missable
+skip = */docs/openapi/openapi.json

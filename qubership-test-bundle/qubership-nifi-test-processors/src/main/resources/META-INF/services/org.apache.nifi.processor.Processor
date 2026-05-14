@@ -1,0 +1,2 @@
+org.qubership.nifi.processor.validation.ContentValidatorProcessor
+org.qubership.nifi.processor.BulkDistributedMapCacheProcessor

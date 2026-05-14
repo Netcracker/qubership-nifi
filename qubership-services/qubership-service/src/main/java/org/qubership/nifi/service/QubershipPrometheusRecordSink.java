@@ -20,9 +20,9 @@ import org.qubership.nifi.service.recordSink.MetricCompositeKey;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -37,7 +37,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee11.servlet.ServletContextHandler;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.eclipse.jetty.server.Server;
 import org.apache.nifi.serialization.WriteResult;
@@ -48,7 +48,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 
 
 import java.io.IOException;
-import java.io.Writer;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -65,25 +64,24 @@ import java.util.stream.Stream;
 
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import org.qubership.nifi.utils.servlet.PrometheusServlet;
 
 import static org.apache.nifi.serialization.record.RecordFieldType.DOUBLE;
 
 /**
- * Controller Services which allows to expose metrics to Prometheus.
+ * Controller Service which allows to expose metrics to Prometheus.
  */
+@CapabilityDescription("A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server \n"
+    + "on a configurable port. Collects metrics from incoming records by treating string fields as labels, \n"
+    + "numeric fields as gauges, and nested records (with 'type' and 'value' fields) \n"
+    + "as counters or distribution summaries.")
 @Tags({"record", "send", "write", "prometheus"})
-public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService {
+public class QubershipPrometheusRecordSink extends AbstractControllerService implements RecordSinkService,
+        MeterRegistryProvider {
 
     private Server prometheusServer;
-    /**
-     * Prometheus Meter Registry to use.
-     */
-    public PrometheusMeterRegistry meterRegistry;
     private static final List<PropertyDescriptor> PROPERTIES;
     private int metricsEndpointPort;
     private boolean clearMetrics;
@@ -100,12 +98,17 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     private Map<MetricCompositeKey, Number> metricSet = new ConcurrentHashMap<>();
 
     /**
+     * Prometheus Meter Registry to use.
+     */
+    public PrometheusMeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+
+    /**
      * Metrics endpoint port property descriptor.
      */
     public static final PropertyDescriptor METRICS_ENDPOINT_PORT = new PropertyDescriptor.Builder()
             .name("prometheus-sink-metrics-endpoint-port")
             .displayName("Prometheus Metrics Endpoint Port")
-            .description("The Port where prometheus metrics can be accessed")
+            .description("The Port where prometheus metrics can be scraped from.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("9092")
@@ -118,7 +121,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     public static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
             .name("prometheus-sink-instance-id")
             .displayName("Instance ID")
-            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
+            .description("Identifier of the NiFi instance to be included in the metrics as a label.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}_${NAMESPACE}")
@@ -166,7 +169,8 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             prometheusServer = new Server(metricsEndpointPort);
             ServletContextHandler servletContextHandler = new ServletContextHandler();
             servletContextHandler.setContextPath("/");
-            servletContextHandler.addServlet(new ServletHolder(new PrometheusServlet()), "/metrics");
+            servletContextHandler.addServlet(new ServletHolder(
+                    new PrometheusServlet(meterRegistry, getLogger())), "/metrics");
             prometheusServer.setHandler(servletContextHandler);
             prometheusServer.start();
         } catch (Exception e) {
@@ -197,12 +201,11 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     /**
-     * Initializes reporting task before it's started.
-     * @param context reporting context
+     * Initializes controller service before it's started.
+     * @param context configuration context
      */
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
-        meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
         metricsEndpointPort = context.getProperty(METRICS_ENDPOINT_PORT).asInteger();
         clearMetrics = context.getProperty(CLEAR_METRICS).getValue().equals("Yes");
         namespace = getNamespace();
@@ -331,11 +334,9 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     private synchronized Counter createCounter(String metricName, List<Tag> tagsList) {
-        Counter counter = Counter.builder(metricName)
+        return Counter.builder(metricName)
                     .tags(tagsList)
                     .register(meterRegistry);
-
-        return counter;
     }
 
     private synchronized DistributionSummary createSummary(String metricName, Record metricRecord, List<Tag> tagsList) {
@@ -356,14 +357,12 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
             statisticExpiry = Duration.parse(metricRecord.getAsString("statisticExpiry"));
         }
 
-        DistributionSummary distributionSummary = DistributionSummary.builder(metricName)
+        return DistributionSummary.builder(metricName)
                     .tags(tagsList)
                     .distributionStatisticBufferLength(metricRecord.getAsInt("statisticBufferLength"))
                     .distributionStatisticExpiry(statisticExpiry)
                     .publishPercentiles(publishPercentiles)
                     .register(meterRegistry);
-
-        return distributionSummary;
     }
 
     private Number getMetricValue(MetricCompositeKey metricCompositeKey) {
@@ -371,9 +370,15 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
     }
 
     private Number convertNum(org.apache.nifi.serialization.record.Record record, String name) {
-        Number num = null;
+        return record.getSchema().getField(name)
+                .map(recordField -> convertNum(record, recordField)).orElse(null);
+    }
 
-        switch (record.getSchema().getDataType(name).get().getFieldType()) {
+    private Number convertNum(org.apache.nifi.serialization.record.Record record, RecordField field) {
+        Number num = null;
+        String name = field.getFieldName();
+
+        switch (field.getDataType().getFieldType()) {
             case INT:
                 num = record.getAsInt(name);
                 break;
@@ -387,7 +392,7 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
                 num = record.getAsDouble(name);
                 break;
             case DECIMAL:
-                if (record.getSchema().getDataType(name).get().getFieldType() == DOUBLE) {
+                if (field.getDataType().getFieldType() == DOUBLE) {
                     num = record.getAsDouble(name);
                 } else {
                     num = record.getAsFloat(name);
@@ -433,21 +438,12 @@ public class QubershipPrometheusRecordSink extends AbstractControllerService imp
         return false;
     }
 
-    private final class PrometheusServlet extends HttpServlet {
-
-        @Override
-        protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
-            resp.setStatus(HttpServletResponse.SC_OK);
-            resp.setContentType(TextFormat.CONTENT_TYPE_004);
-
-            try (Writer writer = resp.getWriter()) {
-                TextFormat.write004(writer, meterRegistry.getPrometheusRegistry().metricFamilySamples());
-                writer.flush();
-            } catch (IOException e) {
-                getLogger().error("Error while scraping metrics {}", e);
-                throw new ProcessException("Error while scraping metrics {}", e);
-            }
-        }
+    /**
+     * Method for exposing the PrometheusMeterRegistry.
+     * @return PrometheusMeterRegistry object
+     */
+    @Override
+    public PrometheusMeterRegistry getMeterRegistry() {
+        return meterRegistry;
     }
-
 }

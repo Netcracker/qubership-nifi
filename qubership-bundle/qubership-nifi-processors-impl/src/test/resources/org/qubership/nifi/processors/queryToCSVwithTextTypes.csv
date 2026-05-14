@@ -1,0 +1,5 @@
+ID,VAL1,TEXTVAL1,TEXTVAL2,BINVAL1
+1,100,Some short text value 1,Some long text value 1,536f6d6520626c6f622076616c75652031
+2,200,Some short text value 2,Some long text value 2,536f6d6520626c6f622076616c75652032
+3,300,Some short text value 3,Some long text value 3,536f6d6520626c6f622076616c75652033
+4,400,Some short text value 4,Some long text value 4,536f6d6520626c6f622076616c75652034

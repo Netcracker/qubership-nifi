@@ -1,0 +1,390 @@
+{
+  "revision": {
+    "clientId": "1f76b7e9-019d-1000-1426-662bf74171db",
+    "version": 1
+  },
+  "id": "1f88fee8-019d-1000-7d54-c312b546d174",
+  "uri": "https://localhost:8080/nifi-api/controller-services/1f88fee8-019d-1000-7d54-c312b546d174",
+  "permissions": {
+    "canRead": true,
+    "canWrite": true
+  },
+  "bulletins": [],
+  "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+  "component": {
+    "id": "1f88fee8-019d-1000-7d54-c312b546d174",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "XMLReader",
+    "type": "org.apache.nifi.xml.XMLReader",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-record-serialization-services-nar",
+      "version": "1.28.1"
+    },
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.serialization.RecordReaderFactory",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        }
+      }
+    ],
+    "comments": "",
+    "state": "DISABLED",
+    "persistsState": false,
+    "restricted": false,
+    "deprecated": false,
+    "multipleVersionsAvailable": false,
+    "supportsSensitiveDynamicProperties": false,
+    "properties": {
+      "schema-access-strategy": "infer-schema",
+      "schema-registry": null,
+      "schema-name": "${schema.name}",
+      "schema-version": null,
+      "schema-branch": null,
+      "schema-text": "${avro.schema}",
+      "parse_xml_attributes": "true",
+      "schema-inference-cache": null,
+      "record_format": "false",
+      "attribute_prefix": null,
+      "content_field_name": null,
+      "Date Format": null,
+      "Time Format": null,
+      "Timestamp Format": null
+    },
+    "descriptors": {
+      "schema-access-strategy": {
+        "name": "schema-access-strategy",
+        "displayName": "Schema Access Strategy",
+        "description": "Specifies how to obtain the schema that is to be used for interpreting the data.",
+        "defaultValue": "infer-schema",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Name' Property",
+              "value": "schema-name",
+              "description": "The name of the Schema to use is specified by the 'Schema Name' Property. The value of this property is used to lookup the Schema in the configured Schema Registry service."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Use 'Schema Text' Property",
+              "value": "schema-text-property",
+              "description": "The text of the Schema itself is specified by the 'Schema Text' Property. The value of this property must be a valid Avro Schema. If Expression Language is used, the value of the 'Schema Text' property must be valid after substituting the expressions."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Schema Reference Attributes",
+              "value": "hwx-schema-ref-attributes",
+              "description": "The FlowFile contains 3 Attributes that will be used to lookup a Schema from the configured Schema Registry: 'schema.identifier', 'schema.version', and 'schema.protocol.version'"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "HWX Content-Encoded Schema Reference",
+              "value": "hwx-content-encoded-schema",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single byte indicating the 'protocol version', followed by 8 bytes indicating the schema identifier, and finally 4 bytes indicating the schema version, as per the Hortonworks Schema Registry serializers and deserializers, found at https://github.com/hortonworks/registry"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Confluent Content-Encoded Schema Reference",
+              "value": "confluent-encoded",
+              "description": "The content of the FlowFile contains a reference to a schema in the Schema Registry service. The reference is encoded as a single 'Magic Byte' followed by 4 bytes representing the identifier of the schema, as outlined at http://docs.confluent.io/current/schema-registry/docs/serializer-formatter.html. This is based on version 3.2.x of the Confluent Schema Registry."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Infer Schema",
+              "value": "infer-schema",
+              "description": "The Schema of the data will be inferred automatically when the data is read. See component Usage and Additional Details for information about how the schema is inferred."
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "schema-registry": {
+        "name": "schema-registry",
+        "displayName": "Schema Registry",
+        "description": "Specifies the Controller Service to use for the Schema Registry",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "AvroSchemaRegistry",
+              "value": "1f7c4916-019d-1000-49a7-4df3e68ff83a"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.schemaregistry.services.SchemaRegistry",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "confluent-encoded",
+              "schema-name",
+              "hwx-schema-ref-attributes",
+              "hwx-content-encoded-schema"
+            ]
+          }
+        ]
+      },
+      "schema-name": {
+        "name": "schema-name",
+        "displayName": "Schema Name",
+        "description": "Specifies the name of the schema to lookup in the Schema Registry property",
+        "defaultValue": "${schema.name}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-version": {
+        "name": "schema-version",
+        "displayName": "Schema Version",
+        "description": "Specifies the version of the schema to lookup in the Schema Registry. If not specified then the latest version of the schema will be retrieved.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-branch": {
+        "name": "schema-branch",
+        "displayName": "Schema Branch",
+        "description": "Specifies the name of the branch to use when looking up the schema in the Schema Registry property. If the chosen Schema Registry does not support branching, this value will be ignored.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-name"
+            ]
+          }
+        ]
+      },
+      "schema-text": {
+        "name": "schema-text",
+        "displayName": "Schema Text",
+        "description": "The text of an Avro-formatted Schema",
+        "defaultValue": "${avro.schema}",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "schema-text-property"
+            ]
+          }
+        ]
+      },
+      "parse_xml_attributes": {
+        "name": "parse_xml_attributes",
+        "displayName": "Parse XML Attributes",
+        "description": "When 'Schema Access Strategy' is 'Infer Schema' and this property is 'true' then XML attributes are parsed and added to the record as new fields. When the schema is inferred but this property is 'false', XML attributes and their values are ignored.",
+        "defaultValue": "true",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true"
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false"
+            },
+            "canRead": true
+          }
+        ],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": [
+          {
+            "propertyName": "schema-access-strategy",
+            "dependentValues": [
+              "infer-schema"
+            ]
+          }
+        ]
+      },
+      "schema-inference-cache": {
+        "name": "schema-inference-cache",
+        "displayName": "Schema Inference Cache",
+        "description": "Specifies a Schema Cache to use when inferring the schema. If not populated, the schema will be inferred each time. However, if a cache is specified, the cache will first be consulted and if the applicable schema can be found, it will be used instead of inferring the schema.",
+        "allowableValues": [],
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "identifiesControllerService": "org.apache.nifi.serialization.RecordSchemaCacheService",
+        "identifiesControllerServiceBundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "1.28.1"
+        },
+        "dependencies": []
+      },
+      "record_format": {
+        "name": "record_format",
+        "displayName": "Expect Records as Array",
+        "description": "This property defines whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\". Because XML does not provide for a way to read a series of XML documents from a stream directly, it is common to combine many XML documents by concatenating them and then wrapping the entire XML blob  with a \"wrapper element\". This property dictates whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\" that will be ignored.",
+        "defaultValue": "false",
+        "allowableValues": [
+          {
+            "allowableValue": {
+              "displayName": "false",
+              "value": "false",
+              "description": "Each FlowFile will consist of a single record without any sort of \"wrapper\"."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "true",
+              "value": "true",
+              "description": "Each FlowFile will consist of zero or more records. The outer-most XML element is expected to be a \"wrapper\" and will be ignored."
+            },
+            "canRead": true
+          },
+          {
+            "allowableValue": {
+              "displayName": "Use attribute 'xml.stream.is.array'",
+              "value": "${xml.stream.is.array}",
+              "description": "Whether to treat a FlowFile as a single Record or an array of multiple Records is determined by the value of the 'xml.stream.is.array' attribute. If the value of the attribute is 'true' (case-insensitive), then the XML Reader will treat the FlowFile as a series of Records with the outer element being ignored. If the value of the attribute is 'false' (case-insensitive), then the FlowFile is treated as a single Record and no wrapper element is assumed. If the attribute is missing or its value is anything other than 'true' or 'false', then an Exception will be thrown and no records will be parsed."
+            },
+            "canRead": true
+          }
+        ],
+        "required": true,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": []
+      },
+      "attribute_prefix": {
+        "name": "attribute_prefix",
+        "displayName": "Attribute Prefix",
+        "description": "If this property is set, the name of attributes will be prepended with a prefix when they are added to a record.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": []
+      },
+      "content_field_name": {
+        "name": "content_field_name",
+        "displayName": "Field Name for Content",
+        "description": "If tags with content (e. g. <field>content</field>) are defined as nested records in the schema, the name of the tag will be used as name for the record and the value of this property will be used as name for the field. If tags with content shall be parsed together with attributes (e. g. <field attribute=\"123\">content</field>), they have to be defined as records. In such a case, the name of the tag will be used as the name for the record and  the value of this property will be used as the name for the field holding the original content. The name of the attribute will be used to create a new record field, the content of which will be the value of the attribute. For more information, see the 'Additional Details...' section of the XMLReader controller service's documentation.",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": true,
+        "expressionLanguageScope": "Variable Registry and FlowFile Attributes",
+        "dependencies": []
+      },
+      "Date Format": {
+        "name": "Date Format",
+        "displayName": "Date Format",
+        "description": "Specifies the format to use when reading/writing Date fields. If not specified, Date fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters, as in 01/01/2017).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Time Format": {
+        "name": "Time Format",
+        "displayName": "Time Format",
+        "description": "Specifies the format to use when reading/writing Time fields. If not specified, Time fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, HH:mm:ss for a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      },
+      "Timestamp Format": {
+        "name": "Timestamp Format",
+        "displayName": "Timestamp Format",
+        "description": "Specifies the format to use when reading/writing Timestamp fields. If not specified, Timestamp fields will be assumed to be number of milliseconds since epoch (Midnight, Jan 1, 1970 GMT). If specified, the value must match the Java Simple Date Format (for example, MM/dd/yyyy HH:mm:ss for a two-digit month, followed by a two-digit day, followed by a four-digit year, all separated by '/' characters; and then followed by a two-digit hour in 24-hour format, followed by a two-digit minute, followed by a two-digit second, all separated by ':' characters, as in 01/01/2017 18:04:15).",
+        "required": false,
+        "sensitive": false,
+        "dynamic": false,
+        "supportsEl": false,
+        "expressionLanguageScope": "Not Supported",
+        "dependencies": []
+      }
+    },
+    "referencingComponents": [],
+    "validationStatus": "VALID",
+    "bulletinLevel": "WARN",
+    "extensionMissing": false
+  },
+  "operatePermissions": {
+    "canRead": false,
+    "canWrite": true
+  },
+  "status": {
+    "runStatus": "DISABLED",
+    "validationStatus": "VALID"
+  }
+}

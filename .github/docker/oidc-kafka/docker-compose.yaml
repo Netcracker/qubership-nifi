@@ -1,0 +1,237 @@
+---
+services:
+  nifi-toolkit:
+    image: apache/nifi-toolkit:1.28.1
+    container_name: nifi-toolkit
+    entrypoint: /bin/bash
+    command: /tmp/tls-scripts/nifi-gen-certs.sh
+    volumes:
+      - tls-cert:/tmp/tls-certs
+      - tls-scripts:/tmp/tls-scripts
+      - tls-cert-ca:/tmp/cert
+    environment:
+      - KEYSTORE_PASSWORD_NIFI=${KEYSTORE_PASSWORD_NIFI}
+      - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+  nifi:
+    image: ${NIFI_IMAGE:-local-nifi}:${NIFI_IMAGE_TAG:-test}
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - nifi-ext:/opt/nifi/nifi-current/extensions
+      - nifi-conf:/opt/nifi/nifi-current/persistent_conf
+      - tls-cert-nifi:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:8080:8080
+      - 127.0.0.1:8091:8091
+      - 127.0.0.1:9892:9892
+      - 127.0.0.1:9893:9893
+      - 127.0.0.1:12981:12981
+      - 127.0.0.1:9192:9192
+      - 127.0.0.1:12971:12971
+      - 127.0.0.1:12911:12911
+    environment:
+      - NAMESPACE=local
+      - CONSUL_ENABLED=true
+      - CONSUL_URL=consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=spring
+      - AUTH=oidc
+      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
+      - NIFI_WEB_HTTPS_PORT=8080
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+    container_name: local-nifi
+    restart: unless-stopped
+  nifi-registry:
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest
+    depends_on:
+      nifi-toolkit:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      postgresql:
+        condition: service_started
+    volumes:
+      - tls-cert-reg:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
+    ports:
+      - 127.0.0.1:18080:18080
+    environment:
+      - AUTH=oidc
+      - NIFI_REGISTRY_WEB_HTTPS_PORT=18080
+      - NIFI_REGISTRY_WEB_HTTP_HOST=0.0.0.0
+      - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
+      - KEYSTORE_TYPE=PKCS12
+      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI_REG}
+      - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
+      - TRUSTSTORE_TYPE=PKCS12
+      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
+      - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - OIDC_CLIENT_ID=frontend
+      - OIDC_CLIENT_SECRET=frontend
+      - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+      - NIFI_REGISTRY_CHECK_HOST=nifi-registry
+    container_name: local-nifi-registry
+    hostname: nifi-registry
+    labels:
+      - "autoheal=true" # Label for autoheal to monitor
+    healthcheck:
+      interval: 15s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+      test:
+        - "CMD"
+        - "bash"
+        - "/opt/nifi-registry/scripts/ready.sh"
+    restart: unless-stopped
+  consul:
+    image: hashicorp/consul:1.20
+    ports:
+      - 127.0.0.1:8500:8500
+    hostname: consul
+  keycloak:
+    image: keycloak/keycloak:26.1.4
+    hostname: keycloak
+    restart: on-failure:3
+    depends_on:
+      postgresql:
+        condition: service_started
+    volumes:
+      - keycloak-init:/opt/keycloak/data/import
+      - tls-cert:/tmp/tls-certs
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgresql:5432/postgres
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HTTPS_KEY_STORE_FILE: /tmp/tls-certs/keycloak-server.p12
+      KC_HTTPS_KEY_STORE_PASSWORD: ${KEYCLOAK_TLS_PASS}
+      KC_HTTPS_PORT: 8443
+      KC_HTTP_ENABLED: false
+    ports:
+      - 127.0.0.1:28080:8080
+      - 127.0.0.1:28443:8443
+    command:
+      - start-dev
+      - "--import-realm"
+      - "--hostname"
+      - "https://localhost:28443"
+      - "--hostname-backchannel-dynamic"
+      - "true"
+  postgresql:
+    image: postgres:16.8
+    ports:
+      - "127.0.0.1:5430:5432"
+    volumes:
+      - pg-db:/var/lib/postgresql/data/pgdata
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    container_name: postgresql
+    hostname: postgresql
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal:latest
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  redis:
+    image: redis:8.2.2
+    ports:
+      - "127.0.0.1:26379:6379"
+    container_name: redis
+    hostname: redis
+    environment:
+      - REDIS_PASSWORD=$REDIS_PASSWORD
+    command:
+      - "--requirepass $REDIS_PASSWORD"
+  kafka:
+    image: apache/kafka:4.1.1
+    container_name: kafka
+    hostname: kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
+volumes:
+  tls-scripts:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
+  tls-cert:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/
+  tls-cert-nifi:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/nifi/
+  tls-cert-reg:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/nifi-registry/
+  tls-cert-ca:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/ca/
+  nifi-conf:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi/per-conf/
+  nifi-ext:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi/extensions/
+  pg-db:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/pg-db
+  keycloak-init:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/keycloak/

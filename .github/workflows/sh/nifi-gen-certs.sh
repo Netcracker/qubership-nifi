@@ -193,7 +193,6 @@ generate_consul_token() {
     echo "ACL Tokens for NiFi created"
 }
 
-generate_nifi_certs
 if [ "$IS_CLUSTER" == "true" ]; then
     generate_nifi_cluster_certs
 else

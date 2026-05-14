@@ -19,10 +19,6 @@ package org.qubership.nifi.service;
 public class MockQubershipPrometheusRecordSink extends QubershipPrometheusRecordSink {
 
     @Override
-    protected void startServer() {
-    }
-
-    @Override
     protected String getNamespace() {
         return "test-namespace";
     }

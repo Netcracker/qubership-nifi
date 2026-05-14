@@ -47,7 +47,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name("schema")
             .displayName("Schema")
-            .description("Validation Json Schema.")
+            .description("Validation JSON Schema.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -73,7 +73,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        String sSchema = context.getProperty(SCHEMA).getValue();
+        String sSchema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
         schemaInstance = JsonSchemaFactory.getInstance().getSchema(sSchema);
     }
 

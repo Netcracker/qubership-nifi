@@ -20,7 +20,7 @@ services:
       - CONSUL_TOKEN=${CONSUL_TOKEN}
       - CONSUL_READ_TOKEN=${CONSUL_READ_TOKEN}
   nifi:
-    image: local-nifi:test
+    image: ${NIFI_IMAGE:-local-nifi}:${NIFI_IMAGE_TAG:-test}
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
@@ -33,6 +33,7 @@ services:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
       - CONSUL_URL=consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=spring
       - AUTH=tls
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
@@ -46,6 +47,7 @@ services:
       - CONSUL_ACL_TOKEN=${CONSUL_TOKEN}
     container_name: local-nifi
     restart: unless-stopped
+    hostname: nifi
   nifi-registry:
     image: ghcr.io/netcracker/qubership-nifi-registry:latest
     depends_on:
@@ -81,7 +83,7 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/workflows/sh/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
   tls-cert:
     driver: local
     driver_opts:
@@ -111,4 +113,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/consul/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/consul/

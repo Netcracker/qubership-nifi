@@ -1,0 +1,131 @@
+---
+name: dev-tools-test
+
+on:
+  push:
+    paths:
+      - 'dev/update-scripts-2.0/**'
+      - 'dev/update-scripts-prop-2.x/**'
+      - 'dev/update-scripts-autotest/**'
+      - 'dev-tools-integration-tests/**'
+      - '.github/workflows/dev-tools-test.yml'
+      - '.github/docker/oidc/docker-compose.yaml'
+  pull_request:
+    paths:
+      - 'dev/update-scripts-2.0/**'
+      - 'dev/update-scripts-prop-2.x/**'
+      - 'dev/update-scripts-autotest/**'
+      - 'dev-tools-integration-tests/**'
+      - '.github/workflows/dev-tools-test.yml'
+      - '.github/docker/oidc/docker-compose.yaml'
+  workflow_dispatch: null
+
+permissions:
+  contents: read
+
+jobs:
+  dev-tools-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        nifi:
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '1.0.7', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.0.0', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false }
+          - { image: 'local-nifi', tag: 'test', build-local: true }
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Build Maven artifacts (local image only)
+        if: ${{ matrix.nifi.build-local }}
+        run: mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build local NiFi Docker image (local image only)
+        if: ${{ matrix.nifi.build-local }}
+        run: docker build -t local-nifi:test .
+
+      - name: Build scripts Docker image
+        run: docker build -t qubership-nifi-update-scripts:test . -f dev/update-scripts-autotest/Dockerfile
+
+      - name: Set up test environment
+        run: |
+          . .github/workflows/sh/nifi-lib.sh
+          setup_env_before_tests "oidc"
+          echo "NIFI_IMAGE=${{ matrix.nifi.image }}" >> ./docker.env
+          echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}" >> ./docker.env
+
+      - name: Start NiFi environment
+        run: |
+          NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
+          export NIFI_SENSITIVE_KEY
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env up -d
+
+      - name: Wait for NiFi to start
+        run: |
+          . .github/workflows/sh/nifi-lib.sh
+          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+          wait_nifi_container "15" "150" "localhost" "8080" "true" \
+            ".github/docker/oidc/docker-compose.yaml" "oidc" \
+            "./temp-vol/tls-cert/nifi/nifi-cert.pem" \
+            "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
+            "$NIFI_CLIENT_PASSWORD"
+
+      - name: Determine compose network name
+        id: network
+        run: |
+          NETWORK=$(docker network ls --filter "name=oidc_default" --format "{{.Name}}" | head -1)
+          echo "name=$NETWORK" >> $GITHUB_OUTPUT
+
+      - name: Run integration tests
+        run: |
+          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+          export NIFI_CLIENT_PASSWORD
+          WORKDIR=$(pwd)
+          mvn verify -pl dev-tools-integration-tests \
+            -DskipUnitTests=true -Dgpg.skip=true -DskipITs=false \
+            "-Dnifi.cert.dir=$WORKDIR/temp-vol/tls-cert/nifi" \
+            "-Dscripts.docker.network=$NETWORK_NAME"
+        env:
+          NETWORK_NAME: ${{ steps.network.outputs.name }}
+
+      - name: Collect Docker logs on failure
+        if: failure()
+        run: |
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
+            logs --no-color > ./nifi-docker.log 2>&1 || true
+
+      - name: Upload test results and logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dev-tools-it-${{ matrix.nifi.tag }}-results
+          path: |
+            dev-tools-integration-tests/target/failsafe-reports/
+            nifi-docker.log
+          retention-days: 2
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
+            down -v || true
+          sudo rm -rf ./temp-vol ./docker.env ./nifi-sens-key.tmp ./consul-acl-token.tmp \
+            ./consul-acl-read-token.tmp ./consul-acl-write-token.tmp

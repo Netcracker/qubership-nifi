@@ -5,8 +5,12 @@ on:
   push:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
+      - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-quarkus-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -27,8 +31,12 @@ on:
   pull_request:
     paths:
       - '.github/workflows/docker-build-and-test.yml'
+      - '.github/workflows/maven-build.yaml'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
+      - 'qubership-nifi-consul-common/**'
+      - 'qubership-nifi-consul-templates/**'
+      - 'qubership-nifi-quarkus-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
       - 'qubership-nifi-bundle-common/**'
       - 'qubership-nifi-common/**'
@@ -59,17 +67,30 @@ permissions:
 
 jobs:
   mvn:
-    uses: ./.github/workflows/maven-build-and-test.yml
+    uses: ./.github/workflows/maven-build.yaml
     with:
       java-version: ${{ github.event.inputs.java-version || '21' }}
       artifact-id: 'qubership-nifi-local-build'
       upload-artifact: true
       skip-sonar: true
+      skip-tools-it: true
   docker-build-and-test:
     strategy:
       fail-fast: false
       matrix:
-        run-mode: [ 'tls', 'oidc', 'cluster', 'cluster-statefulset', 'tls-consul-read', 'tls-consul-write', 'upgrade-oidc' ]
+        run-mode:
+        - 'tls'
+        - 'tls-quarkus'
+        - 'oidc'
+        - 'oidc-quarkus'
+        - 'oidc-cassandra'
+        - 'oidc-kafka'
+        - 'cluster'
+        - 'cluster-statefulset'
+        - 'cluster-statefulset-acl'
+        - 'tls-consul-read'
+        - 'tls-consul-write'
+        - 'upgrade-oidc'
     needs: [ mvn ]
     runs-on: ubuntu-latest
     steps:
@@ -84,7 +105,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: 'qubership-nifi-local-build'
       - name: Run local docker build
@@ -137,7 +158,7 @@ jobs:
           fi
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: nifi-autotests-${{ matrix.run-mode }}-logs
           path: |

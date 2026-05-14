@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jre AS base
+ARG NIFI_VERSION='2.7.2'
+ARG NIFI_VERSION_SHA256='sha256:f6a1d2bcca0819f825cdc0a6719dfaca58e9986c97b696831597e69bdaf5364f'
+
+ARG BASE_IMAGE_VERSION='21-alpine-2.2.13'
+ARG BASE_IMAGE_VERSION_SHA256='sha256:ed0ee1413fa27f2484f683efd2295e6f63bb0b3441873b8fa2c14e785313d0cb'
+
+FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
 #add jq:
 RUN apk add --no-cache \
-    jq=1.7.1-r0 \
-    bash=5.2.26-r0 \
-    curl=8.14.1-r2 \
-    python3=3.12.11-r0 \
-    py3-pip=24.0-r2
+    jq=1.8.1-r0 \
+    python3=3.12.13-r0
 
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
@@ -35,21 +38,15 @@ ENV HOME=${NIFI_HOME}
 RUN mkdir -p /opt/nifi/nifi-home-dir \
     && ln -s /opt/nifi/nifi-home-dir /home/nifi \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
-    && chmod 775 /opt/nifi/nifi-home-dir \
-    && chmod 664 /opt/java/openjdk/lib/security/cacerts \
-    && adduser --disabled-password \
-        --gecos "" \
-        --home "${NIFI_HOME}" \
-        --ingroup "root" \
-        --no-create-home \
-        --uid 10001 \
-        nifi
+    && chmod 775 /opt/nifi/nifi-home-dir
 
 USER 10001
 
-FROM apache/nifi:2.5.0 AS nifi
+FROM apache/nifi:$NIFI_VERSION@$NIFI_VERSION_SHA256 AS nifi
 
 RUN chmod 750 $NIFI_BASE_DIR/nifi-toolkit-current/bin/*.sh
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-cassandra-*.nar ${NIFI_HOME}/lib/
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nifi-kafka-*.nar ${NIFI_HOME}/lib/
 
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
@@ -97,13 +94,9 @@ RUN mkdir -p $NIFI_HOME/persistent_data \
     && chmod 775 $NIFI_HOME/python_extensions
 
 COPY --chown=10001:0 ./nifi-scripts/*.sh ./nifi-scripts/*.json $NIFI_BASE_DIR/scripts/
-COPY --chown=10001:0 ./scripts $NIFI_HOME/scripts/
-COPY --chown=10001:0 ./nifi-config/logback.xml ${NIFI_TOOLKIT_HOME}/classpath/
 
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/nifi-current/conf $NIFI_BASE_DIR/nifi-current/nifi-config-template
 COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-template.json $NIFI_HOME/nifi-config-template-custom/
-
-ARG NIFI_VERSION='2.5.0'
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
@@ -115,7 +108,8 @@ COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ora
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/postgresql-*.jar ${NIFI_HOME}/lib/postgresql.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-h2-deps-2-1-210/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-1-214/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-2-220/target/lib/h2-*.jar ${NIFI_HOME}/utility-lib/
 
-COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-consul-application.jar
+COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-nifi-consul-application.jar
+COPY --chown=10001:0 qubership-nifi-quarkus-consul/qubership-nifi-quarkus-consul-application/target/quarkus-app $NIFI_HOME/utility-lib/qubership-nifi-quarkus-consul-application
 
 USER 10001:0
 WORKDIR $NIFI_HOME
@@ -126,5 +120,5 @@ VOLUME ${NIFI_HOME}/conf \
         ${NIFI_HOME}/work
 
 EXPOSE 8080 8443 10000 8000
-ENTRYPOINT ["../scripts/start.sh"]
+CMD ["bash", "../scripts/start.sh"]
 HEALTHCHECK NONE

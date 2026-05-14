@@ -31,7 +31,7 @@ wait_for_service() {
     tlsArgs=""
     if [ "${isTls}" == "true" ]; then
         echo "Using TLS mode..."
-        echo "Waiting for service to be available on port 8080 with timeout = $timeout"
+        echo "Waiting for service to be available on port $servicePort with timeout = $timeout"
         serviceUrl="https://$serviceHost:$servicePort$apiUrlToCheck"
         echo "Client keystore: $tlsClientKeystore (p12), ca cert = $tlsAdditionalCAs"
         tlsArgs=" --cert '$tlsClientKeystore:$tlsClientPassword' --cert-type P12 --cacert $tlsAdditionalCAs"
@@ -62,6 +62,8 @@ wait_for_service() {
             elif [ "$resp_code" != '200' ]; then
                 echo "Got response with code = $resp_code and body: "
                 cat ./temp-resp.json
+                echo "Continue waiting..."
+                res="1"
             fi
         fi
         echo ""
@@ -158,7 +160,7 @@ set_configuration_version() {
 get_flow_json_version() {
     local dockerComposePath="$1"
     echo "Getting flow.json version from archive folder..."
-    CONF_VERSION=$(docker compose -f "$dockerComposePath" --env-file ./docker.env exec nifi find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -exec stat --format="%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
+    CONF_VERSION=$(docker compose -f "$dockerComposePath" --env-file ./docker.env exec nifi find /opt/nifi/nifi-current/persistent_conf/conf/archive -name "*.json.gz" -type f -exec stat -c "%Y %n" '{}' + | sort '-nr' | head -n 1 | cut -d' ' -f2- | xargs basename)
     export CONF_VERSION
     echo "$CONF_VERSION" >./nifi-conf-version.tmp
 }
@@ -256,20 +258,26 @@ wait_nifi_reg_container() {
     local clientKeystore="$9"
     local clientPassword="${10}"
     local apiUrl='/nifi-registry-api/config'
+
     echo "Sleep for $initialWait seconds..."
     sleep "$initialWait"
     echo "Waiting for nifi registry on $hostName:$portNum (TLS = $useTls, url = $apiUrl) to start..."
     wait_success="1"
     wait_for_service "$hostName" "$portNum" "$apiUrl" "$waitTimeout" "$useTls" \
         "$caCert" "$clientKeystore" "$clientPassword" || wait_success="0"
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
     if [ "$wait_success" == '0' ]; then
         echo "Wait failed, nifi registry not available. Last 500 lines of logs for container:"
         echo "resultsDir=$resultsDir"
-        docker logs -n 500 "$containerName" >./nifi_registry_log_tmp.lst
+        docker compose -f "$composeFile" --env-file ./docker.env logs -n 1000 >./nifi_registry_log_tmp.lst
         cat ./nifi_registry_log_tmp.lst
         echo "Wait failed, nifi registry not available" >"./test-results/$resultsDir/failed_nifi_registry_wait.lst"
         mv ./nifi_registry_log_tmp.lst "./test-results/$resultsDir/nifi_registry_log_after_wait.log"
+        echo "| Wait for nifi registry container start         | Failed :x:                 |" >"./test-results/$resultsDir/$summaryFileName"
+        return 1
     fi
+    echo "| Wait for nifi registry container start         | Success :white_check_mark: |" >"./test-results/$resultsDir/$summaryFileName"
+    return 0
 }
 
 generate_tls_passwords() {
@@ -278,10 +286,12 @@ generate_tls_passwords() {
     KEYSTORE_PASSWORD_NIFI=$(generate_random_password 8 4 3)
     KEYSTORE_PASSWORD_NIFI_REG=$(generate_random_password 8 4 3)
     KEYCLOAK_TLS_PASS=$(generate_random_hex_password 8 4)
+    ZK_TLS_PASS=$(generate_random_hex_password 8 4)
     export TRUSTSTORE_PASSWORD
     export KEYSTORE_PASSWORD_NIFI
     export KEYSTORE_PASSWORD_NIFI_REG
     export KEYCLOAK_TLS_PASS
+    export ZK_TLS_PASS
 }
 
 create_docker_env_file() {
@@ -307,6 +317,11 @@ create_docker_env_file() {
     export CONSUL_READ_TOKEN
     echo "CONSUL_TOKEN=$CONSUL_TOKEN" >>./docker.env
     echo "CONSUL_READ_TOKEN=$CONSUL_READ_TOKEN" >>./docker.env
+    REDIS_PASSWORD=$(generate_random_hex_password 8 4)
+    export REDIS_PASSWORD
+    echo "REDIS_PASSWORD=$REDIS_PASSWORD" >>./docker.env
+    export ZK_TLS_PASS
+    echo "ZK_TLS_PASS=$ZK_TLS_PASS" >>./docker.env
 }
 
 create_docker_env_file_plain() {
@@ -319,16 +334,17 @@ create_global_vars_file() {
     echo "Generating file with global vars for newman..."
     gitDir="$(pwd)"
     tmp=$(mktemp)
-    jq --arg pass "$DB_PASSWORD" '(.values[] | select(.key == "global.db.pass") | .value) = $pass' \
+    jq --arg pass "$DB_PASSWORD" --arg redisPass "$REDIS_PASSWORD" \
+        '(.values[] | select(.key == "global.db.pass") | .value) = $pass | (.values[] | select(.key == "global.redis.pass") | .value) = $redisPass' \
         "${gitDir}/.github/collections/Global_Vars.postman_globals.json" >"$tmp" &&
         mv "$tmp" "${gitDir}/.github/collections/Global_Vars.postman_globals.json"
 }
 
 generate_add_nifi_certs() {
     keytool -genkeypair -alias keycloakCA -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
-        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -dname "CN=keycloakCA" -ext bc:c
-    keytool -genkeypair -alias keycloakServer -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
-        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -dname "CN=keycloak" -signer keycloakCA -signerkeypass \
+        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=keycloakCA" -ext bc:c
+    keytool -genkeypair  -alias keycloakServer -keypass "$KEYCLOAK_TLS_PASS" -keystore ./temp-vol/tls-cert/keycloak.p12 -storetype PKCS12 \
+        -storepass "$KEYCLOAK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=keycloak" -signer keycloakCA -signerkeypass \
         "$KEYCLOAK_TLS_PASS" -ext SAN=dns:keycloak,dns:localhost
     keytool -importkeystore -srckeystore ./temp-vol/tls-cert/keycloak.p12 -destkeystore ./temp-vol/tls-cert/keycloak-server.p12 -srcstoretype PKCS12 \
         -deststoretype PKCS12 -srcstorepass "$KEYCLOAK_TLS_PASS" -deststorepass "$KEYCLOAK_TLS_PASS" -srcalias \
@@ -337,6 +353,92 @@ generate_add_nifi_certs() {
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer
     keytool -importcert -keystore ./temp-vol/tls-cert/keycloak-server.p12 -storetype PKCS12 -storepass "$KEYCLOAK_TLS_PASS" \
         -file ./temp-vol/tls-cert/ca/keycloak-ca.cer -alias keycloak-ca-cer -noprompt
+}
+
+generate_zookeeper_certs() {
+    #Zookeeper CA:
+    keytool -genkeypair -alias zkCA -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zkCA" -ext bc:c
+    #Zookeeper server key pair:
+    keytool -genkeypair -alias zkServer1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    #Zookeeper server quorum key pair:
+    keytool -genkeypair -alias zkQuorum1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=zookeeper" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:zookeeper,dns:localhost
+    #NiFi client key pair 0:
+    keytool -genkeypair -alias zkNiFiClient0 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-0" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-0,dns:nifi
+    #NiFi client key pair 1:
+    keytool -genkeypair -alias zkNiFiClient1 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-1" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-1,dns:nifi
+    #NiFi client key pair 2:
+    keytool -genkeypair -alias zkNiFiClient2 -keypass "$ZK_TLS_PASS" -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 \
+        -storepass "$ZK_TLS_PASS" -keyalg RSA -keysize 2048 -validity 720 -dname "CN=nifi-2" -signer zkCA -signerkeypass \
+        "$ZK_TLS_PASS" -ext SAN=dns:nifi-2,dns:nifi
+
+    #Copy server certificate to separate keystore:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-server.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkServer1 -destalias zkServer1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy server quorum certificate to separate keystore:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkQuorum1 -destalias zkQuorum1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-0.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient0 -destalias zkNiFiClient0 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-1.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient1 -destalias zkNiFiClient1 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Copy nifi client certs to separate keystores:
+    keytool -importkeystore -srckeystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -destkeystore ./temp-vol/tls-cert/zk-client-nifi-2.p12 -srcstoretype PKCS12 \
+        -deststoretype PKCS12 -srcstorepass "$ZK_TLS_PASS" -deststorepass "$ZK_TLS_PASS" -srcalias \
+        zkNiFiClient2 -destalias zkNiFiClient2 -srckeypass "$ZK_TLS_PASS" -destkeypass "$ZK_TLS_PASS"
+    #Export CA certificate:
+    keytool -exportcert -keystore ./temp-vol/tls-cert/zookeeper-ca-keystore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" -alias zkCA -rfc \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer
+    #Import CA certificate into server keystore:
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-server.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into server quorum keystore:
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-quorum.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into truststore:
+    keytool -importcert -keystore ./temp-vol/tls-cert/zookeeper-truststore.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    #Import CA certificate into nifi client keystores:
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-0.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-1.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+    keytool -importcert -keystore ./temp-vol/tls-cert/zk-client-nifi-2.p12 -storetype PKCS12 -storepass "$ZK_TLS_PASS" \
+        -file ./temp-vol/tls-cert/ca/zk-ca.cer -alias zk-ca-cer -noprompt
+}
+
+prepare_zookeeper_configuration() {
+    if [ -n "$ZK_TLS_PASS" ]; then
+        sed -i "s/^ssl.quorum.keyStore.password=.*$/ssl.quorum.keyStore.password=$ZK_TLS_PASS/" \
+            ./temp-vol/zk-conf/zoo.cfg
+        sed -i "s/^ssl.quorum.trustStore.password=.*$/ssl.quorum.trustStore.password=$ZK_TLS_PASS/" \
+            ./temp-vol/zk-conf/zoo.cfg
+        sed -i "s/^ssl.trustStore.password=.*$/ssl.trustStore.password=$ZK_TLS_PASS/" \
+            ./temp-vol/zk-conf/zoo.cfg
+        sed -i "s/^ssl.keyStore.password=.*$/ssl.keyStore.password=$ZK_TLS_PASS/" \
+            ./temp-vol/zk-conf/zoo.cfg
+        #if client config available, change it as well:
+        if [ -f ./temp-vol/zk-conf/client.cfg ]; then
+            sed -i "s/^zookeeper.ssl.keyStore.password=.*$/zookeeper.ssl.keyStore.password=$ZK_TLS_PASS/" \
+                ./temp-vol/zk-conf/client.cfg
+            sed -i "s/^zookeeper.ssl.trustStore.password=.*$/zookeeper.ssl.trustStore.password=$ZK_TLS_PASS/" \
+                ./temp-vol/zk-conf/client.cfg
+        fi
+    fi
 }
 
 setup_env_before_tests() {
@@ -350,14 +452,28 @@ setup_env_before_tests() {
         generate_tls_passwords
         create_docker_env_file
     fi
-    if [[ "$runMode" == "oidc" ]]; then
+    if [[ "$runMode" == "oidc"* ]]; then
         create_global_vars_file
     fi
     mkdir -p ./temp-vol/tls-cert/
     mkdir -p ./temp-vol/tls-cert/ca/
     mkdir -p ./temp-vol/tls-cert/nifi/
     mkdir -p ./temp-vol/tls-cert/nifi-registry/
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+    if [[ "$runMode" == "cluster"* ]]; then
+        mkdir -p ./temp-vol/zk-conf/
+        echo "Copying zookeeper configuration files..."
+        #no-acl scenario:
+        if [[ "$runMode" == "cluster-statefulset" ]]; then
+            #copy all configuration files:
+            cp ./.github/configuration/zookeeper/*.* ./temp-vol/zk-conf/
+        fi
+        #acl scenario:
+        if [[ "$runMode" == "cluster-statefulset-acl" ]]; then
+            #copy all configuration files:
+            cp ./.github/configuration/zookeeper-acl/*.* ./temp-vol/zk-conf/
+        fi
+    fi
+    if [[ "$runMode" == "oidc"* ]] || [[ "$runMode" == "cluster"* ]]; then
         mkdir -p ./temp-vol/pg-db/
     fi
     if [[ "$runMode" == "cluster"* ]]; then
@@ -367,13 +483,28 @@ setup_env_before_tests() {
         mkdir -p ./temp-vol/nifi-0/per-conf/
         mkdir -p ./temp-vol/nifi-1/per-conf/
         mkdir -p ./temp-vol/nifi-2/per-conf/
+        #generate zookeeper certificates:
+        generate_zookeeper_certs
     else
         mkdir -p ./temp-vol/nifi/per-conf/
+        mkdir -p ./temp-vol/nifi/extensions/
+        if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
+        -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
+            echo "Copying test NARs to extensions directory"
+            cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
+                ./temp-vol/nifi/extensions/
+        else
+            echo "Test NARs not found, skipping copy to extensions directory"
+        fi
     fi
     chmod -R 777 ./temp-vol
     #generate keycloak certificates:
-    if [[ "$runMode" == "oidc" ]] || [[ "$runMode" == "cluster"* ]]; then
+    if [[ "$runMode" == "oidc"* ]] || [[ "$runMode" == "cluster"* ]]; then
         generate_add_nifi_certs
+    fi
+    #set up passwords for zoo.cfg and client.cfg:
+    if [[ "$runMode" == "cluster-statefulset"* ]]; then
+        prepare_zookeeper_configuration
     fi
 }
 

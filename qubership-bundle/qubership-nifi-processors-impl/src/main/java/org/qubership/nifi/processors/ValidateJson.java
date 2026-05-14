@@ -78,7 +78,7 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
             .name(SCHEMA_PROP_NAME)
             .displayName(SCHEMA_PROP_DISPLAY_NAME)
-            .description("Validation Json Schema")
+            .description("Validation JSON Schema")
             .required(true)
             .addValidator(new JsonTreeValidator(MAPPER))
             .build();
@@ -106,7 +106,7 @@ public class ValidateJson extends AbstractProcessor {
     public static final PropertyDescriptor ID_PATH_PROP = new PropertyDescriptor.Builder()
             .name(ID_PATH_PROP_NAME)
             .displayName(ID_PATH_PROP_DISPLAY_NAME)
-            .description("A JsonPath expression that specifies path to source id attribute"
+            .description("A JsonPath expression that specifies path to source ID attribute"
                     + " in the content of incoming FlowFile.")
             .required(true)
             .defaultValue(DEFAULT_ID_PATH)
@@ -129,15 +129,15 @@ public class ValidateJson extends AbstractProcessor {
             .build();
 
     private static final String WRAPPER_REGEX_PROP_NAME = "wrapper-regex";
-    private static final String WRAPPER_REGEX_PROP_DISPLAY_NAME = "Wrapper regex";
+    private static final String WRAPPER_REGEX_PROP_DISPLAY_NAME = "Wrapper regular expression";
     /**
      * Wrapper regex property descriptor.
      */
     public static final PropertyDescriptor WRAPPER_REGEX = new PropertyDescriptor.Builder()
             .name(WRAPPER_REGEX_PROP_NAME)
             .displayName(WRAPPER_REGEX_PROP_DISPLAY_NAME)
-            .description("Regex to define path of wrapper in aggregated business entity. "
-                    + "If validation errors are detected and regex is set and matched, "
+            .description("Regular expression to define path of wrapper in aggregated business entity. "
+                    + "If validation errors are detected and regular expression is set and matched, "
                     + "the wrapper path will be removed from the error path,"
                     + " ID of the wrapper will be replaced to ID of the business entity.")
             .required(false)

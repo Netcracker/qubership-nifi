@@ -15,7 +15,7 @@ for expflow in "${listForUpdate[@]}"; do
     mv "$tmp" "$expflow"
     echo "Replacing properties names for JoltTransformJSON processor for flow - $expflow"
     tmp2=$(mktemp)
-    jq 'walk(if type == "object" and .type != null and .type == "org.apache.nifi.processors.jolt.JoltTransformJSON" then .properties |= with_entries(if .key == "jolt-spec" then .key = "Jolt Specification" elif .key == "jolt-transform" then .key = "Jolt Transform" elif .key == "pretty_print" then .key = "Pretty Print" else .key |= . end ) else . end)' "$expflow" >"$tmp2" || handle_error "Error while executing replacement properties for JoltTransformJSON processor in flow - $expflow"
+    jq 'walk(if type == "object" and .type != null and .type == "org.apache.nifi.processors.jolt.JoltTransformJSON" then .properties |= with_entries(if .key == "jolt-spec" then .key = "Jolt Specification" elif .key == "jolt-transform" then .key = "Jolt Transform" elif .key == "pretty_print" then .key = "Pretty Print" elif .key == "jolt-custom-modules" then .key = "Custom Module Directory" elif .key == "jolt-custom-class" then .key = "Custom Transformation Class Name" else .key |= . end ) else . end)' "$expflow" >"$tmp2" || handle_error "Error while executing replacement properties for JoltTransformJSON processor in flow - $expflow"
     if [ "$DEBUG_MODE" = "true" ]; then
         echo "DEBUG: diff between $expflow and $tmp2"
         diff "$expflow" "$tmp2"

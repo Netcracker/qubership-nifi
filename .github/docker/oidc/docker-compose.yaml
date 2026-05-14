@@ -23,16 +23,24 @@ services:
       postgresql:
         condition: service_started
     volumes:
+      - nifi-ext:/opt/nifi/nifi-current/extensions
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
+      - 127.0.0.1:9892:9892
+      - 127.0.0.1:9893:9893
+      - 127.0.0.1:12981:12981
+      - 127.0.0.1:9192:9192
+      - 127.0.0.1:12971:12971
+      - 127.0.0.1:12911:12911
     environment:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
       - CONSUL_URL=consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=spring
       - AUTH=oidc
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
@@ -46,8 +54,10 @@ services:
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+      - NIFI_WEB_PROXY_HOST=nifi:8080
     container_name: local-nifi
     restart: unless-stopped
+    hostname: nifi
   nifi-registry:
     image: ghcr.io/netcracker/qubership-nifi-registry:latest
     depends_on:
@@ -59,6 +69,7 @@ services:
         condition: service_started
     volumes:
       - tls-cert-reg:/tmp/tls-certs
+      - tls-cert-ca:/tmp/cert
     ports:
       - 127.0.0.1:18080:18080
     environment:
@@ -75,8 +86,20 @@ services:
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
+      - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry
     hostname: nifi-registry
+    labels:
+      - "autoheal=true" # Label for autoheal to monitor
+    healthcheck:
+      interval: 15s
+      retries: 3
+      start_period: 10s
+      timeout: 5s
+      test:
+        - "CMD"
+        - "bash"
+        - "/opt/nifi-registry/scripts/ready.sh"
     restart: unless-stopped
   consul:
     image: hashicorp/consul:1.20
@@ -105,8 +128,8 @@ services:
       KC_HTTPS_PORT: 8443
       KC_HTTP_ENABLED: false
     ports:
-      - 28080:8080
-      - 28443:8443
+      - 127.0.0.1:28080:8080
+      - 127.0.0.1:28443:8443
     command:
       - start-dev
       - "--import-realm"
@@ -117,7 +140,7 @@ services:
   postgresql:
     image: postgres:16.8
     ports:
-      - "5430:5432"
+      - "127.0.0.1:5430:5432"
     volumes:
       - pg-db:/var/lib/postgresql/data/pgdata
     environment:
@@ -125,13 +148,30 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     container_name: postgresql
     hostname: postgresql
+  autoheal:
+    restart: always
+    image: willfarrell/autoheal:latest
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  redis:
+    image: redis:8.2.2
+    ports:
+      - "127.0.0.1:26379:6379"
+    container_name: redis
+    hostname: redis
+    environment:
+      - REDIS_PASSWORD=$REDIS_PASSWORD
+    command:
+      - "--requirepass $REDIS_PASSWORD"
 volumes:
   tls-scripts:
     driver: local
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/workflows/sh/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/workflows/sh/
   tls-cert:
     driver: local
     driver_opts:
@@ -162,6 +202,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/nifi/per-conf/
+  nifi-ext:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/nifi/extensions/
   pg-db:
     driver: local
     driver_opts:
@@ -173,4 +219,4 @@ volumes:
     driver_opts:
       o: bind
       type: none
-      device: $BASE_DIR/.github/configuration/keycloak/
+      device: ${GIT_BASE_DIR:-$BASE_DIR}/.github/configuration/keycloak/

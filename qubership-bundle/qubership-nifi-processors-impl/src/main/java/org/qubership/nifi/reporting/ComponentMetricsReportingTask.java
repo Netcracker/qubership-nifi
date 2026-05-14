@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -33,9 +34,15 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+/**
+ * @deprecated Since qubership-nifi v.2.4.0. To be removed in 2.7.0.
+ */
 @Tags({"reporting", "influxdb", "metrics"})
 @CapabilityDescription("Sends components (Processors, Connections) metrics to InfluxDB.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "15 sec")
+@Deprecated(since = "2.4.0", forRemoval = true)
+@DeprecationNotice(alternatives = ComponentPrometheusReportingTask.class,
+        reason = "This component is deprecated and may be removed in release 2.7.0")
 public class ComponentMetricsReportingTask
         extends AbstractInfluxDbReportingTask {
     /**
