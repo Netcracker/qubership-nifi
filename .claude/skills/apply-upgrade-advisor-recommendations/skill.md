@@ -13,17 +13,21 @@ description: >-
 Accept as positional args: `/apply-upgrade-advisor-recommendations [csv_path] [exports_dir]`
 
 If either argument is missing:
+
 - For `csv_path`: use Glob to find `**/upgradeAdvisorReport.csv` in the workspace.
 - For `exports_dir`: once the CSV is found, run:
+
   ```bash
   python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
     --detect-exports-dir <csv_path>
   ```
+
   Use the printed value as `exports_dir`. Do **not** derive `exports_dir` from the location
   of JSON files — it must be derived from the CSV's `Flow name` values, which encode the
   path relative to the correct exports root.
 
-If either path was discovered automatically, use AskUserQuestion tool to confirm both paths with the user before proceeding.
+If either path was discovered automatically, use AskUserQuestion tool to confirm both paths with the user before
+proceeding.
 
 Once `exports_dir` is confirmed, detect the source NiFi version:
 
@@ -34,7 +38,8 @@ python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/detect_nifi
 
 - **Exit 0, one version printed**: use it directly as `NIFI_SOURCE_VERSION`.
 - **Exit 0, multiple versions printed**: use AskUserQuestion to ask which version to use, listing all options.
-- **Exit 1** (no `org.apache.nifi` bundles found): use AskUserQuestion to ask the user to supply the source NiFi version.
+- **Exit 1** (no `org.apache.nifi` bundles found): use AskUserQuestion to ask the user to supply the source NiFi
+  version.
 
 Report the resolved `NIFI_SOURCE_VERSION` to the user before continuing.
 
@@ -46,7 +51,8 @@ Report the resolved `NIFI_SOURCE_VERSION` to the user before continuing.
 
 1. Create repo-local `tmp/` directory if not exists.
 2. Add it to `.gitignore` if not present already.
-3. Remove existing `tmp/upgrade_nifi_run.py` if exists, to avoid confusion with the new one that will be generated in Step 3.
+3. Remove existing `tmp/upgrade_nifi_run.py` if exists, to avoid confusion with the new one that will be generated in
+   Step 3.
 
 Log the changes that were made.
 
@@ -67,15 +73,21 @@ python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nif
 - `--collect-vars` outputs a JSON object mapping each variable name to its occurrences
   (file path, PG name/UUID, value, reference count within the PG subtree) and a
   `values_differ` flag.
-- `--analyze` summarises every CSV row as AUTO, AI Agent, CONTEXT PLAN, or MANUAL. AUTO rows include the processor name and UUID - use these directly in subsequent steps; do not re-discover UUIDs by searching flow JSON files.
+- `--analyze` summarises every CSV row as AUTO, AI Agent, CONTEXT PLAN, or MANUAL. AUTO rows include the processor name
+  and UUID - use these directly in subsequent steps; do not re-discover UUIDs by searching flow JSON files.
 
 ### Step 2b - Prepare upgrade decision plan
 
-1. If the `--analyze` output contains any `[CONTEXT PLAN]` rows, **or** if the JSON produced by `--collect-vars` is not empty (variables present in the flow but not flagged by the advisor), open and follow `references/parameter-context-planning.md`.
-2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains any row whose `Issue` references `PrometheusRecordSink`, open and follow `references/prometheus-record-sink-analysis.md`.
-3. If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`), open and follow `references/proxy-properties-handling.md`.
-4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references `Access Key ID and Secret Access Key`), open and follow `references/aws-components-analysis.md`.
-5. Ensure all user questions  from the applicable reference files have complete answers before proceeding to Step 3.
+1. If the `--analyze` output contains any `[CONTEXT PLAN]` rows, **or** if the JSON produced by `--collect-vars` is not
+   empty (variables present in the flow but not flagged by the advisor), open and follow
+   `references/parameter-context-planning.md`.
+2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains any row whose `Issue` references `PrometheusRecordSink`,
+   open and follow `references/prometheus-record-sink-analysis.md`.
+3. If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`),
+   open and follow `references/proxy-properties-handling.md`.
+4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references
+   `Access Key ID and Secret Access Key`), open and follow `references/aws-components-analysis.md`.
+5. Ensure all user questions from the applicable reference files have complete answers before proceeding to Step 3.
 
 ### Step 2c - Detect standalone controller services requiring rename
 
@@ -201,27 +213,29 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
 
 1. Read the processor's `Script Body` property from the modified flow JSON (use the Read tool)
 2. Translate the script body from its original language to Groovy:
-   - Preserve logic and variable names as closely as possible
-   - Use NiFi Groovy globals: `session`, `flowFile`, `log`, `context`
-   - FlowFile operations: `session.get()`, `session.write()`, `session.putAttribute()`,
-     `session.transfer(ff, REL_SUCCESS)`, `session.transfer(ff, REL_FAILURE)`
-   - If translation is uncertain, emit a Groovy stub with the original in a comment block
+    - Preserve logic and variable names as closely as possible
+    - Use NiFi Groovy globals: `session`, `flowFile`, `log`, `context`
+    - FlowFile operations: `session.get()`, `session.write()`, `session.putAttribute()`,
+      `session.transfer(ff, REL_SUCCESS)`, `session.transfer(ff, REL_FAILURE)`
+    - If translation is uncertain, emit a Groovy stub with the original in a comment block
 3. Update the processor in the JSON via Edit tool:
-   - Set `Script Engine` = `"Groovy"`
-   - Set `Script Body` to:
-     ```groovy
-     // Auto-translated from <language> by apply-upgrade-advisor-recommendations. Review before use.
-     <translated Groovy code>
+    - Set `Script Engine` = `"Groovy"`
+    - Set `Script Body` to:
 
-     // ── Original <language> preserved below ──
-     /*
-     <original script body>
-     */
-     ```
+      ```groovy
+      // Auto-translated from <language> by apply-upgrade-advisor-recommendations. Review before use.
+      <translated Groovy code>
+ 
+      // ── Original <language> preserved below ──
+      /*
+      <original script body>
+      */
+      ```
 
 ### Step 6 - Adapt other repository files
 
-1. Run the command below to enumerate candidate files (substituting the actual `exports_dir` and `csv_path` values). Only read files that appear in the output.
+1. Run the command below to enumerate candidate files (substituting the actual `exports_dir` and `csv_path` values).
+   Only read files that appear in the output.
 
    ```bash
    python3 -c "
@@ -248,11 +262,16 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
        print(f)
    "
    ```
-2. For each remaining file, check whether the changes from steps 4–5 require a corresponding update — for example: adding new controller service to an enable-list, a renamed property referenced in config, a parameterised variable mentioned in configuration or documentation file. If in doubt, propose the change and ask the user to confirm before applying it.
+
+2. For each remaining file, check whether the changes from steps 4–5 require a corresponding update — for example:
+   adding new controller service to an enable-list, a renamed property referenced in config, a parameterised variable
+   mentioned in configuration or documentation file. If in doubt, propose the change and ask the user to confirm before
+   applying it.
 
 ### Step 7 - Report
 
 Summarise:
+
 - Files modified and what changed in each
 - Manual action items (from script output + any items you could not automate)
 
@@ -260,17 +279,17 @@ Summarise:
 
 ## What is automated vs. manual
 
-| Issue type | How handled |
-| --- | --- |
-| `Script Engine = python/ruby/lua` | Step 5 (AI agent translation) |
-| `Proxy properties in InvokeHTTP` | `apply_csv_transforms` - creates StandardProxyConfigurationService |
-| `Variables are not available` | Steps 2b + 3 - AI-assisted parameter context design |
-| S3 hardcoded credentials | `apply_csv_transforms` - creates AWSCredentialsProviderControllerService; if `Access Key ID` and `Secret Access Key` are absent from the processor, credentials must be filled in manually in NiFi UI after the script runs |
-| `ConvertJSONToSQL` | `apply_csv_transforms` - migrates to PutDatabaseRecord + JsonTreeReader |
-| Kafka version upgrades (1_0/2_0 to 2_6) | `apply_csv_transforms` - type rename only |
-| Azure Storage to _v12 | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual** |
-| Level = Error | Always manual - report the solution from the CSV |
-| `ConvertExcelToCSVProcessor`, `ConvertAvroToJSON` | Manual - complex restructuring needed |
+| Issue type                                        | How handled                                                                                                                                                                                                                 |
+|---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Script Engine = python/ruby/lua`                 | Step 5 (AI agent translation)                                                                                                                                                                                               |
+| `Proxy properties in InvokeHTTP`                  | `apply_csv_transforms` - creates StandardProxyConfigurationService                                                                                                                                                          |
+| `Variables are not available`                     | Steps 2b + 3 - AI-assisted parameter context design                                                                                                                                                                         |
+| S3 hardcoded credentials                          | `apply_csv_transforms` - creates AWSCredentialsProviderControllerService; if `Access Key ID` and `Secret Access Key` are absent from the processor, credentials must be filled in manually in NiFi UI after the script runs |
+| `ConvertJSONToSQL`                                | `apply_csv_transforms` - migrates to PutDatabaseRecord + JsonTreeReader                                                                                                                                                     |
+| Kafka version upgrades (1_0/2_0 to 2_6)           | `apply_csv_transforms` - type rename only                                                                                                                                                                                   |
+| Azure Storage to _v12                             | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual**                                                                                                                          |
+| Level = Error                                     | Always manual - report the solution from the CSV                                                                                                                                                                            |
+| `ConvertExcelToCSVProcessor`, `ConvertAvroToJSON` | Manual - complex restructuring needed                                                                                                                                                                                       |
 
 ---
 

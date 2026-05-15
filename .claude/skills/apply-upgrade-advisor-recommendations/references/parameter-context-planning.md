@@ -11,7 +11,9 @@ Read the JSON produced by `--collect-vars`. For each variable, note:
 Using this data, propose a parameter context plan. Specifically:
 
 1. **Common context candidates** - variables that appear in >= 2 PGs with the *same* value.
-   Propose a common parameter context for these. Suggest name to include some prefix related to top-level PG name to avoid conflicts with any existing contexts in the flows: e.g. `orchestrator-common-params` if the top-level PG is `Orchestrator`.
+   Propose a common parameter context for these. Suggest name to include some prefix related to top-level PG name to
+   avoid conflicts with any existing contexts in the flows: e.g. `orchestrator-common-params` if the top-level PG is
+   `Orchestrator`.
 2. **Per-flow context candidates** - variables unique to one PG, or that differ across PGs.
    Propose a per-flow context for each affected PG.
 3. **Hardcoding candidates** - variables defined in only one PG *and* referenced <= 2 times
