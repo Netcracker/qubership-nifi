@@ -1,0 +1,9 @@
+displayNameMapping:
+  - QueryDatabaseTableRecord:
+      Max Rows Per Flow File: Max Rows Per FlowFile
+  - ExecuteSQL:
+      Max Rows Per Flow File: Max Rows Per FlowFile
+  - ExecuteSQLRecord:
+      Max Rows Per Flow File: Max Rows Per FlowFile
+  - QueryDatabaseTable:
+      Max Rows Per Flow File: Max Rows Per FlowFile
