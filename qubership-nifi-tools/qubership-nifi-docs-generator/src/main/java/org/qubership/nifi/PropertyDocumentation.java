@@ -230,37 +230,35 @@ public class PropertyDocumentation extends AbstractMojo {
                 Class<? extends Processor> processorClass = processorInstance.getClass();
                 ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
                 processorInstance.initialize(initializationContext);
-                CapabilityDescription capabilityDescriptionAnnotationProc =
+                CapabilityDescription capabilityDescription =
                         processorClass.getAnnotation(CapabilityDescription.class);
                 List<PropertyDescriptor> propertyDescriptors = processorInstance.getPropertyDescriptors();
-                if (capabilityDescriptionAnnotationProc != null) {
-                    String processorName = processorClass.getSimpleName();
-                    String descriptionValue = capabilityDescriptionAnnotationProc.value();
-                    List<PropertyDescriptorEntity> componentProperties =
-                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
-                    customComponentList.add(new CustomComponentEntity(processorName, PROCESSOR, project.getArtifactId(),
-                            descriptionValue, componentProperties));
-                }
+                String processorName = processorClass.getSimpleName();
+                String descriptionValue = capabilityDescription != null
+                        ? capabilityDescription.value() : "";
+                List<PropertyDescriptorEntity> componentProperties =
+                        generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                customComponentList.add(new CustomComponentEntity(processorName, PROCESSOR, project.getArtifactId(),
+                        descriptionValue, componentProperties));
             }
 
             ServiceLoader<ControllerService> controllerServiceServiceLoader =
                     ServiceLoader.load(ControllerService.class, componentClassLoader);
             for (ControllerService controllerServiceInstance : controllerServiceServiceLoader) {
                 Class<? extends ControllerService> controllerServiceClass = controllerServiceInstance.getClass();
-                CapabilityDescription capabilityDescriptionAnnotationCS =
+                CapabilityDescription capabilityDescription =
                         controllerServiceClass.getAnnotation(CapabilityDescription.class);
                 ControllerServiceInitializationContext controllerServiceInitializationContext =
                         new MockControllerServiceInitializationContext();
                 controllerServiceInstance.initialize(controllerServiceInitializationContext);
                 List<PropertyDescriptor> propertyDescriptors = controllerServiceInstance.getPropertyDescriptors();
-                if (capabilityDescriptionAnnotationCS != null) {
-                    String controllerServiceName = controllerServiceClass.getSimpleName();
-                    String descriptionValue = capabilityDescriptionAnnotationCS.value();
-                    List<PropertyDescriptorEntity> componentProperties =
-                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
-                    customComponentList.add(new CustomComponentEntity(controllerServiceName, CONTROLLER_SERVICE,
-                            project.getArtifactId(), descriptionValue, componentProperties));
-                }
+                String controllerServiceName = controllerServiceClass.getSimpleName();
+                String descriptionValue = capabilityDescription != null
+                        ? capabilityDescription.value() : "";
+                List<PropertyDescriptorEntity> componentProperties =
+                        generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                customComponentList.add(new CustomComponentEntity(controllerServiceName, CONTROLLER_SERVICE,
+                        project.getArtifactId(), descriptionValue, componentProperties));
             }
 
             ServiceLoader<ReportingTask> reportingTaskServiceLoader =
@@ -270,17 +268,16 @@ public class PropertyDocumentation extends AbstractMojo {
                 ReportingInitializationContext reportingInitializationContext =
                         new MockReportingInitializationContext();
                 reportingTaskInstance.initialize(reportingInitializationContext);
-                CapabilityDescription capabilityDescriptionAnnotationRT = reportingTaskClass
+                CapabilityDescription capabilityDescription = reportingTaskClass
                         .getAnnotation(CapabilityDescription.class);
                 List<PropertyDescriptor> propertyDescriptors = reportingTaskInstance.getPropertyDescriptors();
-                if (capabilityDescriptionAnnotationRT != null) {
-                    String reportingTaskName = reportingTaskClass.getSimpleName();
-                    String descriptionValue = capabilityDescriptionAnnotationRT.value();
-                    List<PropertyDescriptorEntity> componentProperties =
-                            generateComponentPropertiesList(propertyDescriptors, descriptionValue);
-                    customComponentList.add(new CustomComponentEntity(reportingTaskName, REPORTING_TASK,
-                            project.getArtifactId(), descriptionValue, componentProperties));
-                }
+                String reportingTaskName = reportingTaskClass.getSimpleName();
+                String descriptionValue = capabilityDescription != null
+                        ? capabilityDescription.value() : "";
+                List<PropertyDescriptorEntity> componentProperties =
+                        generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                customComponentList.add(new CustomComponentEntity(reportingTaskName, REPORTING_TASK,
+                        project.getArtifactId(), descriptionValue, componentProperties));
             }
 
             List<CustomComponentEntity> processorEntities = customComponentList.stream()

@@ -170,15 +170,15 @@ class PropertyDocumentationGenerateDocumentationTest {
                 "Output should contain the property display name");
     }
 
-    /** Verifies processors without {@code @CapabilityDescription} are excluded from the output. */
+    /** Verifies processors without {@code @CapabilityDescription} are included in the output. */
     @Test
-    void testGenerateDocumentationIgnoresProcessorWithoutCapabilityDescription() throws Exception {
+    void testGenerateDocumentationContainsProcessorWithoutCapabilityDescription() throws Exception {
         mockForClass(ContentValidatorProcessor.class);
         mojo.execute();
 
         String output = Files.readString(outputFile);
-        assertFalse(output.contains("BulkDistributedMapCacheProcessor"),
-                "Output should not document BulkDistributedMapCacheProcessor (no @CapabilityDescription)");
+        assertTrue(output.contains("BulkDistributedMapCacheProcessor"),
+                "Output should document BulkDistributedMapCacheProcessor (no @CapabilityDescription)");
     }
 
     /** Verifies controller services with {@code @CapabilityDescription} are included in the output. */
