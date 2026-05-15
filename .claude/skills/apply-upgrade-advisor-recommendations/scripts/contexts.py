@@ -127,8 +127,8 @@ def _hardcode_var_in_pg(pg: dict, var_name: str, literal_value: str) -> int:
     if present.  Returns the count of property values changed.
 
     Two forms are handled:
-      ${varName}              →  literal_value
-      ${varName:fn1():fn2()}  →  ${literal("literal_value"):fn1():fn2()}
+      ${varName}              to  literal_value
+      ${varName:fn1():fn2()}  to  ${literal("literal_value"):fn1():fn2()}
 
     The second form preserves the EL function chain using NiFi's literal() function.
     """

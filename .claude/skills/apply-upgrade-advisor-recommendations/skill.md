@@ -77,6 +77,21 @@ python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nif
 4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references `Access Key ID and Secret Access Key`), open and follow `references/aws-components-analysis.md`.
 5. Ensure all user questions  from the applicable reference files have complete answers before proceeding to Step 3.
 
+### Step 2c - Detect standalone controller services requiring rename
+
+Run:
+
+```bash
+python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
+  --detect-standalone-cs <csv_path> <exports_dir>
+```
+
+- If the output is `[]`, skip this step — no standalone CS renames needed.
+- If non-empty: for each entry, present the current file path, current service name, current type,
+  suggested new service name, and suggested new filename to the user.
+  Use AskUserQuestion to ask the user to confirm or adjust each suggested name and filename.
+  Record the confirmed values for Step 3.
+
 ### Step 3 - Generate the run script
 
 Based on the analysis and user answers from Step 2b, generate `tmp/upgrade_nifi_run.py`:
@@ -84,7 +99,7 @@ Based on the analysis and user answers from Step 2b, generate `tmp/upgrade_nifi_
 ```python
 import sys
 sys.path.insert(0, '.claude/skills/apply-upgrade-advisor-recommendations/scripts')
-from fixes    import apply_csv_transforms
+from fixes    import apply_csv_transforms, rename_standalone_controller_services
 from contexts import apply_variable_contexts, apply_hardcoded_values
 
 CSV_PATH    = "<abs_path_to_csv>"
@@ -146,6 +161,17 @@ S3_CROSS_FILE = {
     # },
 }
 
+# Standalone CS renames — populated from confirmed values in Step 2c.
+# Leave as [] if Step 2c found nothing or was skipped.
+# Renames run AFTER apply_csv_transforms so CSV-based file lookups still resolve.
+STANDALONE_CS_RENAMES = [
+    # {
+    #     "file":     "relative/path/to/old_file.json",
+    #     "new_name": "New Service Name",
+    #     "new_file": "relative/path/to/new_file.json",
+    # },
+]
+
 apply_csv_transforms(
     CSV_PATH, EXPORTS_DIR,
     nifi_version=NIFI_SOURCE_VERSION,
@@ -155,6 +181,7 @@ apply_csv_transforms(
 )
 apply_variable_contexts(EXPORTS_DIR, PARAMETER_CONTEXT_PLAN)
 apply_hardcoded_values(EXPORTS_DIR, HARDCODE_PLAN)
+rename_standalone_controller_services(EXPORTS_DIR, STANDALONE_CS_RENAMES)
 ```
 
 **Show the generated script to the user for a final review** before running it.
@@ -194,7 +221,33 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
 
 ### Step 6 - Adapt other repository files
 
-1. Enumerate candidate files, then **filter out** the following before reading anything: `tmp/`, `<exports_dir>/`, `<csv_path>`, `.claude/skills/apply-upgrade-advisor-recommendations/`, build artifacts and `.git/`. Only read files that survive the filter.
+1. Run the command below to enumerate candidate files (substituting the actual `exports_dir` and `csv_path` values). Only read files that appear in the output.
+
+   ```bash
+   python3 -c "
+   import subprocess, os
+   exports_rel = os.path.relpath('<exports_dir>')
+   csv_rel     = os.path.relpath('<csv_path>')
+   skip_pfx = [
+       'tmp' + os.sep,
+       '.claude' + os.sep,
+       '.agents' + os.sep,
+       '.git' + os.sep,
+       exports_rel + os.sep,
+   ]
+   skip_dirs = {'target'}
+   files = subprocess.check_output(['git', 'ls-files']).decode().splitlines()
+   for f in files:
+       norm = f.replace('/', os.sep)
+       if norm == csv_rel:
+           continue
+       if any(norm.startswith(p) for p in skip_pfx):
+           continue
+       if skip_dirs.intersection(norm.split(os.sep)[:-1]):
+           continue
+       print(f)
+   "
+   ```
 2. For each remaining file, check whether the changes from steps 4–5 require a corresponding update — for example: adding new controller service to an enable-list, a renamed property referenced in config, a parameterised variable mentioned in configuration or documentation file. If in doubt, propose the change and ask the user to confirm before applying it.
 
 ### Step 7 - Report

@@ -23,10 +23,11 @@ Public API for the generated run-script:
 """
 
 import json  # noqa: E402
+import re  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from utils import parse_csv  # noqa: E402
+from utils import parse_csv, load_json  # noqa: E402
 from fixes import _classify_row  # noqa: E402
 from analysis import collect_variable_analysis  # noqa: E402
 
@@ -52,6 +53,69 @@ def detect_exports_dir(csv_path: str, search_root: str = ".") -> None:
             return
     print("ERROR: could not locate flow file matching CSV Flow name", file=sys.stderr)
     sys.exit(1)
+
+
+def detect_standalone_cs(csv_path: str, exports_dir: str) -> None:
+    """Detect standalone CS files with PrometheusRecordSink or AzureStorageCredentialsControllerService
+    types that require a rename because NiFi API cannot change a controller service's type in-place.
+    Prints a JSON array of {file, current_name, current_type, suggested_name, suggested_file}.
+    """
+    _STANDALONE_HANDLERS = {"fix_prometheus", "fix_azure_credentials"}
+    rows = parse_csv(csv_path)
+    exports = Path(exports_dir)
+    seen: set[str] = set()
+    results = []
+
+    for row in rows:
+        if _classify_row(row) not in _STANDALONE_HANDLERS:
+            continue
+        rel_path = row["Flow name"].strip().replace("\\", "/")
+        if rel_path in seen:
+            continue
+        seen.add(rel_path)
+        abs_path = exports / rel_path
+        if not abs_path.exists():
+            continue
+        try:
+            data = load_json(abs_path)
+        except Exception:
+            continue
+        if "component" not in data or "flowContents" in data:
+            continue  # not a standalone CS file
+        svc = data["component"]
+        svc_type = svc.get("type", "")
+        current_name = svc.get("name", "")
+
+        if svc_type.endswith("PrometheusRecordSink"):
+            if "prometheus" in current_name.lower():
+                suggested_name = re.sub(
+                    r"(?i)prometheus", "QubershipPrometheus", current_name, count=1
+                )
+            else:
+                suggested_name = current_name + " (Qubership)"
+        elif svc_type.endswith("AzureStorageCredentialsControllerService"):
+            if not current_name.lower().endswith(" v12"):
+                suggested_name = current_name + " v12"
+            else:
+                suggested_name = current_name
+        else:
+            continue
+
+        stem = re.sub(r"[^a-zA-Z0-9]+", "_", suggested_name).strip("_")
+        parent = Path(rel_path).parent.as_posix()
+        suggested_file = (f"{parent}/{stem}.json" if parent != "." else f"{stem}.json")
+
+        results.append(
+            {
+                "file": rel_path,
+                "current_name": current_name,
+                "current_type": svc_type,
+                "suggested_name": suggested_name,
+                "suggested_file": suggested_file,
+            }
+        )
+
+    print(json.dumps(results, indent=2, ensure_ascii=False))
 
 
 def analyze(csv_path: str, exports_dir: str) -> None:
@@ -111,6 +175,14 @@ if __name__ == "__main__":
         help="Derive exports_dir from the CSV's Flow name values; prints the result",
     )
     group.add_argument(
+        "--detect-standalone-cs",
+        action="store_true",
+        help=(
+            "Detect standalone CS files (PrometheusRecordSink, AzureStorageCredentials) "
+            "that require rename; prints JSON array of suggestions"
+        ),
+    )
+    group.add_argument(
         "--apply",
         action="store_true",
         help="Not used directly; use apply_csv_transforms() from generated run script",
@@ -131,6 +203,8 @@ if __name__ == "__main__":
 
     if args.analyze:
         analyze(args.csv_path or "/dev/null", args.exports_dir)
+    elif args.detect_standalone_cs:
+        detect_standalone_cs(args.csv_path, args.exports_dir)
     elif args.collect_vars:
         result = collect_variable_analysis(args.exports_dir)
         print(json.dumps(result, indent=2, ensure_ascii=False))

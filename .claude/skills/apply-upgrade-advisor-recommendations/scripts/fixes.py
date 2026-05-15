@@ -421,7 +421,7 @@ def fix_convert_json_to_sql(
             conn["source"]["instanceIdentifier"] = proc.get("instanceIdentifier", proc_id)
             conn["source"]["name"] = proc.get("name", "ConvertJSONToSQL")
 
-    # Remove ConvertJSONToSQL → PutSQL "sql" connection and PutSQL processor
+    # Remove ConvertJSONToSQL to PutSQL "sql" connection and PutSQL processor
     pg["connections"] = [c for c in connections if c is not sql_conn]
     pg["processors"] = [p for p in pg.get("processors", []) if p.get("identifier") != putsql_id]
 
@@ -724,6 +724,63 @@ def upgrade_prometheus_record_sink(
         )
 
     return applied, manual
+
+
+def rename_standalone_controller_services(
+    exports_dir: str,
+    rename_plan: list[dict],
+) -> None:
+    """
+    Rename standalone controller service files and update their name field.
+    Each entry: {"file": rel_path, "new_name": str, "new_file": rel_path}
+
+    Also scans every other JSON file under exports_dir for externalControllerServices
+    entries whose name matches the old name, and updates them to the new name.
+    Matching by name rather than UUID because UUIDs may differ across NiFi environments.
+
+    Must run AFTER apply_csv_transforms so CSV-based file lookups still resolve.
+    """
+    exports = Path(exports_dir)
+
+    for entry in rename_plan:
+        old_rel = entry["file"]
+        new_name = entry["new_name"]
+        new_rel = entry["new_file"]
+        old_abs = exports / old_rel
+        new_abs = exports / new_rel
+
+        if not old_abs.exists():
+            print(f"[WARN] {old_rel} not found — skipping rename")
+            continue
+
+        data = load_json(old_abs)
+        old_name = None
+        if "component" in data and "flowContents" not in data:
+            old_name = data["component"].get("name")
+            data["component"]["name"] = new_name
+
+        save_json(old_abs, data)
+        old_abs.rename(new_abs)
+        print(f"[FIXED] Standalone CS renamed: {old_rel} to {new_rel} (service name: {new_name})")
+
+        if old_name:
+            for json_file in exports.rglob("*.json"):
+                if json_file.resolve() == new_abs.resolve():
+                    continue
+                try:
+                    other = load_json(json_file)
+                except Exception:
+                    continue
+                ext_svcs = other.get("externalControllerServices", {})
+                changed = False
+                for ref in ext_svcs.values():
+                    if ref.get("name") == old_name:
+                        ref["name"] = new_name
+                        changed = True
+                if changed:
+                    save_json(json_file, other)
+                    rel = json_file.relative_to(exports).as_posix()
+                    print(f"[FIXED] Updated externalControllerServices reference in {rel}")
 
 
 # ---------------------------------------------------------------------------

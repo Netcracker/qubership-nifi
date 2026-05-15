@@ -81,9 +81,9 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
     """Replace variable references with parameter-context syntax for names in parameter_names.
 
     Three forms are rewritten:
-      ${varName}              →  #{varName}
-      ${varName:fn():...}     →  ${#{varName}:fn():...}
-      ${fn(${varName}):...}   →  ${fn(#{varName}):...}   (nested as fn argument)
+      ${varName}              to  #{varName}
+      ${varName:fn():...}     to  ${#{varName}:fn():...}
+      ${fn(${varName}):...}   to  ${fn(#{varName}):...}   (nested as fn argument)
 
     The second form follows the NiFi 2.x user guide: "When referencing a Parameter
     from within Expression Language, the Parameter reference is evaluated first."
@@ -109,13 +109,13 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
             if not isinstance(v, str):
                 continue
             orig = v
-            # Pre-pass: replace bare ${paramName} → #{paramName} for each known
+            # Pre-pass: replace bare ${paramName} to #{paramName} for each known
             # parameter. Handles params nested inside EL function arguments —
             # e.g. equalsIgnoreCase(${paramName}) — where the outer ${...} regex
             # match would otherwise swallow the inner reference.
             for pn in parameter_names:
                 v = v.replace(f"${{{pn}}}", f"#{{{pn}}}")
-            # Main pass: convert ${paramName:fn_chain} → ${#{paramName}:fn_chain}
+            # Main pass: convert ${paramName:fn_chain} to ${#{paramName}:fn_chain}
             if pattern.search(v):
                 v = pattern.sub(_rewrite, v)
             if v != orig:
