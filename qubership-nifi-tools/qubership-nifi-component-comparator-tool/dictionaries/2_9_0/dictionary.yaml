@@ -7,3 +7,7 @@ displayNameMapping:
       Max Rows Per Flow File: Max Rows Per FlowFile
   - QueryDatabaseTable:
       Max Rows Per Flow File: Max Rows Per FlowFile
+  - ConsumeKinesis:
+      Max Bytes to Buffer: Max Batch Size
+  - PutElasticsearchJson:
+      Batch Size: Max FlowFiles Per Batch
