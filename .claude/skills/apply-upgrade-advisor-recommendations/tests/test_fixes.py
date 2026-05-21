@@ -10,6 +10,7 @@ from fixes import (
     fix_type_rename,
     upgrade_azure_credentials_service,
     upgrade_prometheus_record_sink,
+    rename_standalone_controller_services,
     _classify_row,
     _proxy_service_name,
     apply_csv_transforms,
@@ -967,3 +968,100 @@ def test_apply_csv_transforms_standalone_prometheus(tmp_path, capsys):
     assert "prometheus-sink-instance-id" in comp["properties"]
     assert "prometheus-reporting-task-metrics-endpoint-port" not in comp["properties"]
     assert "prometheus-reporting-task-client-auth" not in comp["properties"]
+
+
+# ---------------------------------------------------------------------------
+# rename_standalone_controller_services
+# ---------------------------------------------------------------------------
+
+OLD_SVC_NAME = "CommonAzureStorageCredentialsControllerService"
+NEW_SVC_NAME = "CommonAzureStorageCredentialsControllerService v12"
+OLD_SVC_FILE = "controller-services/OldAzure.json"
+NEW_SVC_FILE = "controller-services/NewAzure_v12.json"
+OLD_SVC_ID = "aaaa1111-0000-0000-0000-000000000001"
+
+
+def _write_standalone_svc_file(tmp_path: Path, rel_path: str, component: dict) -> Path:
+    p = tmp_path / rel_path
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"component": component}), encoding="utf-8")
+    return p
+
+
+def _make_component(name: str, svc_id: str = OLD_SVC_ID) -> dict:
+    return {
+        "identifier": svc_id,
+        "name": name,
+        "type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService",
+        "properties": {},
+    }
+
+
+def test_rename_standalone_cs_renames_file(tmp_path):
+    _write_standalone_svc_file(tmp_path, OLD_SVC_FILE, _make_component(OLD_SVC_NAME))
+    plan = [{"file": OLD_SVC_FILE, "new_name": NEW_SVC_NAME, "new_file": NEW_SVC_FILE}]
+    rename_standalone_controller_services(str(tmp_path), plan)
+    assert not (tmp_path / OLD_SVC_FILE).exists()
+    assert (tmp_path / NEW_SVC_FILE).exists()
+    data = json.loads((tmp_path / NEW_SVC_FILE).read_text(encoding="utf-8"))
+    assert data["component"]["name"] == NEW_SVC_NAME
+
+
+def test_rename_standalone_cs_updates_external_refs(tmp_path):
+    _write_standalone_svc_file(tmp_path, OLD_SVC_FILE, _make_component(OLD_SVC_NAME))
+    ref_flow = {
+        "flowContents": {
+            "identifier": "root", "processors": [], "controllerServices": [],
+            "processGroups": [], "connections": [],
+        },
+        "externalControllerServices": {
+            OLD_SVC_ID: {"identifier": OLD_SVC_ID, "name": OLD_SVC_NAME},
+        },
+    }
+    ref_file = tmp_path / "flows" / "main.json"
+    ref_file.parent.mkdir(parents=True, exist_ok=True)
+    ref_file.write_text(json.dumps(ref_flow), encoding="utf-8")
+    plan = [{"file": OLD_SVC_FILE, "new_name": NEW_SVC_NAME, "new_file": NEW_SVC_FILE}]
+    rename_standalone_controller_services(str(tmp_path), plan)
+    updated = json.loads(ref_file.read_text(encoding="utf-8"))
+    ext_svcs = updated.get("externalControllerServices", {})
+    names = [v["name"] for v in ext_svcs.values()]
+    assert NEW_SVC_NAME in names
+    assert OLD_SVC_NAME not in names
+
+
+def test_rename_standalone_cs_missing_old_file(tmp_path, capsys):
+    plan = [{"file": "controller-services/Missing.json", "new_name": "New", "new_file": "controller-services/New.json"}]
+    rename_standalone_controller_services(str(tmp_path), plan)
+    out = capsys.readouterr().out
+    assert "WARN" in out or "not found" in out.lower()
+
+
+def test_rename_standalone_cs_multiple_plans(tmp_path):
+    _write_standalone_svc_file(tmp_path, "cs/A.json", _make_component("SvcA", "aaaa-0001"))
+    _write_standalone_svc_file(tmp_path, "cs/B.json", _make_component("SvcB", "bbbb-0002"))
+    plan = [
+        {"file": "cs/A.json", "new_name": "SvcA-new", "new_file": "cs/A_new.json"},
+        {"file": "cs/B.json", "new_name": "SvcB-new", "new_file": "cs/B_new.json"},
+    ]
+    rename_standalone_controller_services(str(tmp_path), plan)
+    assert (tmp_path / "cs" / "A_new.json").exists()
+    assert (tmp_path / "cs" / "B_new.json").exists()
+    assert not (tmp_path / "cs" / "A.json").exists()
+    assert not (tmp_path / "cs" / "B.json").exists()
+
+
+def test_rename_standalone_cs_no_external_refs(tmp_path):
+    _write_standalone_svc_file(tmp_path, OLD_SVC_FILE, _make_component(OLD_SVC_NAME))
+    flow_without_ext = {
+        "flowContents": {
+            "identifier": "root", "processors": [], "controllerServices": [],
+            "processGroups": [], "connections": [],
+        },
+    }
+    other = tmp_path / "flows" / "other.json"
+    other.parent.mkdir(parents=True, exist_ok=True)
+    other.write_text(json.dumps(flow_without_ext), encoding="utf-8")
+    plan = [{"file": OLD_SVC_FILE, "new_name": NEW_SVC_NAME, "new_file": NEW_SVC_FILE}]
+    rename_standalone_controller_services(str(tmp_path), plan)
+    assert (tmp_path / NEW_SVC_FILE).exists()

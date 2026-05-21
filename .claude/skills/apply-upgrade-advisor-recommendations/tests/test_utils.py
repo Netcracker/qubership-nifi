@@ -9,9 +9,9 @@ from utils import (
     save_json,
     find_component,
     find_pg,
-    walk_pgs,
     find_services_by_type_suffix,
     replace_var_refs_in_pg,
+    replace_cs_refs_in_pg,
     parse_csv,
     _make_service,
 )
@@ -110,26 +110,6 @@ def test_find_pg_child_match():
 def test_find_pg_not_found():
     pg = {"identifier": "root", "processGroups": []}
     assert find_pg(pg, "missing") is None
-
-
-# ---------------------------------------------------------------------------
-# walk_pgs
-# ---------------------------------------------------------------------------
-
-def test_walk_pgs_visits_all():
-    gc = {"identifier": "gc", "processGroups": []}
-    child = {"identifier": "child", "processGroups": [gc]}
-    root = {"identifier": "root", "processGroups": [child]}
-    visited = []
-    walk_pgs(root, lambda pg: visited.append(pg["identifier"]))
-    assert set(visited) == {"root", "child", "gc"}
-
-
-def test_walk_pgs_leaf_only():
-    root = {"identifier": "root", "processGroups": []}
-    visited = []
-    walk_pgs(root, lambda pg: visited.append(pg["identifier"]))
-    assert visited == ["root"]
 
 
 # ---------------------------------------------------------------------------
@@ -285,16 +265,157 @@ def test_parse_csv_no_uuid_in_cell(tmp_path):
 
 def test_make_service_structure():
     bundle = {"group": "org.apache.nifi", "artifact": "nifi-test-nar", "version": "1.0.0"}
-    svc = _make_service("MySvc", "org.example.MySvc", bundle, {"prop1": "val1"})
+    svc = _make_service("MySvc", "org.example.MySvc", bundle, {"prop1": "val1"}, None, None)
     assert svc["name"] == "MySvc"
     assert svc["type"] == "org.example.MySvc"
     assert svc["bundle"] is bundle
     assert svc["componentType"] == "CONTROLLER_SERVICE"
-    assert svc["scheduledState"] == "ENABLED"
+    assert svc["scheduledState"] == "DISABLED"
     assert svc["properties"] == {"prop1": "val1"}
     assert svc["propertyDescriptors"] == {}
-    assert svc["identifier"] == svc["instanceIdentifier"]
+    assert svc["identifier"] != svc["instanceIdentifier"]
     assert re.match(
         r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
         svc["identifier"],
     )
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        svc["instanceIdentifier"],
+    )
+
+def test_make_service_with_pgId():
+    bundle = {"group": "org.apache.nifi", "artifact": "nifi-test-nar", "version": "1.0.0"}
+    svc = _make_service("MySvc", "org.example.MySvc", bundle, {"prop1": "val1"}, "11111", None)
+    assert svc["name"] == "MySvc"
+    assert svc["type"] == "org.example.MySvc"
+    assert svc["bundle"] is bundle
+    assert svc["componentType"] == "CONTROLLER_SERVICE"
+    assert svc["scheduledState"] == "DISABLED"
+    assert svc["properties"] == {"prop1": "val1"}
+    assert svc["propertyDescriptors"] == {}
+    assert svc["identifier"] != svc["instanceIdentifier"]
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        svc["identifier"],
+    )
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        svc["instanceIdentifier"],
+    )
+    assert svc["groupIdentifier"] == "11111"
+
+
+def test_make_service_with_apis():
+    bundle = {"group": "org.apache.nifi", "artifact": "nifi-test-nar", "version": "1.0.0"}
+    svc = _make_service("MySvc", "org.example.MySvc", bundle, {"prop1": "val1"}, "11111",
+        [{"type": "org.example.MySvcApi","bundle": bundle}])
+    assert svc["name"] == "MySvc"
+    assert svc["type"] == "org.example.MySvc"
+    assert svc["bundle"] is bundle
+    assert svc["componentType"] == "CONTROLLER_SERVICE"
+    assert svc["scheduledState"] == "DISABLED"
+    assert svc["properties"] == {"prop1": "val1"}
+    assert svc["propertyDescriptors"] == {}
+    assert svc["identifier"] != svc["instanceIdentifier"]
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        svc["identifier"],
+    )
+    assert re.match(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        svc["instanceIdentifier"],
+    )
+    assert svc["groupIdentifier"] == "11111"
+
+
+# ---------------------------------------------------------------------------
+# replace_cs_refs_in_pg
+# ---------------------------------------------------------------------------
+
+OLD_ID = "aaaa0000-0000-0000-0000-000000000001"
+NEW_ID = "bbbb1111-0000-0000-0000-000000000002"
+
+
+def _pg_with_proc_props(properties: dict) -> dict:
+    return {
+        "processors": [{"identifier": "p1", "properties": dict(properties)}],
+        "controllerServices": [],
+        "processGroups": [],
+    }
+
+
+def test_replace_cs_refs_replaces_in_processor():
+    pg = _pg_with_proc_props({"csRef": OLD_ID})
+    count = replace_cs_refs_in_pg(pg, OLD_ID, NEW_ID)
+    assert count == 1
+    assert pg["processors"][0]["properties"]["csRef"] == NEW_ID
+
+
+def test_replace_cs_refs_no_match():
+    pg = _pg_with_proc_props({"csRef": "some-other-id"})
+    count = replace_cs_refs_in_pg(pg, OLD_ID, NEW_ID)
+    assert count == 0
+    assert pg["processors"][0]["properties"]["csRef"] == "some-other-id"
+
+
+def test_replace_cs_refs_multiple_props():
+    pg = _pg_with_proc_props({"csRef1": OLD_ID, "csRef2": OLD_ID})
+    count = replace_cs_refs_in_pg(pg, OLD_ID, NEW_ID)
+    assert count == 2
+    assert pg["processors"][0]["properties"]["csRef1"] == NEW_ID
+    assert pg["processors"][0]["properties"]["csRef2"] == NEW_ID
+
+
+def test_replace_cs_refs_in_nested_pg():
+    child = {
+        "processors": [{"identifier": "cp1", "properties": {"ref": OLD_ID}}],
+        "controllerServices": [],
+        "processGroups": [],
+    }
+    root = {"processors": [], "controllerServices": [], "processGroups": [child]}
+    count = replace_cs_refs_in_pg(root, OLD_ID, NEW_ID)
+    assert count == 1
+    assert child["processors"][0]["properties"]["ref"] == NEW_ID
+
+
+def test_replace_cs_refs_skips_non_string():
+    pg = {
+        "processors": [{"identifier": "p1", "properties": {"ref": {"nested": OLD_ID}}}],
+        "controllerServices": [],
+        "processGroups": [],
+    }
+    count = replace_cs_refs_in_pg(pg, OLD_ID, NEW_ID)
+    assert count == 0
+    assert pg["processors"][0]["properties"]["ref"] == {"nested": OLD_ID}
+
+
+def test_replace_cs_refs_in_service():
+    pg = {
+        "processors": [],
+        "controllerServices": [{"identifier": "s1", "properties": {"dep": OLD_ID}}],
+        "processGroups": [],
+    }
+    count = replace_cs_refs_in_pg(pg, OLD_ID, NEW_ID)
+    assert count == 1
+    assert pg["controllerServices"][0]["properties"]["dep"] == NEW_ID
+
+
+# ---------------------------------------------------------------------------
+# replace_var_refs_in_pg — edge cases
+# ---------------------------------------------------------------------------
+
+def test_replace_var_refs_non_string_property_skipped():
+    pg = {
+        "processors": [{"identifier": "p1", "properties": {"ref": None, "num": 42}}],
+        "controllerServices": [],
+        "processGroups": [],
+    }
+    count = replace_var_refs_in_pg(pg, {"ref"})
+    assert count == 0
+
+
+def test_replace_var_refs_multiple_occurrences_same_prop():
+    pg = _pg_with_proc({"url": "${v}/${v}"})
+    count = replace_var_refs_in_pg(pg, {"v"})
+    assert count == 1
+    assert pg["processors"][0]["properties"]["url"] == "#{v}/#{v}"

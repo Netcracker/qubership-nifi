@@ -14,6 +14,8 @@ from utils import (
     find_services_by_type_suffix,
     parse_csv,
     _make_service,
+    new_uuid,
+    replace_cs_refs_in_pg,
 )
 
 
@@ -121,6 +123,17 @@ def fix_invokehttp_proxy(
             "version": nifi_version,
         },
         properties=svc_props,
+        pgId=pg["identifier"],
+        svc_api_types=[
+            {
+              "type": "org.apache.nifi.proxy.ProxyConfigurationService",
+              "bundle": {
+                "group": "org.apache.nifi",
+                "artifact": "nifi-standard-services-api-nar",
+                "version": nifi_version
+              }
+            }
+        ],
     )
 
     # --- Cross-file mode: CS lives in a different PG file from the processor ---
@@ -128,6 +141,8 @@ def fix_invokehttp_proxy(
         same_file = Path(parent_pg_path) == Path(child_pg_path)
 
         parent_data = load_json(Path(parent_pg_path))
+        # --- replace groupIdentifier with actual value ---
+        svc["groupIdentifier"] = parent_data.get("flowContents", parent_data)["identifier"]
         parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
         save_json(Path(parent_pg_path), parent_data)
 
@@ -242,7 +257,26 @@ def fix_s3_credentials(
             "artifact": "nifi-aws-nar",
             "version": nifi_version,
         },
+        svc_api_types=[
+            {
+              "type": "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService",
+              "bundle": {
+                "group": "org.apache.nifi",
+                "artifact": "nifi-aws-service-api-nar",
+                "version": nifi_version
+              }
+            },
+            {
+              "type": "org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService",
+              "bundle": {
+                "group": "org.apache.nifi",
+                "artifact": "nifi-aws-service-api-nar",
+                "version": nifi_version
+              }
+            }
+        ],
         properties=svc_props,
+        pgId=pg["identifier"]
     )
 
     msgs = []
@@ -263,6 +297,8 @@ def fix_s3_credentials(
     # --- Cross-file mode: CS lives in a different file from the processor ---
     if parent_pg_path and child_pg_path:
         parent_data = load_json(Path(parent_pg_path))
+        # --- replace groupIdentifier with actual value ---
+        svc["groupIdentifier"] = parent_data.get("flowContents", parent_data)["identifier"]
         parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
         save_json(Path(parent_pg_path), parent_data)
 
@@ -402,7 +438,17 @@ def fix_convert_json_to_sql(
                 "artifact": "nifi-record-serialization-services-nar",
                 "version": nifi_version,
             },
+            svc_api_types=[{
+                      "type": "org.apache.nifi.serialization.RecordReaderFactory",
+                      "bundle": {
+                          "group": "org.apache.nifi",
+                          "artifact": "nifi-standard-services-api-nar",
+                          "version": nifi_version
+                      }
+                  }
+            ],
             properties={},
+            pgId=target_pg["identifier"],
         )
         target_pg.setdefault("controllerServices", []).append(svc)
         reader_id = svc["identifier"]
@@ -411,7 +457,146 @@ def fix_convert_json_to_sql(
     # --- Apply new properties to processor ---
     old_type = proc.get("type", "")
     proc["properties"] = new_props
-    proc["propertyDescriptors"] = {}
+    proc["propertyDescriptors"] = {
+          "put-db-record-allow-multiple-statements": {
+              "displayName": "Allow Multiple SQL Statements",
+              "identifiesControllerService": False,
+              "name": "put-db-record-allow-multiple-statements",
+              "sensitive": False
+          },
+          "table-schema-cache-size": {
+              "displayName": "Table Schema Cache Size",
+              "identifiesControllerService": False,
+              "name": "table-schema-cache-size",
+              "sensitive": False
+          },
+          "put-db-record-schema-name": {
+              "displayName": "Schema Name",
+              "identifiesControllerService": False,
+              "name": "put-db-record-schema-name",
+              "sensitive": False
+          },
+          "put-db-record-field-containing-sql": {
+              "displayName": "Field Containing SQL",
+              "identifiesControllerService": False,
+              "name": "put-db-record-field-containing-sql",
+              "sensitive": False
+          },
+          "put-db-record-quoted-table-identifiers": {
+              "displayName": "Quote Table Identifiers",
+              "identifiesControllerService": False,
+              "name": "put-db-record-quoted-table-identifiers",
+              "sensitive": False
+          },
+          "Statement Type Record Path": {
+              "displayName": "Statement Type Record Path",
+              "identifiesControllerService": False,
+              "name": "Statement Type Record Path",
+              "sensitive": False
+          },
+          "put-db-record-unmatched-column-behavior": {
+              "displayName": "Unmatched Column Behavior",
+              "identifiesControllerService": False,
+              "name": "put-db-record-unmatched-column-behavior",
+              "sensitive": False
+          },
+          "put-db-record-catalog-name": {
+              "displayName": "Catalog Name",
+              "identifiesControllerService": False,
+              "name": "put-db-record-catalog-name",
+              "sensitive": False
+          },
+          "put-db-record-translate-field-names": {
+              "displayName": "Translate Field Names",
+              "identifiesControllerService": False,
+              "name": "put-db-record-translate-field-names",
+              "sensitive": False
+          },
+          "put-db-record-dcbp-service": {
+              "displayName": "Database Connection Pooling Service",
+              "identifiesControllerService": True,
+              "name": "put-db-record-dcbp-service",
+              "sensitive": False
+          },
+          "put-db-record-query-timeout": {
+              "displayName": "Max Wait Time",
+              "identifiesControllerService": False,
+              "name": "put-db-record-query-timeout",
+              "sensitive": False
+          },
+          "rollback-on-failure": {
+              "displayName": "Rollback On Failure",
+              "identifiesControllerService": False,
+              "name": "rollback-on-failure",
+              "sensitive": False
+          },
+          "put-db-record-statement-type": {
+              "displayName": "Statement Type",
+              "identifiesControllerService": False,
+              "name": "put-db-record-statement-type",
+              "sensitive": False
+          },
+          "put-db-record-binary-format": {
+              "displayName": "Binary String Format",
+              "identifiesControllerService": False,
+              "name": "put-db-record-binary-format",
+              "sensitive": False
+          },
+          "db-type": {
+              "displayName": "Database Type",
+              "identifiesControllerService": False,
+              "name": "db-type",
+              "sensitive": False
+          },
+          "put-db-record-update-keys": {
+              "displayName": "Update Keys",
+              "identifiesControllerService": False,
+              "name": "put-db-record-update-keys",
+              "sensitive": False
+          },
+          "put-db-record-quoted-identifiers": {
+              "displayName": "Quote Column Identifiers",
+              "identifiesControllerService": False,
+              "name": "put-db-record-quoted-identifiers",
+              "sensitive": False
+          },
+          "put-db-record-table-name": {
+              "displayName": "Table Name",
+              "identifiesControllerService": False,
+              "name": "put-db-record-table-name",
+              "sensitive": False
+          },
+          "put-db-record-unmatched-field-behavior": {
+              "displayName": "Unmatched Field Behavior",
+              "identifiesControllerService": False,
+              "name": "put-db-record-unmatched-field-behavior",
+              "sensitive": False
+          },
+          "put-db-record-max-batch-size": {
+              "displayName": "Maximum Batch Size",
+              "identifiesControllerService": False,
+              "name": "put-db-record-max-batch-size",
+              "sensitive": False
+          },
+          "put-db-record-record-reader": {
+              "displayName": "Record Reader",
+              "identifiesControllerService": True,
+              "name": "put-db-record-record-reader",
+              "sensitive": False
+          },
+          "Data Record Path": {
+              "displayName": "Data Record Path",
+              "identifiesControllerService": False,
+              "name": "Data Record Path",
+              "sensitive": False
+          },
+          "database-session-autocommit": {
+              "displayName": "Database Session AutoCommit",
+              "identifiesControllerService": False,
+              "name": "database-session-autocommit",
+              "sensitive": False
+          }
+        }
     proc["type"] = "org.apache.nifi.processors.standard.PutDatabaseRecord"
 
     # --- Rewire connections: point former PutSQL outgoing connections to PutDatabaseRecord ---
@@ -773,15 +958,24 @@ def rename_standalone_controller_services(
                     continue
                 ext_svcs = other.get("externalControllerServices", {})
                 changed = False
+                old_identifier = ""
+                new_identifier = new_uuid()
                 for ref in ext_svcs.values():
                     if ref.get("name") == old_name:
                         ref["name"] = new_name
+                        old_identifier = ref["identifier"]
+                        ref["identifier"] = new_identifier
                         changed = True
                 if changed:
+                    # --- remove element under old id and add under new id ---
+                    ext_svc = ext_svcs.pop(old_identifier)
+                    ext_svcs[new_identifier] = ext_svc
+                    # --- walk and update all references to old id ---
+                    flow_contents = other.get("flowContents")
+                    count = replace_cs_refs_in_pg(flow_contents, old_identifier, new_identifier)
                     save_json(json_file, other)
                     rel = json_file.relative_to(exports).as_posix()
-                    print(f"[FIXED] Updated externalControllerServices reference in {rel}")
-
+                    print(f"[FIXED] Updated externalControllerService from {old_name} ({old_identifier}) to {new_name} ({new_identifier}) and replaced {count} references in {rel}")
 
 # ---------------------------------------------------------------------------
 # Dispatch table and main entry point

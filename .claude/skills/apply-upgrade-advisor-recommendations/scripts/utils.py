@@ -59,13 +59,6 @@ def find_pg(node: dict, target_id: str):
     return None
 
 
-def walk_pgs(node: dict, fn):
-    """Call fn(pg) for every process group in the tree (depth-first)."""
-    fn(node)
-    for pg in node.get("processGroups", []):
-        walk_pgs(pg, fn)
-
-
 def find_services_by_type_suffix(node: dict, suffix: str) -> list[tuple[dict, dict]]:
     """Return [(svc, containing_pg)] for every controllerService whose type ends with suffix."""
     results = []
@@ -129,6 +122,30 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
     return count
 
 
+def replace_cs_refs_in_pg(pg: dict, old_id: str, new_id: str) -> int:
+    """Replace old controller service id references with new ones.
+    """
+    count = 0
+
+    def replace_in_node(node):
+        nonlocal count
+        props = node.get("properties", {})
+        for k, v in list(props.items()):
+            if not isinstance(v, str):
+                continue
+            if v == old_id:
+                props[k] = new_id
+                count += 1
+
+    for proc in pg.get("processors", []):
+        replace_in_node(proc)
+    for svc in pg.get("controllerServices", []):
+        replace_in_node(svc)
+    for pg in pg.get("processGroups", []):
+        count += replace_cs_refs_in_pg(pg, old_id, new_id)
+    return count
+
+
 # ---------------------------------------------------------------------------
 # CSV parsing
 # ---------------------------------------------------------------------------
@@ -157,16 +174,19 @@ def parse_csv(csv_path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _make_service(name: str, svc_type: str, bundle: dict, properties: dict) -> dict:
+def _make_service(name: str, svc_type: str, bundle: dict, properties: dict, pgId: str, svc_api_types: list[dict]) -> dict:
     uid = new_uuid()
+    instanceId = new_uuid()
     return {
         "identifier": uid,
-        "instanceIdentifier": uid,
+        "instanceIdentifier": instanceId,
+        "groupIdentifier": pgId,
         "name": name,
         "type": svc_type,
         "bundle": bundle,
         "componentType": "CONTROLLER_SERVICE",
-        "scheduledState": "ENABLED",
+        "scheduledState": "DISABLED",
         "properties": properties,
         "propertyDescriptors": {},
+        "controllerServiceApis": svc_api_types,
     }

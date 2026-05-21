@@ -5,7 +5,7 @@ import subprocess
 import pytest
 from pathlib import Path
 
-from upgrade_nifi_lib import detect_exports_dir, analyze
+from upgrade_nifi_lib import detect_exports_dir, analyze, detect_standalone_cs
 
 
 # ---------------------------------------------------------------------------
@@ -133,3 +133,95 @@ def test_collect_vars_cli_outputs_json(tmp_path):
     data = json.loads(result.stdout)
     assert "myVar" in data
     assert data["myVar"]["occurrences"][0]["value"] == "myValue"
+
+
+# ---------------------------------------------------------------------------
+# detect_standalone_cs
+# ---------------------------------------------------------------------------
+
+def _write_standalone_cs(tmp_path: Path, rel_path: str, component: dict) -> None:
+    p = tmp_path / rel_path
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"component": component}), encoding="utf-8")
+
+
+def test_detect_standalone_cs_prometheus(tmp_path, capsys):
+    component = {
+        "name": "CommonPrometheusRecordSink",
+        "type": "org.apache.nifi.reporting.prometheus.PrometheusRecordSink",
+        "properties": {},
+    }
+    _write_standalone_cs(tmp_path, "cs/prom.json", component)
+    csv_path = _write_csv(tmp_path, [
+        _row("cs/prom.json", "PrometheusRecordSink Controller Service is not available in Apache NiFi 2.x.")
+    ])
+    detect_standalone_cs(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert "Qubership" in results[0]["suggested_name"]
+    assert results[0]["file"] == "cs/prom.json"
+
+
+def test_detect_standalone_cs_azure(tmp_path, capsys):
+    component = {
+        "name": "CommonAzureStorageCredentials",
+        "type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService",
+        "properties": {},
+    }
+    _write_standalone_cs(tmp_path, "cs/azure.json", component)
+    csv_path = _write_csv(tmp_path, [
+        _row("cs/azure.json", "AzureStorageCredentialsControllerService Controller Service is not available in Apache NiFi 2.x.")
+    ])
+    detect_standalone_cs(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert results[0]["suggested_name"].endswith(" v12")
+
+
+def test_detect_standalone_cs_skips_flow_contents(tmp_path, capsys):
+    # File has flowContents — it's a flow, not a standalone CS file
+    flow_data = {
+        "component": {
+            "name": "SomeSvc",
+            "type": "org.apache.nifi.reporting.prometheus.PrometheusRecordSink",
+            "properties": {},
+        },
+        "flowContents": {"identifier": "root"},
+    }
+    p = tmp_path / "cs" / "flow.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(flow_data), encoding="utf-8")
+    csv_path = _write_csv(tmp_path, [
+        _row("cs/flow.json", "PrometheusRecordSink Controller Service is not available in Apache NiFi 2.x.")
+    ])
+    detect_standalone_cs(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert results == []
+
+
+def test_detect_standalone_cs_empty_csv(tmp_path, capsys):
+    csv_path = _write_csv(tmp_path, [])
+    detect_standalone_cs(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert results == []
+
+
+def test_detect_standalone_cs_already_v12(tmp_path, capsys):
+    component = {
+        "name": "CommonAzureStorageCredentials v12",
+        "type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService_v12",
+        "properties": {},
+    }
+    _write_standalone_cs(tmp_path, "cs/azure_v12.json", component)
+    csv_path = _write_csv(tmp_path, [
+        _row("cs/azure_v12.json", "AzureStorageCredentialsControllerService Controller Service is not available in Apache NiFi 2.x.")
+    ])
+    detect_standalone_cs(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    # Type doesn't match the suffix check -> skipped
+    assert results == []

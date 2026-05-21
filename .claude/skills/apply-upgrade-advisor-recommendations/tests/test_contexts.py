@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from contexts import apply_variable_contexts, apply_hardcoded_values
+from contexts import apply_variable_contexts, apply_hardcoded_values, _hardcode_var_in_pg
 from utils import load_json
 
 
@@ -192,3 +192,59 @@ def test_apply_hardcoded_values_file_not_found(tmp_path, capsys):
     apply_hardcoded_values(str(tmp_path), plan)
     out = capsys.readouterr().out
     assert "WARN" in out
+
+
+# ---------------------------------------------------------------------------
+# _hardcode_var_in_pg  (direct unit tests)
+# ---------------------------------------------------------------------------
+
+def _pg(processors=None, services=None, child_pgs=None, variables=None):
+    return {
+        "processors": processors or [],
+        "controllerServices": services or [],
+        "processGroups": child_pgs or [],
+        "variables": variables or {},
+    }
+
+
+def _proc(pid: str, properties: dict) -> dict:
+    return {"identifier": pid, "properties": properties}
+
+
+def test_hardcode_var_in_pg_bare_ref():
+    pg = _pg(processors=[_proc("p1", {"url": "${myVar}"})])
+    count = _hardcode_var_in_pg(pg, "myVar", "http://example.com")
+    assert count == 1
+    assert pg["processors"][0]["properties"]["url"] == "http://example.com"
+
+
+def test_hardcode_var_in_pg_el_chain():
+    pg = _pg(processors=[_proc("p1", {"url": "${myVar:toUpper()}"})])
+    count = _hardcode_var_in_pg(pg, "myVar", "mydb")
+    assert count == 1
+    val = pg["processors"][0]["properties"]["url"]
+    assert 'literal("mydb")' in val
+    assert ":toUpper()" in val
+
+
+def test_hardcode_var_in_pg_special_chars_in_value():
+    pg = _pg(processors=[_proc("p1", {"q": "${v:fn()}"})])
+    count = _hardcode_var_in_pg(pg, "v", 'say \\"hello\\"')
+    assert count == 1
+    val = pg["processors"][0]["properties"]["q"]
+    assert "literal(" in val
+
+
+def test_hardcode_var_in_pg_no_match():
+    pg = _pg(processors=[_proc("p1", {"url": "${otherVar}"})])
+    count = _hardcode_var_in_pg(pg, "myVar", "value")
+    assert count == 0
+    assert pg["processors"][0]["properties"]["url"] == "${otherVar}"
+
+
+def test_hardcode_var_in_pg_descends_child_pgs():
+    child = _pg(processors=[_proc("cp1", {"x": "${v}"})])
+    pg = _pg(child_pgs=[child])
+    count = _hardcode_var_in_pg(pg, "v", "hello")
+    assert count == 1
+    assert child["processors"][0]["properties"]["x"] == "hello"
