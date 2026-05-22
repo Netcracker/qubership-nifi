@@ -42,11 +42,19 @@ def _find_child_pg_refs(
     pg: dict, var_name: str, rel_path: str, inherited_value: str
 ) -> list[dict]:
     """Walk child PGs recursively and return an occurrence entry for each one that
-    directly references ${var_name} in its own processors/services."""
+    directly references ${var_name} in its own processors/services.
+
+    Stops descending into a child PG when that child defines its own variable
+    with the same name — those refs belong to the child's own scope, not the
+    parent's.
+    """
     results = []
 
     def walk(current_pg):
         for child in current_pg.get("processGroups", []):
+            # Child shadows parent variable — its subtree uses the child's value.
+            if var_name in child.get("variables", {}):
+                continue
             ref_count = _count_refs_in_pg(child, var_name)
             if ref_count > 0:
                 results.append(

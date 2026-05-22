@@ -873,6 +873,45 @@ def test_apply_csv_transforms_proxy_group_cache(tmp_path):
     apply_csv_transforms(csv_path, str(tmp_path), invokehttp_cross_file=cross)
     parent_result = load_json(parent_file)
     assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    # The second processor must reference the service by the derived name, not the default.
+    child_result = load_json(child_file)
+    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
+    assert child_result["externalControllerServices"][svc_id]["name"] == "ProxyConfigurationService-proxy.example.com"
+
+
+def test_apply_csv_transforms_s3_group_cache_service_name(tmp_path):
+    S3_UUID_1 = "bbbb1111-0000-0000-0000-000000000001"
+    S3_UUID_2 = "bbbb1111-0000-0000-0000-000000000002"
+
+    def _s3_proc(pid):
+        return {
+            "identifier": pid, "instanceIdentifier": pid,
+            "name": f"PutS3-{pid[:4]}", "type": "org.apache.nifi.processors.aws.s3.PutS3Object",
+            "properties": {
+                "Bucket": "my-bucket", "Region": "us-east-1",
+                "Access Key": "AKID", "Secret Key": "secret",
+            },
+            "propertyDescriptors": {}, "autoTerminatedRelationships": [],
+        }
+
+    parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
+    child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[
+        _s3_proc(S3_UUID_1), _s3_proc(S3_UUID_2),
+    ]))
+    csv_path = _write_csv(tmp_path, [
+        _csv_row("child.json", "Access Key ID should be moved to AWSCredentialsProvider", proc=f"PutS3-{S3_UUID_1[:4]} ({S3_UUID_1})"),
+        _csv_row("child.json", "Access Key ID should be moved to AWSCredentialsProvider", proc=f"PutS3-{S3_UUID_2[:4]} ({S3_UUID_2})"),
+    ])
+    cross = {
+        S3_UUID_1: {"group_key": "s3-shared", "parent_pg_path": str(parent_file), "child_pg_path": str(child_file)},
+        S3_UUID_2: {"group_key": "s3-shared", "parent_pg_path": str(parent_file), "child_pg_path": str(child_file)},
+    }
+    apply_csv_transforms(csv_path, str(tmp_path), s3_cross_file=cross)
+    parent_result = load_json(parent_file)
+    assert len(parent_result["flowContents"]["controllerServices"]) == 1
+    child_result = load_json(child_file)
+    svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
+    assert child_result["externalControllerServices"][svc_id]["name"] == "AWSCredentialsProviderService-my-bucket-us-east-1"
 
 
 def test_apply_csv_transforms_s3_manual_message_routing(tmp_path, capsys):

@@ -1136,6 +1136,8 @@ def apply_csv_transforms(
                 cached = proxy_group_cache.get(group_key) if group_key else None
                 reuse_svc_id = cached[0] if cached else None
                 reuse_svc_name = cached[1] if cached else None
+                # Capture name before fix_invokehttp_proxy pops the proxy properties.
+                derived_proxy_name = _proxy_service_name(comp.get("properties", {})) if group_key and not cached else None
                 msgs, svc_id = fix_invokehttp_proxy(
                     comp, pg, row, nifi_version,
                     parent_pg_path=cross.get("parent_pg_path"),
@@ -1144,13 +1146,15 @@ def apply_csv_transforms(
                     reuse_svc_name=reuse_svc_name,
                 )
                 if group_key and svc_id and group_key not in proxy_group_cache:
-                    proxy_group_cache[group_key] = (svc_id, _proxy_service_name(comp.get("properties", {})))
+                    proxy_group_cache[group_key] = (svc_id, derived_proxy_name)
             elif handler == "fix_s3_credentials":
                 cross = (s3_cross_file or {}).get(proc_uuid, {})
                 s3_group_key = cross.get("group_key")
                 s3_cached = s3_group_cache.get(s3_group_key) if s3_group_key else None
                 s3_reuse_svc_id = s3_cached[0] if s3_cached else None
                 s3_reuse_svc_name = s3_cached[1] if s3_cached else None
+                # Capture name before fix_s3_credentials pops the credential properties.
+                derived_s3_name = _aws_credentials_service_name(comp.get("properties", {})) if s3_group_key and not s3_cached else None
                 all_s3_msgs, s3_svc_id = fix_s3_credentials(
                     comp, pg, row, nifi_version,
                     parent_pg_path=cross.get("parent_pg_path"),
@@ -1159,7 +1163,7 @@ def apply_csv_transforms(
                     reuse_svc_name=s3_reuse_svc_name,
                 )
                 if s3_group_key and s3_svc_id and s3_group_key not in s3_group_cache:
-                    s3_group_cache[s3_group_key] = (s3_svc_id, _aws_credentials_service_name(comp.get("properties", {})))
+                    s3_group_cache[s3_group_key] = (s3_svc_id, derived_s3_name)
                 msgs = [m for m in all_s3_msgs if not m.startswith("[MANUAL]")]
                 manual.extend([f"{rel_path}  -- {m}" for m in all_s3_msgs if m.startswith("[MANUAL]")])
             elif handler == "fix_convert_json_to_sql":

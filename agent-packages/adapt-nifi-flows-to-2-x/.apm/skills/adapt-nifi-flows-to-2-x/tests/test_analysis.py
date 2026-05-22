@@ -102,3 +102,23 @@ def test_count_refs_no_false_positive(tmp_path):
     # ${foo.bar} should not be counted as a reference to variable "foo"
     root_occ = result["foo"]["occurrences"][0]
     assert root_occ["reference_count"] == 0
+
+
+def test_collect_child_pg_shadow_not_counted_as_parent_ref(tmp_path):
+    """A child PG that defines its own variable with the same name as the parent
+    must not have its references counted in the parent's occurrence, and must
+    not appear as an inherited-value child occurrence."""
+    grandchild = _pg(
+        "grandchild", "Grandchild", {},
+        processors=[_proc("gp1", {"url": "${host}"})]
+    )
+    child = _pg("child", "Child", {"host": "b"}, processGroups=[grandchild])
+    root = _pg("root", "Root", {"host": "a"}, processGroups=[child])
+    _write_flow(tmp_path, "flow.json", root)
+    result = collect_variable_analysis(str(tmp_path))
+    occurrences = result["host"]["occurrences"]
+    parent_occ = next(o for o in occurrences if o["pg_id"] == "root")
+    child_occ = next(o for o in occurrences if o["pg_id"] == "child")
+    assert parent_occ["reference_count"] == 0
+    assert child_occ["value"] == "b"
+    assert child_occ["reference_count"] == 1

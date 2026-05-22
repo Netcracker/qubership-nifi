@@ -248,3 +248,33 @@ def test_hardcode_var_in_pg_descends_child_pgs():
     count = _hardcode_var_in_pg(pg, "v", "hello")
     assert count == 1
     assert child["processors"][0]["properties"]["x"] == "hello"
+
+
+def test_hardcode_var_in_pg_skips_shadowed_child():
+    """When a child PG defines the same variable name, its processors and
+    descendants must not be replaced — the child's own variable shadows the
+    parent's, so those references should continue to use the child's value."""
+    grandchild = _pg(
+        processors=[_proc("gp1", {"url": "${host}"})],
+        variables={},
+    )
+    child = _pg(
+        processors=[_proc("cp1", {"url": "${host}"})],
+        child_pgs=[grandchild],
+        variables={"host": "b"},
+    )
+    parent_proc = _proc("pp1", {"url": "${host}"})
+    pg = _pg(
+        processors=[parent_proc],
+        child_pgs=[child],
+        variables={"host": "a"},
+    )
+    count = _hardcode_var_in_pg(pg, "host", "a")
+    # Only the parent-direct processor is replaced.
+    assert count == 1
+    assert parent_proc["properties"]["url"] == "a"
+    assert child["processors"][0]["properties"]["url"] == "${host}"
+    assert grandchild["processors"][0]["properties"]["url"] == "${host}"
+    # Parent variable removed; child variable preserved.
+    assert "host" not in pg["variables"]
+    assert "host" in child["variables"]

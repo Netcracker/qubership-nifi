@@ -157,7 +157,8 @@ def _hardcode_var_in_pg(pg: dict, var_name: str, literal_value: str) -> int:
         for svc in current_pg.get("controllerServices", []):
             replace_in_node(svc)
         for child in current_pg.get("processGroups", []):
-            process_pg(child)
+            if var_name not in child.get("variables", {}):
+                process_pg(child)
 
     process_pg(pg)
 
