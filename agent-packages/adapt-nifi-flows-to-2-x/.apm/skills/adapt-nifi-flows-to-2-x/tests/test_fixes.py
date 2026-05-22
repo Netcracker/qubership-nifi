@@ -84,7 +84,7 @@ def _write_csv(tmp_path: Path, rows: list[dict]) -> str:
 def test_fix_invokehttp_proxy_creates_service():
     proc = _proc("p1", {"Proxy Host": "proxy.example.com", "Proxy Port": "3128"})
     pg = _pg()
-    msgs = fix_invokehttp_proxy(proc, pg, {})
+    msgs, _ = fix_invokehttp_proxy(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
     assert "StandardProxyConfigurationService" in pg["controllerServices"][0]["type"]
     assert msgs
@@ -110,7 +110,7 @@ def test_fix_invokehttp_proxy_removes_old_props():
 def test_fix_invokehttp_proxy_partial_props():
     proc = _proc("p1", {"Proxy Host": "h"})
     pg = _pg()
-    msgs = fix_invokehttp_proxy(proc, pg, {})
+    msgs, _ = fix_invokehttp_proxy(proc, pg, {})
     assert len(pg["controllerServices"]) == 1
     assert msgs
 
@@ -679,7 +679,7 @@ def test_apply_csv_transforms_per_file_caching(tmp_path):
     assert call_count["n"] == 1
 
 
-def test_apply_csv_transforms_azure_prepass(tmp_path):
+def test_apply_csv_transforms_azure_upgrade(tmp_path):
     svc = {
         "identifier": "az-svc", "name": "AzureCreds",
         "type": "org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService",
@@ -689,14 +689,14 @@ def test_apply_csv_transforms_azure_prepass(tmp_path):
     flow = _flow("root", controllerServices=[svc])
     _write_flow(tmp_path, "flow.json", flow)
     csv_path = _write_csv(tmp_path, [
-        _csv_row("flow.json", "some other warning")
+        _csv_row("flow.json", "AzureStorageCredentialsControllerService needs upgrade")
     ])
     apply_csv_transforms(csv_path, str(tmp_path))
     result = load_json(tmp_path / "flow.json")
     assert "_v12" in result["flowContents"]["controllerServices"][0]["type"]
 
 
-def test_apply_csv_transforms_prometheus_prepass(tmp_path):
+def test_apply_csv_transforms_prometheus_upgrade(tmp_path):
     svc = {
         "identifier": "prom-1", "name": "PromSink",
         "type": "org.apache.nifi.reporting.prometheus.PrometheusRecordSink",
@@ -704,7 +704,7 @@ def test_apply_csv_transforms_prometheus_prepass(tmp_path):
     }
     flow = _flow("root", controllerServices=[svc])
     _write_flow(tmp_path, "flow.json", flow)
-    csv_path = _write_csv(tmp_path, [_csv_row("flow.json", "some issue")])
+    csv_path = _write_csv(tmp_path, [_csv_row("flow.json", "PrometheusRecordSink is not supported")])
     apply_csv_transforms(csv_path, str(tmp_path), prometheus_params={})
     result = load_json(tmp_path / "flow.json")
     assert "qubership" in result["flowContents"]["controllerServices"][0]["type"].lower()

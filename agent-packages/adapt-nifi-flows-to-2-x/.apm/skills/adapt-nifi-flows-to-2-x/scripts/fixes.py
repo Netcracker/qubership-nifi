@@ -184,6 +184,7 @@ def fix_invokehttp_proxy(
         f"removed: {', '.join(removed_keys)}"
     ], svc["identifier"]
 
+
 def fix_s3_credentials(
     proc: dict,
     pg: dict,
@@ -1065,21 +1066,8 @@ def apply_csv_transforms(
         else:
             flow_contents = root.get("flowContents", root)
 
-        svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
-        if svc_applied:
-            applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
-            file_dirty[rel_path] = True
-        if svc_manual:
-            manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
-
-        svc_applied, svc_manual = upgrade_prometheus_record_sink(
-            flow_contents, **(prometheus_params or {})
-        )
-        if svc_applied:
-            applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
-            file_dirty[rel_path] = True
-        if svc_manual:
-            manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
+        azure_done = False
+        prometheus_done = False
 
         for row in rows_for_file:
             handler = _classify_row(row)
@@ -1105,12 +1093,28 @@ def apply_csv_transforms(
                 # Handled separately via apply_variable_contexts
                 continue
 
-            if handler == "fix_prometheus":
-                # Already handled by upgrade_prometheus_record_sink() above
+            if handler == "fix_azure_credentials":
+                if not azure_done:
+                    svc_applied, svc_manual = upgrade_azure_credentials_service(flow_contents)
+                    azure_done = True
+                    if svc_applied:
+                        applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
+                        file_dirty[rel_path] = True
+                    if svc_manual:
+                        manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
                 continue
 
-            if handler == "fix_azure_credentials":
-                # Already handled by upgrade_azure_credentials_service() above
+            if handler == "fix_prometheus":
+                if not prometheus_done:
+                    svc_applied, svc_manual = upgrade_prometheus_record_sink(
+                        flow_contents, **(prometheus_params or {})
+                    )
+                    prometheus_done = True
+                    if svc_applied:
+                        applied.extend([f"{rel_path}  -- {m}" for m in svc_applied])
+                        file_dirty[rel_path] = True
+                    if svc_manual:
+                        manual.extend([f"{rel_path}  -- {m}" for m in svc_manual])
                 continue
 
             if not proc_uuid:

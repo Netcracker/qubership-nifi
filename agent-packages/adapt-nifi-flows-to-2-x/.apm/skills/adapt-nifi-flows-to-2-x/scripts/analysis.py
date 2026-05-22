@@ -64,6 +64,37 @@ def _find_child_pg_refs(
     return results
 
 
+def _process_pg(pg: dict, rel_path: str, var_data: dict) -> None:
+    """Recursively walk pg and its descendants, collecting variable occurrences into var_data."""
+    pg_id = pg.get("identifier", "?")
+    pg_name = pg.get("name", "?")
+    vars_ = pg.get("variables", {})
+
+    for var_name, value in vars_.items():
+        ref_count = _count_refs_in_pg(pg, var_name)
+        # Collect descendant refs first so we can roll their counts
+        # into the defining PG's reference_count (subtree-wide total).
+        child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
+        subtree_count = ref_count + sum(
+            r["reference_count"] for r in child_refs
+        )
+        if var_name not in var_data:
+            var_data[var_name] = {"occurrences": [], "values_differ": False}
+        var_data[var_name]["occurrences"].append(
+            {
+                "file": rel_path,
+                "pg_id": pg_id,
+                "pg_name": pg_name,
+                "value": value,
+                "reference_count": subtree_count,
+            }
+        )
+        var_data[var_name]["occurrences"].extend(child_refs)
+
+    for child in pg.get("processGroups", []):
+        _process_pg(child, rel_path, var_data)
+
+
 def collect_variable_analysis(exports_dir: str) -> dict:
     """
     Scan all *.json files under exports_dir and return a structured dict
@@ -102,37 +133,7 @@ def collect_variable_analysis(exports_dir: str) -> dict:
             continue
         rel_path = str(json_file.relative_to(exports))
         flow_contents = data.get("flowContents", data)
-
-        def process_pg(pg):
-            pg_id = pg.get("identifier", "?")
-            pg_name = pg.get("name", "?")
-            vars_ = pg.get("variables", {})
-
-            for var_name, value in vars_.items():
-                ref_count = _count_refs_in_pg(pg, var_name)
-                # Collect descendant refs first so we can roll their counts
-                # into the defining PG's reference_count (subtree-wide total).
-                child_refs = _find_child_pg_refs(pg, var_name, rel_path, value)
-                subtree_count = ref_count + sum(
-                    r["reference_count"] for r in child_refs
-                )
-                if var_name not in var_data:
-                    var_data[var_name] = {"occurrences": [], "values_differ": False}
-                var_data[var_name]["occurrences"].append(
-                    {
-                        "file": rel_path,
-                        "pg_id": pg_id,
-                        "pg_name": pg_name,
-                        "value": value,
-                        "reference_count": subtree_count,
-                    }
-                )
-                var_data[var_name]["occurrences"].extend(child_refs)
-
-            for child in pg.get("processGroups", []):
-                process_pg(child)
-
-        process_pg(flow_contents)
+        _process_pg(flow_contents, rel_path, var_data)
 
     # Compute values_differ after all files are scanned
     for info in var_data.values():

@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys as _sys
-
-if hasattr(_sys.stdout, "reconfigure"):
-    _sys.stdout.reconfigure(encoding="utf-8")
-if hasattr(_sys.stderr, "reconfigure"):
-    _sys.stderr.reconfigure(encoding="utf-8")
 """
 upgrade_nifi_lib.py   --  CLI entry point for the adapt-nifi-flows-to-2-x
                          AI Agent skill.
@@ -21,6 +15,13 @@ Public API for the generated run-script:
     from fixes    import apply_csv_transforms
     from contexts import apply_variable_contexts, apply_hardcoded_values
 """
+
+import sys as _sys
+
+if hasattr(_sys.stdout, "reconfigure"):
+    _sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(_sys.stderr, "reconfigure"):
+    _sys.stderr.reconfigure(encoding="utf-8")
 
 import json  # noqa: E402
 import re  # noqa: E402
@@ -191,7 +192,7 @@ if __name__ == "__main__":
         "csv_path",
         nargs="?",
         default=None,
-        help="Path to upgradeAdvisorReport.csv (required for --analyze; use /dev/null to skip)",
+        help="Path to upgradeAdvisorReport.csv (optional for --analyze; omit or pass a nonexistent path to skip the row summary)",
     )
     parser.add_argument(
         "exports_dir",
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.analyze:
-        analyze(args.csv_path or "/dev/null", args.exports_dir)
+        analyze(args.csv_path, args.exports_dir)
     elif args.detect_standalone_cs:
         detect_standalone_cs(args.csv_path, args.exports_dir)
     elif args.collect_vars:
