@@ -6,12 +6,12 @@ on:
     paths:
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
-      - '.github/workflows/python-test.yml'
+      - '.github/workflows/python-tests.yml'
   pull_request:
     paths:
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
-      - '.github/workflows/python-test.yml'
+      - '.github/workflows/python-tests.yml'
   workflow_dispatch: null
 
 permissions:
