@@ -7,7 +7,7 @@ if hasattr(_sys.stdout, "reconfigure"):
 if hasattr(_sys.stderr, "reconfigure"):
     _sys.stderr.reconfigure(encoding="utf-8")
 """
-upgrade_nifi_lib.py   --  CLI entry point for the apply-upgrade-advisor-recommendations
+upgrade_nifi_lib.py   --  CLI entry point for the adapt-nifi-flows-to-2-x
                          AI Agent skill.
 
 Handles all automatable NiFi 1.x -> 2.x upgrade fixes derived from an

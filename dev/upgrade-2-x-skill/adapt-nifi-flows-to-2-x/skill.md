@@ -1,16 +1,15 @@
 ---
-name: apply-upgrade-advisor-recommendations
+name: adapt-nifi-flows-to-2-x
 description: >-
-  Use this skill to apply NiFi 1.x to 2.x upgrade recommendations produced by the
-  [upgradeAdvisor](https://github.com/Netcracker/qubership-nifi/tree/main/dev/upgrade-advisor) script. The static transformation library is at:
-  `.claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py`
+  Use this skill to automatically apply NiFi 1.x to 2.x upgrade recommendations produced by the
+  [upgradeAdvisor](https://github.com/Netcracker/qubership-nifi/tree/main/dev/upgrade-advisor) script.
 ---
 
 # Apply Upgrade Advisor Recommendations
 
 ## Inputs
 
-Accept as positional args: `/apply-upgrade-advisor-recommendations [csv_path] [exports_dir]`
+Accept as positional args: `/adapt-nifi-flows-to-2-x [csv_path] [exports_dir]`
 
 If either argument is missing:
 
@@ -18,7 +17,7 @@ If either argument is missing:
 - For `exports_dir`: once the CSV is found, run:
 
   ```bash
-  python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
+  python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
     --detect-exports-dir <csv_path>
   ```
 
@@ -32,7 +31,7 @@ proceeding.
 Once `exports_dir` is confirmed, detect the source NiFi version:
 
 ```bash
-python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/detect_nifi_version.py \
+python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/detect_nifi_version.py \
   <exports_dir>
 ```
 
@@ -61,12 +60,12 @@ Log the changes that were made.
 Run both commands and show the full output to the user:
 
 ```bash
-python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
+python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   --collect-vars <csv_path> <exports_dir>
 ```
 
 ```bash
-python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
+python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   --analyze <csv_path> <exports_dir>
 ```
 
@@ -94,7 +93,7 @@ python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nif
 Run:
 
 ```bash
-python3 .claude/skills/apply-upgrade-advisor-recommendations/scripts/upgrade_nifi_lib.py \
+python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   --detect-standalone-cs <csv_path> <exports_dir>
 ```
 
@@ -110,7 +109,7 @@ Based on the analysis and user answers from Step 2b, generate `tmp/upgrade_nifi_
 
 ```python
 import sys
-sys.path.insert(0, '.claude/skills/apply-upgrade-advisor-recommendations/scripts')
+sys.path.insert(0, '.claude/skills/adapt-nifi-flows-to-2-x/scripts')
 from fixes    import apply_csv_transforms, rename_standalone_controller_services
 from contexts import apply_variable_contexts, apply_hardcoded_values
 
@@ -223,7 +222,7 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
     - Set `Script Body` to:
 
       ```groovy
-      // Auto-translated from <language> by apply-upgrade-advisor-recommendations. Review before use.
+      // Auto-translated from <language> by adapt-nifi-flows-to-2-x. Review before use.
       <translated Groovy code>
  
       // ── Original <language> preserved below ──
