@@ -1,5 +1,4 @@
 ---
-name: adapt-nifi-flows-to-2-x
 description: >-
   Use this skill to automatically apply NiFi 1.x to 2.x upgrade recommendations produced by the
   [upgradeAdvisor](https://github.com/Netcracker/qubership-nifi/tree/main/dev/upgrade-advisor) script.
@@ -79,13 +78,14 @@ python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
 
 1. If the `--analyze` output contains any `[CONTEXT PLAN]` rows, **or** if the JSON produced by `--collect-vars` is not
    empty (variables present in the flow but not flagged by the advisor), open and follow
-   `references/parameter-context-planning.md`.
+   `.claude/skills/adapt-nifi-flows-to-2-x/references/parameter-context-planning.md`.
 2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains any row whose `Issue` references `PrometheusRecordSink`,
-   open and follow `references/prometheus-record-sink-analysis.md`.
+   open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/prometheus-record-sink-analysis.md`.
 3. If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`),
-   open and follow `references/proxy-properties-handling.md`.
+   open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/proxy-properties-handling.md`.
 4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references
-   `Access Key ID and Secret Access Key`), open and follow `references/aws-components-analysis.md`.
+   `Access Key ID and Secret Access Key`), open and follow
+   `.claude/skills/adapt-nifi-flows-to-2-x/references/aws-components-analysis.md`.
 5. Ensure all user questions from the applicable reference files have complete answers before proceeding to Step 3.
 
 ### Step 2c - Detect standalone controller services requiring rename
