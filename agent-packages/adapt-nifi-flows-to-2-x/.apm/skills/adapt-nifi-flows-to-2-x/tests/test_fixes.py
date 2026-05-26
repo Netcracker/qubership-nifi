@@ -911,7 +911,7 @@ def test_apply_csv_transforms_s3_group_cache_service_name(tmp_path):
     assert len(parent_result["flowContents"]["controllerServices"]) == 1
     child_result = load_json(child_file)
     svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
-    assert child_result["externalControllerServices"][svc_id]["name"] == "AWSCredentialsProviderService-my-bucket-us-east-1"
+    assert child_result["externalControllerServices"][svc_id]["name"] == "AWSCredentialsProviderService"
 
 
 def test_apply_csv_transforms_s3_manual_message_routing(tmp_path, capsys):

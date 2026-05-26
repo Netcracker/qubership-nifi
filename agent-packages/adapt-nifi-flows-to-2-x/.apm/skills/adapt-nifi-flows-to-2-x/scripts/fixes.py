@@ -33,11 +33,8 @@ def _proxy_service_name(props: dict) -> str:
 
 
 def _aws_credentials_service_name(props: dict) -> str:
-    """Derive a unique service name from Bucket / Region processor properties."""
-    bucket = props.get("Bucket", "")
-    region = props.get("Region", "")
-    parts = [p for p in [bucket, region] if p]
-    return "AWSCredentialsProviderService-" + "-".join(parts) if parts else "AWSCredentialsProviderService"
+    """Get default service name."""
+    return "AWSCredentialsProviderService"
 
 
 def fix_invokehttp_proxy(
