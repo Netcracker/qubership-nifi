@@ -87,9 +87,15 @@ python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
    open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/proxy-properties-handling.md`.
 4. If the issue flags show `"aws": true`,
    open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/aws-components-analysis.md`.
-5. If any cross-file placement was decided in steps 3 or 4 above (`INVOKEHTTP_CROSS_FILE` or `S3_CROSS_FILE`
-   will be non-empty), open and follow
-   `.claude/skills/adapt-nifi-flows-to-2-x/references/cross-file-parameter-context.md`.
+5. **Cross-file gate (mandatory check, not a conditional skip):** Before leaving Step 2b, re-read the
+   placement answers from sub-items 3 and 4 above. For every InvokeHTTP or S3 processor whose chosen
+   Controller Service location is a *different file* than the processor's own file, an entry MUST
+   be added to `INVOKEHTTP_CROSS_FILE` or `S3_CROSS_FILE`. If even one such entry exists, you MUST open
+   and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/cross-file-parameter-context.md` to
+   build `PARENT_CONTEXT_PLAN`. Skipping this step produces warnings of the form
+   `[WARN] context '<name>' not found in any file under <exports_dir>` and a broken parent PG that
+   does not resolve `#{param}` references at runtime. Do not proceed to Step 2c until
+   `PARENT_CONTEXT_PLAN` is built or you have explicitly confirmed both cross-file dicts are empty.
 6. Ensure all user questions from the applicable reference files have complete answers before proceeding to Step 3.
 
 ### Step 2c - Detect standalone controller services requiring rename
@@ -108,6 +114,13 @@ python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   Record the confirmed values for Step 3.
 
 ### Step 3 - Generate the run script
+
+**Precondition check (do this before writing any code):**
+
+- If `INVOKEHTTP_CROSS_FILE` or `S3_CROSS_FILE` contains any entries, `PARENT_CONTEXT_PLAN` MUST be
+  populated from a completed walkthrough of `cross-file-parameter-context.md`. A non-empty cross-file
+  dict combined with an empty or hand-rolled `PARENT_CONTEXT_PLAN` is a bug - go back to Step 2b
+  sub-item #5 and complete it before generating the script.
 
 Based on the analysis and user answers from Step 2b, generate `tmp/upgrade_nifi_run.py`:
 

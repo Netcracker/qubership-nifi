@@ -18,6 +18,11 @@ If the CSV contains an Access Key ID and Secret Access Key warning (any row whos
 4. If multiple Controller Services are needed, assign them unique names.
 5. If the user's chosen file differs from the processor's file, populate `S3_CROSS_FILE` in the run script; otherwise
    leave it as `{}`.
+6. **If you populated `S3_CROSS_FILE` (any entry added), STOP and open
+   `.claude/skills/adapt-nifi-flows-to-2-x/references/cross-file-parameter-context.md` now, before
+   returning to SKILL.md.** Cross-file AWS credentials services reference `#{param}` values that the
+   parent PG must resolve; skipping this guide produces broken `PARENT_CONTEXT_PLAN` entries and
+   runtime warnings of the form `[WARN] context '<name>' not found in any file under <exports_dir>`.
 
 If credentials are empty, include this in the manual action items for Step 7:
 

@@ -18,5 +18,10 @@ If the CSV contains a Proxy property warning (any row whose `Issue` references `
    one per distinct set of values with unique names.
 4. If the user's chosen file differs from the processor's file, populate `INVOKEHTTP_CROSS_FILE` in the run script;
    otherwise leave it as `{}`.
+5. **If you populated `INVOKEHTTP_CROSS_FILE` (any entry added), STOP and open
+   `.claude/skills/adapt-nifi-flows-to-2-x/references/cross-file-parameter-context.md` now, before
+   returning to SKILL.md.** Cross-file proxy services reference `#{param}` values that the parent PG
+   must resolve; skipping this guide produces broken `PARENT_CONTEXT_PLAN` entries and runtime
+   warnings of the form `[WARN] context '<name>' not found in any file under <exports_dir>`.
 
 Skip this section when no Proxy properties warning is present in the CSV.
