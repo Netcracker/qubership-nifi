@@ -14,7 +14,7 @@ the [APM documentation](https://microsoft.github.io/apm/#install-apm) for instal
    ```bash
    apm init
    ```
-   
+
 2. Add the desired packages to your `apm.yml` file as dependencies. For example:
 
    ```yaml
@@ -22,13 +22,13 @@ the [APM documentation](https://microsoft.github.io/apm/#install-apm) for instal
      apm:
        - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<version>
    ```
-   
+
 3. Install the packages by running:
 
    ```bash
     apm install
    ```
-   
+
 4. Once installed, you can import and use the packages in your AI agent code as needed.
 
 ## Available Packages
