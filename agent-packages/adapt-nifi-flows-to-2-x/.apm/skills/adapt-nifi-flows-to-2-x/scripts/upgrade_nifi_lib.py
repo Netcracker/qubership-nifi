@@ -282,11 +282,11 @@ def show_contexts(exports_dir: str) -> None:
                 direct_params = list(params_obj.keys())
             inherited_raw = ctx.get("inheritedParameterContexts", [])
             inherited = []
-            for inh in inherited_raw:
-                if isinstance(inh, str):
-                    inherited.append(uuid_to_name.get(inh, inh))
-                elif isinstance(inh, dict):
-                    inh_id = inh.get("identifier") or inh.get("id", "")
+            for inheritedPC in inherited_raw:
+                if isinstance(inheritedPC, str):
+                    inherited.append(uuid_to_name.get(inheritedPC, inheritedPC))
+                elif isinstance(inheritedPC, dict):
+                    inh_id = inheritedPC.get("identifier") or inheritedPC.get("id", "")
                     inherited.append(uuid_to_name.get(inh_id, inh_id))
             contexts[name] = {"direct_params": direct_params, "inherited": inherited}
 
