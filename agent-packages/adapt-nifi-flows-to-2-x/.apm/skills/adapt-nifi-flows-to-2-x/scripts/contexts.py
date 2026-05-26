@@ -230,3 +230,159 @@ def apply_hardcoded_values(
     for m in applied:
         print(" ", m)
     print(f"\n  Total: {len(applied)} substitution(s) applied")
+
+
+# ---------------------------------------------------------------------------
+# Parent PG parameter context assignment (cross-file CS support)
+# ---------------------------------------------------------------------------
+
+
+def _collect_all_context_definitions(exports: Path) -> dict[str, dict]:
+    """Walk all *.json files under exports and return {ctx_name: ctx_object}.
+    First occurrence of each name wins.
+    """
+    result: dict[str, dict] = {}
+    for json_file in sorted(exports.rglob("*.json")):
+        try:
+            data = load_json(json_file)
+        except Exception:
+            continue
+        for name, obj in data.get("parameterContexts", {}).items():
+            result.setdefault(name, obj)
+    return result
+
+
+def apply_parent_contexts(
+    exports_dir: str,
+    parent_context_plan: list[dict],
+) -> None:
+    """
+    Assign or extend parameter contexts on parent PG files that received
+    cross-file controller services so their #{param} references resolve.
+
+    Each plan entry:
+        {
+            "action":          "assign_direct" | "create_wrapper" | "add_inheritance" | "none",
+            "parent_pg_file":  "relative/path/to/parent.json",   # relative to exports_dir
+            "needed_contexts": ["ctx-name-1", ...],
+            # create_wrapper only:
+            "wrapper_name":    "new-wrapper-context-name",
+            # add_inheritance only:
+            "existing_context_name": "name-of-the-pgs-current-context",
+        }
+    """
+    exports = Path(exports_dir)
+
+    print("\n=== Parent PG Parameter Contexts Applied ===")
+
+    if not parent_context_plan:
+        print("  (none)")
+        print("\n  Total: 0 parent PG file(s) updated")
+        return
+
+    all_ctx_defs = _collect_all_context_definitions(exports)
+
+    applied: list[str] = []
+    warnings: list[str] = []
+
+    for entry in parent_context_plan:
+        action = entry.get("action", "none")
+        if action == "none":
+            continue
+
+        parent_pg_file = entry["parent_pg_file"]
+        needed_contexts = entry.get("needed_contexts", [])
+        abs_path = exports / parent_pg_file
+
+        if not abs_path.exists():
+            warnings.append(f"[WARN] File not found: {parent_pg_file}")
+            continue
+
+        parent_data = load_json(abs_path)
+        parent_flow = parent_data.get("flowContents", parent_data)
+
+        if action == "assign_direct":
+            ctx_name = needed_contexts[0]
+            ctx_obj = all_ctx_defs.get(ctx_name)
+            if ctx_obj is None:
+                warnings.append(
+                    f"[WARN] context '{ctx_name}' not found in any file under {exports_dir}"
+                )
+                continue
+            parent_data.setdefault("parameterContexts", {})[ctx_name] = ctx_obj
+            parent_flow["parameterContextName"] = ctx_name
+            applied.append(
+                f"[FIXED] {parent_pg_file}  -- assigned parameter context '{ctx_name}'"
+            )
+
+        elif action == "create_wrapper":
+            wrapper_name = entry["wrapper_name"]
+            if wrapper_name in parent_data.get("parameterContexts", {}):
+                warnings.append(
+                    f"[WARN] wrapper context '{wrapper_name}' already exists in "
+                    f"{parent_pg_file} - skipped to avoid overwrite"
+                )
+                continue
+            for ctx_name in needed_contexts:
+                ctx_obj = all_ctx_defs.get(ctx_name)
+                if ctx_obj is None:
+                    warnings.append(
+                        f"[WARN] context '{ctx_name}' not found in any file under {exports_dir}"
+                    )
+                else:
+                    parent_data.setdefault("parameterContexts", {})[ctx_name] = ctx_obj
+            wrapper_ctx = {
+                "componentType": "PARAMETER_CONTEXT",
+                "name": wrapper_name,
+                "parameters": [],
+                "inheritedParameterContexts": list(needed_contexts),
+            }
+            parent_data.setdefault("parameterContexts", {})[wrapper_name] = wrapper_ctx
+            parent_flow["parameterContextName"] = wrapper_name
+            applied.append(
+                f"[FIXED] {parent_pg_file}  -- created wrapper context '{wrapper_name}' "
+                f"inheriting {', '.join(needed_contexts)}"
+            )
+
+        elif action == "add_inheritance":
+            existing_ctx_name = entry["existing_context_name"]
+            existing_ctx_obj = (
+                parent_data.get("parameterContexts", {}).get(existing_ctx_name)
+                or all_ctx_defs.get(existing_ctx_name)
+            )
+            if existing_ctx_obj is None:
+                warnings.append(
+                    f"[WARN] existing context '{existing_ctx_name}' not found in any "
+                    f"file under {exports_dir} - cannot extend inheritance in {parent_pg_file}"
+                )
+                continue
+            current_inherited = existing_ctx_obj.get("inheritedParameterContexts", [])
+            missing = [
+                c for c in needed_contexts
+                if c != existing_ctx_name and c not in current_inherited
+            ]
+            for ctx_name in missing:
+                ctx_obj = all_ctx_defs.get(ctx_name)
+                if ctx_obj is None:
+                    warnings.append(
+                        f"[WARN] context '{ctx_name}' not found in any file under {exports_dir}"
+                    )
+                else:
+                    parent_data.setdefault("parameterContexts", {})[ctx_name] = ctx_obj
+            # Ensure existing context is in the parent file, then extend it
+            parent_data.setdefault("parameterContexts", {})[existing_ctx_name] = existing_ctx_obj
+            parent_data["parameterContexts"][existing_ctx_name][
+                "inheritedParameterContexts"
+            ] = current_inherited + missing
+            applied.append(
+                f"[FIXED] {parent_pg_file}  -- extended context '{existing_ctx_name}' "
+                f"to inherit {', '.join(missing) if missing else '(nothing new)'}"
+            )
+
+        save_json(abs_path, parent_data)
+
+    for m in applied:
+        print(" ", m)
+    for m in warnings:
+        print(" ", m)
+    print(f"\n  Total: {len(applied)} parent PG file(s) updated")

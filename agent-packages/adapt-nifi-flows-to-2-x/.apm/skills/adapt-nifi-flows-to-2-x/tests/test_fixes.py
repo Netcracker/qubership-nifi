@@ -785,7 +785,7 @@ def test_apply_csv_transforms_proc_uuid_not_found(tmp_path, capsys):
 
 
 def test_apply_csv_transforms_missing_flow_file(tmp_path, capsys):
-    # One missing flow, one real flow — only the real file should be processed
+    # One missing flow, one real flow - only the real file should be processed
     proc = {
         "identifier": PROC_UUID, "instanceIdentifier": PROC_UUID,
         "name": "InvokeHTTP", "type": "org.apache.nifi.processors.standard.InvokeHTTP",

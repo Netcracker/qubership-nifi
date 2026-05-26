@@ -1,5 +1,5 @@
 """
-utils.py  —  Shared I/O helpers, JSON-tree walkers, CSV parsing, and
+utils.py  -  Shared I/O helpers, JSON-tree walkers, CSV parsing, and
               controller-service skeleton builder for upgrade_nifi_lib.
 """
 
@@ -103,8 +103,8 @@ def replace_var_refs_in_pg(pg: dict, parameter_names: set) -> int:
                 continue
             orig = v
             # Pre-pass: replace bare ${paramName} to #{paramName} for each known
-            # parameter. Handles params nested inside EL function arguments —
-            # e.g. equalsIgnoreCase(${paramName}) — where the outer ${...} regex
+            # parameter. Handles params nested inside EL function arguments -
+            # e.g. equalsIgnoreCase(${paramName}) - where the outer ${...} regex
             # match would otherwise swallow the inner reference.
             for pn in parameter_names:
                 v = v.replace(f"${{{pn}}}", f"#{{{pn}}}")

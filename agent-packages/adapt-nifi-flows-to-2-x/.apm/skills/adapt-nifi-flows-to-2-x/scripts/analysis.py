@@ -1,5 +1,5 @@
 """
-analysis.py  —  Variable collection and analysis helpers used by the AI agent
+analysis.py  -  Variable collection and analysis helpers used by the AI agent
                  during parameter context planning.
 """
 
@@ -21,7 +21,7 @@ def _count_refs_in_pg(pg: dict, var_name: str) -> int:
     Matches both bare variable references (${varName}) and NiFi EL expressions
     that apply functions to the variable (${varName:function():...}).
     """
-    # (?=[:}]) — lookahead ensures we stop at the end of the variable name:
+    # (?=[:}]) - lookahead ensures we stop at the end of the variable name:
     #   ${varName}       matched by (?=})
     #   ${varName:fn()}  matched by (?=:)
     # This prevents ${foo.bar} from being counted as a reference to variable foo.
@@ -45,14 +45,14 @@ def _find_child_pg_refs(
     directly references ${var_name} in its own processors/services.
 
     Stops descending into a child PG when that child defines its own variable
-    with the same name — those refs belong to the child's own scope, not the
+    with the same name - those refs belong to the child's own scope, not the
     parent's.
     """
     results = []
 
     def walk(current_pg):
         for child in current_pg.get("processGroups", []):
-            # Child shadows parent variable — its subtree uses the child's value.
+            # Child shadows parent variable - its subtree uses the child's value.
             if var_name in child.get("variables", {}):
                 continue
             ref_count = _count_refs_in_pg(child, var_name)

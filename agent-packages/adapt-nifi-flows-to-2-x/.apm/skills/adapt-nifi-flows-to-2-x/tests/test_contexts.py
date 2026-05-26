@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from contexts import apply_variable_contexts, apply_hardcoded_values, _hardcode_var_in_pg
+from contexts import apply_variable_contexts, apply_hardcoded_values, _hardcode_var_in_pg, apply_parent_contexts
 from utils import load_json
 
 
@@ -252,7 +252,7 @@ def test_hardcode_var_in_pg_descends_child_pgs():
 
 def test_hardcode_var_in_pg_skips_shadowed_child():
     """When a child PG defines the same variable name, its processors and
-    descendants must not be replaced — the child's own variable shadows the
+    descendants must not be replaced - the child's own variable shadows the
     parent's, so those references should continue to use the child's value."""
     grandchild = _pg(
         processors=[_proc("gp1", {"url": "${host}"})],
@@ -278,3 +278,192 @@ def test_hardcode_var_in_pg_skips_shadowed_child():
     # Parent variable removed; child variable preserved.
     assert "host" not in pg["variables"]
     assert "host" in child["variables"]
+
+
+# ---------------------------------------------------------------------------
+# apply_parent_contexts
+# ---------------------------------------------------------------------------
+
+def _parent_flow(pg_name: str, ctx_name: str | None = None, param_contexts: dict | None = None) -> dict:
+    pg = {
+        "componentType": "PROCESS_GROUP",
+        "identifier": "root-pg-uuid",
+        "name": pg_name,
+        "controllerServices": [],
+        "processGroups": [],
+        "processors": [],
+        "connections": [],
+        "variables": {},
+    }
+    if ctx_name is not None:
+        pg["parameterContextName"] = ctx_name
+    return {"flowContents": pg, "parameterContexts": param_contexts or {}}
+
+
+def _ctx_def(name: str, params: list[str], inherits: list[str] | None = None) -> dict:
+    return {
+        "componentType": "PARAMETER_CONTEXT",
+        "name": name,
+        "parameters": [{"name": p, "value": "", "sensitive": False, "description": ""} for p in params],
+        "inheritedParameterContexts": inherits or [],
+    }
+
+
+def test_assign_direct_no_existing_context(tmp_path):
+    _write_flow(tmp_path, "parent.json", _parent_flow("Parent"))
+    _write_flow(tmp_path, "child.json", {
+        "flowContents": {"identifier": "c", "name": "C", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {"proxy-params": _ctx_def("proxy-params", ["proxy.username", "proxy.password"])},
+    })
+    plan = [{"action": "assign_direct", "parent_pg_file": "parent.json", "needed_contexts": ["proxy-params"]}]
+    apply_parent_contexts(str(tmp_path), plan)
+    result = load_json(tmp_path / "parent.json")
+    assert result["flowContents"]["parameterContextName"] == "proxy-params"
+    assert "proxy-params" in result["parameterContexts"]
+    assert "wrapper" not in str(result["parameterContexts"])
+
+
+def test_create_wrapper_no_existing_context(tmp_path):
+    _write_flow(tmp_path, "parent.json", _parent_flow("Parent"))
+    _write_flow(tmp_path, "child.json", {
+        "flowContents": {"identifier": "c", "name": "C", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {
+            "proxy-params": _ctx_def("proxy-params", ["proxy.username"]),
+            "s3-params":    _ctx_def("s3-params",    ["access.key.id"]),
+        },
+    })
+    plan = [{
+        "action":          "create_wrapper",
+        "parent_pg_file":  "parent.json",
+        "needed_contexts": ["proxy-params", "s3-params"],
+        "wrapper_name":    "combined-params",
+    }]
+    apply_parent_contexts(str(tmp_path), plan)
+    result = load_json(tmp_path / "parent.json")
+    assert result["flowContents"]["parameterContextName"] == "combined-params"
+    wrapper = result["parameterContexts"]["combined-params"]
+    assert set(wrapper["inheritedParameterContexts"]) == {"proxy-params", "s3-params"}
+    assert wrapper["parameters"] == []
+    assert "proxy-params" in result["parameterContexts"]
+    assert "s3-params" in result["parameterContexts"]
+
+
+def test_add_inheritance_existing_context_missing_one(tmp_path):
+    parent_data = _parent_flow("Parent", "ctx-a", {"ctx-a": _ctx_def("ctx-a", ["p1"])})
+    _write_flow(tmp_path, "parent.json", parent_data)
+    _write_flow(tmp_path, "child.json", {
+        "flowContents": {"identifier": "c", "name": "C", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {"ctx-b": _ctx_def("ctx-b", ["p2"])},
+    })
+    plan = [{
+        "action":                "add_inheritance",
+        "parent_pg_file":        "parent.json",
+        "needed_contexts":       ["ctx-b"],
+        "existing_context_name": "ctx-a",
+    }]
+    apply_parent_contexts(str(tmp_path), plan)
+    result = load_json(tmp_path / "parent.json")
+    assert result["flowContents"]["parameterContextName"] == "ctx-a"
+    assert "ctx-b" in result["parameterContexts"]["ctx-a"]["inheritedParameterContexts"]
+    assert "ctx-b" in result["parameterContexts"]
+
+
+def test_none_already_inherits_all(tmp_path, capsys):
+    _write_flow(tmp_path, "parent.json", _parent_flow("Parent", "ctx-a"))
+    plan = [{"action": "none", "parent_pg_file": "parent.json", "needed_contexts": ["ctx-b"]}]
+    apply_parent_contexts(str(tmp_path), plan)
+    out = capsys.readouterr().out
+    # File must not be rewritten - action "none" skips save_json
+    assert "[wrote]" not in out
+    # Existing parameterContextName must remain unchanged
+    result = load_json(tmp_path / "parent.json")
+    assert result["flowContents"]["parameterContextName"] == "ctx-a"
+    assert result["parameterContexts"] == {}
+
+
+def test_empty_plan_no_file_scan(tmp_path, capsys):
+    apply_parent_contexts(str(tmp_path), [])
+    out = capsys.readouterr().out
+    assert "Total: 0" in out
+
+
+def test_missing_context_definition_emits_warn(tmp_path, capsys):
+    _write_flow(tmp_path, "parent.json", _parent_flow("Parent"))
+    plan = [{"action": "assign_direct", "parent_pg_file": "parent.json", "needed_contexts": ["nonexistent-ctx"]}]
+    apply_parent_contexts(str(tmp_path), plan)
+    out = capsys.readouterr().out
+    assert "[WARN]" in out
+    result = load_json(tmp_path / "parent.json")
+    assert "parameterContextName" not in result["flowContents"]
+
+
+def test_wrapper_name_conflict_emits_warn(tmp_path, capsys):
+    existing_wrapper = _ctx_def("my-wrapper", ["x"])
+    parent_data = _parent_flow("Parent", param_contexts={"my-wrapper": existing_wrapper})
+    _write_flow(tmp_path, "parent.json", parent_data)
+    plan = [{
+        "action":          "create_wrapper",
+        "parent_pg_file":  "parent.json",
+        "needed_contexts": ["some-ctx"],
+        "wrapper_name":    "my-wrapper",
+    }]
+    apply_parent_contexts(str(tmp_path), plan)
+    out = capsys.readouterr().out
+    assert "[WARN]" in out
+    result = load_json(tmp_path / "parent.json")
+    assert result["parameterContexts"]["my-wrapper"] == existing_wrapper
+
+
+def test_existing_context_found_in_child_file(tmp_path):
+    # ctx-a is the parent PG's current context, but defined only in a child file
+    _write_flow(tmp_path, "parent.json", _parent_flow("Parent", "ctx-a"))
+    _write_flow(tmp_path, "child1.json", {
+        "flowContents": {"identifier": "c1", "name": "C1", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {"ctx-a": _ctx_def("ctx-a", ["p1"])},
+    })
+    _write_flow(tmp_path, "child2.json", {
+        "flowContents": {"identifier": "c2", "name": "C2", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {"ctx-b": _ctx_def("ctx-b", ["p2"])},
+    })
+    plan = [{
+        "action":                "add_inheritance",
+        "parent_pg_file":        "parent.json",
+        "needed_contexts":       ["ctx-b"],
+        "existing_context_name": "ctx-a",
+    }]
+    apply_parent_contexts(str(tmp_path), plan)
+    result = load_json(tmp_path / "parent.json")
+    assert "ctx-a" in result["parameterContexts"]
+    assert "ctx-b" in result["parameterContexts"]["ctx-a"]["inheritedParameterContexts"]
+    assert "ctx-b" in result["parameterContexts"]
+
+
+def test_multiple_parent_files(tmp_path):
+    _write_flow(tmp_path, "parent1.json", _parent_flow("Parent1"))
+    _write_flow(tmp_path, "parent2.json", _parent_flow("Parent2", "ctx-a", {"ctx-a": _ctx_def("ctx-a", ["x"])}))
+    _write_flow(tmp_path, "child.json", {
+        "flowContents": {"identifier": "c", "name": "C", "variables": {},
+                         "processors": [], "controllerServices": [], "processGroups": []},
+        "parameterContexts": {
+            "proxy-params": _ctx_def("proxy-params", ["proxy.username"]),
+            "ctx-b":        _ctx_def("ctx-b", ["y"]),
+        },
+    })
+    plan = [
+        {"action": "assign_direct",   "parent_pg_file": "parent1.json",
+         "needed_contexts": ["proxy-params"]},
+        {"action": "add_inheritance", "parent_pg_file": "parent2.json",
+         "needed_contexts": ["ctx-b"], "existing_context_name": "ctx-a"},
+    ]
+    apply_parent_contexts(str(tmp_path), plan)
+    r1 = load_json(tmp_path / "parent1.json")
+    assert r1["flowContents"]["parameterContextName"] == "proxy-params"
+    assert "proxy-params" in r1["parameterContexts"]
+    r2 = load_json(tmp_path / "parent2.json")
+    assert "ctx-b" in r2["parameterContexts"]["ctx-a"]["inheritedParameterContexts"]
+    assert "ctx-b" in r2["parameterContexts"]

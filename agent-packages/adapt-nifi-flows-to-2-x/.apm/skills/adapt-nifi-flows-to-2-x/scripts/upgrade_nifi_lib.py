@@ -28,9 +28,42 @@ import re  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-from utils import parse_csv, load_json  # noqa: E402
+from utils import parse_csv, load_json, find_component  # noqa: E402
 from fixes import _classify_row  # noqa: E402
 from analysis import collect_variable_analysis  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Issue-flag helpers (shared by --analyze output and tests)
+# ---------------------------------------------------------------------------
+
+_ISSUE_SUBSTRINGS = {
+    "proxy":         "Proxy properties in InvokeHTTP",
+    "aws":           "\"Access Key ID\" and \"Secret Access Key\"",
+    "prometheus":    "PrometheusRecordSink",
+    "script_engine": "Script Engine =",
+}
+
+
+def _build_issue_flags(rows: list) -> dict:
+    issues_text = [r.get("Issue", "") for r in rows]
+    flags: dict = {k: any(sub in t for t in issues_text) for k, sub in _ISSUE_SUBSTRINGS.items()}
+    flags["variables"] = any(_classify_row(r) == "fix_variables" for r in rows)
+    flags["all_issues"] = sorted(set(t for t in issues_text if t))
+    return flags
+
+
+# ---------------------------------------------------------------------------
+# Property lists for --show-processor-props
+# ---------------------------------------------------------------------------
+
+_HANDLER_PROPS: dict[str, list[str]] = {
+    "fix_invokehttp_proxy": [
+        "Proxy Host", "Proxy Port", "Proxy Type",
+        "invokehttp-proxy-user", "invokehttp-proxy-password",
+    ],
+    "fix_s3_credentials": ["Access Key", "Secret Key"],
+}
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +153,7 @@ def detect_standalone_cs(csv_path: str, exports_dir: str) -> None:
 
 
 def analyze(csv_path: str, exports_dir: str) -> None:
-    """Print CSV row summary (AUTO / AI Agent / CONTEXT PLAN / MANUAL tags).
+    """Print CSV row summary (AUTO / AI Agent / CONTEXT PLAN / MANUAL tags) and issue flags.
 
     Variable analysis is handled separately via --collect-vars; the AI agent
     then proposes parameter contexts interactively with the user.
@@ -129,6 +162,7 @@ def analyze(csv_path: str, exports_dir: str) -> None:
     print("upgrade_nifi_lib   --  CSV Row Summary")
     print("=" * 70)
 
+    rows: list = []
     if csv_path and Path(csv_path).exists() and Path(csv_path).stat().st_size > 0:
         rows = parse_csv(csv_path)
         print("\nCSV Row Summary:")
@@ -149,6 +183,120 @@ def analyze(csv_path: str, exports_dir: str) -> None:
     print(
         "Run --collect-vars to get variable data for AI-assisted parameter context planning."
     )
+    print("\n=== Issue Flags ===")
+    print(json.dumps(_build_issue_flags(rows), indent=2, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
+# Processor property extractor (CLI --show-processor-props mode)
+# ---------------------------------------------------------------------------
+
+
+def show_processor_props(csv_path: str, exports_dir: str, handler: str) -> None:
+    """Print JSON list of processor property values for all rows matching handler.
+
+    Only properties present in the flow JSON are included (absent keys are omitted).
+    """
+    prop_keys = _HANDLER_PROPS.get(handler)
+    if prop_keys is None:
+        print(
+            f"ERROR: unknown handler '{handler}'. Known: {list(_HANDLER_PROPS)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    rows = parse_csv(csv_path)
+    exports = Path(exports_dir)
+    file_cache: dict[str, dict] = {}
+    results = []
+
+    for row in rows:
+        if _classify_row(row) != handler:
+            continue
+        proc_uuid = row.get("_proc_uuid")
+        if not proc_uuid:
+            continue
+        rel_path = row["Flow name"].strip().replace("\\", "/")
+        cache_key = str(exports / rel_path)
+        if cache_key not in file_cache:
+            try:
+                data = load_json(exports / rel_path)
+                file_cache[cache_key] = data.get("flowContents", data)
+            except Exception:
+                continue
+        comp, _ = find_component(file_cache[cache_key], proc_uuid)
+        if comp is None:
+            continue
+        props = comp.get("properties", {})
+        results.append({
+            "uuid": proc_uuid,
+            "name": comp.get("name", comp.get("type", "?")),
+            "file": rel_path,
+            "properties": {k: props[k] for k in prop_keys if k in props},
+        })
+
+    print(json.dumps(results, indent=2, ensure_ascii=False))
+
+
+# ---------------------------------------------------------------------------
+# Parameter context structure dumper (CLI --show-contexts mode)
+# ---------------------------------------------------------------------------
+
+
+def show_contexts(exports_dir: str) -> None:
+    """Print JSON map of per-file parameter context definitions and PG assignments.
+
+    Keyed by file path relative to exports_dir. Standalone CS files (no flowContents)
+    are excluded. Inherited context references are resolved to context names.
+    """
+    exports = Path(exports_dir)
+    output: dict = {}
+
+    for json_file in sorted(exports.rglob("*.json")):
+        try:
+            data = load_json(json_file)
+        except Exception:
+            continue
+        if "flowContents" not in data:
+            continue
+        fc = data["flowContents"]
+        rel = json_file.relative_to(exports).as_posix()
+
+        ctxs_raw = data.get("parameterContexts", {})
+        uuid_to_name: dict[str, str] = {}
+        for ctx_id, ctx in ctxs_raw.items():
+            if isinstance(ctx, dict):
+                uuid_to_name[ctx_id] = ctx.get("name", ctx_id)
+
+        contexts: dict = {}
+        for ctx_id, ctx in ctxs_raw.items():
+            if not isinstance(ctx, dict):
+                continue
+            name = ctx.get("name", ctx_id)
+            params_obj = ctx.get("parameters", {})
+            if isinstance(params_obj, list):
+                direct_params = [
+                    p["name"] for p in params_obj if isinstance(p, dict) and "name" in p
+                ]
+            else:
+                direct_params = list(params_obj.keys())
+            inherited_raw = ctx.get("inheritedParameterContexts", [])
+            inherited = []
+            for inh in inherited_raw:
+                if isinstance(inh, str):
+                    inherited.append(uuid_to_name.get(inh, inh))
+                elif isinstance(inh, dict):
+                    inh_id = inh.get("identifier") or inh.get("id", "")
+                    inherited.append(uuid_to_name.get(inh_id, inh_id))
+            contexts[name] = {"direct_params": direct_params, "inherited": inherited}
+
+        output[rel] = {
+            "pg_name": fc.get("name"),
+            "pg_context": fc.get("parameterContextName"),
+            "contexts": contexts,
+        }
+
+    print(json.dumps(output, indent=2, ensure_ascii=False))
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +332,19 @@ if __name__ == "__main__":
         ),
     )
     group.add_argument(
+        "--show-processor-props",
+        action="store_true",
+        help=(
+            "Print JSON list of processor property values for rows matching --handler. "
+            "Requires --handler fix_invokehttp_proxy or --handler fix_s3_credentials"
+        ),
+    )
+    group.add_argument(
+        "--show-contexts",
+        action="store_true",
+        help="Print JSON map of parameter context definitions and PG assignments per flow file",
+    )
+    group.add_argument(
         "--apply",
         action="store_true",
         help="Not used directly; use apply_csv_transforms() from generated run script",
@@ -200,6 +361,11 @@ if __name__ == "__main__":
         default=None,
         help="Root directory containing NiFi JSON flow exports (not needed for --detect-exports-dir)",
     )
+    parser.add_argument(
+        "--handler",
+        default=None,
+        help="Handler name for --show-processor-props (e.g. fix_invokehttp_proxy, fix_s3_credentials)",
+    )
     args = parser.parse_args()
 
     if args.analyze:
@@ -211,6 +377,13 @@ if __name__ == "__main__":
         print(json.dumps(result, indent=2, ensure_ascii=False))
     elif args.detect_exports_dir:
         detect_exports_dir(args.csv_path, args.exports_dir or ".")
+    elif args.show_processor_props:
+        if not args.handler:
+            print("ERROR: --show-processor-props requires --handler", file=sys.stderr)
+            sys.exit(1)
+        show_processor_props(args.csv_path, args.exports_dir, args.handler)
+    elif args.show_contexts:
+        show_contexts(args.exports_dir)
     else:
         print(
             "Use apply_csv_transforms() and apply_variable_contexts() from the generated run script."

@@ -5,7 +5,7 @@ import subprocess
 import pytest
 from pathlib import Path
 
-from upgrade_nifi_lib import detect_exports_dir, analyze, detect_standalone_cs
+from upgrade_nifi_lib import detect_exports_dir, analyze, detect_standalone_cs, show_processor_props, show_contexts
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def test_detect_standalone_cs_azure(tmp_path, capsys):
 
 
 def test_detect_standalone_cs_skips_flow_contents(tmp_path, capsys):
-    # File has flowContents — it's a flow, not a standalone CS file
+    # File has flowContents - it's a flow, not a standalone CS file
     flow_data = {
         "component": {
             "name": "SomeSvc",
@@ -225,3 +225,254 @@ def test_detect_standalone_cs_already_v12(tmp_path, capsys):
     results = json.loads(out)
     # Type doesn't match the suffix check -> skipped
     assert results == []
+
+
+# ---------------------------------------------------------------------------
+# Helpers for show_processor_props / show_contexts
+# ---------------------------------------------------------------------------
+
+def _write_flow(tmp_path: Path, rel: str, proc_uuid: str, proc_name: str, properties: dict) -> None:
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "flowContents": {
+            "identifier": "root",
+            "name": "Root PG",
+            "processors": [
+                {
+                    "identifier": proc_uuid,
+                    "name": proc_name,
+                    "type": f"org.apache.nifi.processors.standard.{proc_name}",
+                    "properties": properties,
+                }
+            ],
+            "controllerServices": [],
+            "processGroups": [],
+            "connections": [],
+            "variables": {},
+        }
+    }
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+def _write_flow_with_contexts(
+    tmp_path: Path,
+    rel: str,
+    pg_name: str,
+    pg_context,
+    contexts: dict,
+) -> None:
+    path = tmp_path / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "flowContents": {
+            "identifier": "root",
+            "name": pg_name,
+            "parameterContextName": pg_context,
+            "processors": [],
+            "controllerServices": [],
+            "processGroups": [],
+            "connections": [],
+            "variables": {},
+        },
+        "parameterContexts": contexts,
+    }
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# analyze -- issue flags
+# ---------------------------------------------------------------------------
+
+def test_analyze_includes_issue_flags_proxy_and_aws(tmp_path, capsys):
+    csv_path = _write_csv(tmp_path, [
+        _row("flow.json", "Proxy properties in InvokeHTTP processor is not available", proc="InvokeHTTP (p1)"),
+        _row("flow.json", "The org.apache.nifi.processors.aws.s3.FetchS3Object processor may contain the \"Access Key ID\" and \"Secret Access Key\"", proc="FetchS3Object (p2)"),
+    ])
+    analyze(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    assert "=== Issue Flags ===" in out
+    flags_str = out[out.index("=== Issue Flags ===") + len("=== Issue Flags ==="):]
+    flags = json.loads(flags_str.strip())
+    assert flags["proxy"] is True
+    assert flags["aws"] is True
+    assert flags["prometheus"] is False
+    assert flags["script_engine"] is False
+    assert flags["variables"] is False
+
+
+def test_analyze_issue_flags_script_engine(tmp_path, capsys):
+    csv_path = _write_csv(tmp_path, [
+        _row("flow.json", "Script Engine = python is not supported", proc="ExecScript (p1)"),
+    ])
+    analyze(csv_path, str(tmp_path))
+    out = capsys.readouterr().out
+    flags_str = out[out.index("=== Issue Flags ===") + len("=== Issue Flags ==="):]
+    flags = json.loads(flags_str.strip())
+    assert flags["script_engine"] is True
+    assert flags["proxy"] is False
+
+
+def test_analyze_issue_flags_empty_csv(tmp_path, capsys):
+    analyze(str(tmp_path / "nonexistent.csv"), str(tmp_path))
+    out = capsys.readouterr().out
+    assert "=== Issue Flags ===" in out
+    flags_str = out[out.index("=== Issue Flags ===") + len("=== Issue Flags ==="):]
+    flags = json.loads(flags_str.strip())
+    assert flags["proxy"] is False
+    assert flags["aws"] is False
+    assert flags["all_issues"] == []
+
+
+# ---------------------------------------------------------------------------
+# show_processor_props
+# ---------------------------------------------------------------------------
+
+def test_show_processor_props_proxy(tmp_path, capsys):
+    uuid = "aaaa-1111"
+    _write_flow(
+        tmp_path, "flows/myflow.json", uuid, "InvokeHTTP",
+        {
+            "Proxy Host": "proxy.example.com",
+            "Proxy Port": "8080",
+            "Proxy Type": "HTTP",
+            "invokehttp-proxy-user": "#{proxy.username}",
+            "invokehttp-proxy-password": "#{proxy.password}",
+            "some-other-prop": "irrelevant",
+        },
+    )
+    csv_path = _write_csv(tmp_path, [
+        _row("flows/myflow.json", "Proxy properties in InvokeHTTP processor is not available in Apache NiFi 2.x.", proc=f"InvokeHTTP ({uuid})"),
+    ])
+    show_processor_props(csv_path, str(tmp_path), "fix_invokehttp_proxy")
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert results[0]["uuid"] == uuid
+    assert results[0]["file"] == "flows/myflow.json"
+    assert results[0]["properties"]["Proxy Host"] == "proxy.example.com"
+    assert results[0]["properties"]["Proxy Port"] == "8080"
+    assert results[0]["properties"]["Proxy Type"] == "HTTP"
+    assert results[0]["properties"]["invokehttp-proxy-user"] == "#{proxy.username}"
+    assert results[0]["properties"]["invokehttp-proxy-password"] == "#{proxy.password}"
+    assert "some-other-prop" not in results[0]["properties"]
+
+
+def test_show_processor_props_proxy_absent_keys_omitted(tmp_path, capsys):
+    uuid = "bbbb-2222"
+    _write_flow(tmp_path, "flows/myflow.json", uuid, "InvokeHTTP", {"Proxy Host": "host.example.com"})
+    csv_path = _write_csv(tmp_path, [
+        _row("flows/myflow.json", "Proxy properties in InvokeHTTP processor is not available in Apache NiFi 2.x.", proc=f"InvokeHTTP ({uuid})"),
+    ])
+    show_processor_props(csv_path, str(tmp_path), "fix_invokehttp_proxy")
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert list(results[0]["properties"].keys()) == ["Proxy Host"]
+
+
+def test_show_processor_props_aws(tmp_path, capsys):
+    uuid = "cccc-3333"
+    _write_flow(
+        tmp_path, "flows/s3flow.json", uuid, "FetchS3Object",
+        {"Access Key": "#{access.key.id}", "Secret Key": "#{secret.access.key}", "Bucket": "my-bucket"},
+    )
+    csv_path = _write_csv(tmp_path, [
+        _row("flows/s3flow.json", "The org.apache.nifi.processors.aws.s3.FetchS3Object processor may contain the Access Key ID and Secret Access Key", proc=f"FetchS3Object ({uuid})"),
+    ])
+    show_processor_props(csv_path, str(tmp_path), "fix_s3_credentials")
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert results[0]["uuid"] == uuid
+    assert results[0]["properties"]["Access Key"] == "#{access.key.id}"
+    assert results[0]["properties"]["Secret Key"] == "#{secret.access.key}"
+    assert "Bucket" not in results[0]["properties"]
+
+
+def test_show_processor_props_aws_empty_credentials(tmp_path, capsys):
+    uuid = "dddd-4444"
+    _write_flow(tmp_path, "flows/s3flow.json", uuid, "PutS3Object", {"Bucket": "my-bucket"})
+    csv_path = _write_csv(tmp_path, [
+        _row("flows/s3flow.json", "The org.apache.nifi.processors.aws.s3.PutS3Object processor may contain the Access Key ID and Secret Access Key", proc=f"PutS3Object ({uuid})"),
+    ])
+    show_processor_props(csv_path, str(tmp_path), "fix_s3_credentials")
+    out = capsys.readouterr().out
+    results = json.loads(out)
+    assert len(results) == 1
+    assert results[0]["properties"] == {}
+
+
+def test_show_processor_props_unknown_handler_exits(tmp_path):
+    csv_path = _write_csv(tmp_path, [])
+    with pytest.raises(SystemExit) as exc_info:
+        show_processor_props(csv_path, str(tmp_path), "unknown_handler")
+    assert exc_info.value.code == 1
+
+
+# ---------------------------------------------------------------------------
+# show_contexts
+# ---------------------------------------------------------------------------
+
+def test_show_contexts_basic(tmp_path, capsys):
+    _write_flow_with_contexts(
+        tmp_path, "flows/myflow.json", "My Flow PG", "proxy-params",
+        {"ctx-uuid-1": {"name": "proxy-params", "parameters": [{"name": "proxy.username"}, {"name": "proxy.password"}], "inheritedParameterContexts": []}},
+    )
+    show_contexts(str(tmp_path))
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    entry = data["flows/myflow.json"]
+    assert entry["pg_name"] == "My Flow PG"
+    assert entry["pg_context"] == "proxy-params"
+    assert set(entry["contexts"]["proxy-params"]["direct_params"]) == {"proxy.username", "proxy.password"}
+    assert entry["contexts"]["proxy-params"]["inherited"] == []
+
+
+def test_show_contexts_no_pg_context(tmp_path, capsys):
+    _write_flow_with_contexts(tmp_path, "flows/parent.json", "Parent PG", None, {})
+    show_contexts(str(tmp_path))
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    entry = data["flows/parent.json"]
+    assert entry["pg_context"] is None
+    assert entry["contexts"] == {}
+
+
+def test_show_contexts_inherited_resolved_to_name(tmp_path, capsys):
+    _write_flow_with_contexts(
+        tmp_path, "flows/child.json", "Child PG", "child-ctx",
+        {
+            "uuid-parent": {"name": "parent-ctx", "parameters": [{"name": "common.param"}], "inheritedParameterContexts": []},
+            "uuid-child":  {"name": "child-ctx",  "parameters": [{"name": "child.param"}],  "inheritedParameterContexts": ["uuid-parent"]},
+        },
+    )
+    show_contexts(str(tmp_path))
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert data["flows/child.json"]["contexts"]["child-ctx"]["inherited"] == ["parent-ctx"]
+
+
+def test_show_contexts_skips_standalone_cs(tmp_path, capsys):
+    cs_path = tmp_path / "services" / "my_cs.json"
+    cs_path.parent.mkdir(parents=True, exist_ok=True)
+    cs_path.write_text(json.dumps({"component": {"name": "MyService", "type": "some.Type"}}), encoding="utf-8")
+    _write_flow_with_contexts(tmp_path, "flows/myflow.json", "Flow PG", None, {})
+    show_contexts(str(tmp_path))
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert "flows/myflow.json" in data
+    assert not any("my_cs" in k for k in data)
+
+
+def test_show_contexts_multiple_files(tmp_path, capsys):
+    _write_flow_with_contexts(
+        tmp_path, "flows/flow1.json", "PG One", "ctx1",
+        {"u1": {"name": "ctx1", "parameters": [{"name": "p1"}], "inheritedParameterContexts": []}},
+    )
+    _write_flow_with_contexts(tmp_path, "flows/flow2.json", "PG Two", None, {})
+    show_contexts(str(tmp_path))
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert data["flows/flow1.json"]["pg_context"] == "ctx1"
+    assert data["flows/flow2.json"]["pg_context"] is None

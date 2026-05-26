@@ -21,7 +21,7 @@ If either argument is missing:
   ```
 
   Use the printed value as `exports_dir`. Do **not** derive `exports_dir` from the location
-  of JSON files — it must be derived from the CSV's `Flow name` values, which encode the
+  of JSON files - it must be derived from the CSV's `Flow name` values, which encode the
   path relative to the correct exports root.
 
 If either path was discovered automatically, use AskUserQuestion tool to confirm both paths with the user before
@@ -73,20 +73,24 @@ python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   `values_differ` flag.
 - `--analyze` summarises every CSV row as AUTO, AI Agent, CONTEXT PLAN, or MANUAL. AUTO rows include the processor name
   and UUID - use these directly in subsequent steps; do not re-discover UUIDs by searching flow JSON files.
+  At the end of its output `--analyze` also prints an `=== Issue Flags ===` JSON block - use these boolean flags
+  to decide which reference files to open in Step 2b.
 
 ### Step 2b - Prepare upgrade decision plan
 
 1. If the `--analyze` output contains any `[CONTEXT PLAN]` rows, **or** if the JSON produced by `--collect-vars` is not
    empty (variables present in the flow but not flagged by the advisor), open and follow
    `.claude/skills/adapt-nifi-flows-to-2-x/references/parameter-context-planning.md`.
-2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the CSV contains any row whose `Issue` references `PrometheusRecordSink`,
+2. If `NIFI_SOURCE_VERSION < 1.28.1` **and** the issue flags show `"prometheus": true`,
    open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/prometheus-record-sink-analysis.md`.
-3. If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`),
+3. If the issue flags show `"proxy": true`,
    open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/proxy-properties-handling.md`.
-4. If the CSV contains an Access Key ID and Secret Access Key warning (any row whose `Issue` references
-   `Access Key ID and Secret Access Key`), open and follow
-   `.claude/skills/adapt-nifi-flows-to-2-x/references/aws-components-analysis.md`.
-5. Ensure all user questions from the applicable reference files have complete answers before proceeding to Step 3.
+4. If the issue flags show `"aws": true`,
+   open and follow `.claude/skills/adapt-nifi-flows-to-2-x/references/aws-components-analysis.md`.
+5. If any cross-file placement was decided in steps 3 or 4 above (`INVOKEHTTP_CROSS_FILE` or `S3_CROSS_FILE`
+   will be non-empty), open and follow
+   `.claude/skills/adapt-nifi-flows-to-2-x/references/cross-file-parameter-context.md`.
+6. Ensure all user questions from the applicable reference files have complete answers before proceeding to Step 3.
 
 ### Step 2c - Detect standalone controller services requiring rename
 
@@ -97,7 +101,7 @@ python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
   --detect-standalone-cs <csv_path> <exports_dir>
 ```
 
-- If the output is `[]`, skip this step — no standalone CS renames needed.
+- If the output is `[]`, skip this step - no standalone CS renames needed.
 - If non-empty: for each entry, present the current file path, current service name, current type,
   suggested new service name, and suggested new filename to the user.
   Use AskUserQuestion to ask the user to confirm or adjust each suggested name and filename.
@@ -111,7 +115,7 @@ Based on the analysis and user answers from Step 2b, generate `tmp/upgrade_nifi_
 import sys
 sys.path.insert(0, '.claude/skills/adapt-nifi-flows-to-2-x/scripts')
 from fixes    import apply_csv_transforms, rename_standalone_controller_services
-from contexts import apply_variable_contexts, apply_hardcoded_values
+from contexts import apply_variable_contexts, apply_hardcoded_values, apply_parent_contexts
 
 CSV_PATH    = "<abs_path_to_csv>"
 EXPORTS_DIR = "<abs_path_to_exports_dir>"
@@ -143,7 +147,7 @@ HARDCODE_PLAN = [
     # },
 ]
 
-# Detected (or user-confirmed) source NiFi version — used for new Apache NiFi bundle versions.
+# Detected (or user-confirmed) source NiFi version - used for new Apache NiFi bundle versions.
 NIFI_SOURCE_VERSION = "<detected_version>"
 
 # Empty dict = use defaults (NiFi >= 1.28.1).
@@ -172,7 +176,7 @@ S3_CROSS_FILE = {
     # },
 }
 
-# Standalone CS renames — populated from confirmed values in Step 2c.
+# Standalone CS renames - populated from confirmed values in Step 2c.
 # Leave as [] if Step 2c found nothing or was skipped.
 # Renames run AFTER apply_csv_transforms so CSV-based file lookups still resolve.
 STANDALONE_CS_RENAMES = [
@@ -180,6 +184,33 @@ STANDALONE_CS_RENAMES = [
     #     "file":     "relative/path/to/old_file.json",
     #     "new_name": "New Service Name",
     #     "new_file": "relative/path/to/new_file.json",
+    # },
+]
+
+# Parent PG parameter context assignment - populated from cross-file-parameter-context.md.
+# Leave as [] when INVOKEHTTP_CROSS_FILE and S3_CROSS_FILE are both {}.
+PARENT_CONTEXT_PLAN = [
+    # assign_direct: parent PG has no context, one child context covers all needed params
+    # {
+    #     "action":          "assign_direct",
+    #     "parent_pg_file":  "relative/path/to/parent.json",  # relative to EXPORTS_DIR
+    #     "needed_contexts": ["child-ctx-name"],
+    # },
+    #
+    # create_wrapper: parent PG has no context, multiple child contexts needed
+    # {
+    #     "action":          "create_wrapper",
+    #     "parent_pg_file":  "relative/path/to/parent.json",
+    #     "needed_contexts": ["child-ctx-1", "child-ctx-2"],
+    #     "wrapper_name":    "user-confirmed-wrapper-name",
+    # },
+    #
+    # add_inheritance: parent PG already has a context, extend it with missing inherits
+    # {
+    #     "action":                "add_inheritance",
+    #     "parent_pg_file":        "relative/path/to/parent.json",
+    #     "needed_contexts":       ["missing-ctx-name"],
+    #     "existing_context_name": "already-assigned-ctx-name",
     # },
 ]
 
@@ -192,6 +223,7 @@ apply_csv_transforms(
 )
 apply_variable_contexts(EXPORTS_DIR, PARAMETER_CONTEXT_PLAN)
 apply_hardcoded_values(EXPORTS_DIR, HARDCODE_PLAN)
+apply_parent_contexts(EXPORTS_DIR, PARENT_CONTEXT_PLAN)
 rename_standalone_controller_services(EXPORTS_DIR, STANDALONE_CS_RENAMES)
 ```
 
@@ -262,7 +294,7 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
    "
    ```
 
-2. For each remaining file, check whether the changes from steps 4–5 require a corresponding update — for example:
+2. For each remaining file, check whether the changes from steps 4-5 require a corresponding update - for example:
    adding new controller service to an enable-list, a renamed property referenced in config, a parameterised variable
    mentioned in configuration or documentation file. If in doubt, propose the change and ask the user to confirm before
    applying it.
@@ -289,6 +321,7 @@ Summarise:
 | Azure Storage to _v12                             | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual**                                                                                                                          |
 | Level = Error                                     | Always manual - report the solution from the CSV                                                                                                                                                                            |
 | `ConvertExcelToCSVProcessor`, `ConvertAvroToJSON` | Manual - complex restructuring needed                                                                                                                                                                                       |
+| Cross-file CS `#{param}` references               | Steps 2b + 3 - `apply_parent_contexts` assigns / creates wrapper / extends inheritance; ambiguous cases flagged as manual                                                                                                   |
 
 ---
 

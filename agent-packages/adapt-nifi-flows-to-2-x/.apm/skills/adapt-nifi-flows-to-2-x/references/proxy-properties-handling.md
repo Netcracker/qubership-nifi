@@ -2,8 +2,16 @@
 
 If the CSV contains a Proxy property warning (any row whose `Issue` references `Proxy properties in InvokeHTTP`):
 
-1. The processor UUID is already in the `--analyze` output - use it directly to read proxy property values from the flow
-   JSON (no re-discovery needed).
+1. Run the following command to get proxy property values for all affected processors (no file reading needed):
+
+   ```bash
+   python3 .claude/skills/adapt-nifi-flows-to-2-x/scripts/upgrade_nifi_lib.py \
+     --show-processor-props <csv_path> <exports_dir> --handler fix_invokehttp_proxy
+   ```
+
+   Use the output to identify which processors share identical proxy settings (same `Proxy Host`, `Proxy Port`, and
+   credential references) - those can share a single StandardProxyConfigurationService.
+
 2. List all top-level flow files under `exports_dir` and **use `AskUserQuestion`** to ask the user where the Proxy
    Configuration Service should be created.
 3. If multiple affected processors share the same proxy values, create one shared Controller Service; otherwise create

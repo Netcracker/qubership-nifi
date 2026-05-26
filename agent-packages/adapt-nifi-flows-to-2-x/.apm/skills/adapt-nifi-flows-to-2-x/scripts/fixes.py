@@ -393,7 +393,7 @@ def fix_convert_json_to_sql(
         "jts-quoted-identifiers":      "put-db-record-quoted-identifiers",
         "jts-quoted-table-identifiers": "put-db-record-quoted-table-identifiers",
         "table-schema-cache-size":     "table-schema-cache-size",
-        "jts-sql-param-attr-prefix":   None,  # drop — no equivalent
+        "jts-sql-param-attr-prefix":   None,  # drop - no equivalent
     }
 
     msgs = []
@@ -404,7 +404,7 @@ def fix_convert_json_to_sql(
             if target is not None:
                 new_props[target] = v
             # else: drop
-        # else: unknown ConvertJSONToSQL prop — drop silently
+        # else: unknown ConvertJSONToSQL prop - drop silently
 
     # --- Migrate relevant PutSQL properties ---
     putsql_props = putsql_proc.get("properties", {})
@@ -420,7 +420,7 @@ def fix_convert_json_to_sql(
     if obtain_keys and obtain_keys.lower() == "true":
         msgs.append(
             f"[MANUAL] {proc_label}  -- PutSQL had 'Obtain Generated Keys = true'; "
-            f"PutDatabaseRecord does not support this feature — handle manually."
+            f"PutDatabaseRecord does not support this feature - handle manually."
         )
 
     # --- Create or reuse DefaultJsonTreeReader service at the root PG level ---
@@ -933,7 +933,7 @@ def rename_standalone_controller_services(
         new_abs = exports / new_rel
 
         if not old_abs.exists():
-            print(f"[WARN] {old_rel} not found — skipping rename")
+            print(f"[WARN] {old_rel} not found - skipping rename")
             continue
 
         data = load_json(old_abs)

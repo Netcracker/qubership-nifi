@@ -1,5 +1,5 @@
 """
-detect_nifi_version.py  —  Detect the source NiFi version from exported flow JSONs.
+detect_nifi_version.py  -  Detect the source NiFi version from exported flow JSONs.
 
 Walks every *.json under exports_dir, searches all component objects for entries with
 bundle.group == "org.apache.nifi", and prints each unique bundle.version found (one per line).

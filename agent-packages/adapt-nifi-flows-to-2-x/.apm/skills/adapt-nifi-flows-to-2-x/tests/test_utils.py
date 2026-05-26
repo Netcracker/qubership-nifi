@@ -401,7 +401,7 @@ def test_replace_cs_refs_in_service():
 
 
 # ---------------------------------------------------------------------------
-# replace_var_refs_in_pg — edge cases
+# replace_var_refs_in_pg - edge cases
 # ---------------------------------------------------------------------------
 
 def test_replace_var_refs_non_string_property_skipped():
