@@ -15,12 +15,12 @@ the [APM documentation](https://microsoft.github.io/apm/#install-apm) for instal
    apm init
    ```
 
-2. Add the desired packages to your `apm.yml` file as dependencies. For example:
+2. Add the desired packages to your `apm.yml` file as dependencies, like in example below:
 
    ```yaml
    dependencies:
      apm:
-       - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<version>
+       - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<tag|branch|commit SHA>
    ```
 
 3. Install the packages by running:
