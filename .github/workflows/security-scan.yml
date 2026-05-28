@@ -55,29 +55,37 @@ jobs:
     permissions:
       packages: read
     outputs:
-      packages: ${{ steps.ghcr.outputs.packages }}
-      has-packages: ${{ steps.ghcr.outputs.has-packages }}
+      packages: ${{ steps.display-config.outputs.filtered }}
     steps:
-      - name: List GHCR packages for this repo
-        id: ghcr
-        uses: Netcracker/qubership-workflow-hub/actions/ghcr-discover-repo-packages@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get Configuration File
+        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
+        id: config
+        with:
+          file-path: ".qubership/dev-docker.cfg"
+
+      - name: Display Resolved Configuration
+        id: display-config
         env:
-          GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
-
-      - name: Print packages
-        run: echo "$OUTPUT_PACKAGES" | jq '.'
-        env:
-          OUTPUT_PACKAGES: ${{ steps.ghcr.outputs.packages }}
-
-      - name: Continue only if repo has GHCR packages
-        if: ${{ steps.ghcr.outputs.has-packages == 'true' }}
-        run: echo "Packages found!"
-
-      - name: No packages found, fail the job
-        if: ${{ steps.ghcr.outputs.has-packages != 'true' }}
+          CONFIG_JSON: ${{ steps.config.outputs.config }}
         run: |
-          echo "No packages found in GHCR for this repository."
-          exit 1
+          set -euo pipefail
+          echo "Resolved Configuration:"
+          FILTERED=$(echo "$CONFIG_JSON" | jq -c '[.[] | select(.security_scan == true)]')
+
+          echo "Filtered pretty:"
+          echo "$FILTERED" | jq .
+
+          echo "filtered=$FILTERED" >> "$GITHUB_OUTPUT"
+
+          if [ "$(echo "$FILTERED" | jq 'length')" -eq 0 ]; then
+            echo "No scan items on configuration."
+            exit 1
+          fi
 
   security-scan-matrix:
     permissions:
@@ -94,7 +102,7 @@ jobs:
     uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
     with:
       target: ${{ inputs.target || 'docker' }}
-      image: ${{ format('{0}:{1}', matrix.package.path, inputs.tag || 'latest') }}
+      image: ${{ format('{0}:{1}', matrix.package.image, inputs.tag || matrix.package.security_tag || 'latest') }}
 
   security-scan-single:
     permissions:
@@ -108,8 +116,8 @@ jobs:
     with:
       target: ${{ inputs.target || 'docker' }}
       image: ${{ inputs.image }}
-      only-high-critical: ${{ inputs.only-high-critical }}
-      trivy-scan: ${{ inputs.trivy-scan }}
-      grype-scan: ${{ inputs.grype-scan }}
-      only-fixed: ${{ inputs.only-fixed }}
-      continue-on-error: ${{ inputs.continue-on-error }}
+      only-high-critical: ${{ inputs.only-high-critical || true }}
+      trivy-scan: ${{ inputs.trivy-scan || true }}
+      grype-scan: ${{ inputs.grype-scan || true }}
+      only-fixed: ${{ inputs.only-fixed || true }}
+      continue-on-error: ${{ inputs.continue-on-error || true }}
