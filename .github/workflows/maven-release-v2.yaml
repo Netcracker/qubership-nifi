@@ -72,7 +72,7 @@ jobs:
       packages: write
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -99,7 +99,7 @@ jobs:
     steps:
       # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule
       - name: "Prepare app token"
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -123,7 +123,7 @@ jobs:
           dry-run: "false"
 
       - name: "Upload all Maven target directories"
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ github.event.repository.name }}
           path: "${{ github.event.repository.name }}/**/target" # Upload all target directories in the repository
@@ -138,7 +138,7 @@ jobs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
       - name: "Check Dockerfile existence"
@@ -166,7 +166,7 @@ jobs:
       - name: "Prepare Docker tags"
         if: ${{ github.event.inputs.mark-as-latest != 'true' }}
         id: meta
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
         with:
           default-template: "{{major}}.{{minor}}.{{patch}},{{major}}.{{minor}},{{major}}"
           ref: ${{ needs.deploy.outputs.release-version }}
@@ -180,7 +180,7 @@ jobs:
 
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
         with:
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
@@ -194,7 +194,7 @@ jobs:
     permissions:
       contents: write
     if: ${{ needs.deploy.result == 'success' }}
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@396774180000abdb825cbf150b56cc59c6913db8 #v2.0.5
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true
