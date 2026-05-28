@@ -359,6 +359,10 @@ def fix_s3_credentials(
     return msgs, svc["identifier"]
 
 
+# PutDatabaseRecord relationships. ConvertJSONToSQL's "original"/"sql" do not exist on it.
+PUT_DATABASE_RECORD_RELATIONSHIPS = {"success", "retry", "failure"}
+
+
 def fix_convert_json_to_sql(
     proc: dict,
     pg: dict,
@@ -398,6 +402,35 @@ def fix_convert_json_to_sql(
             f"[MANUAL] {proc_label}  -- downstream processor on 'sql' connection is not PutSQL "
             f"(found: {putsql_proc.get('type') if putsql_proc else 'not found'}); "
             f"cannot safely replace with PutDatabaseRecord. Fix the flow manually."
+        ], ""
+
+    # --- Guard: PutSQL must not be fed by anything other than this ConvertJSONToSQL ---
+    # Any other connection into PutSQL would dangle once PutSQL is removed.
+    other_putsql_incoming = [
+        c for c in connections
+        if c.get("destination", {}).get("id") == putsql_id and c is not sql_conn
+    ]
+    if other_putsql_incoming:
+        return [
+            f"[MANUAL] {proc_label}  -- PutSQL ({putsql_id}) has additional incoming "
+            f"connection(s) besides this ConvertJSONToSQL; merging into PutDatabaseRecord "
+            f"would orphan them. Migrate this pair manually."
+        ], ""
+
+    # --- Guard: ConvertJSONToSQL must not have connected outputs PutDatabaseRecord lacks ---
+    # e.g. the 'original' relationship; the consumed 'sql' connection is excluded.
+    convert_invalid_outgoing = [
+        c for c in connections
+        if c.get("source", {}).get("id") == proc_id
+        and c is not sql_conn
+        and any(r not in PUT_DATABASE_RECORD_RELATIONSHIPS
+                for r in c.get("selectedRelationships", []))
+    ]
+    if convert_invalid_outgoing:
+        return [
+            f"[MANUAL] {proc_label}  -- ConvertJSONToSQL has outgoing connection(s) on "
+            f"relationship(s) absent from PutDatabaseRecord (e.g. 'original'); auto-migration "
+            f"would leave them invalid. Re-route or remove them and migrate manually."
         ], ""
 
     # --- Build new properties from ConvertJSONToSQL ---
@@ -631,10 +664,9 @@ def fix_convert_json_to_sql(
     pg["processors"] = [p for p in pg.get("processors", []) if p.get("identifier") != putsql_id]
 
     # Inherit autoTerminatedRelationships from PutSQL (filtered to valid PutDatabaseRecord names)
-    valid_rels = {"success", "retry", "failure"}
     proc["autoTerminatedRelationships"] = [
         r for r in putsql_proc.get("autoTerminatedRelationships", [])
-        if r in valid_rels
+        if r in PUT_DATABASE_RECORD_RELATIONSHIPS
     ]
 
     action = "reused" if existing_reader_id else "created"

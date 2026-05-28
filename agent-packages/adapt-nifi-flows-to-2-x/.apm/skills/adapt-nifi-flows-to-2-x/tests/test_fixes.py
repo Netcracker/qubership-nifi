@@ -422,6 +422,55 @@ def test_fix_convert_json_to_sql_rewires_connections():
     assert rewired["source"]["id"] == "c1"
 
 
+def test_fix_convert_json_to_sql_extra_putsql_feeder_manual():
+    """Another processor feeding PutSQL -> refuse (would orphan that connection)."""
+    pg, convert_proc, _ = _sql_pg("c1", "s1")
+    other = _proc("o1", {}, proc_type="org.apache.nifi.processors.standard.GenerateFlowFile")
+    pg["processors"].append(other)
+    pg["connections"].append({
+        "identifier": "conn-extra",
+        "source": {"id": "o1", "name": "Other"},
+        "destination": {"id": "s1", "name": "PutSQL"},
+        "selectedRelationships": ["success"],
+    })
+    msgs, reader_id = fix_convert_json_to_sql(convert_proc, pg, {})
+    assert reader_id == ""
+    assert any("[MANUAL]" in m for m in msgs)
+    # No mutation: type unchanged and PutSQL still present
+    assert convert_proc["type"].endswith("ConvertJSONToSQL")
+    assert any(p.get("identifier") == "s1" for p in pg["processors"])
+
+
+def test_fix_convert_json_to_sql_original_connection_manual():
+    """ConvertJSONToSQL 'original' output (absent on PutDatabaseRecord) -> refuse."""
+    pg, convert_proc, _ = _sql_pg("c1", "s1")
+    pg["connections"].append({
+        "identifier": "conn-orig",
+        "source": {"id": "c1", "name": "Convert"},
+        "destination": {"id": "downstream", "name": "Next"},
+        "selectedRelationships": ["original"],
+    })
+    msgs, reader_id = fix_convert_json_to_sql(convert_proc, pg, {})
+    assert reader_id == ""
+    assert any("[MANUAL]" in m for m in msgs)
+    assert convert_proc["type"].endswith("ConvertJSONToSQL")
+    assert any(p.get("identifier") == "s1" for p in pg["processors"])
+
+
+def test_fix_convert_json_to_sql_failure_connection_still_migrates():
+    """A 'failure' output is valid on PutDatabaseRecord -> migration proceeds."""
+    pg, convert_proc, _ = _sql_pg("c1", "s1")
+    pg["connections"].append({
+        "identifier": "conn-fail",
+        "source": {"id": "c1", "name": "Convert"},
+        "destination": {"id": "err", "name": "ErrHandler"},
+        "selectedRelationships": ["failure"],
+    })
+    msgs, reader_id = fix_convert_json_to_sql(convert_proc, pg, {})
+    assert convert_proc["type"].endswith("PutDatabaseRecord")
+    assert reader_id
+
+
 # ---------------------------------------------------------------------------
 # fix_type_rename
 # ---------------------------------------------------------------------------
