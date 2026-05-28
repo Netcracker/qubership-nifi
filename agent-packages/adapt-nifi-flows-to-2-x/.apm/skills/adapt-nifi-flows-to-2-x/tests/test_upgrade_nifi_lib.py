@@ -417,7 +417,7 @@ def test_show_processor_props_unknown_handler_exits(tmp_path):
 def test_show_contexts_basic(tmp_path, capsys):
     _write_flow_with_contexts(
         tmp_path, "flows/myflow.json", "My Flow PG", "proxy-params",
-        {"ctx-uuid-1": {"name": "proxy-params", "parameters": [{"name": "proxy.username"}, {"name": "proxy.password"}], "inheritedParameterContexts": []}},
+        {"proxy-params": {"name": "proxy-params", "parameters": [{"name": "proxy.username"}, {"name": "proxy.password"}], "inheritedParameterContexts": []}},
     )
     show_contexts(str(tmp_path))
     out = capsys.readouterr().out
@@ -443,8 +443,8 @@ def test_show_contexts_inherited_resolved_to_name(tmp_path, capsys):
     _write_flow_with_contexts(
         tmp_path, "flows/child.json", "Child PG", "child-ctx",
         {
-            "uuid-parent": {"name": "parent-ctx", "parameters": [{"name": "common.param"}], "inheritedParameterContexts": []},
-            "uuid-child":  {"name": "child-ctx",  "parameters": [{"name": "child.param"}],  "inheritedParameterContexts": ["uuid-parent"]},
+            "parent-ctx": {"name": "parent-ctx", "parameters": [{"name": "common.param"}], "inheritedParameterContexts": []},
+            "child-ctx":  {"name": "child-ctx",  "parameters": [{"name": "child.param"}],  "inheritedParameterContexts": ["parent-ctx"]},
         },
     )
     show_contexts(str(tmp_path))

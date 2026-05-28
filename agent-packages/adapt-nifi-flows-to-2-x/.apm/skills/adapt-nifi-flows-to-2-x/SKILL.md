@@ -6,6 +6,10 @@ description: >-
 
 # Apply Upgrade Advisor Recommendations
 
+## Prerequisites
+
+1. Python >= 3.10
+
 ## Inputs
 
 Accept as positional args: `/adapt-nifi-flows-to-2-x [csv_path] [exports_dir]`
