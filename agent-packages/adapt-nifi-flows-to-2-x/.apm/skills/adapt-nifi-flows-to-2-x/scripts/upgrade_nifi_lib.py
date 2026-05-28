@@ -7,9 +7,13 @@ upgrade_nifi_lib.py   --  CLI entry point for the adapt-nifi-flows-to-2-x
 Handles all automatable NiFi 1.x -> 2.x upgrade fixes derived from an
 upgradeAdvisor CSV report.
 
-Usage (analysis / dry-run):
+Usage:
+    python upgrade_nifi_lib.py --detect-exports-dir <csv_path>
+    python upgrade_nifi_lib.py --collect-vars <csv_path> <exports_dir>
     python upgrade_nifi_lib.py --analyze <csv_path> <exports_dir>
-    python upgrade_nifi_lib.py --collect-vars <exports_dir>
+    python upgrade_nifi_lib.py --detect-standalone-cs <csv_path> <exports_dir>
+    python upgrade_nifi_lib.py --show-processor-props <csv_path> <exports_dir> --handler <handler_type>
+    python upgrade_nifi_lib.py --show-contexts <csv_path> <exports_dir>
 
 Public API for the generated run-script:
     from fixes    import apply_csv_transforms

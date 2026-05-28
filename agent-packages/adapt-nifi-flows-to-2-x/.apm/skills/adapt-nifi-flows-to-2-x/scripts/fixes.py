@@ -46,6 +46,9 @@ def fix_invokehttp_proxy(
     child_pg_path: str | None = None,
     reuse_svc_id: str | None = None,
     reuse_svc_name: str | None = None,
+    file_cache: dict | None = None,
+    file_dirty: dict | None = None,
+    exports_dir: str | None = None,
 ) -> tuple[list[str], str]:
     """Migrate InvokeHTTP Proxy* inline properties to a StandardProxyConfigurationService.
 
@@ -75,7 +78,11 @@ def fix_invokehttp_proxy(
     # --- Reuse mode: service already created by a previous call ---
     if reuse_svc_id:
         if parent_pg_path and child_pg_path and Path(parent_pg_path) != Path(child_pg_path):
-            child_data = load_json(Path(child_pg_path))
+            if exports_dir is None or file_cache is None or file_dirty is None:
+                raise ValueError("exports_dir, file_cache, file_dirty must not be empty for cross-file scenario")
+            child_rel_path = _get_rel_path_and_load_cache(child_pg_path, exports_dir, file_cache, file_dirty)
+            # process data:
+            child_data = file_cache[child_rel_path]
             child_data.setdefault("externalControllerServices", {})[reuse_svc_id] = {
                 "identifier": reuse_svc_id,
                 "name":       reuse_svc_name or "ProxyConfigurationService",
@@ -86,7 +93,8 @@ def fix_invokehttp_proxy(
                 child_props["proxy-configuration-service"] = reuse_svc_id
                 for key in removed_keys:
                     child_props.pop(key, None)
-            save_json(Path(child_pg_path), child_data)
+            # mark cache as dirty to save it later:
+            file_dirty[child_rel_path] = True
 
         props["proxy-configuration-service"] = reuse_svc_id
         for key in removed_keys:
@@ -137,13 +145,17 @@ def fix_invokehttp_proxy(
     if parent_pg_path and child_pg_path:
         same_file = Path(parent_pg_path) == Path(child_pg_path)
 
-        parent_data = load_json(Path(parent_pg_path))
+        if exports_dir is None or file_cache is None or file_dirty is None:
+            raise ValueError("exports_dir, file_cache, file_dirty must not be empty for cross-file scenario")
+        parent_rel_path = _get_rel_path_and_load_cache(parent_pg_path, exports_dir, file_cache, file_dirty)
+        parent_data = file_cache[parent_rel_path]
         # --- replace groupIdentifier with actual value ---
         svc["groupIdentifier"] = parent_data.get("flowContents", parent_data)["identifier"]
         parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
-        save_json(Path(parent_pg_path), parent_data)
+        file_dirty[parent_rel_path] = True
 
-        child_data = load_json(Path(child_pg_path))
+        child_rel_path = _get_rel_path_and_load_cache(child_pg_path, exports_dir, file_cache, file_dirty)
+        child_data = file_cache[child_rel_path]
         if not same_file:
             child_data.setdefault("externalControllerServices", {})[svc["identifier"]] = {
                 "identifier": svc["identifier"],
@@ -155,7 +167,7 @@ def fix_invokehttp_proxy(
             child_props["proxy-configuration-service"] = svc["identifier"]
             for key in removed_keys:
                 child_props.pop(key, None)
-        save_json(Path(child_pg_path), child_data)
+        file_dirty[child_rel_path] = True
 
         props["proxy-configuration-service"] = svc["identifier"]
         for key in removed_keys:
@@ -191,6 +203,9 @@ def fix_s3_credentials(
     child_pg_path: str | None = None,
     reuse_svc_id: str | None = None,
     reuse_svc_name: str | None = None,
+    file_cache: dict | None = None,
+    file_dirty: dict | None = None,
+    exports_dir: str | None = None,
 ) -> tuple[list[str], str]:
     """Create AWSCredentialsProviderControllerService from processor credentials (empty if absent).
 
@@ -220,7 +235,10 @@ def fix_s3_credentials(
     # --- Reuse mode: service already created by a previous call ---
     if reuse_svc_id:
         if parent_pg_path and child_pg_path and Path(parent_pg_path) != Path(child_pg_path):
-            child_data = load_json(Path(child_pg_path))
+            if exports_dir is None or file_cache is None or file_dirty is None:
+                raise ValueError("exports_dir, file_cache, file_dirty must not be empty for cross-file scenario")
+            child_rel_path = _get_rel_path_and_load_cache(child_pg_path, exports_dir, file_cache, file_dirty)
+            child_data = file_cache[child_rel_path]
             child_data.setdefault("externalControllerServices", {})[reuse_svc_id] = {
                 "identifier": reuse_svc_id,
                 "name":       reuse_svc_name or "AWSCredentialsProviderService",
@@ -231,7 +249,7 @@ def fix_s3_credentials(
                 child_props["AWS Credentials Provider service"] = reuse_svc_id
                 for key in removed_keys:
                     child_props.pop(key, None)
-            save_json(Path(child_pg_path), child_data)
+            file_dirty[child_rel_path] = True
 
         props["AWS Credentials Provider service"] = reuse_svc_id
         for key in removed_keys:
@@ -294,13 +312,17 @@ def fix_s3_credentials(
 
     # --- Cross-file mode: CS lives in a different file from the processor ---
     if parent_pg_path and child_pg_path:
-        parent_data = load_json(Path(parent_pg_path))
+        if exports_dir is None or file_cache is None or file_dirty is None:
+            raise ValueError("exports_dir, file_cache, file_dirty must not be empty for cross-file scenario")
+        parent_rel_path = _get_rel_path_and_load_cache(parent_pg_path, exports_dir, file_cache, file_dirty)
+        parent_data = file_cache[parent_rel_path]
         # --- replace groupIdentifier with actual value ---
         svc["groupIdentifier"] = parent_data.get("flowContents", parent_data)["identifier"]
         parent_data.get("flowContents", parent_data).setdefault("controllerServices", []).append(svc)
-        save_json(Path(parent_pg_path), parent_data)
+        file_dirty[parent_rel_path] = True
 
-        child_data = load_json(Path(child_pg_path))
+        child_rel_path = _get_rel_path_and_load_cache(child_pg_path, exports_dir, file_cache, file_dirty)
+        child_data = file_cache[child_rel_path]
         child_data.setdefault("externalControllerServices", {})[svc["identifier"]] = {
             "identifier": svc["identifier"],
             "name":       svc["name"],
@@ -311,7 +333,7 @@ def fix_s3_credentials(
             child_props["AWS Credentials Provider service"] = svc["identifier"]
             for key in removed_keys:
                 child_props.pop(key, None)
-        save_json(Path(child_pg_path), child_data)
+        file_dirty[child_rel_path] = True
 
         props["AWS Credentials Provider service"] = svc["identifier"]
         for key in removed_keys:
@@ -1013,6 +1035,24 @@ def _classify_row(row: dict) -> str:
 
     return "manual"
 
+def _get_rel_path_and_load_cache(
+    abs_path: str,
+    exports_dir: str,
+    file_cache: dict,
+    file_dirty: dict,
+) -> str:
+    """
+    Helper function that loads file cache, if file is not present there yet.
+    Returns relative path.
+    """
+    exports = Path(exports_dir)
+    # Use as_posix() so the key matches CSV-sourced forward-slash paths
+    rel_path = Path(abs_path).relative_to(exports).as_posix()
+    # load into cache, if not there yet:
+    if rel_path not in file_cache:
+        file_cache[rel_path] = load_json(Path(abs_path))
+        file_dirty[rel_path] = False
+    return rel_path
 
 def apply_csv_transforms(
     csv_path: str,
@@ -1141,6 +1181,9 @@ def apply_csv_transforms(
                     child_pg_path=cross.get("child_pg_path"),
                     reuse_svc_id=reuse_svc_id,
                     reuse_svc_name=reuse_svc_name,
+                    file_cache=file_cache,
+                    file_dirty=file_dirty,
+                    exports_dir=exports_dir,
                 )
                 if group_key and svc_id and group_key not in proxy_group_cache:
                     proxy_group_cache[group_key] = (svc_id, derived_proxy_name)
@@ -1158,6 +1201,9 @@ def apply_csv_transforms(
                     child_pg_path=cross.get("child_pg_path"),
                     reuse_svc_id=s3_reuse_svc_id,
                     reuse_svc_name=s3_reuse_svc_name,
+                    file_cache=file_cache,
+                    file_dirty=file_dirty,
+                    exports_dir=exports_dir,
                 )
                 if s3_group_key and s3_svc_id and s3_group_key not in s3_group_cache:
                     s3_group_cache[s3_group_key] = (s3_svc_id, derived_s3_name)
@@ -1183,21 +1229,6 @@ def apply_csv_transforms(
             if msgs:
                 applied.extend([f"{rel_path}  -- {m}" for m in msgs])
                 file_dirty[rel_path] = True
-
-    # Reload child files that were saved directly to disk by cross-file operations so
-    # that externalControllerServices entries are not overwritten by the stale cache.
-    for cross_map in (invokehttp_cross_file, s3_cross_file):
-        for _uuid, cross in (cross_map or {}).items():
-            parent_path = cross.get("parent_pg_path")
-            child_path = cross.get("child_pg_path")
-            if parent_path and child_path and Path(parent_path) != Path(child_path):
-                try:
-                    # Use as_posix() so the key matches CSV-sourced forward-slash paths
-                    child_rel = Path(child_path).relative_to(exports).as_posix()
-                    if child_rel in file_cache and (exports / child_rel).exists():
-                        file_cache[child_rel] = load_json(exports / child_rel)
-                except ValueError:
-                    pass
 
     # Write modified files
     for rel_path, dirty in file_dirty.items():

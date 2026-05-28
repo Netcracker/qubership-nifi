@@ -15,7 +15,7 @@ from fixes import (
     _proxy_service_name,
     apply_csv_transforms,
 )
-from utils import load_json
+from utils import load_json, save_json
 
 
 # ---------------------------------------------------------------------------
@@ -152,11 +152,20 @@ def test_fix_invokehttp_proxy_cross_file_same_file(tmp_path):
     proc = _proc("p1", {"Proxy Host": "h", "Proxy Port": "3128"})
     flow_file = _write_flow(tmp_path, "flow.json", _flow("root", processors=[proc]))
     pg = _pg()
+    file_cache: dict[str, dict] = {}
+    file_dirty: dict[str, bool] = {}
     fix_invokehttp_proxy(
         proc, pg, {},
         parent_pg_path=str(flow_file),
         child_pg_path=str(flow_file),
+        file_cache=file_cache,
+        file_dirty=file_dirty,
+        exports_dir=tmp_path,
     )
+    # Write modified files
+    for rel_path, dirty in file_dirty.items():
+        if dirty:
+            save_json(tmp_path / rel_path, file_cache[rel_path])
     result = load_json(flow_file)
     assert len(result["flowContents"]["controllerServices"]) == 1
     assert "externalControllerServices" not in result
@@ -169,11 +178,20 @@ def test_fix_invokehttp_proxy_cross_file_different_files(tmp_path):
     parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
     child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
     pg = _pg()
+    file_cache: dict[str, dict] = {}
+    file_dirty: dict[str, bool] = {}
     msgs, svc_id = fix_invokehttp_proxy(
         proc, pg, {},
         parent_pg_path=str(parent_file),
         child_pg_path=str(child_file),
+        file_cache=file_cache,
+        file_dirty=file_dirty,
+        exports_dir=tmp_path,
     )
+    # Write modified files
+    for rel_path, dirty in file_dirty.items():
+        if dirty:
+            save_json(tmp_path / rel_path, file_cache[rel_path])
     parent_result = load_json(parent_file)
     assert len(parent_result["flowContents"]["controllerServices"]) == 1
     child_result = load_json(child_file)
@@ -262,11 +280,20 @@ def test_fix_s3_credentials_cross_file_different_files(tmp_path):
     parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
     child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
     pg = _pg()
+    file_cache: dict[str, dict] = {}
+    file_dirty: dict[str, bool] = {}
     fix_s3_credentials(
         proc, pg, {},
         parent_pg_path=str(parent_file),
         child_pg_path=str(child_file),
+        file_cache=file_cache,
+        file_dirty=file_dirty,
+        exports_dir=tmp_path,
     )
+    # Write modified files
+    for rel_path, dirty in file_dirty.items():
+        if dirty:
+            save_json(tmp_path / rel_path, file_cache[rel_path])
     parent_result = load_json(parent_file)
     assert len(parent_result["flowContents"]["controllerServices"]) == 1
     svc_id = parent_result["flowContents"]["controllerServices"][0]["identifier"]
@@ -281,11 +308,20 @@ def test_fix_s3_credentials_no_creds_cross_file(tmp_path):
     parent_file = _write_flow(tmp_path, "parent.json", _flow("pg-parent"))
     child_file = _write_flow(tmp_path, "child.json", _flow("pg-child", processors=[proc]))
     pg = _pg()
+    file_cache: dict[str, dict] = {}
+    file_dirty: dict[str, bool] = {}
     msgs, svc_id = fix_s3_credentials(
         proc, pg, {},
         parent_pg_path=str(parent_file),
         child_pg_path=str(child_file),
+        file_cache=file_cache,
+        file_dirty=file_dirty,
+        exports_dir=tmp_path,
     )
+    # Write modified files
+    for rel_path, dirty in file_dirty.items():
+        if dirty:
+            save_json(tmp_path / rel_path, file_cache[rel_path])
     assert msgs == []
     assert svc_id == ""
     parent_result = load_json(parent_file)

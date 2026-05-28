@@ -269,7 +269,7 @@ For each row in the CSV where `Issue` contains `Script Engine = python/ruby/lua`
       ```groovy
       // Auto-translated from <language> by adapt-nifi-flows-to-2-x. Review before use.
       <translated Groovy code>
- 
+
       // ── Original <language> preserved below ──
       /*
       <original script body>
