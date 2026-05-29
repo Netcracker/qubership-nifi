@@ -1,0 +1,9 @@
+processorTypes:
+  - org.apache.nifi.processors.standard.ExecuteSQL:
+      SQL[\s]*(select|query)?: ExecuteSQL.sql  # regexp
+  - org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge:
+      db-fetch-sql-query: QueryDatabaseToJsonWithMerge.json
+  - org.apache.nifi.processors.standard.PutSQL:
+      (putsql-sql-statement|SQL Statement): PutSQL.sql  # regexp
+  - org.apache.nifi.processors.groovyx.ExecuteGroovyScript:
+      Script Body: Script_Body.groovy
