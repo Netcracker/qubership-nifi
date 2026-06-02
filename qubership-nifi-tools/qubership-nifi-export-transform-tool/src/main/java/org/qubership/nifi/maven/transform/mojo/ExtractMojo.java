@@ -11,7 +11,6 @@ import org.qubership.nifi.maven.transform.extract.ExtractService;
 import org.qubership.nifi.maven.transform.extract.PropertyResolver;
 import org.qubership.nifi.maven.transform.extract.ReferenceBuilder;
 import org.qubership.nifi.maven.transform.flow.FlowReader;
-import org.qubership.nifi.maven.transform.flow.FlowScanner;
 import org.qubership.nifi.maven.transform.flow.FlowValidator;
 import org.qubership.nifi.maven.transform.flow.FlowWriter;
 import org.qubership.nifi.maven.transform.io.FileSystemService;
@@ -40,7 +39,6 @@ public class ExtractMojo extends AbstractTransformMojo {
                 getLog(),
                 new FlowReader(new ObjectMapper()),
                 new FlowWriter(new ObjectMapper()),
-                new FlowScanner(),
                 new FlowValidator(),
                 new FileSystemService(),
                 new PropertyResolver(getLog()),

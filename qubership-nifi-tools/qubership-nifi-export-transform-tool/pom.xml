@@ -19,14 +19,12 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
-        <maven-api.version>3.9.9</maven-api.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>${maven-api.version}</version>
+            <version>${maven-plugin-api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -39,7 +37,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.17.2</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -51,25 +48,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>5.10.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.25.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <version>5.11.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>3.3.0</version>
+            <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

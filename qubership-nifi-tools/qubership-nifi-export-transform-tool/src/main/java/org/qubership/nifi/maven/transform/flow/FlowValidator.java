@@ -1,7 +1,9 @@
 package org.qubership.nifi.maven.transform.flow;
 
+import org.qubership.nifi.maven.transform.config.PluginConfig;
 import org.qubership.nifi.maven.transform.exception.ExtractException;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,60 +11,51 @@ import java.util.Set;
 /**
  * Validates the structural integrity of a flow before the Extract operation.
  *
- * Ensures that processor names and process group names are unique at each level
- * of the hierarchy. This automatically guarantees uniqueness of extracted file paths:
- * flowConf_flow / group / processor / file.sql
- *
+ * Ensures that all target processors (whose types are defined in the config)
+ * have unique full paths within the flow.
  */
 public class FlowValidator {
 
     /**
-     * Recursively validates name uniqueness across the entire flow tree.
+     * Validates that all processors of configured types have unique full paths in the flow.
      * Called only during Extract — not needed during Build.
      *
-     * @param flow flow to validate
-     * @throws ExtractException if duplicate names are found
+     * @param flow   flow to validate, must contain a pre-built processorsByType map
+     * @param config plugin config defining which processor types to handle
+     * @throws ExtractException if two processors of the same configured type
+     *                          produce identical file paths
      */
-    public void validateNamesUniqueness(FlowFile flow) throws ExtractException {
-        validateGroup(flow.getRootGroup());
-    }
+    public void validateNamesUniqueness(FlowFile flow, PluginConfig config)
+            throws ExtractException {
 
-
-    private void validateGroup(ProcessGroup group) throws ExtractException {
-        if (group.isVersioned()) {
-            return;
-        }
-        checkDuplicateProcessorNames(group);
-        checkDuplicateGroupNames(group);
-        for (ProcessGroup child : group.getChildren()) {
-            validateGroup(child);
+        for (var typeConfig : config.getProcessorTypes()) {
+            String typeFqn = typeConfig.getProcessorTypeFqn();
+            List<Processor> processors = flow.getProcessorsByType(typeFqn);
+            checkUniqueProcessorPaths(processors, typeFqn);
         }
     }
 
-    private void checkDuplicateProcessorNames(ProcessGroup group) throws ExtractException {
-        List<Processor> processors = group.getProcessors();
-        Set<String> seen = new HashSet<>();
+    /**
+     * Checks that all processors of the given type have unique full paths.
+     */
+    private void checkUniqueProcessorPaths(List<Processor> processors, String typeFqn)
+            throws ExtractException {
+
+        Set<String> seenPaths = new HashSet<>();
+
         for (Processor processor : processors) {
-            if (!seen.add(processor.getName())) {
-                throw new ExtractException(String.format(
-                        "Duplicate processor name '%s' in group '%s'. " +
-                                "All processor names within a group must be unique " +
-                                "because they are used as directory names during Extract.",
-                        processor.getName(), group.getName()));
-            }
-        }
-    }
+            List<String> segments = new ArrayList<>(
+                    processor.getParentGroup().getPathSegments());
+            segments.add(processor.getName());
+            String fullPath = String.join(" / ", segments);
 
-    private void checkDuplicateGroupNames(ProcessGroup group) throws ExtractException {
-        List<ProcessGroup> children = group.getChildren();
-        Set<String> seen = new HashSet<>();
-        for (ProcessGroup child : children) {
-            if (!seen.add(child.getName())) {
+            if (!seenPaths.add(fullPath)) {
                 throw new ExtractException(String.format(
-                        "Duplicate process group name '%s' inside group '%s'. " +
-                                "All group names within a parent group must be unique " +
-                                "because they are used as directory names during Extract.",
-                        child.getName(), group.getName()));
+                        "Duplicate processor path '%s' for type '%s'. " +
+                                "Processors of the same type must have unique paths " +
+                                "(group segments + processor name) within the flow, " +
+                                "because the path is used as the directory structure during Extract.",
+                        fullPath, typeFqn));
             }
         }
     }
