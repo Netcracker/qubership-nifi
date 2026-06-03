@@ -32,14 +32,22 @@ public class FlowFile {
      */
     private final Map<String, List<Processor>> processorsByType;
 
-    public FlowFile(Path filePath,
-                    JsonNode rootNode,
-                    ProcessGroup rootGroup,
-                    Map<String, List<Processor>> processorsByType) {
-        this.filePath = filePath;
-        this.rootNode = rootNode;
-        this.rootGroup = rootGroup;
-        this.processorsByType = Collections.unmodifiableMap(processorsByType);
+    /**
+     * Constructor for class FlowFile.
+     *
+     * @param filePathValue         path to the source JSON file on disk
+     * @param rootNodeValue         full JSON tree of the file
+     * @param rootGroupValue        root process group parsed from the flowContents section
+     * @param processorsByTypeValue map of processor type FQN to matching processors, built by FlowReader
+     */
+    public FlowFile(final Path filePathValue,
+                    final JsonNode rootNodeValue,
+                    final ProcessGroup rootGroupValue,
+                    final Map<String, List<Processor>> processorsByTypeValue) {
+        this.filePath = filePathValue;
+        this.rootNode = rootNodeValue;
+        this.rootGroup = rootGroupValue;
+        this.processorsByType = Collections.unmodifiableMap(processorsByTypeValue);
     }
 
     /**
@@ -73,14 +81,32 @@ public class FlowFile {
         return processorsByType;
     }
 
+    /**
+     * Returns the path to the source JSON file on disk.
+     *
+     * @return path as supplied at construction time
+     */
     public Path getFilePath() {
         return filePath;
     }
 
+    /**
+     * Returns the full JSON tree of the flow file.
+     * Property values are modified in-place through ObjectNode references
+     * held by ProcessorProperty instances during Extract and Build operations.
+     *
+     * @return root JSON node of the file
+     */
     public JsonNode getRootNode() {
         return rootNode;
     }
 
+    /**
+     * Returns the root process group, corresponding to the flowContents
+     * section of the exported NiFi flow JSON.
+     *
+     * @return root ProcessGroup of this flow
+     */
     public ProcessGroup getRootGroup() {
         return rootGroup;
     }

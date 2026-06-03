@@ -25,7 +25,7 @@ public class FlowReader {
 
     private final ObjectMapper jsonMapper;
 
-    public FlowReader(ObjectMapper jsonMapper) {
+    public FlowReader(final ObjectMapper jsonMapper) {
         this.jsonMapper = jsonMapper;
     }
 

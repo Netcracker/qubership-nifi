@@ -36,20 +36,32 @@ public class ExtractService {
     private final PropertyResolver propertyResolver;
     private final ReferenceBuilder referenceBuilder;
 
-    public ExtractService(Log log,
-                          FlowReader flowReader,
-                          FlowWriter flowWriter,
-                          FlowValidator flowValidator,
-                          FileSystemService fileSystem,
-                          PropertyResolver propertyResolver,
-                          ReferenceBuilder referenceBuilder) {
-        this.log = log;
-        this.flowReader = flowReader;
-        this.flowWriter = flowWriter;
-        this.flowValidator = flowValidator;
-        this.fileSystem = fileSystem;
-        this.propertyResolver = propertyResolver;
-        this.referenceBuilder = referenceBuilder;
+
+    /**
+     * Constructor for class ExtractService.
+     *
+     * @param logValue              Maven logger for info, warning, and debug messages
+     * @param flowReaderValue       reads flow JSON files and builds the object model
+     * @param flowWriterValue       writes the modified flow JSON back to disk
+     * @param flowValidatorValue    validates processor path uniqueness before extraction
+     * @param fileSystemValue       handles file and directory creation on disk
+     * @param propertyResolverValue resolves processor properties by name or regex
+     * @param referenceBuilderValue builds file paths and @reference strings
+     */
+    public ExtractService(final Log logValue,
+                          final FlowReader flowReaderValue,
+                          final FlowWriter flowWriterValue,
+                          final FlowValidator flowValidatorValue,
+                          final FileSystemService fileSystemValue,
+                          final PropertyResolver propertyResolverValue,
+                          final ReferenceBuilder referenceBuilderValue) {
+        this.log = logValue;
+        this.flowReader = flowReaderValue;
+        this.flowWriter = flowWriterValue;
+        this.flowValidator = flowValidatorValue;
+        this.fileSystem = fileSystemValue;
+        this.propertyResolver = propertyResolverValue;
+        this.referenceBuilder = referenceBuilderValue;
     }
 
     /**
@@ -99,11 +111,22 @@ public class ExtractService {
 
 
     /**
-     * Processes a single flow file: for each processor type defined in the config,
-     * extracts properties from all matching processors.
-     * ExtractExceptions are collected into collectedErrors rather than thrown.
+     * Processes a single flow file against all processor type configurations.
+     * <p>
+     * For each processor type defined in the config, finds all matching processors
+     * in the flow and extracts the configured properties from each of them.
+     * If no processors of a given type are found in the flow, the type is skipped silently.
+     * <p>
+     * ExtractExceptions thrown during extraction are not propagated —
+     * they are collected into collectedErrors so that processing continues
+     * for remaining processors and types.
      *
-     * @return true if any errors were collected during processing of this flow
+     * @param flow            the flow file to process
+     * @param config          the plugin config defining which processor types and properties to extract
+     * @param collectedErrors mutable list to which any ExtractExceptions are appended
+     * @return true if at least one error was added to collectedErrors
+     *         during this call, false if the flow was processed without errors
+     * @throws IOException if a property value file cannot be written
      */
     private boolean processFlow(FlowFile flow, PluginConfig config,
                                 List<ExtractException> collectedErrors)
@@ -138,14 +161,25 @@ public class ExtractService {
     }
 
     /**
-     * Extracts a single property from a single processor:
-     * - resolves the property by name or regex
-     * - skips with a warning if the value is already a reference or is empty
-     * - writes the value to the target file
-     * - replaces the property value with a @relative/path reference
+     * Extracts a single property from a single processor and writes its value to a file.
+     * <p>
+     * The method performs the following steps:
+     * <ol>
+     *   <li>Resolves the target property by exact name or regex via PropertyResolver.</li>
+     *   <li>Skips with a warning if the property is not set in the processor.</li>
+     *   <li>Skips with a warning if the value is already a file reference (starts with "@").</li>
+     *   <li>Skips with a warning if the value is empty or blank.</li>
+     *   <li>Writes the property value to the target file on disk.</li>
+     *   <li>Replaces the property value in the JSON tree with a @relative/path reference.</li>
+     * </ol>
      *
-     * @throws ExtractException if the property path contains invalid characters
-     *                          or a regex matches multiple properties
+     * @param flow      the flow file containing the processor
+     * @param processor the processor whose property is being extracted
+     * @param mapping   the property mapping from the config (name or regex → target filename)
+     * @throws ExtractException if the flow name, group name, or processor name contains
+     *                          characters not allowed in file system paths,
+     *                          or if a regex pattern matches more than one property
+     * @throws IOException      if the target file or its parent directories cannot be created or written
      */
     private void extractFromProcessor(FlowFile flow,
                                       Processor processor,
