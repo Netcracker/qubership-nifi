@@ -8,10 +8,10 @@ Lint the module `$ARGUMENTS` with the project's three linters, then fix every fi
 in the source.
 
 If `$ARGUMENTS` is empty, ask which module to lint (a directory path relative to the
-repo root, e.g. `qubership-nifi-common`) and stop until the user answers.
+repository root, e.g. `qubership-nifi-common`) and stop until the user answers.
 
-Treat `$ARGUMENTS` as a module directory path relative to the repo root. Run every
-command **from the repo root** so the linter configs' relative paths resolve. All three
+Treat `$ARGUMENTS` as a module directory path relative to the repository root. Run every
+command **from the repository root** so the linter configs' relative paths resolve. All three
 linters reuse the configs under `.github/linters/` - the same rules CI enforces.
 
 ## 1. Validate the module
