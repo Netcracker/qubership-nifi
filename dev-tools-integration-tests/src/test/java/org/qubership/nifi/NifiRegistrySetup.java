@@ -100,6 +100,13 @@ public final class NifiRegistrySetup {
 
         HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
         if (resp.statusCode() != HTTP_CREATED) {
+            // A previous (e.g. interrupted) run may have left a registry client with this name.
+            // Reuse it so the suite is resilient to leftover state instead of failing setup.
+            String existingId = lookupRegistryClient(nifiUrl, httpClient, "IT-Registry");
+            if (existingId != null) {
+                LOG.info("Reusing existing NiFi Registry client id={}", existingId);
+                return existingId;
+            }
             throw new IllegalStateException(
                 "Failed to create registry client: HTTP " + resp.statusCode() + " — " + resp.body());
         }
@@ -107,6 +114,26 @@ public final class NifiRegistrySetup {
         String registryClientId = MAPPER.readTree(resp.body()).path("id").asText();
         LOG.info("Created NiFi Registry client id={}", registryClientId);
         return registryClientId;
+    }
+
+    private static String lookupRegistryClient(final String nifiUrl,
+                                               final HttpClient httpClient,
+                                               final String name) throws Exception {
+        HttpRequest req = HttpRequest.newBuilder()
+            .uri(URI.create(nifiUrl + "/nifi-api/controller/registry-clients"))
+            .header("Accept", "application/json")
+            .GET()
+            .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        if (resp.statusCode() != HTTP_OK) {
+            return null;
+        }
+        for (JsonNode registry : MAPPER.readTree(resp.body()).path("registries")) {
+            if (name.equals(registry.path("component").path("name").asText())) {
+                return registry.path("id").asText();
+            }
+        }
+        return null;
     }
 
     /**
@@ -349,6 +376,29 @@ public final class NifiRegistrySetup {
                                         final String bucketId,
                                         final String flowId,
                                         final JsonNode flowContents) throws Exception {
+        return createFlowVersion(registryUrl, httpClient, bucketId, flowId, flowContents, null);
+    }
+
+    /**
+     * Creates the first version of a flow in NiFi Registry, optionally declaring the
+     * {@code externalControllerServices} referenced by the flow.
+     *
+     * @param registryUrl NiFi Registry base URL
+     * @param httpClient HTTP client to use for requests
+     * @param bucketId id of the bucket containing the flow
+     * @param flowId id of the flow to version
+     * @param flowContents flow contents JSON node
+     * @param externalControllerServices external controller services JSON node
+     *                                    (the snapshot's {@code externalControllerServices} map),
+     *                                    or {@code null} to omit
+     * @return the version number (normally {@code 1})
+     */
+    public static int createFlowVersion(final String registryUrl,
+                                        final HttpClient httpClient,
+                                        final String bucketId,
+                                        final String flowId,
+                                        final JsonNode flowContents,
+                                        final JsonNode externalControllerServices) throws Exception {
         ObjectNode snapshotMetadata = MAPPER.createObjectNode();
         snapshotMetadata.put("bucketIdentifier", bucketId);
         snapshotMetadata.put("flowIdentifier", flowId);
@@ -359,6 +409,9 @@ public final class NifiRegistrySetup {
         ObjectNode body = MAPPER.createObjectNode();
         body.set("snapshotMetadata", snapshotMetadata);
         body.set("flowContents", flowContents);
+        if (externalControllerServices != null) {
+            body.set("externalControllerServices", externalControllerServices);
+        }
 
         HttpRequest req = HttpRequest.newBuilder()
             .uri(URI.create(registryUrl + "/nifi-registry-api/buckets/"

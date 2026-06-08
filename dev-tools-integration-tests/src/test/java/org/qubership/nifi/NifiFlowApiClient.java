@@ -139,6 +139,56 @@ public class NifiFlowApiClient {
         }
     }
 
+    /**
+     * Changes the run status of a single controller service.
+     *
+     * @param id          controller service id
+     * @param version     current revision version
+     * @param targetState desired state ({@code "ENABLED"} or {@code "DISABLED"})
+     * @return full response JSON (includes updated {@code revision} and {@code status})
+     */
+    public JsonNode setControllerServiceState(final String id, final String version, final String targetState)
+            throws IOException, InterruptedException {
+        ObjectNode revision = MAPPER.createObjectNode();
+        revision.put("version", Long.parseLong(version));
+
+        ObjectNode body = MAPPER.createObjectNode();
+        body.set("revision", revision);
+        body.put("state", targetState);
+        body.put("disconnectedNodeAcknowledged", Boolean.FALSE);
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller-services/" + id + "/run-status"))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(body)))
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        LOG.info("Change CS {} to state {}: status={}", id, targetState, resp.statusCode());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when changing controller service " + id + " state to " + targetState
+                        + ". Response: " + resp.body());
+        return MAPPER.readTree(resp.body());
+    }
+
+    /**
+     * Waits (up to 30 s) for a single controller service to reach {@code targetState}.
+     *
+     * @param id          controller service id
+     * @param targetState desired run status (e.g. {@code "ENABLED"} or {@code "DISABLED"})
+     */
+    public void waitForControllerServiceState(final String id, final String targetState) {
+        LOG.info("Waiting for controller service {} to reach state {}", id, targetState);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .until(() -> {
+                    JsonNode csNode = getControllerServiceById(id);
+                    return targetState.equals(csNode.path("status").path("runStatus").asText())
+                            || targetState.equals(csNode.path("component").path("state").asText());
+                });
+        LOG.info("Controller service {} reached state {}", id, targetState);
+    }
+
     // -------------------------------------------------------------------------
     // Controller services state for a process group
     // -------------------------------------------------------------------------
@@ -167,15 +217,19 @@ public class NifiFlowApiClient {
     }
 
     /**
-     * Returns the {@code controllerServices} array for the given process group.
-     * Calls {@code GET /nifi-api/flow/process-groups/{pgId}/controller-services}.
+     * Returns the {@code controllerServices} array owned by the given process group.
+     * Calls {@code GET /nifi-api/flow/process-groups/{pgId}/controller-services} with
+     * {@code includeAncestorGroups=false} so inherited root/ancestor services are excluded -
+     * a PG-scoped enable/disable only affects the PG's own services, so the state wait must
+     * not block on ancestor services it never changes.
      *
      * @param pgId process group id
      * @return {@code controllerServices} JSON array node
      */
     public JsonNode getControllerServicesForPg(final String pgId) throws IOException, InterruptedException {
         HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + pgId + "/controller-services"))
+                .uri(URI.create(nifiUrl + "/nifi-api/flow/process-groups/" + pgId
+                        + "/controller-services?includeAncestorGroups=false"))
                 .header("Accept", "application/json")
                 .GET()
                 .build();

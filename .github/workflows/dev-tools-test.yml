@@ -6,6 +6,7 @@ on:
     paths:
       - 'dev/update-scripts-2.0/**'
       - 'dev/update-scripts-prop-2.x/**'
+      - 'dev/update-scripts-ext-cs-2.x/**'
       - 'dev/update-scripts-autotest/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'dev/update-scripts-2.0/**'
       - 'dev/update-scripts-prop-2.x/**'
+      - 'dev/update-scripts-ext-cs-2.x/**'
       - 'dev/update-scripts-autotest/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'

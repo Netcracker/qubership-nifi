@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -90,6 +91,44 @@ final class FlowAssertions {
                                 + "' should not contain 'Distributed' after transformation");
             }
         }
+    }
+
+    /**
+     * Asserts that the external controller service reference was rewritten to the target NiFi
+     * controller service id everywhere it appears, while the in-flow (non-external) record
+     * reader reference is left unchanged.
+     *
+     * @param snapshot       the full flow-export snapshot node (with {@code flowContents} and
+     *                       {@code externalControllerServices})
+     * @param expectedCsId   the target NiFi controller service id the reference must now use
+     * @param inFlowReaderId the id of the in-flow record reader that must remain unchanged
+     */
+    static void assertExternalCsRewritten(final JsonNode snapshot,
+                                          final String expectedCsId,
+                                          final String inFlowReaderId) {
+        JsonNode ext = snapshot.path("externalControllerServices");
+        assertTrue(ext.has(expectedCsId),
+                "externalControllerServices must be re-keyed to the target CS id " + expectedCsId
+                        + " but was: " + ext.toString());
+        assertEquals(expectedCsId, ext.path(expectedCsId).path("identifier").asText(),
+                "external controller service identifier must be rewritten to the target CS id");
+
+        JsonNode putRecord = findProcessorByName(snapshot.path("flowContents"), "PutRecord");
+        assertNotNull(putRecord, "flow must contain a PutRecord processor");
+        JsonNode props = putRecord.path("properties");
+        assertEquals(expectedCsId, props.path("put-record-sink").asText(),
+                "put-record-sink must reference the target CS id after rewrite");
+        assertEquals(inFlowReaderId, props.path("put-record-reader").asText(),
+                "in-flow put-record-reader id must be left unchanged");
+    }
+
+    private static JsonNode findProcessorByName(final JsonNode flowContents, final String name) {
+        for (JsonNode proc : flowContents.path("processors")) {
+            if (name.equals(proc.path("name").asText())) {
+                return proc;
+            }
+        }
+        return null;
     }
 
     /**

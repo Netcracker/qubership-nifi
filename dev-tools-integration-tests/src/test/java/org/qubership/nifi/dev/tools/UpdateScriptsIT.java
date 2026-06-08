@@ -137,6 +137,16 @@ class UpdateScriptsIT {
     private static Map<String, String> csVersionMap;
     private static String nifiVersion;
 
+    // External controller service scenario (flow-with-external-cs.json)
+    private static final String EXTERNAL_CS_NAME = "CommonQubershipPrometheusRecordSink";
+    private static final String EXTERNAL_CS_TYPE = "org.qubership.nifi.service.QubershipPrometheusRecordSink";
+    private static final String EXTERNAL_CS_NAR_GROUP = "org.qubership.nifi";
+    private static final String EXTERNAL_CS_NAR_ARTIFACT = "qubership-service-nar";
+    /** In-flow record reader id in the fixture; must be left unchanged by the script. */
+    private static final String IN_FLOW_READER_ID = "22222222-0000-0000-0000-000000000001";
+    private static String externalCsId;
+    private static String externalCsVersion;
+
     @BeforeAll
     static void setup() throws Exception {
         String certDir = System.getProperty("nifi.cert.dir");
@@ -165,7 +175,46 @@ class UpdateScriptsIT {
         nifiVersion = api.fetchNifiVersion();
         //setup properties for SSLContext services:
         setupSslContextServicesTestProperties();
+        //precreate the external controller service the script will match by name (before scripts run):
+        externalCsId = createExternalControllerService();
         runScriptsContainer();
+    }
+
+    /**
+     * Creates the external controller service (in root) that {@code flow-with-external-cs.json}
+     * references by name. Capturing its real (target-environment) id lets the test assert the
+     * script rewrote the foreign id to this one.
+     *
+     * @return the created controller service id
+     */
+    private static String createExternalControllerService() throws Exception {
+        String version = csVersionMap.get(EXTERNAL_CS_TYPE);
+        if (version == null) {
+            throw new IllegalStateException("Controller service type not found in NiFi: " + EXTERNAL_CS_TYPE);
+        }
+
+        ObjectNode bundle = MAPPER.createObjectNode();
+        bundle.put("group", EXTERNAL_CS_NAR_GROUP);
+        bundle.put("artifact", EXTERNAL_CS_NAR_ARTIFACT);
+        bundle.put("version", version);
+
+        ObjectNode component = MAPPER.createObjectNode();
+        component.put("name", EXTERNAL_CS_NAME);
+        component.put("type", EXTERNAL_CS_TYPE);
+        component.set("bundle", bundle);
+
+        ObjectNode revision = MAPPER.createObjectNode();
+        revision.put("version", 0);
+
+        ObjectNode body = MAPPER.createObjectNode();
+        body.set("revision", revision);
+        body.set("component", component);
+
+        JsonNode resp = api.createControllerService(MAPPER.writeValueAsString(body));
+        externalCsVersion = resp.path("revision").path("version").asText("0");
+        String id = resp.path("id").asText();
+        LOG.info("Precreated external controller service {} id={}", EXTERNAL_CS_NAME, id);
+        return id;
     }
 
     private static final String TEST_PWD = "changeit";
@@ -193,6 +242,20 @@ class UpdateScriptsIT {
 
     @AfterAll
     static void cleanup() throws Exception {
+        if (externalCsId != null) {
+            try {
+                JsonNode csNode = api.getControllerServiceById(externalCsId);
+                String version = csNode.path("revision").path("version").asText(externalCsVersion);
+                api.setControllerServiceState(externalCsId, version, "DISABLED");
+                api.waitForControllerServiceState(externalCsId, "DISABLED");
+                csNode = api.getControllerServiceById(externalCsId);
+                version = csNode.path("revision").path("version").asText(version);
+                api.deleteControllerService(externalCsId, version);
+            } catch (Exception e) {
+                LOG.warn("Failed to clean up external controller service {}", externalCsId, e);
+            }
+            externalCsId = null;
+        }
         if (registryClientId != null) {
             NifiRegistrySetup.deleteRegistryClient(nifiUrl, registryClientId, httpClient);
         }
@@ -232,6 +295,52 @@ class UpdateScriptsIT {
         Path flowFile = tempFlowsDir.resolve("flows/Upgrade_Test_PG1.json");
         JsonNode flowContents = MAPPER.readTree(flowFile.toFile()).path("flowContents");
         importAndCleanup(flowContents);
+    }
+
+    /**
+     * Verifies the external-controller-service id rewrite end to end: the script replaces the
+     * foreign id (key + identifier + referencing {@code put-record-sink} property) with the
+     * precreated target CS id while leaving the in-flow record reader id unchanged, then the
+     * referencing process group imports and validates ({@code invalidCount == 0}).
+     */
+    @Test
+    void testExternalControllerServiceReference() throws Exception {
+        Assumptions.assumeTrue(nifiVersion != null && nifiVersion.startsWith("2."),
+            "External controller service id rewrite only runs on NiFi 2.x targets");
+
+        Path flowFile = tempFlowsDir.resolve("flows/flow-with-external-cs.json");
+        JsonNode snapshot = MAPPER.readTree(flowFile.toFile());
+
+        // The script must have rewritten the foreign external CS id to the precreated CS id
+        // everywhere, and left the in-flow record reader id untouched.
+        FlowAssertions.assertExternalCsRewritten(snapshot, externalCsId, IN_FLOW_READER_ID);
+
+        // Enable the (root) external controller service so PutRecord can resolve + validate against it.
+        JsonNode csNode = api.getControllerServiceById(externalCsId);
+        String csVer = csNode.path("revision").path("version").asText(externalCsVersion);
+        JsonNode enabled = api.setControllerServiceState(externalCsId, csVer, "ENABLED");
+        externalCsVersion = enabled.path("revision").path("version").asText(csVer);
+        api.waitForControllerServiceState(externalCsId, "ENABLED");
+
+        JsonNode flowContents = snapshot.path("flowContents");
+        JsonNode externalControllerServices = snapshot.path("externalControllerServices");
+
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String bucketId = NifiRegistrySetup.createBucket(nifiRegistryUrl, httpClient, "IT-Bucket-" + suffix);
+        String flowId = NifiRegistrySetup.createFlow(nifiRegistryUrl, httpClient, bucketId, "IT-Flow-ExtCs");
+        int version = NifiRegistrySetup.createFlowVersion(nifiRegistryUrl, httpClient, bucketId, flowId,
+                flowContents, externalControllerServices);
+
+        JsonNode responseJson = api.importProcessGroup(bucketId, flowId, version, registryClientId);
+        String createdId = responseJson.path("id").asText();
+        pgId = createdId;
+        assertNotNull(createdId, "Created process group must have an id");
+        assertFalse(createdId.isEmpty(), "Created process group id must not be empty");
+
+        api.changeControllerServicesStateForPg(createdId, "ENABLED");
+        api.waitForControllerServicesState(createdId, "ENABLED");
+        // invalidCount == 0 proves the external reference resolved to the precreated CS by id.
+        api.waitForPgValidation(createdId, nifiVersion);
     }
 
     static Stream<String> controllerServiceFiles() {
