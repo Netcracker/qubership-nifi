@@ -22,15 +22,23 @@ public class ReferenceResolver {
      * @return absolute path to the referenced file
      * @throws BuildException if the referenced file does not exist
      */
-    public Path resolve(FlowFile flow, ProcessorProperty property) throws BuildException {
+    public Path resolve(FlowFile flow, Processor processor,
+                        ProcessorProperty property) throws BuildException {
         String referencePath = property.getReferencePath();
         Path absolutePath = buildAbsolutePath(flow, referencePath);
 
         if (!Files.isRegularFile(absolutePath)) {
             throw new BuildException(String.format(
-                "Referenced file '%s' does not exist for property '%s'. " +
-                "Run Extract first to generate the configuration files.",
-                absolutePath, property.getName()));
+                    "Referenced file '%s' does not exist for property '%s' " +
+                            "of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s'). " +
+                            "Run Extract first to generate the configuration files.",
+                    absolutePath,
+                    property.getName(),
+                    processor.getName(),
+                    processor.getIdentifier(),
+                    processor.getParentGroup().getName(),
+                    processor.getParentGroup().getIdentifier(),
+                    flow.getFilePath()));
         }
 
         return absolutePath;
@@ -50,50 +58,50 @@ public class ReferenceResolver {
      * @throws BuildException if an extracted file exists alongside an inline value
      */
     public void checkConflict(FlowFile flow,
-                               Processor processor,
-                               ProcessorProperty property,
-                               String targetFilename) throws BuildException {
+                              Processor processor,
+                              ProcessorProperty property,
+                              String targetFilename) throws BuildException {
 
         Path extractedFile = buildExtractedFilePath(flow, processor, targetFilename);
 
         if (Files.isRegularFile(extractedFile)) {
             throw new BuildException(String.format(
-                "Property '%s' of processor '%s' has an inline value, " +
-                "but an extracted file already exists at '%s'. " +
-                "This is ambiguous: remove either the inline value or the extracted file.",
-                property.getName(), processor.getName(), extractedFile));
+                    "Property '%s' of processor '%s' has an inline value, "
+                            + "but an extracted file already exists at '%s'. "
+                            + "This is ambiguous: remove either the inline value or the extracted file.",
+                    property.getName(), processor.getName(), extractedFile));
         }
     }
 
-
     /**
-     * Builds the absolute path from a reference string
-     * relative to the flow file location.
+     * Builds an absolute path by resolving a reference string relative to the
+     * directory containing the flow file.
+     *
+     * @param flow          the flow file whose parent directory is used as the base
+     * @param referencePath a relative path string (e.g. "flowConf_foo/bar/file.json")
+     *                      taken from a @path reference value
+     * @return the absolute Path obtained by resolving referencePath
+     *         against the flow file's parent directory
      */
     private Path buildAbsolutePath(FlowFile flow, String referencePath) {
-        Path flowDir = flow.getFilePath().getParent();
-        Path result = flowDir;
-        for (String segment : referencePath.split("/")) {
-            result = result.resolve(segment);
-        }
-        return result;
+        return flow.getFilePath().getParent().resolve(referencePath);
     }
 
     /**
      * Builds the expected extracted file path for a given processor and target filename.
      * Mirrors the path structure built by ReferenceBuilder during Extract.
+     *
+     * @param flow           the flow file whose parent directory is used as the base
+     * @param processor      the processor whose parent group path segments are included
+     * @param targetFilename the filename of the extracted configuration file
+     * @return the absolute Path where the extracted file is expected to reside
      */
     private Path buildExtractedFilePath(FlowFile flow, Processor processor,
-                                         String targetFilename) {
-        Path flowDir = flow.getFilePath().getParent();
-        Path result = flowDir.resolve("flowConf_" + flow.getFlowName());
-
-        for (String segment : processor.getParentGroup().getPathSegments()) {
-            result = result.resolve(segment);
-        }
-
-        return result
-            .resolve(processor.getName())
-            .resolve(targetFilename);
+                                        String targetFilename) {
+        return flow.getFilePath().getParent()
+                .resolve("flowConf_" + flow.getFlowName())
+                .resolve(processor.getParentGroup().getRelativePath())
+                .resolve(processor.getName())
+                .resolve(targetFilename);
     }
 }

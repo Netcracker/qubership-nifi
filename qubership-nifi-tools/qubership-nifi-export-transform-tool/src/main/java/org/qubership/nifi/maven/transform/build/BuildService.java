@@ -61,7 +61,7 @@ public class BuildService {
      * Runs Build on all flow files found in the given directory.
      *
      * All BuildExceptions are collected across all flows and processors
-     * and reported together at the end.
+     * and reported together at the end. Processing continues even if errors occur.
      * Only IOException stops execution immediately.
      * If --delete is true, cleanup runs only after all flows are processed without errors.
      *
@@ -128,8 +128,16 @@ public class BuildService {
                         buildFromProcessor(flow, processor, mapping);
                     } catch (BuildException e) {
                         collectedErrors.add(e);
-                        log.debug("Skipping processor '" + processor.getName()
-                                + "' due to error: " + e.getMessage());
+                        log.debug(String.format(
+                                "Skipping processor '%s' (id: %s, group: '%s', groupId: %s, " +
+                                        "flow: '%s', flowPath: '%s') due to error: %s",
+                                processor.getName(),
+                                processor.getIdentifier(),
+                                processor.getParentGroup().getName(),
+                                processor.getParentGroup().getIdentifier(),
+                                flow.getFlowName(),
+                                flow.getFilePath(),
+                                e.getMessage()));
                     }
                 }
             }
@@ -168,13 +176,19 @@ public class BuildService {
 
         if (property.isEmpty()) {
             log.warn(String.format(
-                "Property '%s' of processor '%s' is empty or null. Skipping.",
-                property.getName(), processor.getName()));
+                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') " +
+                            "is empty or null. Skipping.",
+                    property.getName(),
+                    processor.getName(),
+                    processor.getIdentifier(),
+                    processor.getParentGroup().getName(),
+                    processor.getParentGroup().getIdentifier(),
+                    flow.getFlowName()));
             return;
         }
 
         if (property.isReference()) {
-            Path filePath = referenceResolver.resolve(flow, property);
+            Path filePath = referenceResolver.resolve(flow, processor, property);
             String content = fileSystem.readText(filePath);
             property.setValue(content);
             log.info(String.format("Restored property '%s' of processor '%s' from %s",
@@ -182,9 +196,15 @@ public class BuildService {
         } else {
             referenceResolver.checkConflict(flow, processor, property,
                     mapping.getTargetFilename());
-            log.debug(String.format(
-                "Property '%s' of processor '%s' has an inline value, no extracted file found. Skipping.",
-                property.getName(), processor.getName()));
+            throw new BuildException(String.format(
+                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') " +
+                            "has an inline value. Extract must be run before Build.",
+                    property.getName(),
+                    processor.getName(),
+                    processor.getIdentifier(),
+                    processor.getParentGroup().getName(),
+                    processor.getParentGroup().getIdentifier(),
+                    flow.getFlowName()));
         }
     }
 

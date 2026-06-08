@@ -25,7 +25,7 @@ import java.io.IOException;
  * into the processor properties of the exported NiFi flow JSON files.
  * Replaces file references of the form @path with the actual file content.
  */
-@Mojo(name = "build", defaultPhase = LifecyclePhase.NONE)
+@Mojo(name = "build", defaultPhase = LifecyclePhase.PREPARE_PACKAGE)
 public class BuildMojo extends AbstractTransformMojo {
 
     /**
