@@ -6,19 +6,19 @@ The script `updateExternalControllerServices.sh` fixes references to
 `externalControllerServices` in NiFi flow exports before they are imported into a
 target environment.
 
-Apache NiFi resolves an external controller service reference **by id first, and
-only falls back to matching by name** when no id matches. 
+Apache NiFi resolves an external controller service reference **by ID first, and
+only falls back to matching by name** when no ID matches.
 However, starting from Apache NiFi 2.x, match by name does not happen, if referencing component
 property was renamed via automatic property migration mechanism, causing NiFi to set the reference
 incorrectly.
 
 For each export that declares a non-empty `externalControllerServices` map, the
 script looks up the same-named controller service in the target NiFi (top-level /
-root services) and rewrites the foreign id everywhere it appears:
+root services) and rewrites the foreign ID everywhere it appears:
 
 - the `externalControllerServices` map key,
 - its `identifier` field,
-- and every component `properties` value that referenced that id.
+- and every component `properties` value that referenced that ID.
 
 The script first checks the target NiFi version and only applies changes when the
 target major version is `2`; otherwise it skips. If a target controller service
@@ -31,9 +31,9 @@ Example of running the script:
 
 Input arguments used in the script:
 
-| Argument               | Required | Default                  | Description                                                 |
-|------------------------|----------|--------------------------|-------------------------------------------------------------|
-| pathToFlow             | Y        | ./export                 | Path to the directory where the exported flows are located. |
+| Argument   | Required | Default  | Description                                                 |
+|------------|----------|----------|-------------------------------------------------------------|
+| pathToFlow | Y        | ./export | Path to the directory where the exported flows are located. |
 
 ## Environment variables
 

@@ -80,23 +80,23 @@ for file in "${exportFlow[@]}"; do
     #Build old->new id map from this file's external controller service names, then apply
     #narrowly scoped edits only - externalControllerServices entries and component properties.
     jq --argjson nameToId "$nameToId" '
-      ([ (.externalControllerServices // {}) | to_entries[]
-         | select($nameToId[.value.name] != null)
-         | {key: .key, value: $nameToId[.value.name]} ] | from_entries) as $idMap
-      | if ($idMap | length) == 0 then .
-        else
-          # (a) externalControllerServices: rename the map key + its identifier
-          .externalControllerServices |= with_entries(
-            ($idMap[.key]) as $new
-            | if $new != null then .key = $new | .value.identifier = $new else . end
-          )
-          # (b) every component "properties" object: replace values that are idMap keys
-          | walk(
-              if type == "object" and (.properties | type) == "object"
-              then .properties |= map_values(
-                     if type == "string" and ($idMap[.] != null) then $idMap[.] else . end)
-              else . end
-            )
+        ([ (.externalControllerServices // {}) | to_entries[]
+            | select($nameToId[.value.name] != null)
+            | {key: .key, value: $nameToId[.value.name]} ] | from_entries) as $idMap
+        | if ($idMap | length) == 0 then .
+            else
+                # (a) externalControllerServices: rename the map key + its identifier
+                .externalControllerServices |= with_entries(
+                    ($idMap[.key]) as $new
+                    | if $new != null then .key = $new | .value.identifier = $new else . end
+                )
+                # (b) every component "properties" object: replace values that are idMap keys
+                | walk(
+                    if type == "object" and (.properties | type) == "object"
+                    then .properties |= map_values(
+                        if type == "string" and ($idMap[.] != null) then $idMap[.] else . end)
+                    else . end
+                )
         end' "$file" > "$tmp" || handle_error "Error while updating external controller services in flow - $file"
 
     if [ "$DEBUG_MODE" = "true" ]; then
