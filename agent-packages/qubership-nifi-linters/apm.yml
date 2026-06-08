@@ -1,0 +1,4 @@
+name: qubership-nifi-linters
+version: 1.0.0
+description: Lint qubership-nifi modules and changed files with codespell, checkstyle and markdownlint, then fix the findings.
+author: Qubership

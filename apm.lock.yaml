@@ -1,0 +1,34 @@
+lockfile_version: '1'
+generated_at: '2026-06-08T18:50:39.073612+00:00'
+apm_version: 0.18.0
+dependencies:
+- repo_url: Netcracker/qubership-workflow-hub
+  host: github.com
+  resolved_commit: 20aa408fa385ba72417bd4345e2c9c5b4d7049d9
+  resolved_ref: 20aa408fa385ba72417bd4345e2c9c5b4d7049d9
+  virtual_path: agent-packages/qubership-workflow-hub-usage
+  is_virtual: true
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/qubership-actions-guide
+  - .agents/skills/qubership-templates-guide
+  - .agents/skills/qubership-workflow-conventions
+  - .claude/rules/qubership-workflow-hub-usage.md
+  - .claude/skills/qubership-actions-guide
+  - .claude/skills/qubership-templates-guide
+  - .claude/skills/qubership-workflow-conventions
+  - .cursor/rules/qubership-workflow-hub-usage.mdc
+  deployed_file_hashes:
+    .claude/rules/qubership-workflow-hub-usage.md: sha256:b1605dcfd8afc0a1b656b6a7de9321a974057d96fec0461e5d16115e728b8e0c
+    .cursor/rules/qubership-workflow-hub-usage.mdc: sha256:b0bd8c88d74d5df5913b9eb990cb3809ffe2c04d9027c212cf1b3c1713dad5d8
+  content_hash: sha256:4b8d413b93976992553ebd495a3cf18741cccf1b5f4691e77bfec75a756af000
+- repo_url: _local/qubership-nifi-linters
+  package_type: apm_package
+  deployed_files:
+  - .claude/commands/lint.md
+  - .cursor/commands/lint.md
+  deployed_file_hashes:
+    .claude/commands/lint.md: sha256:3e451f38bfcff9f3b5a9801b83b2ffea0b3082e271f15ddbd542712f0194a3af
+    .cursor/commands/lint.md: sha256:3e451f38bfcff9f3b5a9801b83b2ffea0b3082e271f15ddbd542712f0194a3af
+  source: local
+  local_path: ./agent-packages/qubership-nifi-linters

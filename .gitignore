@@ -68,3 +68,7 @@ upgrade-temp-data/
 
 # Python cache
 /**/__pycache__
+
+
+# APM dependencies
+apm_modules/

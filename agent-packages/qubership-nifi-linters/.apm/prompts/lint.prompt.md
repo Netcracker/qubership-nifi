@@ -1,12 +1,7 @@
 ---
-allowed-tools:
-- Bash
-- Read
-- Edit
-- Grep
-- Glob
-argument-hint: <module-path>
 description: Run codespell, checkstyle and markdownlint on a module and fix the findings.
+allowed-tools: [Bash, Read, Edit, Grep, Glob]
+argument-hint: "<module-path>"
 ---
 
 Lint the module `$ARGUMENTS` with the project's three linters, then fix every finding
