@@ -33,7 +33,7 @@
 
     <properties>
         <jetty.version>12.1.5</jetty.version>
-        <maven-plugin-api.version>3.8.9</maven-plugin-api.version>
+        <maven-plugin-api.version>3.9.14</maven-plugin-api.version>
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
         <!-- Skip ITs by default; enable with profile tools-integration-tests -->
         <skipITs>true</skipITs>
@@ -65,6 +65,7 @@
         <module>qubership-nifi-component-comparator-tool</module>
         <module>qubership-nifi-export-transform-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
+        <module>qubership-nifi-export-transform-tool-it</module>
     </modules>
 
     <profiles>
