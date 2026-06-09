@@ -9,16 +9,16 @@
    before asking the user anything — do not ask for information that can be read.
 4. Replace non-Qubership patterns using the table below, then go to *Collect requirements* for anything still missing.
 
-| Existing pattern                                    | Replace with                                                   |
-|-----------------------------------------------------|----------------------------------------------------------------|
-| `docker/build-push-action`                          | `docker-action`                                                |
-| Manual `docker build` + `docker push` shell steps   | `docker-action`                                                |
-| `docker/metadata-action` for tags                   | `metadata-action`                                              |
-| Manual tag string construction in shell             | `metadata-action`                                              |
-| Hardcoded component list in matrix or env vars      | `docker-config-resolver` + config file, or inline JSON array   |
-| Non-Qubership config file format (custom YAML/JSON) | Migrate into `.qubership/docker.cfg` format                    |
-| `docker login` steps                                | Built into `docker-action` via `registry` + `GITHUB_TOKEN` env |
-| `actions/download-artifact` before Docker build     | `download-artifact: true` input on `docker-action`             |
+| Existing pattern | Replace with |
+| --- | --- |
+| `docker/build-push-action` | `docker-action` |
+| Manual `docker build` + `docker push` shell steps | `docker-action` |
+| `docker/metadata-action` for tags | `metadata-action` |
+| Manual tag string construction in shell | `metadata-action` |
+| Hardcoded component list in matrix or env vars | `docker-config-resolver` + config file, or inline JSON array |
+| Non-Qubership config file format (custom YAML/JSON) | Migrate into `.qubership/docker.cfg` format |
+| `docker login` steps | Built into `docker-action` via `registry` + `GITHUB_TOKEN` env |
+| `actions/download-artifact` before Docker build | `download-artifact: true` input on `docker-action` |
 
 ---
 
@@ -29,16 +29,15 @@ Trigger and runner are inferred per `workflow-patterns.md` → *Trigger rules* �
 
 If the user's request contains "release", "publish", or "tag" — load `release.md` immediately, do not ask.
 
-| # | Question                            | What it controls                                       |
-|---|-------------------------------------|--------------------------------------------------------|
-| 1 | Should there be a dry-run mode?     | `dry-run` input + conditional — builds without pushing |
-| 2 | Registry: GHCR / Docker Hub / both? | `registry` input and auth method                       |
+| # | Question | What it controls |
+| - | --- | --- |
+| 1 | Should there be a dry-run mode? | `dry-run` input + conditional — builds without pushing |
+| 2 | Registry: GHCR / Docker Hub / both? | `registry` input and auth method |
 
 Config file — do not ask, determine from path:
 
 - **Path A** (existing workflow/configs): config file was already found when reading the workflow — use it.
-- **Path B** (from scratch): no config file exists — generate it (see *Config file generation*). Never ask the user to
-  fill in a template.
+- **Path B** (from scratch): no config file exists — generate it (see *Config file generation*). Never ask the user to fill in a template.
 - Never put image name, Dockerfile path, platforms, or build-context into workflow inputs — always use config file.
 
 Defaults — do not ask, apply automatically:
@@ -54,45 +53,38 @@ Defaults — do not ask, apply automatically:
 
 Use collected answers to pick the pipeline and generate output in this order:
 
-1. **Path B only:** no config file exists → generate it first (see *Config file generation* below), write it, show it,
-   ask user to confirm or adjust.
+1. **Path B only:** no config file exists → generate it first (see *Config file generation* below), write it, show it, ask user to confirm or adjust.
 2. Then generate the workflow.
 
 ### Pipeline selection
 
-**Release workflows MUST include `tag-action` (check) and `tag-action` (create) before any build step. Never omit tag
-creation in a release workflow — even if the user didn't mention it explicitly. "Release" implies tag.**
+**Release workflows MUST include `tag-action` (check) and `tag-action` (create) before any build step. Never omit tag creation in a release workflow — even if the user didn't mention it explicitly. "Release" implies tag.**
 
-| Config file? | Release? | Pipeline                                                                                                              |
-|--------------|----------|-----------------------------------------------------------------------------------------------------------------------|
-| No           | No       | `metadata-action` → `docker-action` (inline component)                                                                |
-| Yes          | No       | `docker-config-resolver` → `metadata-action` → `docker-action` (matrix)                                               |
-| No           | Yes      | `tag-action` (check) → `tag-action` (create) → `docker-action` → `github-release`                                     |
-| Yes          | Yes      | `tag-action` (check) → `docker-config-resolver` → `tag-action` (create) → `docker-action` (matrix) → `github-release` |
+| Config file? | Release? | Pipeline |
+| --- | --- | --- |
+| No | No | `metadata-action` → `docker-action` (inline component) |
+| Yes | No | `docker-config-resolver` → `metadata-action` → `docker-action` (matrix) |
+| No | Yes | `tag-action` (check) → `tag-action` (create) → `docker-action` → `github-release` |
+| Yes | Yes | `tag-action` (check) → `docker-config-resolver` → `tag-action` (create) → `docker-action` (matrix) → `github-release` |
 
 If release assets needed → append `assets-action` after `github-release` in any release pipeline.
 
-If build step in separate job → prepend build job with `upload-artifact`, add `download-artifact: true` to
-`docker-action`.
+If build step in separate job → prepend build job with `upload-artifact`, add `download-artifact: true` to `docker-action`.
 
 For release details (tag-action inputs, assets-action patterns, permissions) — see `release.md`.
 
-**Checkout:** `docker-action` checks out internally (`checkout: "true"` by default). Only set `ref` in release
-workflows — pass `refs/tags/v${{ inputs.release }}` so the build uses the tag created in the previous job. For CI
-builds (push/PR), omit `ref` entirely — the action uses the current commit. A separate explicit checkout is still needed
-in any job that reads files before the build (e.g. `resolve-config` job reading the config file).
+**Checkout:** `docker-action` checks out internally (`checkout: "true"` by default). Only set `ref` in release workflows — pass `refs/tags/v${{ inputs.release }}` so the build uses the tag created in the previous job. For CI builds (push/PR), omit `ref` entirely — the action uses the current commit. A separate explicit checkout is still needed in any job that reads files before the build (e.g. `resolve-config` job reading the config file).
 
 ### Tag strategy per trigger
 
 Use different `metadata-action` templates depending on the trigger — they serve different purposes:
 
-| Trigger                           | `default-template`                                    | Result                                                          |
-|-----------------------------------|-------------------------------------------------------|-----------------------------------------------------------------|
-| `push` to branch / `pull_request` | `"{{ref-name}},{{short-sha}}"`                        | Branch tag + short commit SHA — temporary, identifies the build |
-| `workflow_dispatch` release       | `"{{ref-name}},{{major}}.{{minor}},{{major}},latest"` | Full semver set — `v1.2.3`, `1.2`, `1`, `latest`                |
+| Trigger | `default-template` | Result |
+| --- | --- | --- |
+| `push` to branch / `pull_request` | `"{{ref-name}},{{short-sha}}"` | Branch tag + short commit SHA — temporary, identifies the build |
+| `workflow_dispatch` release | `"{{ref-name}},{{major}}.{{minor}},{{major}},latest"` | Full semver set — `v1.2.3`, `1.2`, `1`, `latest` |
 
-When the workflow handles both triggers (push + workflow_dispatch), use two separate `metadata-action` steps with `if:`
-conditions and merge the outputs:
+When the workflow handles both triggers (push + workflow_dispatch), use two separate `metadata-action` steps with `if:` conditions and merge the outputs:
 
 ```yaml
 - id: metadata-release
@@ -125,8 +117,7 @@ tags: ${{ steps.metadata-release.outputs.result || steps.metadata-push.outputs.r
 
 **`metadata-action`:**
 
-- `ref` — the ref to render tags from; for release use `refs/tags/v${{ inputs.release }}`, for push use
-  `${{ github.ref }}`
+- `ref` — the ref to render tags from; for release use `refs/tags/v${{ inputs.release }}`, for push use `${{ github.ref }}`
 - `default-template` — tag template (see *Tag strategy* above)
 - `extra-tags` — additional tags from `workflow_dispatch` input
 
@@ -152,22 +143,22 @@ Minimal generated example (two images, GHCR):
 
 ```json
 {
-    "registry": "ghcr.io",
-    "defaults": {
-        "platforms": "linux/amd64,linux/arm64",
-        "dockerfile": "Dockerfile",
-        "build_context": "."
+  "registry": "ghcr.io",
+  "defaults": {
+    "platforms": "linux/amd64,linux/arm64",
+    "dockerfile": "Dockerfile",
+    "build_context": "."
+  },
+  "components": [
+    {
+      "name": "my-service"
     },
-    "components": [
-        {
-            "name": "my-service"
-        },
-        {
-            "name": "my-worker",
-            "dockerfile": "worker/Dockerfile",
-            "build_context": "worker"
-        }
-    ]
+    {
+      "name": "my-worker",
+      "dockerfile": "worker/Dockerfile",
+      "build_context": "worker"
+    }
+  ]
 }
 ```
 
@@ -184,71 +175,71 @@ The filename is arbitrary — path is passed via `file-path` input. Convention: 
 
 ```json
 {
-    "registry": "ghcr.io",
-    "security": {
+  "registry": "ghcr.io",
+  "security": {
+    "scan": true,
+    "tag": "latest",
+    "only_high_critical": true,
+    "trivy_scan": true,
+    "grype_scan": true,
+    "only_fixed": true,
+    "continue_on_error": true
+  },
+  "defaults": {
+    "platforms": "linux/amd64,linux/arm64",
+    "dockerfile": "Dockerfile",
+    "build_context": "."
+  },
+  "components": [
+    {
+      "name": "my-service",
+      "dockerfile": "Dockerfile",
+      "build_context": ".",
+      "platforms": "linux/amd64",
+      "arguments": "NODE_ENV=production",
+      "security": {
         "scan": true,
         "tag": "latest",
-        "only_high_critical": true,
-        "trivy_scan": true,
-        "grype_scan": true,
-        "only_fixed": true,
-        "continue_on_error": true
-    },
-    "defaults": {
-        "platforms": "linux/amd64,linux/arm64",
-        "dockerfile": "Dockerfile",
-        "build_context": "."
-    },
-    "components": [
-        {
-            "name": "my-service",
-            "dockerfile": "Dockerfile",
-            "build_context": ".",
-            "platforms": "linux/amd64",
-            "arguments": "NODE_ENV=production",
-            "security": {
-                "scan": true,
-                "tag": "latest",
-                "only_high_critical": false
-            }
-        }
-    ]
+        "only_high_critical": false
+      }
+    }
+  ]
 }
 ```
 
 ### Top-level fields
 
-| Field        | Description                                                              |
-|--------------|--------------------------------------------------------------------------|
-| `registry`   | Base registry URL, e.g. `"ghcr.io"`                                      |
-| `security`   | Global security settings — inherited by all components unless overridden |
-| `defaults`   | Default build settings inherited by all components                       |
-| `components` | **Required.** Array of component definitions                             |
+| Field | Description |
+| --- | --- |
+| `registry` | Base registry URL, e.g. `"ghcr.io"` |
+| `security` | Global security settings — inherited by all components unless overridden |
+| `defaults` | Default build settings inherited by all components |
+| `components` | **Required.** Array of component definitions |
 
 ### Component fields (all optional except `name`)
 
-| Field           | Description                                                     |
-|-----------------|-----------------------------------------------------------------|
-| `name`          | **Required.** Image path becomes `{registry}/{owner}/{name}`    |
-| `dockerfile`    | Path to Dockerfile. Default: `"Dockerfile"`                     |
-| `build_context` | Docker build context path. Default: `"."`                       |
-| `platforms`     | Comma-separated platforms. Default: `"linux/amd64,linux/arm64"` |
-| `arguments`     | Build args, comma-separated or newline-delimited                |
-| `security`      | Component-level security overrides (merged with global)         |
+| Field | Description |
+| --- | --- |
+| `name` | **Required.** Image path becomes `{registry}/{owner}/{name}` |
+| `dockerfile` | Path to Dockerfile. Default: `"Dockerfile"` |
+| `build_context` | Docker build context path. Default: `"."` |
+| `platforms` | Comma-separated platforms. Default: `"linux/amd64,linux/arm64"` |
+| `arguments` | Build args, comma-separated or newline-delimited |
+| `security` | Component-level security overrides (merged with global) |
 
 Note: `context` is a deprecated alias for `build_context` — always use `build_context`.
 
 ### `security` object fields
 
-| Field                | Description                                      |
-|----------------------|--------------------------------------------------|
-| `scan`               | `true` — include this component in security scan |
-| `tag`                | Image tag to use when scanning                   |
-| `only_high_critical` | Scan only HIGH + CRITICAL vulnerabilities        |
-| `trivy_scan`         | Enable Trivy scanner                             |
-| `grype_scan`         | Enable Grype scanner                             |
-| `only_fixed`         | Ignore unfixed vulnerabilities                   |
-| `continue_on_error`  | Don't fail the job if vulnerabilities found      |
+| Field | Description |
+| --- | --- |
+| `scan` | `true` — include this component in security scan |
+| `tag` | Image tag to use when scanning |
+| `only_high_critical` | Scan only HIGH + CRITICAL vulnerabilities |
+| `trivy_scan` | Enable Trivy scanner |
+| `grype_scan` | Enable Grype scanner |
+| `only_fixed` | Ignore unfixed vulnerabilities |
+| `continue_on_error` | Don't fail the job if vulnerabilities found |
 
 ### Merge and flatten rules
 

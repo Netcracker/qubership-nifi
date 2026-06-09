@@ -2,10 +2,10 @@
 
 ## Template coverage
 
-| Package type     | Starting point                                                                                       |
-|------------------|------------------------------------------------------------------------------------------------------|
+| Package type | Starting point |
+| --- | --- |
 | Container images | Fetch `cleanup-old-docker-container.yaml` from `Netcracker/.github/workflow-templates` and adapt it. |
-| Maven packages   | No template exists — build from scratch using the pipeline shape and inputs reference below.         |
+| Maven packages | No template exists — build from scratch using the pipeline shape and inputs reference below. |
 
 ---
 
@@ -14,11 +14,11 @@
 Extract answers from the user's message first. Ask only what is missing.
 Trigger and runner are inferred per `workflow-patterns.md` → *Trigger rules* — do not ask.
 
-| Question                                      | What it controls                                                                              |
-|-----------------------------------------------|-----------------------------------------------------------------------------------------------|
-| Container images or Maven packages?           | Determines which pipeline shape and filter logic to use                                       |
-| How many days to keep?                        | Maps to `threshold-days`. Default: `7` — apply without asking unless user specifies otherwise |
-| Any tags/versions that must never be deleted? | Maps to `excluded-tags` (container) or `excluded-patterns` (Maven)                            |
+| Question | What it controls |
+| --- | --- |
+| Container images or Maven packages? | Determines which pipeline shape and filter logic to use |
+| How many days to keep? | Maps to `threshold-days`. Default: `7` — apply without asking unless user specifies otherwise |
+| Any tags/versions that must never be deleted? | Maps to `excluded-tags` (container) or `excluded-patterns` (Maven) |
 
 ---
 
@@ -97,8 +97,7 @@ on:
         type: boolean
 ```
 
-**Always set `dry-run: true` as the `workflow_dispatch` default.** Operators preview before committing to deletion.
-Scheduled runs can use `false` after filters are validated.
+**Always set `dry-run: true` as the `workflow_dispatch` default.** Operators preview before committing to deletion. Scheduled runs can use `false` after filters are validated.
 
 ---
 
@@ -115,12 +114,12 @@ No org template — build from scratch.
 
 ### Common Maven use cases
 
-| Goal                                 | Configuration                                              |
-|--------------------------------------|------------------------------------------------------------|
-| Delete old SNAPSHOTs (default)       | No patterns needed — `*SNAPSHOT*` is the automatic default |
-| Delete old SNAPSHOTs but keep last 3 | `threshold-versions: 3`                                    |
-| Delete specific release versions     | `included-patterns: "1.0.*"`                               |
-| Protect a specific version           | `excluded-patterns: "1.2.3-SNAPSHOT"`                      |
+| Goal | Configuration |
+| --- | --- |
+| Delete old SNAPSHOTs (default) | No patterns needed — `*SNAPSHOT*` is the automatic default |
+| Delete old SNAPSHOTs but keep last 3 | `threshold-versions: 3` |
+| Delete specific release versions | `included-patterns: "1.0.*"` |
+| Protect a specific version | `excluded-patterns: "1.2.3-SNAPSHOT"` |
 
 ### Pipeline shape (Maven)
 
@@ -162,16 +161,16 @@ on:
 
 ## Inputs reference
 
-| Input                | Action default | Description                                                                        |
-|----------------------|----------------|------------------------------------------------------------------------------------|
-| `package-type`       | `container`    | `container` or `maven`                                                             |
-| `threshold-days`     | `7`            | Delete versions older than this many days                                          |
-| `threshold-versions` | `1`            | *(Maven only)* Keep this many newest versions per package                          |
-| `included-tags`      | `""`           | *(Container)* Only delete versions matching these tags. Wildcard `*`/`?` supported |
-| `excluded-tags`      | `""`           | *(Container)* Never delete versions matching these tags                            |
-| `included-patterns`  | `""`           | *(Maven)* Candidates for deletion. When empty: `*SNAPSHOT*` applied automatically  |
-| `excluded-patterns`  | `""`           | *(Maven)* Never delete versions matching these patterns                            |
-| `dry-run`            | `false`        | Print what would be deleted without actually deleting                              |
-| `debug`              | `true`         | Extra debug logs — set `false` in production to reduce noise                       |
-| `batch-size`         | `15`           | Parallel deletion threads per package                                              |
-| `max-errors`         | `5`            | Stop after this many errors                                                        |
+| Input | Action default | Description |
+| --- | --- | --- |
+| `package-type` | `container` | `container` or `maven` |
+| `threshold-days` | `7` | Delete versions older than this many days |
+| `threshold-versions` | `1` | *(Maven only)* Keep this many newest versions per package |
+| `included-tags` | `""` | *(Container)* Only delete versions matching these tags. Wildcard `*`/`?` supported |
+| `excluded-tags` | `""` | *(Container)* Never delete versions matching these tags |
+| `included-patterns` | `""` | *(Maven)* Candidates for deletion. When empty: `*SNAPSHOT*` applied automatically |
+| `excluded-patterns` | `""` | *(Maven)* Never delete versions matching these patterns |
+| `dry-run` | `false` | Print what would be deleted without actually deleting |
+| `debug` | `true` | Extra debug logs — set `false` in production to reduce noise |
+| `batch-size` | `15` | Parallel deletion threads per package |
+| `max-errors` | `5` | Stop after this many errors |

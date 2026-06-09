@@ -36,16 +36,14 @@ this question and go straight to *Path A*.
 Read the workflow and any config files it references. Load the relevant
 domain guide (`docker.md`/`helm.md`/`security.md`/`release.md`) from
 `qubership-actions-guide` and use its migration table. Ask only about what
-is missing after reading. Return the full updated workflow file — preserve existing structure, change only what needs
-changing.
+is missing after reading. Return the full updated workflow file — preserve existing structure, change only what needs changing.
 
 ### Path B — starting from scratch
 
 Hand off to `qubership-actions-guide` Step 1 — it routes to the relevant
 domain guide (`docker.md`/`helm.md`/`security.md`/`release.md`) or returns
 to the catalog for operations without a guide (Maven, npm, Python, Cleanup).
-Clarifying questions for catalog-only operations live in the catalog (see `qubership-actions-guide` → *Publishing* /
-*Cleanup*).
+Clarifying questions for catalog-only operations live in the catalog (see `qubership-actions-guide` → *Publishing* / *Cleanup*).
 
 **Infer the trigger from the request** — do not ask unless truly ambiguous.
 See `workflow-patterns.md` → *Trigger rules* for the three standard patterns.
@@ -54,10 +52,7 @@ See `workflow-patterns.md` → *Trigger rules* for the three standard patterns.
 
 After *Clarify before acting*:
 
-1. **Read `qubership-templates-guide/SKILL.md` and search the catalog for a matching template.** Do this when creating a
-   new workflow or restructuring an existing one (changing jobs, triggers, or pipeline shape). Skip for small targeted
-   edits (adding a timeout, changing a branch filter, updating an input value). If a match is found: show the user which
-   template, use it as the base. If no match: proceed from scratch using actions-guide.
+1. **Read `qubership-templates-guide/SKILL.md` and search the catalog for a matching template.** Do this when creating a new workflow or restructuring an existing one (changing jobs, triggers, or pipeline shape). Skip for small targeted edits (adding a timeout, changing a branch filter, updating an input value). If a match is found: show the user which template, use it as the base. If no match: proceed from scratch using actions-guide.
 2. **Hand off to `qubership-actions-guide` Step 1** — it loads the domain
    guide and picks actions. Use Pin table for SHAs. Fall back to standard
    actions only when no Qubership action fits.
@@ -184,8 +179,7 @@ Read these files when relevant:
 Match the user's language. Translate section headers; keep YAML, paths,
 action identifiers unchanged.
 
-Always return a complete, copy-paste-ready workflow file — not a partial snippet, unless the user explicitly asks for
-one.
+Always return a complete, copy-paste-ready workflow file — not a partial snippet, unless the user explicitly asks for one.
 
 Structure:
 

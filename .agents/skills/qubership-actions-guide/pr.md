@@ -5,25 +5,20 @@
 Extract answers from the user's message first. Ask only what is missing.
 Trigger and runner are inferred per `workflow-patterns.md` → *Trigger rules* — do not ask.
 
-Before asking — check whether a CODEOWNERS file exists in the repo. The action searches three locations in order:
-`.github/CODEOWNERS`, `CODEOWNERS` (repo root), `docs/CODEOWNERS`. If any of these exists, use CODEOWNERS mode and do
-not ask. Only ask if none of the three exist or the user explicitly requests a config-file override.
+Before asking — check whether a CODEOWNERS file exists in the repo. The action searches three locations in order: `.github/CODEOWNERS`, `CODEOWNERS` (repo root), `docs/CODEOWNERS`. If any of these exists, use CODEOWNERS mode and do not ask. Only ask if none of the three exist or the user explicitly requests a config-file override.
 
-| Question                      | What it controls                                                                            |
-|-------------------------------|---------------------------------------------------------------------------------------------|
+| Question | What it controls |
+| --- | --- |
 | How many reviewers to assign? | Maps to `shuffle` input. Default: 1 — apply without asking unless user specifies otherwise. |
 
 ---
 
 ## `pr-assigner`
 
-Auto-assigns reviewers to PRs. **Prefer CODEOWNERS** — it is the zero-config path and is already the standard for most
-repos. Use the config file only when CODEOWNERS doesn't exist or you need to override the reviewer pool for a specific
-repo.
+Auto-assigns reviewers to PRs. **Prefer CODEOWNERS** — it is the zero-config path and is already the standard for most repos. Use the config file only when CODEOWNERS doesn't exist or you need to override the reviewer pool for a specific repo.
 
 **Trigger:** `pull_request` (opened, reopened, synchronize) — NOT `pull_request_target`.
-`pull_request_target` is only needed when secrets are required from fork PRs. `pr-assigner` only needs
-`pull-requests: write` which is available on `pull_request`.
+`pull_request_target` is only needed when secrets are required from fork PRs. `pr-assigner` only needs `pull-requests: write` which is available on `pull_request`.
 
 **Permissions:** `pull-requests: write`, `contents: read`
 
@@ -62,18 +57,18 @@ assignees:
 count: 2
 ```
 
-| Field       | Description                                           |
-|-------------|-------------------------------------------------------|
+| Field | Description |
+| --- | --- |
 | `assignees` | **Required.** List of GitHub usernames to assign from |
-| `count`     | **Required.** Number of reviewers to assign           |
+| `count` | **Required.** Number of reviewers to assign |
 
 ### Key inputs
 
-| Input                | Description                                                                                   |
-|----------------------|-----------------------------------------------------------------------------------------------|
-| `shuffle`            | Number of assignees to assign — overrides config `count`                                      |
-| `configuration-path` | Path to config file. Default: `.github/pr-assigner-config.yml`                                |
-| `self-assign`        | `true` — allow PR author to be assigned if they appear in the assignee list. Default: `false` |
+| Input | Description |
+| --- | --- |
+| `shuffle` | Number of assignees to assign — overrides config `count` |
+| `configuration-path` | Path to config file. Default: `.github/pr-assigner-config.yml` |
+| `self-assign` | `true` — allow PR author to be assigned if they appear in the assignee list. Default: `false` |
 
 ### Pipeline
 
@@ -90,9 +85,7 @@ uses: netcracker/qubership-workflow-hub/actions/pr-assigner@<sha>  # vX.Y.Z
 
 ### Fork safety note
 
-For fork PRs the action skips silently — write permissions are not available on fork PRs with `pull_request` trigger.
-This is expected behaviour. If assignment for fork PRs is needed, use `pull_request_target` with an explicit fork check
-step before the action.
+For fork PRs the action skips silently — write permissions are not available on fork PRs with `pull_request` trigger. This is expected behaviour. If assignment for fork PRs is needed, use `pull_request_target` with an explicit fork check step before the action.
 
 ---
 
