@@ -47,7 +47,7 @@ public class BuildMojo extends AbstractTransformMojo {
 
         BuildService service = new BuildService(
                 getLog(),
-                new FlowReader(new ObjectMapper()),
+                new FlowReader(new ObjectMapper(), config),
                 new FlowWriter(new ObjectMapper()),
                 new FileSystemService(),
                 new PropertyResolver(getLog()),

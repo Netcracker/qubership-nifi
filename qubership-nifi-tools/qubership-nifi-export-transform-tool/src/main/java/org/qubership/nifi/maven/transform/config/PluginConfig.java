@@ -3,6 +3,8 @@ package org.qubership.nifi.maven.transform.config;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Root model of the plugin configuration YAML file.
@@ -11,9 +13,13 @@ import java.util.Optional;
 public class PluginConfig {
 
     private final List<ProcessorTypeConfig> processorTypes;
+    private final Set<String> processorTypeFqns;
 
     public PluginConfig(List<ProcessorTypeConfig> processorTypes) {
         this.processorTypes = Collections.unmodifiableList(processorTypes);
+        this.processorTypeFqns = processorTypes.stream()
+                .map(ProcessorTypeConfig::getProcessorTypeFqn)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     /**
@@ -23,6 +29,16 @@ public class PluginConfig {
      */
     public List<ProcessorTypeConfig> getProcessorTypes() {
         return processorTypes;
+    }
+
+    /**
+     * Returns the set of processor type FQNs defined in the config file.
+     * Pre-computed once at construction time.
+     *
+     * @return unmodifiable set of processor type FQNs
+     */
+    public Set<String> getProcessorTypeFqns() {
+        return processorTypeFqns;
     }
 
     /**

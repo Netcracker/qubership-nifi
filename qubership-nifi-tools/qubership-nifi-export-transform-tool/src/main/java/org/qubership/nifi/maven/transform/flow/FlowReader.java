@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -24,25 +23,28 @@ public class FlowReader {
     private static final String FLOW_CONF_PREFIX = "flowConf_";
 
     private final ObjectMapper jsonMapper;
+    private final Set<String> configuredTypes;
 
-    public FlowReader(final ObjectMapper jsonMapper) {
+    /**
+     * Creates a FlowReader that uses the given Jackson mapper for JSON parsing.
+     *
+     * @param jsonMapper Jackson ObjectMapper used to parse flow JSON files
+     * @param config     plugin config; processor type FQNs are pre-computed once here
+     */
+    public FlowReader(final ObjectMapper jsonMapper, final PluginConfig config) {
         this.jsonMapper = jsonMapper;
+        this.configuredTypes = config.getProcessorTypeFqns();
     }
 
     /**
      * Reads a single JSON file and builds a FlowFile.
      *
      * @param flowFilePath path to the flow JSON file
-     * @param config       plugin config used to filter processor types
      * @return parsed FlowFile with object model, mutable JSON tree and processorsByType map
      * @throws IOException              if the file cannot be read or contains invalid JSON
      * @throws IllegalArgumentException if "flowContents" is missing from the JSON
      */
-    public FlowFile read(Path flowFilePath, PluginConfig config) throws IOException {
-        Set<String> configuredTypes = config.getProcessorTypes().stream()
-                .map(t -> t.getProcessorTypeFqn())
-                .collect(Collectors.toSet());
-
+    public FlowFile read(Path flowFilePath) throws IOException {
         JsonNode rootNode = jsonMapper.readTree(flowFilePath.toFile());
 
         JsonNode flowContentsNode = rootNode.get("flowContents");
@@ -53,7 +55,7 @@ public class FlowReader {
 
         Map<String, List<Processor>> processorsByType = new HashMap<>();
         ProcessGroup rootGroup = parseProcessGroup(
-                flowContentsNode, null, configuredTypes, processorsByType);
+                flowContentsNode, null, processorsByType);
 
         return new FlowFile(flowFilePath, rootNode, rootGroup, processorsByType);
     }
@@ -81,12 +83,10 @@ public class FlowReader {
      *
      * @param node             JSON node of the group
      * @param parent           parent group, or null for the root group
-     * @param configuredTypes  set of processor type FQNs defined in the config
      * @param processorsByType accumulator map being built during traversal
      */
     private ProcessGroup parseProcessGroup(JsonNode node,
                                            ProcessGroup parent,
-                                           Set<String> configuredTypes,
                                            Map<String, List<Processor>> processorsByType) {
         String name = getTextOrEmpty(node, "name");
         String identifier = getTextOrEmpty(node, "identifier");
@@ -100,8 +100,8 @@ public class FlowReader {
                 name, identifier, processors, children, parent, versioned);
 
         if (!versioned) {
-            parseProcessors(node, group, processors, configuredTypes, processorsByType);
-            parseChildren(node, group, children, configuredTypes, processorsByType);
+            parseProcessors(node, group, processors, processorsByType);
+            parseChildren(node, group, children, processorsByType);
         }
 
         return group;
@@ -115,7 +115,6 @@ public class FlowReader {
     private void parseProcessors(JsonNode groupNode,
                                  ProcessGroup group,
                                  List<Processor> processors,
-                                 Set<String> configuredTypes,
                                  Map<String, List<Processor>> processorsByType) {
         JsonNode processorsNode = groupNode.get("processors");
         if (processorsNode == null || !processorsNode.isArray()) {
@@ -139,14 +138,13 @@ public class FlowReader {
     private void parseChildren(JsonNode groupNode,
                                ProcessGroup group,
                                List<ProcessGroup> children,
-                               Set<String> configuredTypes,
                                Map<String, List<Processor>> processorsByType) {
         JsonNode childrenNode = groupNode.get("processGroups");
         if (childrenNode == null || !childrenNode.isArray()) {
             return;
         }
         for (JsonNode childNode : childrenNode) {
-            children.add(parseProcessGroup(childNode, group, configuredTypes, processorsByType));
+            children.add(parseProcessGroup(childNode, group, processorsByType));
         }
     }
 
@@ -184,6 +182,14 @@ public class FlowReader {
         return false;
     }
 
+    /**
+     * Returns the text value of the named field, or an empty string if the field
+     * is absent or null.
+     *
+     * @param node      JSON node to read from
+     * @param fieldName name of the field to retrieve
+     * @return text value of the field, or "" if absent or null
+     */
     private String getTextOrEmpty(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
         return (field != null && !field.isNull()) ? field.asText() : "";

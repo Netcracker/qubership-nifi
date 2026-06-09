@@ -1,61 +1,113 @@
 package org.qubership.nifi.maven.transform.flow;
 
 import org.qubership.nifi.maven.transform.config.PluginConfig;
-import org.qubership.nifi.maven.transform.exception.ExtractException;
+import org.qubership.nifi.maven.transform.config.PropertyMapping;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Validates the structural integrity of a flow before the Extract operation.
  *
- * Ensures that all target processors (whose types are defined in the config)
- * have unique full paths within the flow.
+ * Checks that all target processors have unique full paths within the flow,
+ * that all path segments contain only characters valid in file system paths,
+ * and that regex property mappings match exactly one property per processor.
  */
 public class FlowValidator {
 
+    private static final Pattern INVALID_CHARS = Pattern.compile("[/\\\\:*?\"<>|]");
+
     /**
-     * Validates that all processors of configured types have unique full paths in the flow.
-     * Called only during Extract — not needed during Build.
+     * Validates all processors of configured types in the given flow.
+     * All errors across all configured types are collected and returned,
+     * so the caller sees every problem in a single run.
      *
      * @param flow   flow to validate, must contain a pre-built processorsByType map
      * @param config plugin config defining which processor types to handle
-     * @throws ExtractException if two processors of the same configured type
-     *                          produce identical file paths
+     * @return list of validation error messages; empty if the flow is valid
      */
-    public void validateNamesUniqueness(FlowFile flow, PluginConfig config)
-            throws ExtractException {
+    public List<String> validate(FlowFile flow, PluginConfig config) {
+        List<String> errors = new ArrayList<>();
 
         for (var typeConfig : config.getProcessorTypes()) {
             String typeFqn = typeConfig.getProcessorTypeFqn();
             List<Processor> processors = flow.getProcessorsByType(typeFqn);
-            checkUniqueProcessorPaths(processors, typeFqn);
+            collectDuplicatePaths(processors, typeFqn, errors);
+        }
+
+        collectInvalidSegments(flow, config, errors);
+        collectAmbiguousRegexMappings(flow, config, errors);
+
+        return errors;
+    }
+
+    private void collectDuplicatePaths(List<Processor> processors, String typeFqn,
+                                       List<String> errors) {
+        Map<String, String> seenPaths = new HashMap<>();
+
+        for (Processor processor : processors) {
+            String fullPath = processor.getFullPath();
+            String existingId = seenPaths.putIfAbsent(fullPath, processor.getIdentifier());
+
+            if (existingId != null) {
+                errors.add(String.format(
+                        "Duplicate processor path '%s' for type '%s': "
+                                + "processor '%s' and processor '%s' produce the same path. "
+                                + "Processors of the same type must have unique paths "
+                                + "(group segments + processor name) within the flow, "
+                                + "because the path is used as the directory structure during Extract.",
+                        fullPath, typeFqn, existingId, processor.getIdentifier()));
+            }
         }
     }
 
-    /**
-     * Checks that all processors of the given type have unique full paths.
-     */
-    private void checkUniqueProcessorPaths(List<Processor> processors, String typeFqn)
-            throws ExtractException {
+    private void collectInvalidSegments(FlowFile flow, PluginConfig config,
+                                        List<String> errors) {
+        validateSegment(flow.getFlowName(), "flow name", errors);
 
-        Set<String> seenPaths = new HashSet<>();
+        for (var typeConfig : config.getProcessorTypes()) {
+            for (Processor processor : flow.getProcessorsByType(typeConfig.getProcessorTypeFqn())) {
+                for (String segment : processor.getParentGroup().getPathSegments()) {
+                    validateSegment(segment, "process group name", errors);
+                }
+                validateSegment(processor.getName(), "processor name", errors);
+            }
+        }
+    }
 
-        for (Processor processor : processors) {
-            List<String> segments = new ArrayList<>(
-                    processor.getParentGroup().getPathSegments());
-            segments.add(processor.getName());
-            String fullPath = String.join(" / ", segments);
+    private void validateSegment(String segment, String segmentType, List<String> errors) {
+        if (INVALID_CHARS.matcher(segment).find()) {
+            errors.add(String.format(
+                    "Invalid characters in %s '%s'. "
+                            + "The following characters are not allowed in file system paths: "
+                            + "/ \\ : * ? \" < > |",
+                    segmentType, segment));
+        }
+    }
 
-            if (!seenPaths.add(fullPath)) {
-                throw new ExtractException(String.format(
-                        "Duplicate processor path '%s' for type '%s'. " +
-                                "Processors of the same type must have unique paths " +
-                                "(group segments + processor name) within the flow, " +
-                                "because the path is used as the directory structure during Extract.",
-                        fullPath, typeFqn));
+    private void collectAmbiguousRegexMappings(FlowFile flow, PluginConfig config,
+                                               List<String> errors) {
+        for (var typeConfig : config.getProcessorTypes()) {
+            for (Processor processor : flow.getProcessorsByType(typeConfig.getProcessorTypeFqn())) {
+                for (PropertyMapping mapping : typeConfig.getPropertyMappings()) {
+                    if (mapping.isRegex()) {
+                        List<ProcessorProperty> matches = processor.findPropertiesByRegex(
+                                mapping.getCompiledPattern());
+                        if (matches.size() > 1) {
+                            List<String> matchedNames = matches.stream()
+                                    .map(ProcessorProperty::getName)
+                                    .toList();
+                            errors.add(String.format(
+                                    "Regex '%s' matches multiple properties %s in processor '%s'. "
+                                            + "The pattern must match exactly one property.",
+                                    mapping.getPropertyNameOrRegex(), matchedNames,
+                                    processor.getName()));
+                        }
+                    }
+                }
             }
         }
     }

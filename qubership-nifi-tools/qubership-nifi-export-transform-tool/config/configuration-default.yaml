@@ -1,37 +1,37 @@
 processorTypes:
   - org.apache.nifi.processors.standard.ExecuteSQL:
-      SQL Query: sql_query.sql
+      sql_query.sql: SQL Query
   - org.apache.nifi.processors.standard.ExecuteSQLRecord:
-      SQL Query: sql_query.sql
+      sql_query.sql: SQL Query
   - org.apache.nifi.processors.standard.QueryDatabaseTable:
-      Custom Query: custom_query.sql
+      custom_query.sql: Custom Query
   - org.apache.nifi.processors.standard.QueryDatabaseTableRecord:
-      Custom Query: custom_query.sql
+      custom_query.sql: Custom Query
   - org.qubership.nifi.processors.extract.QueryDatabaseToCSV:
-      custom-query: custom_query.sql
+      custom_query.sql: custom-query
   - org.qubership.nifi.processors.QueryDatabaseToJson:
-      db-fetch-sql-query: sql_query.sql
+      sql_query.sql: db-fetch-sql-query
   - org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge:
-      db-fetch-sql-query: sql_query.sql
+      sql_query.sql: db-fetch-sql-query
   - org.qubership.nifi.processors.QueryIdsAndFetchTableToJson:
-      custom-query: custom_query.sql
+      custom_query.sql: custom-query
   - org.apache.nifi.processors.standard.PutSQL:
-      SQL Statement: sql_statement.sql
+      sql_statement.sql: SQL Statement
   - org.qubership.nifi.processors.PutSQLRecord:
-      sql-statement: sql_statement.sql
+      sql_statement.sql: sql-statement
   - org.qubership.nifi.processors.FetchTableToJson:
-      custom-query: custom_query.sql
+      custom_query.sql: custom-query
   - org.apache.nifi.processors.groovyx.ExecuteGroovyScript:
-      Script Body: script_body.groovy
+      script_body.groovy: Script Body
   - org.apache.nifi.processors.script.ExecuteScript:
-      Script Body: script_body.groovy
+      script_body.groovy: Script Body
   - org.apache.nifi.processors.script.InvokeScriptedProcessor:
-      Script Body: script_body.groovy
+      script_body.groovy: Script Body
   - org.apache.nifi.processors.script.ScriptedTransformRecord:
-      Script Body: script_body.groovy
+      script_body.groovy: Script Body
   - org.qubership.nifi.processors.PostgreSQLBulkLoader:
-      sql-query: sql_query.sql
+      sql_query.sql: sql-query
   - org.apache.nifi.processors.jolt.JoltTransformJSON:
-      Jolt Specification: jolt_spec.json
+      jolt_spec.json: Jolt Specification
   - org.apache.nifi.processors.jolt.JoltTransformRecord:
-      Jolt Specification: jolt_spec.json
+      jolt_spec.json: Jolt Specification

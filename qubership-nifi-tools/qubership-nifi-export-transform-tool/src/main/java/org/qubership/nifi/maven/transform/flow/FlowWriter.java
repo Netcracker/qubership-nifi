@@ -11,7 +11,7 @@ public class FlowWriter {
 
     private final ObjectMapper jsonMapper;
 
-    public FlowWriter(ObjectMapper jsonMapper) {
+    public FlowWriter(final ObjectMapper jsonMapper) {
         this.jsonMapper = jsonMapper;
     }
 
@@ -23,8 +23,6 @@ public class FlowWriter {
      * @throws IOException if the file cannot be written
      */
     public void write(FlowFile flow) throws IOException {
-        jsonMapper
-                .writerWithDefaultPrettyPrinter()
-                .writeValue(flow.getFilePath().toFile(), flow.getRootNode());
+        jsonMapper.writeValue(flow.getFilePath().toFile(), flow.getRootNode());
     }
 }

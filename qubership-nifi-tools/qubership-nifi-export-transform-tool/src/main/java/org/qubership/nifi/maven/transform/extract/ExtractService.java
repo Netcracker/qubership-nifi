@@ -84,25 +84,25 @@ public class ExtractService {
         List<Path> flowPaths = flowReader.findFlowPaths(exportDir);
         log.info("Found " + flowPaths.size() + " flow file(s) to process");
 
-        List<ExtractException> collectedErrors = new ArrayList<>();
+        List<String> collectedErrors = new ArrayList<>();
 
         for (Path flowPath : flowPaths) {
-            FlowFile flow = flowReader.read(flowPath, config);
+            FlowFile flow = flowReader.read(flowPath);
             log.info("Processing flow: " + flow.getFlowName());
 
-            try {
-                flowValidator.validateNamesUniqueness(flow, config);
-            } catch (ExtractException e) {
-                collectedErrors.add(e);
+            List<String> conflicts = flowValidator.validate(flow, config);
+            if (!conflicts.isEmpty()) {
+                collectedErrors.addAll(conflicts);
                 log.debug("Skipping flow '" + flow.getFlowName()
-                        + "' due to validation error: " + e.getMessage());
+                        + "' due to " + conflicts.size() + " validation error(s).");
                 continue;
             }
 
-            boolean flowHasErrors = processFlow(flow, config, collectedErrors);
-
-            if (!flowHasErrors) {
+            int modified = processFlow(flow, config);
+            if (modified > 0) {
                 flowWriter.write(flow);
+            } else {
+                log.debug("Flow '" + flow.getFlowName() + "' had no properties to extract, skipping write.");
             }
         }
 
@@ -112,84 +112,69 @@ public class ExtractService {
 
     /**
      * Processes a single flow file against all processor type configurations.
-     * <p>
-     * For each processor type defined in the config, finds all matching processors
-     * in the flow and extracts the configured properties from each of them.
-     * If no processors of a given type are found in the flow, the type is skipped silently.
-     * <p>
-     * ExtractExceptions thrown during extraction are not propagated —
-     * they are collected into collectedErrors so that processing continues
-     * for remaining processors and types.
      *
-     * @param flow            the flow file to process
-     * @param config          the plugin config defining which processor types and properties to extract
-     * @param collectedErrors mutable list to which any ExtractExceptions are appended
-     * @return true if at least one error was added to collectedErrors
-     *         during this call, false if the flow was processed without errors
+     * If an IOException occurs mid-flow, all files written so far for this flow
+     * are deleted before the exception is rethrown, preventing a partial on-disk
+     * state where extracted files exist but the flow JSON was never updated.
+     *
+     * @param flow   the flow file to process
+     * @param config the plugin config defining which processor types and properties to extract
+     * @return number of properties actually extracted (property.setValue called)
      * @throws IOException if a property value file cannot be written
      */
-    private boolean processFlow(FlowFile flow, PluginConfig config,
-                                List<ExtractException> collectedErrors)
-            throws IOException {
+    private int processFlow(FlowFile flow, PluginConfig config) throws IOException {
+        int modified = 0;
+        List<Path> writtenFiles = new ArrayList<>();
 
-        int errorsBefore = collectedErrors.size();
+        try {
+            for (ProcessorTypeConfig typeConfig : config.getProcessorTypes()) {
+                List<Processor> processors = flow.getProcessorsByType(
+                        typeConfig.getProcessorTypeFqn());
 
-        for (ProcessorTypeConfig typeConfig : config.getProcessorTypes()) {
-            List<Processor> processors = flow.getProcessorsByType(
-                    typeConfig.getProcessorTypeFqn());
+                if (processors.isEmpty()) {
+                    log.debug("No processors of type '" + typeConfig.getProcessorTypeFqn()
+                            + "' found in flow '" + flow.getFlowName() + "'");
+                    continue;
+                }
 
-            if (processors.isEmpty()) {
-                log.debug("No processors of type '" + typeConfig.getProcessorTypeFqn()
-                        + "' found in flow '" + flow.getFlowName() + "'");
-                continue;
-            }
-
-            for (Processor processor : processors) {
-                for (PropertyMapping mapping : typeConfig.getPropertyMappings()) {
-                    try {
-                        extractFromProcessor(flow, processor, mapping);
-                    } catch (ExtractException e) {
-                        collectedErrors.add(e);
-                        log.debug("Skipping processor '" + processor.getName()
-                                + "' due to error: " + e.getMessage());
+                for (Processor processor : processors) {
+                    for (PropertyMapping mapping : typeConfig.getPropertyMappings()) {
+                        if (extractFromProcessor(flow, processor, mapping, writtenFiles)) {
+                            modified++;
+                        }
                     }
                 }
             }
+        } catch (IOException e) {
+            cleanupPartialFiles(writtenFiles, flow.getFlowName());
+            throw e;
         }
 
-        return collectedErrors.size() > errorsBefore;
+        return modified;
     }
 
     /**
      * Extracts a single property from a single processor and writes its value to a file.
-     * <p>
-     * The method performs the following steps:
-     * <ol>
-     *   <li>Resolves the target property by exact name or regex via PropertyResolver.</li>
-     *   <li>Skips with a warning if the property is not set in the processor.</li>
-     *   <li>Skips with a warning if the value is already a file reference (starts with "@").</li>
-     *   <li>Skips with a warning if the value is empty or blank.</li>
-     *   <li>Writes the property value to the target file on disk.</li>
-     *   <li>Replaces the property value in the JSON tree with a @relative/path reference.</li>
-     * </ol>
+     * On success, adds the written file path to writtenFiles so the caller can clean up
+     * partial state if a later IOException interrupts the flow.
      *
-     * @param flow      the flow file containing the processor
-     * @param processor the processor whose property is being extracted
-     * @param mapping   the property mapping from the config (name or regex → target filename)
-     * @throws ExtractException if the flow name, group name, or processor name contains
-     *                          characters not allowed in file system paths,
-     *                          or if a regex pattern matches more than one property
-     * @throws IOException      if the target file or its parent directories cannot be created or written
+     * @param flow         the flow file containing the processor
+     * @param processor    the processor whose property is being extracted
+     * @param mapping      the property mapping from the config (name or regex → target filename)
+     * @param writtenFiles accumulator of file paths written so far for this flow
+     * @return true if the property value was extracted and replaced with a reference
+     * @throws IOException if the target file or its parent directories cannot be created or written
      */
-    private void extractFromProcessor(FlowFile flow,
-                                      Processor processor,
-                                      PropertyMapping mapping)
-            throws ExtractException, IOException {
+    private boolean extractFromProcessor(FlowFile flow,
+                                         Processor processor,
+                                         PropertyMapping mapping,
+                                         List<Path> writtenFiles)
+            throws IOException {
 
         Optional<ProcessorProperty> propertyOpt = propertyResolver.resolve(processor, mapping);
 
         if (propertyOpt.isEmpty()) {
-            return;
+            return false;
         }
 
         ProcessorProperty property = propertyOpt.get();
@@ -198,14 +183,14 @@ public class ExtractService {
             log.warn(String.format(
                     "Property '%s' of processor '%s' already contains a reference (%s). Skipping.",
                     property.getName(), processor.getName(), property.getValue()));
-            return;
+            return false;
         }
 
         if (property.isEmpty()) {
             log.warn(String.format(
                     "Property '%s' of processor '%s' is empty or null. Skipping file creation.",
                     property.getName(), processor.getName()));
-            return;
+            return false;
         }
 
         Path targetFile = referenceBuilder.buildAbsoluteFilePath(
@@ -215,27 +200,51 @@ public class ExtractService {
 
         fileSystem.createDirectories(targetFile.getParent());
         fileSystem.writeText(targetFile, property.getValue());
+        writtenFiles.add(targetFile);
         property.setValue(reference);
 
         log.info(String.format("Extracted property '%s' of processor '%s' to %s",
                 property.getName(), processor.getName(), targetFile));
+        return true;
+    }
+
+    /**
+     * Deletes files written so far for a flow that failed with an IOException.
+     * Cleanup failures are logged as warnings and do not suppress the original exception.
+     *
+     * @param writtenFiles files to delete
+     * @param flowName     name of the flow, used in log messages
+     */
+    private void cleanupPartialFiles(List<Path> writtenFiles, String flowName) {
+        if (writtenFiles.isEmpty()) {
+            return;
+        }
+        log.warn("IOException during extraction of flow '" + flowName
+                + "', cleaning up " + writtenFiles.size() + " partially written file(s).");
+        for (Path file : writtenFiles) {
+            try {
+                fileSystem.deleteIfExists(file);
+            } catch (IOException ex) {
+                log.warn("Failed to clean up partial file '" + file + "': " + ex.getMessage());
+            }
+        }
     }
 
     /**
      * Logs all collected errors and throws a single ExtractException summarizing the failures.
      * Each error is logged individually so the user can see all problems at once.
      *
-     * @param errors list of collected extraction errors
+     * @param errors list of collected validation error messages
      * @throws ExtractException if the list is not empty
      */
-    private void reportErrors(List<ExtractException> errors) throws ExtractException {
+    private void reportErrors(List<String> errors) throws ExtractException {
         if (errors.isEmpty()) {
             return;
         }
 
         log.error("Extract completed with " + errors.size() + " error(s):");
         for (int i = 0; i < errors.size(); i++) {
-            log.error("  [" + (i + 1) + "] " + errors.get(i).getMessage());
+            log.error("  [" + (i + 1) + "] " + errors.get(i));
         }
 
         throw new ExtractException(

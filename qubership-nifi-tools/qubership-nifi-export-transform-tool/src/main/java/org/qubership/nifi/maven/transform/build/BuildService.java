@@ -5,7 +5,6 @@ import org.qubership.nifi.maven.transform.config.PluginConfig;
 import org.qubership.nifi.maven.transform.config.ProcessorTypeConfig;
 import org.qubership.nifi.maven.transform.config.PropertyMapping;
 import org.qubership.nifi.maven.transform.exception.BuildException;
-import org.qubership.nifi.maven.transform.exception.ExtractException;
 import org.qubership.nifi.maven.transform.flow.FlowFile;
 import org.qubership.nifi.maven.transform.flow.FlowReader;
 import org.qubership.nifi.maven.transform.flow.FlowWriter;
@@ -82,13 +81,17 @@ public class BuildService {
         List<BuildException> collectedErrors = new ArrayList<>();
 
         for (Path flowPath : flowPaths) {
-            FlowFile flow = flowReader.read(flowPath, config);
+            FlowFile flow = flowReader.read(flowPath);
             log.info("Processing flow: " + flow.getFlowName());
 
-            boolean flowHasErrors = processFlow(flow, config, collectedErrors);
+            int errorsBefore = collectedErrors.size();
+            int modified = processFlow(flow, config, collectedErrors);
+            boolean flowHasErrors = collectedErrors.size() > errorsBefore;
 
-            if (!flowHasErrors) {
+            if (!flowHasErrors && modified > 0) {
                 flowWriter.write(flow);
+            } else if (!flowHasErrors) {
+                log.debug("Flow '" + flow.getFlowName() + "' had no properties to build, skipping write.");
             }
         }
 
@@ -104,13 +107,13 @@ public class BuildService {
      * Processes a single flow file: for each processor type defined in the config,
      * restores property values from extracted files.
      *
-     * @return true if any errors were collected during processing of this flow
+     * @return number of properties actually restored (property.setValue called)
      */
-    private boolean processFlow(FlowFile flow, PluginConfig config,
-                                 List<BuildException> collectedErrors)
+    private int processFlow(FlowFile flow, PluginConfig config,
+                             List<BuildException> collectedErrors)
             throws IOException {
 
-        int errorsBefore = collectedErrors.size();
+        int modified = 0;
 
         for (ProcessorTypeConfig typeConfig : config.getProcessorTypes()) {
             List<Processor> processors = flow.getProcessorsByType(
@@ -125,12 +128,14 @@ public class BuildService {
             for (Processor processor : processors) {
                 for (PropertyMapping mapping : typeConfig.getPropertyMappings()) {
                     try {
-                        buildFromProcessor(flow, processor, mapping);
+                        if (buildFromProcessor(flow, processor, mapping)) {
+                            modified++;
+                        }
                     } catch (BuildException e) {
                         collectedErrors.add(e);
                         log.debug(String.format(
-                                "Skipping processor '%s' (id: %s, group: '%s', groupId: %s, " +
-                                        "flow: '%s', flowPath: '%s') due to error: %s",
+                                "Skipping processor '%s' (id: %s, group: '%s', groupId: %s, "
+                                        + "flow: '%s', flowPath: '%s') due to error: %s",
                                 processor.getName(),
                                 processor.getIdentifier(),
                                 processor.getParentGroup().getName(),
@@ -143,7 +148,7 @@ public class BuildService {
             }
         }
 
-        return collectedErrors.size() > errorsBefore;
+        return modified;
     }
 
     /**
@@ -151,40 +156,36 @@ public class BuildService {
      * - resolves the property by name or regex
      * - if property is a reference: reads file content and writes it back to property
      * - if property is an inline value: checks for conflict with existing extracted file
-     * - if property is empty: skips with a warning
+     * - if property is empty or not found: skips with a warning
      *
+     * @return true if the property value was restored (property.setValue called)
      * @throws BuildException if the referenced file does not exist,
      *                        or an inline value conflicts with an existing extracted file
      */
-    private void buildFromProcessor(FlowFile flow,
-                                     Processor processor,
-                                     PropertyMapping mapping)
+    private boolean buildFromProcessor(FlowFile flow,
+                                        Processor processor,
+                                        PropertyMapping mapping)
             throws BuildException, IOException {
 
-        Optional<ProcessorProperty> propertyOpt;
-        try {
-            propertyOpt = propertyResolver.resolve(processor, mapping);
-        } catch (ExtractException e) {
-            throw new BuildException(e.getMessage(), e);
-        }
+        Optional<ProcessorProperty> propertyOpt = propertyResolver.resolve(processor, mapping);
 
         if (propertyOpt.isEmpty()) {
-            return;
+            return false;
         }
 
         ProcessorProperty property = propertyOpt.get();
 
         if (property.isEmpty()) {
             log.warn(String.format(
-                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') " +
-                            "is empty or null. Skipping.",
+                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') "
+                            + "is empty or null. Skipping.",
                     property.getName(),
                     processor.getName(),
                     processor.getIdentifier(),
                     processor.getParentGroup().getName(),
                     processor.getParentGroup().getIdentifier(),
                     flow.getFlowName()));
-            return;
+            return false;
         }
 
         if (property.isReference()) {
@@ -193,12 +194,13 @@ public class BuildService {
             property.setValue(content);
             log.info(String.format("Restored property '%s' of processor '%s' from %s",
                     property.getName(), processor.getName(), filePath));
+            return true;
         } else {
             referenceResolver.checkConflict(flow, processor, property,
                     mapping.getTargetFilename());
             throw new BuildException(String.format(
-                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') " +
-                            "has an inline value. Extract must be run before Build.",
+                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') "
+                            + "has an inline value. Extract must be run before Build.",
                     property.getName(),
                     processor.getName(),
                     processor.getIdentifier(),

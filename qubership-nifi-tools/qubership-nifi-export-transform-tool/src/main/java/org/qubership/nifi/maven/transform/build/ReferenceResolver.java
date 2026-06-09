@@ -77,14 +77,24 @@ public class ReferenceResolver {
      * Builds an absolute path by resolving a reference string relative to the
      * directory containing the flow file.
      *
+     * Rejects paths that escape the flow directory (e.g. containing "..").
+     *
      * @param flow          the flow file whose parent directory is used as the base
      * @param referencePath a relative path string (e.g. "flowConf_foo/bar/file.json")
      *                      taken from a @path reference value
      * @return the absolute Path obtained by resolving referencePath
      *         against the flow file's parent directory
+     * @throws BuildException if the resolved path escapes the flow directory
      */
-    private Path buildAbsolutePath(FlowFile flow, String referencePath) {
-        return flow.getFilePath().getParent().resolve(referencePath);
+    private Path buildAbsolutePath(FlowFile flow, String referencePath) throws BuildException {
+        Path base = flow.getFilePath().getParent().toAbsolutePath().normalize();
+        Path resolved = base.resolve(referencePath).normalize();
+        if (!resolved.startsWith(base)) {
+            throw new BuildException(
+                    "Reference path '" + referencePath
+                    + "' escapes the export directory. Only paths within the flow directory are allowed.");
+        }
+        return resolved;
     }
 
     /**
@@ -100,8 +110,7 @@ public class ReferenceResolver {
                                         String targetFilename) {
         return flow.getFilePath().getParent()
                 .resolve("flowConf_" + flow.getFlowName())
-                .resolve(processor.getParentGroup().getRelativePath())
-                .resolve(processor.getName())
+                .resolve(processor.getRelativePath())
                 .resolve(targetFilename);
     }
 }

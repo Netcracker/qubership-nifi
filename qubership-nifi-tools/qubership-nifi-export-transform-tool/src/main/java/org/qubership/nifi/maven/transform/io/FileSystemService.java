@@ -56,6 +56,16 @@ public class FileSystemService {
     }
 
     /**
+     * Deletes a file if it exists. Does nothing if the file is absent.
+     *
+     * @param file file to delete
+     * @throws IOException if the file exists but cannot be deleted
+     */
+    public void deleteIfExists(Path file) throws IOException {
+        Files.deleteIfExists(file);
+    }
+
+    /**
      * Recursively deletes a directory and all its contents.
      * Does nothing if the path does not exist.
      *

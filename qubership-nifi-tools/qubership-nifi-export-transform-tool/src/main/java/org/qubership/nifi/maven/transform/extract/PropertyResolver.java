@@ -2,7 +2,6 @@ package org.qubership.nifi.maven.transform.extract;
 
 import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.transform.config.PropertyMapping;
-import org.qubership.nifi.maven.transform.exception.ExtractException;
 import org.qubership.nifi.maven.transform.flow.Processor;
 import org.qubership.nifi.maven.transform.flow.ProcessorProperty;
 
@@ -16,8 +15,14 @@ public class PropertyResolver {
 
     private final Log log;
 
-    public PropertyResolver(Log log) {
-        this.log = log;
+
+    /**
+     * Constructor for class PropertyResolver.
+     *
+     * @param logger maven logger
+     */
+    public PropertyResolver(final Log logger) {
+        this.log = logger;
     }
 
     /**
@@ -27,10 +32,8 @@ public class PropertyResolver {
      * @param processor processor to search in
      * @param mapping   property mapping from config (name or regex to targetFilename)
      * @return found property, or empty if none matched
-     * @throws ExtractException if a regex matches more than one property
      */
-    public Optional<ProcessorProperty> resolve(Processor processor, PropertyMapping mapping)
-            throws ExtractException {
+    public Optional<ProcessorProperty> resolve(Processor processor, PropertyMapping mapping) {
 
         if (mapping.isRegex()) {
             return resolveByRegex(processor, mapping);
@@ -40,8 +43,11 @@ public class PropertyResolver {
     }
 
     /**
-     * Resolves a property by exact name.
-     * Logs a warning if the property is not set in the processor.
+     * Resolves a processor property by exact name match.
+     *
+     * @param processor the processor to search in
+     * @param mapping   the property mapping whose name is used for the lookup
+     * @return the matching property, or empty if no property with that name exists
      */
     private Optional<ProcessorProperty> resolveByName(Processor processor,
                                                       PropertyMapping mapping) {
@@ -58,13 +64,19 @@ public class PropertyResolver {
     }
 
     /**
-     * Resolves a property by regex pattern.
-     * Logs a warning if no property matches.
-     * Throws ExtractException if more than one property matches.
+     * Resolves a processor property by matching its name against a compiled regex pattern.
+     *
+     * <p>All properties of the processor are tested against the pattern. If no property
+     * matches, a warning is logged and an empty Optional is returned. Ambiguous patterns
+     * that match multiple properties are caught upfront by FlowValidator, so by the time
+     * this method is called there is always at most one match.
+     *
+     * @param processor the processor to search in
+     * @param mapping   the property mapping whose compiled pattern is used for matching
+     * @return the single matching property, or empty if no property matched
      */
     private Optional<ProcessorProperty> resolveByRegex(Processor processor,
-                                                       PropertyMapping mapping)
-            throws ExtractException {
+                                                       PropertyMapping mapping) {
 
         List<ProcessorProperty> matches = processor.findPropertiesByRegex(
                 mapping.getCompiledPattern());
@@ -74,16 +86,6 @@ public class PropertyResolver {
                     "No property matching regex '%s' found in processor '%s'. Skipping.",
                     mapping.getPropertyNameOrRegex(), processor.getName()));
             return Optional.empty();
-        }
-
-        if (matches.size() > 1) {
-            List<String> matchedNames = matches.stream()
-                    .map(ProcessorProperty::getName)
-                    .toList();
-            throw new ExtractException(String.format(
-                    "Regex '%s' matches multiple properties %s in processor '%s'. " +
-                            "The pattern must match exactly one property.",
-                    mapping.getPropertyNameOrRegex(), matchedNames, processor.getName()));
         }
 
         return Optional.of(matches.get(0));

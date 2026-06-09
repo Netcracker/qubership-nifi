@@ -35,13 +35,13 @@ public class ConfigLoader {
     private void validatePath(Path configPath) throws ConfigException {
         if (!Files.isRegularFile(configPath)) {
             throw new ConfigException(
-                    "Config file not found or is not a regular file: " +
-                            configPath.toAbsolutePath());
+                    "Config file not found or is not a regular file: "
+                            + configPath.toAbsolutePath());
         }
         if (!Files.isReadable(configPath)) {
             throw new ConfigException(
-                    "Config file is not readable (check permissions): " +
-                            configPath.toAbsolutePath());
+                    "Config file is not readable (check permissions): "
+                            + configPath.toAbsolutePath());
         }
     }
 
@@ -69,8 +69,8 @@ public class ConfigLoader {
             throw new ConfigException(e.getMessage(), e.getCause() != null ? e.getCause() : e);
         } catch (IOException e) {
             throw new ConfigException(
-                    "Failed to read config file " + configPath.toAbsolutePath() +
-                            ": " + e.getMessage(), e);
+                    "Failed to read config file " + configPath.toAbsolutePath()
+                            + ": " + e.getMessage(), e);
         }
     }
 
@@ -85,15 +85,15 @@ public class ConfigLoader {
         for (Object item : processorTypesList) {
             if (!(item instanceof Map<?, ?> itemMap)) {
                 throw new ConfigException(
-                        "Each entry in 'processorTypes' must be a map with one key " +
-                                "(processor type FQN) in: " + configPath.toAbsolutePath());
+                        "Each entry in 'processorTypes' must be a map with one key "
+                                + "(processor type FQN) in: " + configPath.toAbsolutePath());
             }
             if (itemMap.size() != 1) {
                 throw new ConfigException(
-                        "Each entry in 'processorTypes' must have exactly one key " +
-                                "(processor type FQN), but found " + itemMap.size() +
-                                " keys: " + itemMap.keySet() +
-                                " in: " + configPath.toAbsolutePath());
+                        "Each entry in 'processorTypes' must have exactly one key "
+                                + "(processor type FQN), but found " + itemMap.size()
+                                + " keys: " + itemMap.keySet()
+                                + " in: " + configPath.toAbsolutePath());
             }
 
             Map.Entry<?, ?> entry = itemMap.entrySet().iterator().next();
@@ -102,9 +102,9 @@ public class ConfigLoader {
 
             if (!(mappingsObj instanceof Map<?, ?> mappingsMap)) {
                 throw new ConfigException(
-                        "Property mappings for type '" + typeFqn +
-                                "' must be a map (propertyName: targetFilename) " +
-                                "in: " + configPath.toAbsolutePath());
+                        "Property mappings for type '" + typeFqn
+                                + "' must be a map (propertyName: targetFilename) "
+                                + "in: " + configPath.toAbsolutePath());
             }
 
             result.add(new ProcessorTypeConfig(typeFqn, parseMappings(typeFqn, mappingsMap, configPath)));
@@ -122,34 +122,56 @@ public class ConfigLoader {
         List<PropertyMapping> mappings = new ArrayList<>();
 
         for (Map.Entry<?, ?> entry : mappingsMap.entrySet()) {
-            String propertyNameOrRegex = entry.getKey().toString();
-            Object filenameObj = entry.getValue();
+            String targetFilename = entry.getKey().toString().trim();
+            Object propertyObj = entry.getValue();
 
-            if (filenameObj == null || filenameObj.toString().isBlank()) {
+            if (propertyObj == null || propertyObj.toString().isBlank()) {
                 throw new ConfigException(
-                        "Target filename for property '" + propertyNameOrRegex +
-                                "' in processor type '" + typeFqn +
-                                "' must not be empty in: " + configPath.toAbsolutePath());
+                        "Property name for file '" + targetFilename
+                                + "' in processor type '" + typeFqn
+                                + "' must not be empty in: " + configPath.toAbsolutePath());
             }
 
-            String targetFilename = filenameObj.toString().trim();
+            String propertyNameOrRegex = propertyObj.toString();
+            validateTargetFilename(targetFilename, propertyNameOrRegex, typeFqn, configPath);
 
             try {
                 mappings.add(PropertyMapping.of(propertyNameOrRegex, targetFilename));
             } catch (PatternSyntaxException e) {
                 throw new ConfigException(
-                        "Invalid regex pattern '" + propertyNameOrRegex +
-                                "' for processor type '" + typeFqn +
-                                "': " + e.getMessage(), e);
+                        "Invalid regex pattern '" + propertyNameOrRegex
+                                + "' for processor type '" + typeFqn
+                                + "': " + e.getMessage(), e);
             }
         }
 
         if (mappings.isEmpty()) {
             throw new ConfigException(
-                    "Processor type '" + typeFqn +
-                            "' has no property mappings defined in: " + configPath.toAbsolutePath());
+                    "Processor type '" + typeFqn
+                            + "' has no property mappings defined in: " + configPath.toAbsolutePath());
         }
 
         return mappings;
+    }
+
+    private void validateTargetFilename(String filename, String propertyName,
+                                        String typeFqn, Path configPath) throws ConfigException {
+        Path path = Path.of(filename);
+        if (path.isAbsolute()) {
+            throw new ConfigException(
+                    "Target filename must be a relative path, got '" + filename
+                            + "' for property '" + propertyName
+                            + "' in type '" + typeFqn
+                            + "' in: " + configPath.toAbsolutePath());
+        }
+        for (Path segment : path) {
+            if ("..".equals(segment.toString())) {
+                throw new ConfigException(
+                        "Target filename must not contain '..' path traversal, got '" + filename
+                                + "' for property '" + propertyName
+                                + "' in type '" + typeFqn
+                                + "' in: " + configPath.toAbsolutePath());
+            }
+        }
     }
 }
