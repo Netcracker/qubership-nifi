@@ -11,8 +11,13 @@ public class FlowWriter {
 
     private final ObjectMapper jsonMapper;
 
-    public FlowWriter(final ObjectMapper jsonMapper) {
-        this.jsonMapper = jsonMapper;
+    /**
+     * Constructs a FlowWriter using the given Jackson mapper for JSON serialization.
+     *
+     * @param jsonMapperValue Jackson ObjectMapper used to serialize flow JSON files
+     */
+    public FlowWriter(final ObjectMapper jsonMapperValue) {
+        this.jsonMapper = jsonMapperValue;
     }
 
     /**

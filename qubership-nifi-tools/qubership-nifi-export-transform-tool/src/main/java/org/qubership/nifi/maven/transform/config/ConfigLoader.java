@@ -76,10 +76,15 @@ public class ConfigLoader {
 
     /**
      * Parses the list of processor type entries from the YAML structure.
-     * Each entry is a single-key map: processor type FQN → property mappings map.
+     * Each entry is a single-key map: processor type FQN to property mappings map.
+     *
+     * @param processorTypesList raw list from the YAML root
+     * @param configPath         path to the config file, used in error messages
+     * @return list of parsed ProcessorTypeConfig entries
+     * @throws ConfigException if an entry has an invalid structure
      */
-    private List<ProcessorTypeConfig> parseProcessorTypes(List<?> processorTypesList,
-                                                          Path configPath) throws ConfigException {
+    private List<ProcessorTypeConfig> parseProcessorTypes(final List<?> processorTypesList,
+                                                          final Path configPath) throws ConfigException {
         List<ProcessorTypeConfig> result = new ArrayList<>();
 
         for (Object item : processorTypesList) {
@@ -115,10 +120,16 @@ public class ConfigLoader {
 
     /**
      * Parses property mappings for a single processor type.
-     * Each entry: key = property name or regex, value = target filename.
+     * Each entry: key = target filename, value = property name or regex.
+     *
+     * @param typeFqn     fully-qualified processor type name, used in error messages
+     * @param mappingsMap raw map from the YAML entry
+     * @param configPath  path to the config file, used in error messages
+     * @return list of parsed PropertyMapping entries
+     * @throws ConfigException if a mapping has an invalid structure or an invalid regex
      */
-    private List<PropertyMapping> parseMappings(String typeFqn, Map<?, ?> mappingsMap,
-                                                Path configPath) throws ConfigException {
+    private List<PropertyMapping> parseMappings(final String typeFqn, final Map<?, ?> mappingsMap,
+                                                final Path configPath) throws ConfigException {
         List<PropertyMapping> mappings = new ArrayList<>();
 
         for (Map.Entry<?, ?> entry : mappingsMap.entrySet()) {

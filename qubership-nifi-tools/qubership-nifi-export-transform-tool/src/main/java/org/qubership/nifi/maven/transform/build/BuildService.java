@@ -40,20 +40,31 @@ public class BuildService {
     private final ReferenceResolver referenceResolver;
     private final CleanupService cleanupService;
 
-    public BuildService(Log log,
-                        FlowReader flowReader,
-                        FlowWriter flowWriter,
-                        FileSystemService fileSystem,
-                        PropertyResolver propertyResolver,
-                        ReferenceResolver referenceResolver,
-                        CleanupService cleanupService) {
-        this.log = log;
-        this.flowReader = flowReader;
-        this.flowWriter = flowWriter;
-        this.fileSystem = fileSystem;
-        this.propertyResolver = propertyResolver;
-        this.referenceResolver = referenceResolver;
-        this.cleanupService = cleanupService;
+    /**
+     * Constructs a BuildService with all required dependencies.
+     *
+     * @param logValue               Maven logger
+     * @param flowReaderValue        reads flow files from disk
+     * @param flowWriterValue        writes modified flow files back to disk
+     * @param fileSystemValue        file system operations
+     * @param propertyResolverValue  resolves processor properties by name or regex
+     * @param referenceResolverValue resolves file references in property values
+     * @param cleanupServiceValue    deletes extracted config directories after build
+     */
+    public BuildService(final Log logValue,
+                        final FlowReader flowReaderValue,
+                        final FlowWriter flowWriterValue,
+                        final FileSystemService fileSystemValue,
+                        final PropertyResolver propertyResolverValue,
+                        final ReferenceResolver referenceResolverValue,
+                        final CleanupService cleanupServiceValue) {
+        this.log = logValue;
+        this.flowReader = flowReaderValue;
+        this.flowWriter = flowWriterValue;
+        this.fileSystem = fileSystemValue;
+        this.propertyResolver = propertyResolverValue;
+        this.referenceResolver = referenceResolverValue;
+        this.cleanupService = cleanupServiceValue;
     }
 
     /**
@@ -107,10 +118,13 @@ public class BuildService {
      * Processes a single flow file: for each processor type defined in the config,
      * restores property values from extracted files.
      *
+     * @param flow            flow file to process
+     * @param config          parsed plugin config
+     * @param collectedErrors list to which build errors are appended
      * @return number of properties actually restored (property.setValue called)
      */
-    private int processFlow(FlowFile flow, PluginConfig config,
-                             List<BuildException> collectedErrors)
+    private int processFlow(final FlowFile flow, final PluginConfig config,
+                             final List<BuildException> collectedErrors)
             throws IOException {
 
         int modified = 0;
@@ -152,19 +166,21 @@ public class BuildService {
     }
 
     /**
-     * Restores a single property of a single processor from its extracted file:
-     * - resolves the property by name or regex
-     * - if property is a reference: reads file content and writes it back to property
-     * - if property is an inline value: checks for conflict with existing extracted file
-     * - if property is empty or not found: skips with a warning
+     * Restores a single property of a single processor from its extracted file.
+     * Resolves the property by name or regex; reads file content for references;
+     * checks for conflict with existing extracted file for inline values;
+     * skips with a warning if the property is empty or not found.
      *
+     * @param flow      flow containing the processor
+     * @param processor processor whose property is being restored
+     * @param mapping   property mapping defining the property name and target filename
      * @return true if the property value was restored (property.setValue called)
      * @throws BuildException if the referenced file does not exist,
      *                        or an inline value conflicts with an existing extracted file
      */
-    private boolean buildFromProcessor(FlowFile flow,
-                                        Processor processor,
-                                        PropertyMapping mapping)
+    private boolean buildFromProcessor(final FlowFile flow,
+                                        final Processor processor,
+                                        final PropertyMapping mapping)
             throws BuildException, IOException {
 
         Optional<ProcessorProperty> propertyOpt = propertyResolver.resolve(processor, mapping);

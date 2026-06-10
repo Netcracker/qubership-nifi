@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * A single property of a NiFi processor.
  */
-public class ProcessorProperty {
+public final class ProcessorProperty {
 
     private final String name;
 
@@ -14,17 +14,30 @@ public class ProcessorProperty {
      */
     private final ObjectNode propertiesNode;
 
-    public ProcessorProperty(String name, ObjectNode propertiesNode) {
-        this.name = name;
-        this.propertiesNode = propertiesNode;
+    /**
+     * Constructs a ProcessorProperty for the given property name within a properties node.
+     *
+     * @param nameValue        name of the property
+     * @param propertiesNodeValue the "properties" ObjectNode of the parent processor
+     */
+    public ProcessorProperty(final String nameValue, final ObjectNode propertiesNodeValue) {
+        this.name = nameValue;
+        this.propertiesNode = propertiesNodeValue;
     }
 
+    /**
+     * Returns the name of this property.
+     *
+     * @return property name
+     */
     public String getName() {
         return name;
     }
 
     /**
      * Returns the current value of the property.
+     *
+     * @return current string value, or null if the property is absent or JSON null
      */
     public String getValue() {
         if (propertiesNode.has(name)) {
@@ -46,6 +59,8 @@ public class ProcessorProperty {
 
     /**
      * Returns true if the value is a file reference (starts with "@").
+     *
+     * @return true if the value starts with "@", false otherwise
      */
     public boolean isReference() {
         String value = getValue();
@@ -55,6 +70,7 @@ public class ProcessorProperty {
     /**
      * Returns the path from the reference (everything after "@").
      *
+     * @return reference path string without the leading "@"
      * @throws IllegalStateException if the property is not a reference
      */
     public String getReferencePath() {
@@ -67,6 +83,8 @@ public class ProcessorProperty {
 
     /**
      * Returns true if the value is empty (null or blank string).
+     *
+     * @return true if the value is null or blank
      */
     public boolean isEmpty() {
         String value = getValue();

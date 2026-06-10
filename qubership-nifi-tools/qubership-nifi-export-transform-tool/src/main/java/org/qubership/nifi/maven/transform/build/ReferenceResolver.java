@@ -17,8 +17,9 @@ public class ReferenceResolver {
      * Resolves the reference in the given property to an absolute file path.
      * Used when the property value is a reference of the form @path.
      *
-     * @param flow     flow file containing the processor
-     * @param property processor property with a reference value
+     * @param flow      flow file containing the processor
+     * @param processor processor owning the property
+     * @param property  processor property with a reference value
      * @return absolute path to the referenced file
      * @throws BuildException if the referenced file does not exist
      */
@@ -29,9 +30,9 @@ public class ReferenceResolver {
 
         if (!Files.isRegularFile(absolutePath)) {
             throw new BuildException(String.format(
-                    "Referenced file '%s' does not exist for property '%s' " +
-                            "of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s'). " +
-                            "Run Extract first to generate the configuration files.",
+                    "Referenced file '%s' does not exist for property '%s' "
+                            + "of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s'). "
+                            + "Run Extract first to generate the configuration files.",
                     absolutePath,
                     property.getName(),
                     processor.getName(),

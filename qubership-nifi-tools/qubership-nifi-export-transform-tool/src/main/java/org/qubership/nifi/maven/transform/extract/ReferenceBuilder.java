@@ -10,8 +10,8 @@ import java.nio.file.Path;
  */
 public class ReferenceBuilder {
 
-    static final String FLOW_CONF_PREFIX = "flowConf_";
-    static final String REFERENCE_PREFIX = "@";
+    private static final String FLOW_CONF_PREFIX = "flowConf_";
+    private static final String REFERENCE_PREFIX = "@";
 
     /**
      * Builds a file reference of the form @flowConf_flowName/groupPath/processorName/targetFilename
@@ -40,8 +40,12 @@ public class ReferenceBuilder {
     }
 
     /**
-     * Builds the relative path:
-     * flowConf_flowName/group1/.../groupN/processorName/targetFilename
+     * Builds the relative path flowConf_flowName/group1/.../groupN/processorName/targetFilename.
+     *
+     * @param flow           flow containing the processor
+     * @param processor      processor whose property is being extracted
+     * @param targetFilename target filename from the config mapping
+     * @return relative path string with forward slashes
      */
     private String buildRelativePath(FlowFile flow, Processor processor, String targetFilename) {
         Path relativePath = Path.of(FLOW_CONF_PREFIX + flow.getFlowName())

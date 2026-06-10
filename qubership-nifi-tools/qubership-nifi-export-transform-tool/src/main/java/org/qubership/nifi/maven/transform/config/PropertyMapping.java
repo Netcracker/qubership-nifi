@@ -1,24 +1,23 @@
 package org.qubership.nifi.maven.transform.config;
 
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 /**
  * Mapping of a single processor property: property name (or regex) to a target filename.
  */
-public class PropertyMapping {
+public final class PropertyMapping {
 
     private final String propertyNameOrRegex;
     private final String targetFilename;
     private final boolean isRegex;
     private final Pattern compiledPattern; // null if not a regex
 
-    private PropertyMapping(String propertyNameOrRegex, String targetFilename,
-                            boolean isRegex, Pattern compiledPattern) {
-        this.propertyNameOrRegex = propertyNameOrRegex;
-        this.targetFilename = targetFilename;
-        this.isRegex = isRegex;
-        this.compiledPattern = compiledPattern;
+    private PropertyMapping(final String propertyNameOrRegexValue, final String targetFilenameValue,
+                            final boolean isRegexValue, final Pattern compiledPatternValue) {
+        this.propertyNameOrRegex = propertyNameOrRegexValue;
+        this.targetFilename = targetFilenameValue;
+        this.isRegex = isRegexValue;
+        this.compiledPattern = compiledPatternValue;
     }
 
     /**
@@ -92,13 +91,16 @@ public class PropertyMapping {
     /**
      * Determines whether the given string should be treated as a regex
      * by checking for the presence of regex special characters.
+     *
+     * @param value string to test
+     * @return true if the string contains regex special characters
      */
-    private static boolean looksLikeRegex(String value) {
+    private static boolean looksLikeRegex(final String value) {
         return value.chars().anyMatch(c ->
-                c == '.' || c == '*' || c == '+' || c == '?' ||
-                        c == '(' || c == ')' || c == '[' || c == ']' ||
-                        c == '{' || c == '}' || c == '^' || c == '$' ||
-                        c == '|' || c == '\\'
+                c == '.' || c == '*' || c == '+' || c == '?'
+                        || c == '(' || c == ')' || c == '[' || c == ']'
+                        || c == '{' || c == '}' || c == '^' || c == '$'
+                        || c == '|' || c == '\\'
         );
     }
 }

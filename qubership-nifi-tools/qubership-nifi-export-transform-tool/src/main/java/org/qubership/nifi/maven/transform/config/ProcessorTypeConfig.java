@@ -12,9 +12,16 @@ public class ProcessorTypeConfig {
     private final String processorTypeFqn;
     private final List<PropertyMapping> propertyMappings;
 
-    public ProcessorTypeConfig(String processorTypeFqn, List<PropertyMapping> propertyMappings) {
-        this.processorTypeFqn = processorTypeFqn;
-        this.propertyMappings = Collections.unmodifiableList(propertyMappings);
+    /**
+     * Constructs a ProcessorTypeConfig for the given processor type.
+     *
+     * @param processorTypeFqn fully qualified class name of the processor type
+     * @param propertyMappings list of property mappings for this type
+     */
+    public ProcessorTypeConfig(final String processorTypeFqnValue,
+                               final List<PropertyMapping> propertyMappingsValue) {
+        this.processorTypeFqn = processorTypeFqnValue;
+        this.propertyMappings = Collections.unmodifiableList(propertyMappingsValue);
     }
 
     /**

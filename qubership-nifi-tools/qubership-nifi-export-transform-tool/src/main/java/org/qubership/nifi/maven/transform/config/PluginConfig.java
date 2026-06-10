@@ -15,9 +15,14 @@ public class PluginConfig {
     private final List<ProcessorTypeConfig> processorTypes;
     private final Set<String> processorTypeFqns;
 
-    public PluginConfig(List<ProcessorTypeConfig> processorTypes) {
-        this.processorTypes = Collections.unmodifiableList(processorTypes);
-        this.processorTypeFqns = processorTypes.stream()
+    /**
+     * Constructs a PluginConfig from the given list of processor type configurations.
+     *
+     * @param processorTypesValue list of processor type configurations parsed from the YAML file
+     */
+    public PluginConfig(final List<ProcessorTypeConfig> processorTypesValue) {
+        this.processorTypes = Collections.unmodifiableList(processorTypesValue);
+        this.processorTypeFqns = processorTypesValue.stream()
                 .map(ProcessorTypeConfig::getProcessorTypeFqn)
                 .collect(Collectors.toUnmodifiableSet());
     }

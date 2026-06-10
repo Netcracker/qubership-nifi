@@ -24,7 +24,7 @@ import java.io.IOException;
  * into separate files and replaces the values with file references of the form @path.
  */
 @Mojo(name = "extract", defaultPhase = LifecyclePhase.NONE)
-public class ExtractMojo extends AbstractTransformMojo {
+public final class ExtractMojo extends AbstractTransformMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {

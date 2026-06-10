@@ -28,11 +28,11 @@ public class FlowReader {
     /**
      * Creates a FlowReader that uses the given Jackson mapper for JSON parsing.
      *
-     * @param jsonMapper Jackson ObjectMapper used to parse flow JSON files
-     * @param config     plugin config; processor type FQNs are pre-computed once here
+     * @param jsonMapperValue Jackson ObjectMapper used to parse flow JSON files
+     * @param config          plugin config; processor type FQNs are pre-computed once here
      */
-    public FlowReader(final ObjectMapper jsonMapper, final PluginConfig config) {
-        this.jsonMapper = jsonMapper;
+    public FlowReader(final ObjectMapper jsonMapperValue, final PluginConfig config) {
+        this.jsonMapper = jsonMapperValue;
         this.configuredTypes = config.getProcessorTypeFqns();
     }
 
@@ -84,6 +84,7 @@ public class FlowReader {
      * @param node             JSON node of the group
      * @param parent           parent group, or null for the root group
      * @param processorsByType accumulator map being built during traversal
+     * @return parsed ProcessGroup with nested processors and child groups
      */
     private ProcessGroup parseProcessGroup(JsonNode node,
                                            ProcessGroup parent,
@@ -111,6 +112,11 @@ public class FlowReader {
      * Parses processors from the "processors" array node.
      * Only processors whose type is in configuredTypes are added.
      * Each parsed processor is immediately added to processorsByType.
+     *
+     * @param groupNode        JSON node of the process group
+     * @param group            process group that owns the parsed processors
+     * @param processors       list to which parsed processors are appended
+     * @param processorsByType accumulator map keyed by processor type FQN
      */
     private void parseProcessors(JsonNode groupNode,
                                  ProcessGroup group,
@@ -134,6 +140,11 @@ public class FlowReader {
 
     /**
      * Parses nested groups from the "processGroups" array node and adds them to the list.
+     *
+     * @param groupNode        JSON node of the parent process group
+     * @param group            parent process group
+     * @param children         list to which parsed child groups are appended
+     * @param processorsByType accumulator map passed through to recursive calls
      */
     private void parseChildren(JsonNode groupNode,
                                ProcessGroup group,
@@ -151,6 +162,10 @@ public class FlowReader {
     /**
      * Builds a Processor from a JSON node.
      * If "properties" is absent, an empty ObjectNode is created and inserted into the tree.
+     *
+     * @param node        JSON node of the processor
+     * @param parentGroup process group that owns this processor
+     * @return parsed Processor with mutable properties node
      */
     private Processor parseProcessor(JsonNode node, ProcessGroup parentGroup) {
         String name = getTextOrEmpty(node, "name");
@@ -171,6 +186,10 @@ public class FlowReader {
 
     /**
      * Returns true if the path is located inside a flowConf_* directory.
+     *
+     * @param path      path to test
+     * @param exportDir root export directory used as the relativization base
+     * @return true if any segment of the path relative to exportDir starts with "flowConf_"
      */
     private boolean isInsideFlowConfDir(Path path, Path exportDir) {
         Path relative = exportDir.relativize(path);

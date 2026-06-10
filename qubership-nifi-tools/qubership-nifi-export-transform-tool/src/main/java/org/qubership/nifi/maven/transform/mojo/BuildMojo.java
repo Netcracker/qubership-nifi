@@ -26,7 +26,7 @@ import java.io.IOException;
  * Replaces file references of the form @path with the actual file content.
  */
 @Mojo(name = "build", defaultPhase = LifecyclePhase.PREPARE_PACKAGE)
-public class BuildMojo extends AbstractTransformMojo {
+public final class BuildMojo extends AbstractTransformMojo {
 
     /**
      * Whether to delete extracted configuration files and their directories

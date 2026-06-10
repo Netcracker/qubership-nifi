@@ -21,9 +21,15 @@ public class CleanupService {
     private final FileSystemService fileSystem;
     private final Log log;
 
-    public CleanupService(FileSystemService fileSystem, Log log) {
-        this.fileSystem = fileSystem;
-        this.log = log;
+    /**
+     * Constructs a CleanupService with the required dependencies.
+     *
+     * @param fileSystemValue file system operations used for deletion
+     * @param logValue        Maven logger
+     */
+    public CleanupService(final FileSystemService fileSystemValue, final Log logValue) {
+        this.fileSystem = fileSystemValue;
+        this.log = logValue;
     }
 
     /**
