@@ -79,8 +79,8 @@ class MarkdownUtilsTest {
         utils.generateTable(Collections.singletonList(entity), ComponentType.PROCESSOR);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-        assertTrue(result.contains("| Processor "), "Should contain processor header");
+        String result = Files.readString(file);
+        assertTrue(result.contains("|Processor"), "Should contain processor header");
         assertTrue(result.contains("MyProcessor"), "Should contain processor name");
         assertTrue(result.contains("my-nar"), "Should contain nar name");
     }
@@ -93,9 +93,9 @@ class MarkdownUtilsTest {
                 + "\n"
                 + "<!-- Table for additional processors. DO NOT REMOVE. -->\n"
                 + "\n"
-                + "| Processor  | NAR                 | Description        |\n"
-                + "|----------------------|--------------------|--------------------|\n"
-                + "| ExistingProcessor | existing-nar | Existing description |\n"
+                + "|Processor|NAR|Description|\n"
+                + "|---|---|---|\n"
+                + "|ExistingProcessor|existing-nar|Existing description|\n"
                 + "\n"
                 + "<!-- Additional processors properties description. DO NOT REMOVE. -->\n"
                 + "<!-- End of additional processors properties description. DO NOT REMOVE. -->\n"
@@ -115,7 +115,7 @@ class MarkdownUtilsTest {
         utils.generateTable(Collections.singletonList(entity), ComponentType.PROCESSOR);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        String result = Files.readString(file);
         assertTrue(result.contains("ExistingProcessor"), "Should still contain existing processor");
         assertTrue(result.contains("NewProcessor"), "Should contain new processor");
     }
@@ -132,8 +132,8 @@ class MarkdownUtilsTest {
         utils.generateTable(Collections.singletonList(entity), ComponentType.CONTROLLER_SERVICE);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-        assertTrue(result.contains("| Controller Service "), "Should contain controller service header");
+        String result = Files.readString(file);
+        assertTrue(result.contains("|Controller Service"), "Should contain controller service header");
         assertTrue(result.contains("MyService"), "Should contain service name");
     }
 
@@ -149,8 +149,8 @@ class MarkdownUtilsTest {
         utils.generateTable(Collections.singletonList(entity), ComponentType.REPORTING_TASK);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-        assertTrue(result.contains("| Reporting Task "), "Should contain reporting task header");
+        String result = Files.readString(file);
+        assertTrue(result.contains("|Reporting Task"), "Should contain reporting task header");
         assertTrue(result.contains("MyTask"), "Should contain task name");
     }
 
@@ -164,9 +164,9 @@ class MarkdownUtilsTest {
         utils.generateTable(Collections.emptyList(), ComponentType.PROCESSOR);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-        assertTrue(result.contains("| Processor "), "Should contain processor header");
-        assertTrue(result.contains("|----------------------|"), "Should contain separator row");
+        String result = Files.readString(file);
+        assertTrue(result.contains("|Processor"), "Should contain processor header");
+        assertTrue(result.contains("|---|"), "Should contain separator row");
     }
 
     /** Verifies generatePropertyDescription() inserts component heading and property details. */
@@ -186,7 +186,7 @@ class MarkdownUtilsTest {
         utils.generatePropertyDescription(Collections.singletonList(entity), ComponentType.PROCESSOR);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        String result = Files.readString(file);
         assertTrue(result.contains("### MyProcessor"), "Should contain component heading");
         assertTrue(result.contains("My Property"), "Should contain property display name");
         assertTrue(result.contains("Component overall description"), "Should contain component description");
@@ -209,7 +209,7 @@ class MarkdownUtilsTest {
         utils.generatePropertyDescription(Collections.singletonList(entity), ComponentType.PROCESSOR);
         utils.writeToFile();
 
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        String result = Files.readString(file);
         assertTrue(result.contains("## MyProcessor"), "Should use level-2 heading");
         assertFalse(result.contains("### MyProcessor"), "Should not use default level-3 heading");
     }
@@ -227,7 +227,7 @@ class MarkdownUtilsTest {
         utils.writeToFile();
 
         // Re-read from disk to verify persistence
-        String result = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+        String result = Files.readString(file);
         assertTrue(result.contains("PersistProcessor"), "Should contain written processor name");
     }
 

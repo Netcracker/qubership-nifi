@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.5.3-SNAPSHOT</version>
+        <version>2.6.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -63,8 +63,9 @@
         <module>qubership-nifi-api-export-tool-it</module>
         <module>qubership-nifi-docs-generator</module>
         <module>qubership-nifi-component-comparator-tool</module>
-        <module>qubership-nifi-export-transform-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
+        <module>qubership-nifi-openapi-enricher</module>
+        <module>qubership-nifi-export-transform-tool</module>
         <module>qubership-nifi-export-transform-tool-it</module>
     </modules>
 

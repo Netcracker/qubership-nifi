@@ -1,0 +1,116 @@
+{
+    "tags": [
+        {
+            "name": "Access",
+            "description": "Endpoints for obtaining an access token or checking access status."
+        },
+        {
+            "name": "Authentication",
+            "description": "Endpoints for obtaining an authentication configuration."
+        },
+        {
+            "name": "Connections",
+            "description": "Endpoint for managing a Connection."
+        },
+        {
+            "name": "Controller",
+            "description": "Provides realtime command and control of this NiFi instance"
+        },
+        {
+            "name": "Controller Services",
+            "description": "Endpoint for managing a Controller Service."
+        },
+        {
+            "name": "Counters",
+            "description": "Endpoint for managing counters."
+        },
+        {
+            "name": "DataTransfer",
+            "description": "Supports data transfers with this NiFi using HTTP based site to site"
+        },
+        {
+            "name": "Flow",
+            "description": "Endpoint for accessing the flow structure and component status."
+        },
+        {
+            "name": "FlowFileQueues",
+            "description": "Endpoint for managing a FlowFile Queue."
+        },
+        {
+            "name": "Funnels",
+            "description": "Endpoint for managing a Funnel."
+        },
+        {
+            "name": "InputPorts",
+            "description": "Endpoint for managing an Input Port."
+        },
+        {
+            "name": "Labels",
+            "description": "Endpoint for managing a Label."
+        },
+        {
+            "name": "OutputPorts",
+            "description": "Endpoint for managing an Output Port."
+        },
+        {
+            "name": "ParameterContexts",
+            "description": "Endpoint for managing version control for a flow"
+        },
+        {
+            "name": "ParameterProviders",
+            "description": "Endpoint for managing a Parameter Provider."
+        },
+        {
+            "name": "Policies",
+            "description": "Endpoint for managing access policies."
+        },
+        {
+            "name": "ProcessGroups",
+            "description": "Endpoint for managing a Process Group."
+        },
+        {
+            "name": "Processors",
+            "description": "Endpoint for managing a Processor."
+        },
+        {
+            "name": "Provenance",
+            "description": "Endpoint for accessing data flow provenance."
+        },
+        {
+            "name": "ProvenanceEvents",
+            "description": "Endpoint for accessing data flow provenance."
+        },
+        {
+            "name": "RemoteProcessGroups",
+            "description": "Endpoint for managing a Remote Process Group."
+        },
+        {
+            "name": "ReportingTasks",
+            "description": "Endpoint for managing a Reporting Task."
+        },
+        {
+            "name": "Resources",
+            "description": "Provides the resources in this NiFi that can have access/authorization policies."
+        },
+        {
+            "name": "SiteToSite",
+            "description": "Provide access to site to site with this NiFi"
+        },
+        {
+            "name": "Snippets",
+            "description": "Endpoint for accessing dataflow snippets."
+        },
+        {
+            "name": "SystemDiagnostics",
+            "description": "Endpoint for accessing system diagnostics."
+        },
+        {
+            "name": "Tenants",
+            "description": "Endpoint for managing users and user groups."
+        },
+        {
+            "name": "Versions",
+            "description": "Endpoint for managing version control for a flow"
+        }
+    ]
+}

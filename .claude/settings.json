@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/linters-hook/lint_changed_file.py"
+          }
+        ]
+      }
+    ]
+  }
+}

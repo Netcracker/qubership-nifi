@@ -1,0 +1,55 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Test Spec",
+        "version": "1.0.0"
+    },
+    "security": [
+        {
+            "HTTPBearerJWT": []
+        },
+        {
+            "CookieSecureAuthorizationBearer": []
+        }
+    ],
+    "servers": [
+        {
+            "url": "https://example.com"
+        }
+    ],
+    "paths": {
+        "/flow/about": {
+            "get": {
+                "summary": "Get about info",
+                "description": "Already has description",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Flow",
+            "description": "Custom Flow description"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "HTTPBearerJWT": {
+                "bearerFormat": "JWT",
+                "description": "HTTP Bearer authentication with JSON Web Token",
+                "scheme": "Bearer",
+                "type": "http"
+            },
+            "CookieSecureAuthorizationBearer": {
+                "description": "JSON Web Token authentication with session cookie",
+                "in": "cookie",
+                "name": "__Secure-Authorization-Bearer",
+                "type": "apiKey"
+            }
+        }
+    }
+}

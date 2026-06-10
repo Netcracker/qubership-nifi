@@ -78,7 +78,7 @@ public class PropertyDescriptorEntity {
         if (defaultValue == null || defaultValue.isEmpty()) {
             return "";
         }
-        return escapeHttpLinks(defaultValue);
+        return escapeSpecialCharacters(escapeHttpLinks(defaultValue));
     }
 
     /**
@@ -97,7 +97,7 @@ public class PropertyDescriptorEntity {
         if (description == null || description.isEmpty()) {
             return "";
         }
-        return escapeHttpLinks(description);
+        return escapeSpecialCharacters(escapeHttpLinks(description));
     }
 
     /**
@@ -183,5 +183,26 @@ public class PropertyDescriptorEntity {
         }
 
         return str.replaceAll(HTTP_REGEX, "`$1`");
+    }
+
+
+    /**
+     * Escapes $ sign in a string by adding \.
+     *
+     * @param str the input string to process
+     * @return string with escaped $ sign, or the original string
+     *  *         if it is {@code null}, empty, or does not contain $
+     */
+
+    public String escapeSpecialCharacters(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+
+        if (!str.contains("$")) {
+            return str;
+        }
+
+        return str.replace("$", "\\$");
     }
 }

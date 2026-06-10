@@ -3,7 +3,9 @@
 Qubership-nifi is built on top of Apache NiFi.
 Apache NiFi is scalable and configurable dataflow platform.
 This guide contains details on features added or customized by qubership-nifi.
-Refer to Apache NiFi [System Administrator’s Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html) for details on standard features.
+Refer to Apache NiFi
+ [System Administrator’s Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html)
+ for details on standard features.
 
 ## Environment variables
 
@@ -62,7 +64,8 @@ The table below describes environment variables supported by qubership-nifi.
 
 ## Extension points
 
-The qubership-nifi Docker image provides several predefined extension points that can be used to customize its behavior without significant changes to other parts of the image.
+The qubership-nifi Docker image provides several predefined extension points that can be used to customize its behavior
+ without significant changes to other parts of the image.
 The table below lists these extension points and their descriptions.
 
 | Extension point        | Path                                       | Description                                                                                                                                                                                               |
@@ -89,33 +92,40 @@ The table below lists these volumes and directories with their descriptions.
 | Truststore               | File      | `$TRUSTSTORE_PATH`                           | Contains TLS truststore (truststore.p12 or truststore.jks). Required for startup with AUTH = oidc, tls, ldap.                                                                                                                |
 | Trusted certificates     | Directory | /tmp/cert                                    | Contains trusted certificates in PEM-format that will be imported into Java trusted certificates store.                                                                                                                      |
 | NAR Autoloader           | Directory | /opt/nifi/nifi-current/extensions            | Directory for auto loading custom NARs. NARs placed in this directory will be automatically loaded in runtime.                                                                                                               |
-| NAR Repository           | Directory | /opt/nifi/nifi-current/nar_repository        | Serves as storage for NAR Repository holding NARs loaded via API.                                                                                                                                                            |
-| Assets Management        | Directory | /opt/nifi/nifi-current/assets                | Serves as storage for Assets Management, holding resources (assets) loaded via API.                                                                                                                                          |
+| NAR Repository           | Directory | /opt/nifi/nifi-current/nar_repository        | Storage for NAR Repository holding custom NARs loaded via REST API.                                                                                                                                                          |
+| Assets                   | Directory | /opt/nifi/nifi-current/assets                | Storage for Assets, files used by Apache NiFi flows, loaded via API.                                                                                                                                                         |
+| Connector Assets         | Directory | /opt/nifi/nifi-current/connector_assets      | Storage for Connector-related Assets, files used by Apache NiFi flows managed by Connectors, loaded via API.                                                                                                                 |
 
 ## Changing logging levels
 
 You can modify logging levels by:
+
 1. Setting the `ROOT_LOG_LEVEL` environment variable. Note that this variable only sets the root logging level.
-2. Setting the logging level for a specific package in Consul. The Consul property name must start with `logger.` followed by the package name. The value should be one of the logging levels supported by Logback: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF. The property should be located in one of the following locations:
-    1. config/${NAMESPACE}/application
-    2. config/${NAMESPACE}/qubership-nifi
+1. Setting the logging level for a specific package in Consul. The Consul property name must start
+    with `logger.` followed by the package name. The value should be one of the logging levels supported by Logback:
+    ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF. The property should be located in one of the following locations:
+    - config/${NAMESPACE}/application
+    - config/${NAMESPACE}/qubership-nifi
        where `NAMESPACE` is the value of the `NAMESPACE` environment variable, or local if not set.
 
 To change the logging settings:
+
 1. Update the logger properties in Consul as needed.
-2. Wait until the update is propagated to qubership-nifi. This may take up to 1 minute.
+1. Wait until the update is propagated to qubership-nifi. This may take up to 1 minute.
 
 ## Changing NiFi configuration properties
 
 NiFi configuration properties can be set in Consul:
+
 1. The property name must start with `nifi.`
-2. The property should be located in one of the following locations:
+1. The property should be located in one of the following locations:
     1. config/${NAMESPACE}/application
-    2. config/${NAMESPACE}/qubership-nifi
+    1. config/${NAMESPACE}/qubership-nifi
 
 To change NiFi properties:
+
 1. Update the NiFi properties in Consul as needed.
-2. Restart the qubership-nifi container.
+1. Restart the qubership-nifi container.
 
 A detailed description of all supported NiFi properties is available in the Apache NiFi [System Administrator's Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
 
@@ -124,22 +134,30 @@ A detailed description of all supported NiFi properties is available in the Apac
 qubership-nifi supports automated configuration restore from archived versions.
 
 The steps below describe the restore process:
+
 1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`.
-   The parameter must contain the name of the archived configuration to restore from, using the format `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`).
-   The list of archived configuration versions is printed in the logs during service startup. Maximum number of versions listed is controlled by the `NIFI_ARCHIVE_CONF_MAX_LIST` environment variable (default is 50).
-2. Restart the qubership-nifi container.
+   The parameter must contain the name of the archived configuration to restore from, using the format
+   `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`).
+   The list of archived configuration versions is printed in the logs during service startup. Maximum number of versions
+   listed is controlled by the `NIFI_ARCHIVE_CONF_MAX_LIST` environment variable (default is 50).
+1. Restart the qubership-nifi container.
 
 On startup, qubership-nifi performs the following:
+
 1. Checks if the `nifi-restore-version` parameter is set
-2. If the parameter is set and the specified archive file does not exist, a warning is printed in the logs and normal startup continues using the current configuration.
-3. If the parameter is set and the specified archive file exists, the current configuration is moved to the archive and replaced with the specified archived version.
-   Once complete, the `nifi-restore-version` parameter is automatically cleared in Consul to prevent repeated restores on subsequent restarts.
+1. If the parameter is set and the specified archive file does not exist, a warning is printed in the logs and normal
+   startup continues using the current configuration.
+1. If the parameter is set and the specified archive file exists, the current configuration is moved to the archive
+   and replaced with the specified archived version.
+   Once complete, the `nifi-restore-version` parameter is automatically cleared in Consul to prevent repeated
+   restores on subsequent restarts.
 
 ## Cluster Configuration
 
 Apache NiFi provides two options for starting a cluster:
+
 1. Use ZooKeeper for leader election and cluster-wide state storage.
-2. Use Kubernetes Leases for leader election and ConfigMaps for cluster-wide state storage.
+1. Use Kubernetes Leases for leader election and ConfigMaps for cluster-wide state storage.
 
 The ZooKeeper option has been supported since version 1.x and remains the default cluster configuration.
 The Kubernetes option was introduced in Apache NiFi 2.0.
@@ -147,24 +165,39 @@ The Kubernetes option was introduced in Apache NiFi 2.0.
 ### ZooKeeper-based Cluster Configuration
 
 The following parameters must be set to configure a NiFi cluster using ZooKeeper:
+
 1. environment variable `ZOOKEEPER_ADDRESS` - host and port to access ZooKeeper.
-2. environment variable `NIFI_ZK_ROOT_NODE` - path to the root node on ZooKeeper. Must be defined to avoid conflicts with other applications or NiFi cluster instances.
-3. environment variable `ZOOKEEPER_SSL_ENABLED` - set to `true`, if ZooKeeper access is secured with TLS.
-4. environment variable `ZOOKEEPER_CLIENT_KEYSTORE` - path to the keystore with the private key and certificate used to access ZooKeeper. Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
-5. environment variable `ZOOKEEPER_CLIENT_KEYSTORE_TYPE` - type for the keystore specified by `ZOOKEEPER_CLIENT_KEYSTORE`. Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
-6. environment variable `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD` - password for the keystore specified by `ZOOKEEPER_CLIENT_KEYSTORE`. Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
+1. environment variable `NIFI_ZK_ROOT_NODE` - path to the root node on ZooKeeper. Must be defined to avoid conflicts
+   with other applications or NiFi cluster instances.
+1. environment variable `ZOOKEEPER_SSL_ENABLED` - set to `true`, if ZooKeeper access is secured with TLS.
+1. environment variable `ZOOKEEPER_CLIENT_KEYSTORE` - path to the keystore with the private key and
+   certificate used to access ZooKeeper. Set only if ZooKeeper is configured to use x509 authentication
+   and `ZOOKEEPER_SSL_ENABLED = true`.
+1. environment variable `ZOOKEEPER_CLIENT_KEYSTORE_TYPE` - type for the keystore specified by `ZOOKEEPER_CLIENT_KEYSTORE`.
+   Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
+1. environment variable `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD` - password for the keystore specified by `ZOOKEEPER_CLIENT_KEYSTORE`.
+   Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
 
 There are three supported configurations for ZooKeeper:
-1. Plain with anonymous access - set `ZOOKEEPER_ADDRESS` and `NIFI_ZK_ROOT_NODE` only.
-2. Secured (TLS) with anonymous access - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`, and add trusted certificates for ZooKeeper into the`Trusted certificates` directory.
-3. secured (TLS) with x509 authentication - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`, `ZOOKEEPER_CLIENT_KEYSTORE`, `ZOOKEEPER_CLIENT_KEYSTORE_TYPE`, `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD`, add trusted certificates for ZooKeeper into the `Trusted certificates` directory, add the keystore referenced by `ZOOKEEPER_CLIENT_KEYSTORE`.
 
-When using ZooKeeper, Apache NiFi creates ZNodes within the path specified by `NIFI_ZK_ROOT_NODE`, o it requires at least Create, Read, and Write privileges for this path if it was created by another application.
-For more information on Apache NiFi behavior regarding ZooKeeper, refer to the [NiFi System Administrator’s Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
+1. Plain with anonymous access - set `ZOOKEEPER_ADDRESS` and `NIFI_ZK_ROOT_NODE` only.
+1. Secured (TLS) with anonymous access - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`,
+   and add trusted certificates for ZooKeeper into the`Trusted certificates` directory.
+1. secured (TLS) with x509 authentication - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`,
+   `ZOOKEEPER_CLIENT_KEYSTORE`, `ZOOKEEPER_CLIENT_KEYSTORE_TYPE`, `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD`, add trusted
+   certificates for ZooKeeper into the `Trusted certificates` directory, add the keystore referenced
+   by `ZOOKEEPER_CLIENT_KEYSTORE`.
+
+When using ZooKeeper, Apache NiFi creates ZNodes within the path specified by `NIFI_ZK_ROOT_NODE`, o it requires at
+least Create, Read, and Write privileges for this path if it was created by another application.
+For more information on Apache NiFi behavior regarding ZooKeeper, refer to the
+[NiFi System Administrator’s Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
 
 ### Kubernetes-based Cluster Configuration
 
-To use Kubernetes provider you must create ServiceAccount and properly configure Roles for it (`<your-namespace>` in the snippet below must be replaced with the actual namespace where the NiFi cluster is deployed):
+To use Kubernetes provider you must create ServiceAccount and properly configure Roles for it (`<your-namespace>` in
+the snippet below must be replaced with the actual namespace where the NiFi cluster is deployed):
+
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -235,13 +268,20 @@ subjects:
     namespace: <your-namespace>
 ```
 
-After this is done you need to set `serviceAccountName = nifi-sa` in your Deployment/StatefulSet, as well as configure the necessary environment variables:
-1. environment variable `NIFI_CLUSTER_LEADER_ELECTION_IMPLEMENTATION = KubernetesLeaderElectionManager`.
-2. environment variable `NIFI_STATE_MANAGEMENT_PROVIDER_CLUSTER = kubernetes-provider`.
-3. environment variable `NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX` - prefix for Lease resources created by NiFi cluster nodes.
-4. environment variable `NIFI_KUBERNETES_CONFIGMAP_NAME_PREFIX` - prefix for ConfigMap resources created by NiFi cluster nodes.
+After this is done you need to set `serviceAccountName = nifi-sa` in your Deployment/StatefulSet, as well as configure
+the necessary environment variables:
 
-If you have an existing cluster with Apache NiFi 1.x and rely on Cluster State in your flows, you may need to migrate state to the new state provider when switching to the Kubernetes ConfigMap State Provider.
-To do this, set the `nifi.state.management.provider.cluster.previous` property in Consul to `zk-provider`, as well as set up the necessary connection properties (e.g., environment variables `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`).
+1. environment variable `NIFI_CLUSTER_LEADER_ELECTION_IMPLEMENTATION = KubernetesLeaderElectionManager`.
+1. environment variable `NIFI_STATE_MANAGEMENT_PROVIDER_CLUSTER = kubernetes-provider`.
+1. environment variable `NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX` - prefix for Lease resources created
+   by NiFi cluster nodes.
+1. environment variable `NIFI_KUBERNETES_CONFIGMAP_NAME_PREFIX` - prefix for ConfigMap resources created
+   by NiFi cluster nodes.
+
+If you have an existing cluster with Apache NiFi 1.x and rely on Cluster State in your flows, you may need to migrate
+state to the new state provider when switching to the Kubernetes ConfigMap State Provider.
+To do this, set the `nifi.state.management.provider.cluster.previous` property in Consul to `zk-provider`, as well as
+set up the necessary connection properties (e.g., environment variables `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`).
 For more details, refer to `State Providers` section in [NiFi System Administrator’s Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#state_providers).
-Once migration is complete, you should unset the `nifi.state.management.provider.cluster.previous` property and remove the environment variables necessary for the ZooKeeper connection.
+Once migration is complete, you should unset the `nifi.state.management.provider.cluster.previous` property and remove
+the environment variables necessary for the ZooKeeper connection.
