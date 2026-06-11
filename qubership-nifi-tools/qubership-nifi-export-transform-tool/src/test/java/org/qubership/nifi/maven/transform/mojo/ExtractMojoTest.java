@@ -32,11 +32,21 @@ class ExtractMojoTest {
                   query.sql: SQL Query
             """;
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
+
+    /** Mock Maven logger. */
     @Mock
-    Log log;
+    private Log log;
 
     private Path write(String name, String content) throws IOException {
         Path file = tempDir.resolve(name);

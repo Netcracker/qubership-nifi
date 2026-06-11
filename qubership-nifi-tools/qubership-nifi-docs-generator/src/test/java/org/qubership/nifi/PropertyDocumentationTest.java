@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 /** Tests for basic functions of {@link PropertyDocumentation} not involving dependency processing. */
 class PropertyDocumentationTest {
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
     private Path tempDir;
 

@@ -27,10 +27,21 @@ class ReferenceResolverTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TYPE = "org.qubership.nifi.TestProcessor";
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
 
-    ReferenceResolver resolver;
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
+
+    private ReferenceResolver resolver;
+
+
 
     @BeforeEach
     void setUp() {

@@ -15,8 +15,8 @@ public class ProcessorTypeConfig {
     /**
      * Constructs a ProcessorTypeConfig for the given processor type.
      *
-     * @param processorTypeFqn fully qualified class name of the processor type
-     * @param propertyMappings list of property mappings for this type
+     * @param processorTypeFqnValue fully qualified class name of the processor type
+     * @param propertyMappingsValue list of property mappings for this type
      */
     public ProcessorTypeConfig(final String processorTypeFqnValue,
                                final List<PropertyMapping> propertyMappingsValue) {

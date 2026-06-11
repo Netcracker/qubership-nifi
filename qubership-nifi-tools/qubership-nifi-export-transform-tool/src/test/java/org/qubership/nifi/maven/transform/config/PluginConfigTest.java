@@ -30,7 +30,8 @@ class PluginConfigTest {
     void getProcessorTypesIsUnmodifiable() {
         PluginConfig config = new PluginConfig(List.of(typeConfig(EXECUTE_SQL)));
 
-        assertThrows(UnsupportedOperationException.class, () -> config.getProcessorTypes().add(typeConfig(REPLACE_TEXT)));
+        assertThrows(UnsupportedOperationException.class,
+                () -> config.getProcessorTypes().add(typeConfig(REPLACE_TEXT)));
     }
 
     @Test

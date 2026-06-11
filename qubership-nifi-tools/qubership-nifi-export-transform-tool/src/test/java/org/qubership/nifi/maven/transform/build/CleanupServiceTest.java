@@ -22,16 +22,26 @@ import static org.mockito.Mockito.verify;
 @ExtendWith(MockitoExtension.class)
 class CleanupServiceTest {
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     @Mock
-    FileSystemService fileSystem;
+    private FileSystemService fileSystem;
 
+    /** Mock Maven logger. */
     @Mock
-    Log log;
+    private Log log;
 
-    CleanupService service;
+    private CleanupService service;
 
     @BeforeEach
     void setUp() {

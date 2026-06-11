@@ -16,8 +16,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FileSystemServiceTest {
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     private final FileSystemService service = new FileSystemService();
 

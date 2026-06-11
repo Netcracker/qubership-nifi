@@ -15,8 +15,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfigLoaderTest {
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     private final ConfigLoader loader = new ConfigLoader();
 

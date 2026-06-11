@@ -27,10 +27,11 @@ class PropertyResolverTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TYPE = "org.qubership.nifi.TestProcessor";
 
+    /** Mock Maven logger. */
     @Mock
-    Log log;
+    private Log log;
 
-    PropertyResolver resolver;
+    private PropertyResolver resolver;
 
     @BeforeEach
     void setUp() {

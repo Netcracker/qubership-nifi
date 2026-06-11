@@ -32,10 +32,12 @@ public class FlowValidator {
     public List<String> validate(FlowFile flow, PluginConfig config) {
         List<String> errors = new ArrayList<>();
 
+        Map<String, String> seenPaths = new HashMap<>();
+
         for (var typeConfig : config.getProcessorTypes()) {
             String typeFqn = typeConfig.getProcessorTypeFqn();
             List<Processor> processors = flow.getProcessorsByType(typeFqn);
-            collectDuplicatePaths(processors, typeFqn, errors);
+            collectDuplicatePaths(processors, typeFqn, errors, seenPaths);
         }
 
         collectInvalidSegments(flow, config, errors);
@@ -45,8 +47,7 @@ public class FlowValidator {
     }
 
     private void collectDuplicatePaths(List<Processor> processors, String typeFqn,
-                                       List<String> errors) {
-        Map<String, String> seenPaths = new HashMap<>();
+                                       List<String> errors, Map<String, String> seenPaths) {
 
         for (Processor processor : processors) {
             String fullPath = processor.getFullPath();
@@ -54,7 +55,7 @@ public class FlowValidator {
 
             if (existingId != null) {
                 errors.add(String.format(
-                        "Duplicate processor path '%s' for type '%s': "
+                        "Duplicate processor path '%s': "
                                 + "processor '%s' and processor '%s' produce the same path. "
                                 + "Processors of the same type must have unique paths "
                                 + "(group segments + processor name) within the flow, "

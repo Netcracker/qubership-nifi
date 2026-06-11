@@ -17,8 +17,17 @@ class FlowWriterTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    /** Temporary directory provided by JUnit for each test. */
     @TempDir
-    Path tempDir;
+    private Path tempDir;
+
+    /**
+     * Returns the temporary directory used by this test.
+     * @return path to temporary directory
+     */
+    Path getTempDir() {
+        return tempDir;
+    }
 
     private ProcessGroup rootGroup() {
         return new ProcessGroup("root", "id", List.of(), List.of(), null, false);

@@ -41,15 +41,24 @@ class BuildServiceTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TYPE = "org.qubership.nifi.TestProcessor";
 
-    @Mock Log log;
-    @Mock FlowReader flowReader;
-    @Mock FlowWriter flowWriter;
-    @Mock FileSystemService fileSystem;
-    @Mock PropertyResolver propertyResolver;
-    @Mock ReferenceResolver referenceResolver;
-    @Mock CleanupService cleanupService;
+    /** Mock Maven logger. */
+    @Mock
+    private Log log;
 
-    BuildService service;
+    @Mock
+    private FlowReader flowReader;
+    @Mock
+    private FlowWriter flowWriter;
+    @Mock
+    private FileSystemService fileSystem;
+    @Mock
+    private PropertyResolver propertyResolver;
+    @Mock
+    private ReferenceResolver referenceResolver;
+    @Mock
+    private CleanupService cleanupService;
+
+    private BuildService service;
 
     @BeforeEach
     void setUp() {

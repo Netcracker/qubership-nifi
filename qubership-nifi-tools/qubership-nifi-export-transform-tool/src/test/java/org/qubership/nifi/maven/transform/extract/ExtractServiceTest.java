@@ -43,15 +43,24 @@ class ExtractServiceTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String TYPE = "org.qubership.nifi.TestProcessor";
 
-    @Mock Log log;
-    @Mock FlowReader flowReader;
-    @Mock FlowWriter flowWriter;
-    @Mock FlowValidator flowValidator;
-    @Mock FileSystemService fileSystem;
-    @Mock PropertyResolver propertyResolver;
-    @Mock ReferenceBuilder referenceBuilder;
+    /** Mock Maven logger. */
+    @Mock
+    private Log log;
 
-    ExtractService service;
+    @Mock
+    private FlowReader flowReader;
+    @Mock
+    private FlowWriter flowWriter;
+    @Mock
+    private FlowValidator flowValidator;
+    @Mock
+    private FileSystemService fileSystem;
+    @Mock
+    private PropertyResolver propertyResolver;
+    @Mock
+    private ReferenceBuilder referenceBuilder;
+
+    private ExtractService service;
 
     @BeforeEach
     void setUp() {
