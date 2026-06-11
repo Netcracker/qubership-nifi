@@ -55,6 +55,16 @@ class MainTest {
                 apiName, apiName, displayName);
     }
 
+    // Property descriptor with a typeProvidedByValue controller-service reference (NiFi 2.x).
+    private String propWithCsByValue(String apiName, String displayName, String csType) {
+        return String.format(
+                "\"%s\":{\"name\":\"%s\",\"displayName\":\"%s\",\"description\":\"\","
+                        + "\"typeProvidedByValue\":{\"group\":\"org.apache.nifi\","
+                        + "\"artifact\":\"nifi-standard-services-api-nar\","
+                        + "\"version\":\"2.0.0\",\"type\":\"%s\"}}",
+                apiName, apiName, displayName, csType);
+    }
+
     private void runMain(String... extraArgs) {
         String[] baseArgs = {
                 "--sourceDir", sourceDir.toString(),
@@ -257,6 +267,33 @@ class MainTest {
         assertTrue(md.contains("## Processors"));
         assertTrue(md.contains("## Controller Services"));
         assertTrue(md.contains("## Reporting Tasks"));
+    }
+
+    @Test
+    void mainControllerServiceReferenceAppearsInJsonAndMarkdown() throws IOException {
+        String csType = "org.apache.nifi.dbcp.DBCPService";
+        writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
+                propWithCsByValue("old-api", "Database Connection Pooling Service", csType));
+        writeJson(targetDir, "controllerService", "Svc.json", "org.example.Svc",
+                propWithCsByValue("new-api", "Database Connection Pooling Service", csType));
+
+        runMain();
+
+        // JSON: rename map unchanged, plus a controllerServiceReferences section
+        JsonNode json = MAPPER.readTree(jsonPath().toFile());
+        assertEquals("new-api", json.get("org.example.Svc").get("old-api").asText());
+        JsonNode refs = json.get("controllerServiceReferences");
+        assertTrue(refs != null && refs.has("org.example.Svc"));
+        assertEquals(csType, refs.get("org.example.Svc").get("new-api").asText());
+
+        // Markdown: CS type in the table and the summary metric
+        String md = Files.readString(mdPath());
+        assertTrue(md.contains(csType));
+        assertTrue(md.contains("| Controller service reference changes | 1 |"));
+
+        // CSV: CS type recorded in the new column
+        String csv = Files.readString(csvPath());
+        assertTrue(csv.contains(csType));
     }
 
 }

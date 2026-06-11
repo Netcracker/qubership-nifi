@@ -9,6 +9,7 @@ public class ComponentProperties {
     private final String displayName;
     private final String description;
     private Map<String, String> equivalentNameMappings;
+    private String controllerServiceType;
 
     /**
      * Constructor for class ComponentProperties.
@@ -49,6 +50,35 @@ public class ComponentProperties {
      */
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * Sets the controller-service interface type that this property references,
+     * or {@code null} if the property does not reference a controller service.
+     *
+     * @param controllerServiceTypeValue fully qualified controller-service interface type
+     */
+    public void setControllerServiceType(String controllerServiceTypeValue) {
+        this.controllerServiceType = controllerServiceTypeValue;
+    }
+
+    /**
+     * Returns the controller-service interface type referenced by this property.
+     *
+     * @return the controller-service interface type, or null if the property
+     *         does not reference a controller service
+     */
+    public String getControllerServiceType() {
+        return controllerServiceType;
+    }
+
+    /**
+     * Indicates whether this property references a controller service.
+     *
+     * @return true if a controller-service interface type is set
+     */
+    public boolean referencesControllerService() {
+        return controllerServiceType != null;
     }
 
     /**

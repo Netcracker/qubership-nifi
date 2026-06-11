@@ -31,7 +31,7 @@ class JsonMappingGeneratorTest {
     @Test
     void generateEmptyMapsProducesEmptyJsonObject() throws IOException {
         JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
-        gen.generate(Map.of(), Map.of());
+        gen.generate(Map.of(), Map.of(), Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         assertTrue(root.isObject());
@@ -47,7 +47,7 @@ class JsonMappingGeneratorTest {
 
         Map<String, String> folderMap = Map.of("org.example.MyService", "controllerService");
 
-        gen.generate(renames, folderMap);
+        gen.generate(renames, folderMap, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         assertTrue(root.has("org.example.MyService"));
@@ -63,7 +63,7 @@ class JsonMappingGeneratorTest {
 
         Map<String, String> folderMap = Map.of("org.example.MyTask", "reportingTask");
 
-        gen.generate(renames, folderMap);
+        gen.generate(renames, folderMap, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         assertTrue(root.has("org.example.MyTask"));
@@ -78,7 +78,7 @@ class JsonMappingGeneratorTest {
 
         Map<String, String> folderMap = Map.of("org.example.MyProc", "processors");
 
-        gen.generate(renames, folderMap);
+        gen.generate(renames, folderMap, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         assertFalse(root.has("org.example.MyProc"),
@@ -100,7 +100,7 @@ class JsonMappingGeneratorTest {
                 "org.example.MyTask", "reportingTask"
         );
 
-        gen.generate(renames, folderMap);
+        gen.generate(renames, folderMap, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         assertEquals(2, root.size(), "Only controllerService and reportingTask expected");
@@ -123,7 +123,7 @@ class JsonMappingGeneratorTest {
 
         Map<String, String> folderMap = Map.of("org.example.Svc", "controllerService");
 
-        gen.generate(renames, folderMap);
+        gen.generate(renames, folderMap, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
         JsonNode svcNode = root.get("org.example.Svc");
@@ -140,11 +140,65 @@ class JsonMappingGeneratorTest {
         Map<String, Map<String, String>> renames = new HashMap<>();
         renames.put("org.example.Unknown", Map.of("old", "new"));
 
-        // empty folder map — folder is null
-        gen.generate(renames, Map.of());
+        // empty folder map - folder is null
+        gen.generate(renames, Map.of(), Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
-        // folder == null → condition (folder != null && !INCLUDED) is false → type is included
+        // folder == null -> condition (folder != null && !INCLUDED) is false -> type is included
         assertTrue(root.has("org.example.Unknown"));
+    }
+
+    @Test
+    void generateIncludesControllerServiceReferencesSection() throws IOException {
+        JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
+
+        Map<String, Map<String, String>> renames = Map.of(
+                "org.example.MyService", Map.of("old-api", "new-api"));
+        Map<String, String> folderMap = Map.of("org.example.MyService", "controllerService");
+        Map<String, Map<String, String>> refs = Map.of(
+                "org.example.MyService",
+                Map.of("database-connection-pooling-service", "org.apache.nifi.dbcp.DBCPService"));
+
+        gen.generate(renames, folderMap, refs);
+
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        assertTrue(root.has("org.example.MyService"));
+        assertEquals("new-api", root.get("org.example.MyService").get("old-api").asText());
+
+        JsonNode references = root.get("controllerServiceReferences");
+        assertTrue(references != null && references.has("org.example.MyService"));
+        assertEquals("org.apache.nifi.dbcp.DBCPService",
+                references.get("org.example.MyService")
+                        .get("database-connection-pooling-service").asText());
+    }
+
+    @Test
+    void generateOmitsReferencesSectionWhenEmpty() throws IOException {
+        JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
+
+        Map<String, Map<String, String>> renames = Map.of(
+                "org.example.MyService", Map.of("old-api", "new-api"));
+        Map<String, String> folderMap = Map.of("org.example.MyService", "controllerService");
+
+        gen.generate(renames, folderMap, Map.of());
+
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        assertFalse(root.has("controllerServiceReferences"));
+    }
+
+    @Test
+    void generateExcludesProcessorReferences() throws IOException {
+        JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
+
+        Map<String, String> folderMap = Map.of("org.example.MyProc", "processors");
+        Map<String, Map<String, String>> refs = Map.of(
+                "org.example.MyProc",
+                Map.of("Database Connection Pooling Service", "org.apache.nifi.dbcp.DBCPService"));
+
+        gen.generate(Map.of(), folderMap, refs);
+
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        assertFalse(root.has("controllerServiceReferences"),
+                "Processor references should be excluded, leaving the section empty and omitted");
     }
 }

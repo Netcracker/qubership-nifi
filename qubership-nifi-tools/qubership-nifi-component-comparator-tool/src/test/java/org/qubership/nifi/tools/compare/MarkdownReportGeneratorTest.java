@@ -141,9 +141,9 @@ class MarkdownReportGeneratorTest {
         gen.generate(records);
 
         String content = Files.readString(Path.of(gen.getOutputPath()));
-        assertTrue(content.contains("| Processors | 1 | 1 | 0 | 2 |"));
-        assertTrue(content.contains("| Controller Services | 0 | 0 | 1 | 1 |"));
-        assertTrue(content.contains("| Reporting Tasks | 0 | 0 | 0 | 0 |"));
+        assertTrue(content.contains("| Processors | 1 | 1 | 0 | 0 | 2 |"));
+        assertTrue(content.contains("| Controller Services | 0 | 0 | 1 | 0 | 1 |"));
+        assertTrue(content.contains("| Reporting Tasks | 0 | 0 | 0 | 0 | 0 |"));
     }
 
     @Test
@@ -194,5 +194,36 @@ class MarkdownReportGeneratorTest {
         assertTrue(content.contains("| rename"));
         assertTrue(content.contains("| deleted"));
         assertTrue(content.contains("| added"));
+    }
+
+    @Test
+    void generateRendersControllerServiceReferenceColumn() throws IOException {
+        MarkdownReportGenerator gen = new MarkdownReportGenerator(tempDir);
+
+        List<String[]> records = new ArrayList<>();
+        records.add(new String[]{"ExecuteSQL", "processors", "rename",
+                "Database Connection Pooling Service", "Database Connection Pooling Service",
+                "old-api", "new-api", "org.apache.nifi.dbcp.DBCPService"});
+        gen.generate(records);
+
+        String content = Files.readString(Path.of(gen.getOutputPath()));
+        assertTrue(content.contains("Controller Service Reference"));
+        assertTrue(content.contains("org.apache.nifi.dbcp.DBCPService"));
+    }
+
+    @Test
+    void generateSummaryCountsControllerServiceReferences() throws IOException {
+        MarkdownReportGenerator gen = new MarkdownReportGenerator(tempDir);
+
+        List<String[]> records = new ArrayList<>();
+        records.add(new String[]{"C1", "controllerService", "rename",
+                "Pool", "Pool", "old", "new", "org.apache.nifi.dbcp.DBCPService"});
+        records.add(new String[]{"C2", "processors", "rename",
+                "Plain", "Plain", "a", "b", ""});
+        gen.generate(records);
+
+        String content = Files.readString(Path.of(gen.getOutputPath()));
+        assertTrue(content.contains("| Controller service reference changes | 1 |"));
+        assertTrue(content.contains("| Controller Services | 1 | 0 | 0 | 1 | 1 |"));
     }
 }

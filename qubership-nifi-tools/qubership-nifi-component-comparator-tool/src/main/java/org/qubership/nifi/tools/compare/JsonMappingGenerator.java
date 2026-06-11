@@ -20,6 +20,8 @@ public class JsonMappingGenerator {
 
     private static final String JSON_OUTPUT_FILE = "NiFiTypeMapping.json";
 
+    private static final String CONTROLLER_SERVICE_REFERENCES_KEY = "controllerServiceReferences";
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final Set<String> INCLUDED_FOLDERS = Set.of(
@@ -44,12 +46,20 @@ public class JsonMappingGenerator {
      * <p>
      * Renamed properties are written as {@code "oldName": "newName"}.
      * Deleted properties are written as {@code "apiName": null}.
+     * <p>
+     * Renamed properties that reference a controller service are additionally written
+     * under a sibling {@code controllerServiceReferences} object as
+     * {@code "componentType": {"newApiName": "controllerServiceType"}}. The section is
+     * omitted when there are no such references.
      *
-     * @param typeToChangedProperties map of componentType to (name → newName or null) changes
-     * @param typeToFolderMap         map of componentType to subfolder name
+     * @param typeToChangedProperties      map of componentType to (name -> newName or null) changes
+     * @param typeToFolderMap              map of componentType to subfolder name
+     * @param typeToControllerServiceRefs  map of componentType to (new API name ->
+     *                                     controller-service type) for CS-reference properties
      */
     public void generate(Map<String, Map<String, String>> typeToChangedProperties,
-                         Map<String, String> typeToFolderMap) {
+                         Map<String, String> typeToFolderMap,
+                         Map<String, Map<String, String>> typeToControllerServiceRefs) {
         LOGGER.info("Generating type mapping JSON...");
 
         ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
@@ -70,6 +80,8 @@ public class JsonMappingGenerator {
             rootNode.set(type, typeNode);
         });
 
+        addControllerServiceReferences(rootNode, typeToControllerServiceRefs, typeToFolderMap);
+
         try (FileWriter writer = new FileWriter(getOutputPath())) {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(rootNode));
@@ -77,6 +89,33 @@ public class JsonMappingGenerator {
             LOGGER.info("Total types with changes: {}", rootNode.size());
         } catch (IOException e) {
             LOGGER.error("Error writing JSON file: {}", e.getMessage(), e);
+        }
+    }
+
+    private void addControllerServiceReferences(ObjectNode rootNode,
+                                                Map<String, Map<String, String>> typeToControllerServiceRefs,
+                                                Map<String, String> typeToFolderMap) {
+        if (typeToControllerServiceRefs == null || typeToControllerServiceRefs.isEmpty()) {
+            return;
+        }
+
+        ObjectNode referencesNode = OBJECT_MAPPER.createObjectNode();
+        typeToControllerServiceRefs.forEach((type, refs) -> {
+            String folder = typeToFolderMap.get(type);
+            if (folder != null && !INCLUDED_FOLDERS.contains(folder)) {
+                return;
+            }
+            if (refs == null || refs.isEmpty()) {
+                return;
+            }
+            ObjectNode typeNode = OBJECT_MAPPER.createObjectNode();
+            refs.forEach(typeNode::put);
+            referencesNode.set(type, typeNode);
+        });
+
+        if (!referencesNode.isEmpty()) {
+            rootNode.set(CONTROLLER_SERVICE_REFERENCES_KEY, referencesNode);
+            LOGGER.info("Controller-service references written for {} types", referencesNode.size());
         }
     }
 

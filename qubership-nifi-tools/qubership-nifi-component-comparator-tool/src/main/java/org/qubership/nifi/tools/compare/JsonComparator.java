@@ -45,6 +45,7 @@ public class JsonComparator {
     private Map<String, Set<String>> allowedToDelete = new HashMap<>();
     private final List<String[]> csvRecords = new ArrayList<>();
     private final Map<String, Map<String, String>> typeToChangedProperties = new HashMap<>();
+    private final Map<String, Map<String, String>> typeToControllerServiceRefs = new HashMap<>();
     private final Map<String, String> typeToFolderMap = new HashMap<>();
 
     private boolean isLoaded = false;
@@ -131,6 +132,19 @@ public class JsonComparator {
     }
 
     /**
+     * Returns the controller-service references produced by {@link #compare()}.
+     * Only renamed properties that reference a controller service are included.
+     * Added properties are excluded because the JSON mapping records only renamed
+     * and removed properties, and deleted properties are skipped because they have
+     * no new API name to key by. The key is the new API name.
+     *
+     * @return unmodifiable map of componentType to (new API name -> controller-service type)
+     */
+    public Map<String, Map<String, String>> getTypeToControllerServiceRefs() {
+        return Collections.unmodifiableMap(typeToControllerServiceRefs);
+    }
+
+    /**
      * Returns the mapping of component type to subfolder name.
      *
      * @return unmodifiable map of componentType to subfolder
@@ -177,6 +191,7 @@ public class JsonComparator {
         allowedToDelete.clear();
         csvRecords.clear();
         typeToChangedProperties.clear();
+        typeToControllerServiceRefs.clear();
         typeToFolderMap.clear();
     }
 
@@ -364,6 +379,7 @@ public class JsonComparator {
 
             ComponentProperties cp = new ComponentProperties(apiName, displayName, description);
             cp.setEquivalentNameMappings(nameMappings);
+            cp.setControllerServiceType(extractControllerServiceType(prop));
             result.add(cp);
         });
 
@@ -391,18 +407,24 @@ public class JsonComparator {
 
             if (matchingTarget != null) {
                 if (!Objects.equals(sourceProp.getApiName(), matchingTarget.getApiName())) {
+                    String csType = matchingTarget.referencesControllerService()
+                            ? matchingTarget.getControllerServiceType()
+                            : sourceProp.getControllerServiceType();
                     csvRecords.add(createCsvRecord(fileName, componentFolder, "rename",
-                            sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
-                            sourceProp.getApiName(), matchingTarget.getApiName()));
+                            new PropertyNames(sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
+                                    sourceProp.getApiName(), matchingTarget.getApiName()), csType));
                     recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
+                    recordControllerServiceRef(componentType, matchingTarget.getApiName(), csType);
                 }
             } else {
+                String csType = sourceProp.getControllerServiceType();
                 csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
-                        sourceProp.getDisplayName(), "",
-                        sourceProp.getApiName(), ""));
+                        new PropertyNames(sourceProp.getDisplayName(), "",
+                                sourceProp.getApiName(), ""), csType));
                 if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
                     recordDeleted(componentType, sourceProp.getApiName());
                 }
+                // Deleted properties are intentionally skipped: they have no new API name to key by.
             }
         }
     }
@@ -419,9 +441,12 @@ public class JsonComparator {
                             : srcProp.compareUniqueDisplayName(targetProp));
 
             if (!existsInSource) {
+                String csType = targetProp.getControllerServiceType();
                 csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
-                        "", targetProp.getDisplayName(),
-                        "", targetProp.getApiName()));
+                        new PropertyNames("", targetProp.getDisplayName(),
+                                "", targetProp.getApiName()), csType));
+                // Added properties are intentionally skipped in the references map: the JSON
+                // mapping records only renamed and removed properties, not added ones.
             }
         }
     }
@@ -450,6 +475,40 @@ public class JsonComparator {
                 .put(apiName, null);
     }
 
+    private void recordControllerServiceRef(String componentType, String displayName, String csType) {
+        if (componentType == null || displayName == null || csType == null) {
+            return;
+        }
+        typeToControllerServiceRefs.computeIfAbsent(componentType, k -> new HashMap<>())
+                .put(displayName, csType);
+    }
+
+    /**
+     * Extracts the controller-service interface type referenced by a property descriptor.
+     * NiFi 1.x exports expose it as a textual {@code identifiesControllerService}, while
+     * NiFi 2.x exports expose it as {@code typeProvidedByValue.type}.
+     *
+     * @param prop the property-descriptor JSON node
+     * @return the controller-service interface type, or null if the property is not a reference
+     */
+    private String extractControllerServiceType(JsonNode prop) {
+        if (prop == null) {
+            return null;
+        }
+        JsonNode identifies = prop.get("identifiesControllerService");
+        if (identifies != null && identifies.isTextual()) {
+            return identifies.asText();
+        }
+        JsonNode providedByValue = prop.get("typeProvidedByValue");
+        if (providedByValue != null && providedByValue.isObject()) {
+            JsonNode typeNode = providedByValue.get("type");
+            if (typeNode != null && typeNode.isTextual()) {
+                return typeNode.asText();
+            }
+        }
+        return null;
+    }
+
     private String getShortTypeName(String fullTypeName) {
         if (fullTypeName == null || fullTypeName.isEmpty()) {
             return null;
@@ -460,17 +519,21 @@ public class JsonComparator {
                 : fullTypeName;
     }
 
+    private record PropertyNames(String displayNameOld, String displayNameNew,
+                                 String apiNameOld, String apiNameNew) {
+    }
+
     private String[] createCsvRecord(String filename, String componentType, String changeType,
-                                     String displayNameOld, String displayNameNew,
-                                     String apiNameOld, String apiNameNew) {
+                                     PropertyNames names, String controllerServiceRef) {
         return new String[]{
                 removeJsonExtension(filename),
                 componentType != null ? componentType : "",
                 changeType,
-                displayNameOld,
-                displayNameNew,
-                apiNameOld,
-                apiNameNew
+                names.displayNameOld(),
+                names.displayNameNew(),
+                names.apiNameOld(),
+                names.apiNameNew(),
+                controllerServiceRef != null ? controllerServiceRef : ""
         };
     }
 

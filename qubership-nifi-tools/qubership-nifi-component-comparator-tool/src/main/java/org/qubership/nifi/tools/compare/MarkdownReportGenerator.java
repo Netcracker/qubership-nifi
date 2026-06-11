@@ -32,9 +32,11 @@ public class MarkdownReportGenerator {
     );
 
     private static final String TABLE_HEADER =
-            "| Change Type | Old Display Name | New Display Name | Old Api Name | New Api Name |";
+            "| Change Type | Old Display Name | New Display Name | Old Api Name | New Api Name "
+                    + "| Controller Service Reference |";
     private static final String TABLE_SEPARATOR =
-            "|-------------|------------------|------------------|--------------|--------------|";
+            "|-------------|------------------|------------------|--------------|--------------"
+                    + "|------------------------------|";
 
     private static final int IDX_COMPONENT_NAME = 0;
     private static final int IDX_COMPONENT_TYPE = 1;
@@ -43,6 +45,7 @@ public class MarkdownReportGenerator {
     private static final int IDX_NEW_DISPLAY_NAME = 4;
     private static final int IDX_OLD_API_NAME = 5;
     private static final int IDX_NEW_API_NAME = 6;
+    private static final int IDX_CS_REF = 7;
 
     private final Path outputDir;
 
@@ -119,6 +122,7 @@ public class MarkdownReportGenerator {
         long renamed = countByChangeType(csvRecords, "rename");
         long deleted = countByChangeType(csvRecords, "deleted");
         long added = countByChangeType(csvRecords, "added");
+        long controllerServiceRefs = countControllerServiceRefs(csvRecords);
         long affectedComponents = csvRecords.stream()
                 .map(r -> r[IDX_COMPONENT_NAME])
                 .distinct()
@@ -131,6 +135,8 @@ public class MarkdownReportGenerator {
         sb.append("| Renamed properties | ").append(renamed).append(" |\n");
         sb.append("| Deleted properties | ").append(deleted).append(" |\n");
         sb.append("| Added properties | ").append(added).append(" |\n");
+        sb.append("| Controller service reference changes | ")
+                .append(controllerServiceRefs).append(" |\n");
         sb.append("| Affected components | ").append(affectedComponents).append(" |\n");
         sb.append("\n");
 
@@ -140,8 +146,8 @@ public class MarkdownReportGenerator {
     private void appendComponentTypeSummary(StringBuilder sb,
                                             Map<String, Map<String, List<String[]>>> grouped) {
         sb.append("### Changes by Component Type\n\n");
-        sb.append("| Component Type | Renamed | Deleted | Added | Total |\n");
-        sb.append("|----------------|--------:|--------:|------:|------:|\n");
+        sb.append("| Component Type | Renamed | Deleted | Added | CS Refs | Total |\n");
+        sb.append("|----------------|--------:|--------:|------:|--------:|------:|\n");
 
         for (String folder : FOLDER_ORDER) {
             Map<String, List<String[]>> components = grouped.get(folder);
@@ -150,6 +156,7 @@ public class MarkdownReportGenerator {
             long renamed = countByChangeType(allRecords, "rename");
             long deletedCount = countByChangeType(allRecords, "deleted");
             long addedCount = countByChangeType(allRecords, "added");
+            long csRefs = countControllerServiceRefs(allRecords);
             long total = allRecords.size();
 
             String displayName = FOLDER_DISPLAY_NAMES.getOrDefault(folder, folder);
@@ -157,6 +164,7 @@ public class MarkdownReportGenerator {
                     .append(" | ").append(renamed)
                     .append(" | ").append(deletedCount)
                     .append(" | ").append(addedCount)
+                    .append(" | ").append(csRefs)
                     .append(" | ").append(total)
                     .append(" |\n");
         }
@@ -186,7 +194,8 @@ public class MarkdownReportGenerator {
                             .append(escapeCell(csvRecord[IDX_OLD_DISPLAY_NAME])).append(" | ")
                             .append(escapeCell(csvRecord[IDX_NEW_DISPLAY_NAME])).append(" | ")
                             .append(escapeCell(csvRecord[IDX_OLD_API_NAME])).append(" | ")
-                            .append(escapeCell(csvRecord[IDX_NEW_API_NAME])).append(" |\n");
+                            .append(escapeCell(csvRecord[IDX_NEW_API_NAME])).append(" | ")
+                            .append(escapeCell(cellAt(csvRecord, IDX_CS_REF))).append(" |\n");
                 }
                 sb.append("\n");
             }
@@ -197,6 +206,19 @@ public class MarkdownReportGenerator {
         return records.stream()
                 .filter(r -> changeType.equals(r[IDX_CHANGE_TYPE]))
                 .count();
+    }
+
+    private long countControllerServiceRefs(List<String[]> records) {
+        return records.stream()
+                .filter(r -> !cellAt(r, IDX_CS_REF).isEmpty())
+                .count();
+    }
+
+    private String cellAt(String[] record, int index) {
+        if (record == null || index >= record.length || record[index] == null) {
+            return "";
+        }
+        return record[index];
     }
 
     private List<String[]> flattenRecords(Map<String, List<String[]>> components) {

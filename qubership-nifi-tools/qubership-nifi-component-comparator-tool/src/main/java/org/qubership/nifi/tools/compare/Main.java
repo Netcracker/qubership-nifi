@@ -70,7 +70,8 @@ public final class Main {
             JsonMappingGenerator jsonGenerator = new JsonMappingGenerator(outputDir);
             jsonGenerator.generate(
                     comparator.getTypeToChangedProperties(),
-                    comparator.getTypeToFolderMap());
+                    comparator.getTypeToFolderMap(),
+                    comparator.getTypeToControllerServiceRefs());
 
             MarkdownReportGenerator mdGenerator = new MarkdownReportGenerator(outputDir);
             mdGenerator.generate(comparator.getCsvRecords());

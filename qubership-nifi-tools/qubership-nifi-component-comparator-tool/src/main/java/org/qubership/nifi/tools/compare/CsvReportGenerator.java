@@ -22,7 +22,8 @@ public class CsvReportGenerator {
     private static final String[] CSV_HEADERS = {
             "Component Name", "Component Type", "Change Type",
             "Old Display Name", "New Display Name",
-            "Old Api Name", "New Api Name"
+            "Old Api Name", "New Api Name",
+            "Controller Service Reference"
     };
 
     private final Path outputDir;
