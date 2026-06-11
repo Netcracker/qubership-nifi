@@ -15,4 +15,4 @@ mvn -pl qubership-nifi-tools/qubership-nifi-json-format-tool exec:java \
 ```
 
 For the library API, the detection model, and the known limitations, see the
-[library README](../qubership-nifi-json-format-lib/README.md).
+[library README.md](../qubership-nifi-json-format-lib/README.md).
