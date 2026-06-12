@@ -46,16 +46,6 @@ public class FileSystemService {
     }
 
     /**
-     * Returns true if the path points to an existing regular file.
-     *
-     * @param file path to check
-     * @return true if the file exists, false otherwise
-     */
-    public boolean exists(Path file) {
-        return Files.isRegularFile(file);
-    }
-
-    /**
      * Deletes a file if it exists. Does nothing if the file is absent.
      *
      * @param file file to delete

@@ -13,7 +13,8 @@
     <artifactId>qubership-nifi-export-transform-tool</artifactId>
     <packaging>maven-plugin</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Maven plugin for transform extract</description>
+    <description>Maven plugin for extracting and restoring processor property values
+        (SQL, scripts, Jolt specs) in exported NiFi flow JSON files.</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

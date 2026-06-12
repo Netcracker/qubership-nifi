@@ -74,7 +74,7 @@ class PropertyResolverTest {
     @Test
     void resolveByRegexReturnsSingleMatchingProperty() {
         Processor processor = processorWith("Script Body", "println 'hi'");
-        PropertyMapping mapping = PropertyMapping.of("Script.*", "script.groovy");
+        PropertyMapping mapping = PropertyMapping.ofRegex("Script.*", "script.groovy");
 
         Optional<ProcessorProperty> result = resolver.resolve(processor, mapping);
 
@@ -85,7 +85,7 @@ class PropertyResolverTest {
     @Test
     void resolveByRegexReturnsEmptyAndLogsWarnWhenNoMatchFound() {
         Processor processor = processorWith("SQL Query", "SELECT 1");
-        PropertyMapping mapping = PropertyMapping.of("Script.*", "script.groovy");
+        PropertyMapping mapping = PropertyMapping.ofRegex("Script.*", "script.groovy");
 
         Optional<ProcessorProperty> result = resolver.resolve(processor, mapping);
 
@@ -99,7 +99,7 @@ class PropertyResolverTest {
         props.put("Script Body", "println 'hi'");
         props.put("Script File", "script.groovy");
         Processor processor = new Processor("P", TYPE, "id", props, rootGroup());
-        PropertyMapping mapping = PropertyMapping.of("Script.*", "script.groovy");
+        PropertyMapping mapping = PropertyMapping.ofRegex("Script.*", "script.groovy");
 
         Optional<ProcessorProperty> result = resolver.resolve(processor, mapping);
 

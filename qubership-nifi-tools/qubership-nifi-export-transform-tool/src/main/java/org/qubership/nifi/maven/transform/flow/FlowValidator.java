@@ -58,8 +58,8 @@ public class FlowValidator {
                         "Duplicate processor path '%s': "
                                 + "processor '%s' and processor '%s' produce the same path. "
                                 + "Processors of the same type must have unique paths "
-                                + "(group segments + processor name) within the flow, "
-                                + "because the path is used as the directory structure during Extract.",
+                                + "(parent process group names + processor name) within the flow, "
+                                + "since the path determines the directory structure during Extract.",
                         fullPath, typeFqn, existingId, processor.getIdentifier()));
             }
         }

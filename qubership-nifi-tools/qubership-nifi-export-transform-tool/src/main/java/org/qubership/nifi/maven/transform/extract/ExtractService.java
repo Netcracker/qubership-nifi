@@ -87,7 +87,12 @@ public class ExtractService {
         List<String> collectedErrors = new ArrayList<>();
 
         for (Path flowPath : flowPaths) {
-            FlowFile flow = flowReader.read(flowPath);
+            java.util.Optional<FlowFile> flowOpt = flowReader.read(flowPath);
+            if (flowOpt.isEmpty()) {
+                log.debug("Skipping " + flowPath + ": no 'flowContents' found, not a NiFi flow file.");
+                continue;
+            }
+            FlowFile flow = flowOpt.get();
             log.info("Processing flow: " + flow.getFlowName());
 
             List<String> conflicts = flowValidator.validate(flow, config);
@@ -187,7 +192,7 @@ public class ExtractService {
         }
 
         if (property.isEmpty()) {
-            log.warn(String.format(
+            log.debug(String.format(
                     "Property '%s' of processor '%s' is empty or null. Skipping file creation.",
                     property.getName(), processor.getName()));
             return false;

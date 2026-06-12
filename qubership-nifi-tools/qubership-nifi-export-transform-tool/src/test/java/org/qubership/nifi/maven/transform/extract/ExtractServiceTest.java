@@ -101,7 +101,7 @@ class ExtractServiceTest {
         PluginConfig config = config(PropertyMapping.of("SQL Query", "query.sql"));
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of("Duplicate path: P"));
 
         assertThrows(ExtractException.class, () -> service.extract(config, exportDir));
@@ -122,7 +122,7 @@ class ExtractServiceTest {
         Path targetFile = Path.of("exports", "flowConf_flow", "MyProcessor", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of());
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceBuilder.buildAbsoluteFilePath(flow, processor, "query.sql"))
@@ -151,7 +151,7 @@ class ExtractServiceTest {
         ProcessorProperty property = new ProcessorProperty("SQL Query", props);
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of());
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
 
@@ -174,7 +174,7 @@ class ExtractServiceTest {
         ProcessorProperty property = new ProcessorProperty("SQL Query", props);
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of());
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
 
@@ -194,7 +194,7 @@ class ExtractServiceTest {
         PluginConfig config = config(mapping);
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of());
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.empty());
 
@@ -224,7 +224,7 @@ class ExtractServiceTest {
         Path targetFile2 = Path.of("exports", "flowConf_flow", "P2", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(flowValidator.validate(flow, config)).thenReturn(List.of());
         when(propertyResolver.resolve(eq(p1), any())).thenReturn(Optional.of(prop1));
         when(propertyResolver.resolve(eq(p2), any())).thenReturn(Optional.of(prop2));
@@ -257,8 +257,8 @@ class ExtractServiceTest {
         Path targetFile2 = Path.of("exports", "flowConf_flow2", "P2", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath1, flowPath2));
-        when(flowReader.read(flowPath1)).thenReturn(flow1);
-        when(flowReader.read(flowPath2)).thenReturn(flow2);
+        when(flowReader.read(flowPath1)).thenReturn(Optional.of(flow1));
+        when(flowReader.read(flowPath2)).thenReturn(Optional.of(flow2));
         when(flowValidator.validate(eq(flow1), any())).thenReturn(List.of("Duplicate path: P1"));
         when(flowValidator.validate(eq(flow2), any())).thenReturn(List.of());
         when(propertyResolver.resolve(eq(p2), any())).thenReturn(Optional.of(prop2));

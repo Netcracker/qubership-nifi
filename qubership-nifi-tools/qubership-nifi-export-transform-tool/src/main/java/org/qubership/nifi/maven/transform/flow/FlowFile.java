@@ -73,15 +73,6 @@ public class FlowFile {
     }
 
     /**
-     * Returns the pre-built map of all configured processors grouped by type FQN.
-     *
-     * @return unmodifiable map of typeFqn to list of processors
-     */
-    public Map<String, List<Processor>> getProcessorsByType() {
-        return processorsByType;
-    }
-
-    /**
      * Returns the path to the source JSON file on disk.
      *
      * @return path as supplied at construction time

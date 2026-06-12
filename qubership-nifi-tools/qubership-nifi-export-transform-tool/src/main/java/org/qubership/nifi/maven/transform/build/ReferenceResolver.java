@@ -69,8 +69,10 @@ public class ReferenceResolver {
             throw new BuildException(String.format(
                     "Property '%s' of processor '%s' has an inline value, "
                             + "but an extracted file already exists at '%s'. "
-                            + "This is ambiguous: remove either the inline value or the extracted file.",
-                    property.getName(), processor.getName(), extractedFile));
+                            + "This is ambiguous: remove either the inline value or the extracted file "
+                            + "(flow file: '%s').",
+                    property.getName(), processor.getName(), extractedFile,
+                    flow.getFilePath()));
         }
     }
 

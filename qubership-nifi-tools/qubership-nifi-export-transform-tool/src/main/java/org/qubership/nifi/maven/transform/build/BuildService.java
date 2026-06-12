@@ -92,7 +92,12 @@ public class BuildService {
         List<BuildException> collectedErrors = new ArrayList<>();
 
         for (Path flowPath : flowPaths) {
-            FlowFile flow = flowReader.read(flowPath);
+            java.util.Optional<FlowFile> flowOpt = flowReader.read(flowPath);
+            if (flowOpt.isEmpty()) {
+                log.debug("Skipping " + flowPath + ": no 'flowContents' found, not a NiFi flow file.");
+                continue;
+            }
+            FlowFile flow = flowOpt.get();
             log.info("Processing flow: " + flow.getFlowName());
 
             int errorsBefore = collectedErrors.size();
@@ -214,15 +219,18 @@ public class BuildService {
         } else {
             referenceResolver.checkConflict(flow, processor, property,
                     mapping.getTargetFilename());
-            throw new BuildException(String.format(
-                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') "
-                            + "has an inline value. Extract must be run before Build.",
+            log.debug(String.format(
+                    "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, "
+                            + "flow: '%s', file: '%s') has an inline value and no extracted file "
+                            + "- skipping. Run Extract first if this processor should be managed.",
                     property.getName(),
                     processor.getName(),
                     processor.getIdentifier(),
                     processor.getParentGroup().getName(),
                     processor.getParentGroup().getIdentifier(),
-                    flow.getFlowName()));
+                    flow.getFlowName(),
+                    flow.getFilePath()));
+            return false;
         }
     }
 

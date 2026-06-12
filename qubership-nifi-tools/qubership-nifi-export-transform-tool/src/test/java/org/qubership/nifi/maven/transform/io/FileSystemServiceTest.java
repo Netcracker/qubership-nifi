@@ -166,30 +166,6 @@ class FileSystemServiceTest {
     }
 
     // -------------------------------------------------------------------------
-    // exists
-    // -------------------------------------------------------------------------
-
-    @Test
-    void existsReturnsTrueForExistingFile() throws IOException {
-        Path file = tempDir.resolve("file.txt");
-        Files.writeString(file, "data", StandardCharsets.UTF_8);
-
-        assertTrue(service.exists(file));
-    }
-
-    @Test
-    void existsReturnsFalseForNonExistentPath() {
-        Path missing = tempDir.resolve("missing.txt");
-
-        assertFalse(service.exists(missing));
-    }
-
-    @Test
-    void existsReturnsFalseForDirectory() {
-        assertFalse(service.exists(tempDir));
-    }
-
-    // -------------------------------------------------------------------------
     // deleteIfExists
     // -------------------------------------------------------------------------
 

@@ -22,49 +22,26 @@ class PropertyMappingTest {
     }
 
     @Test
-    void exactNameMatchesReturnsTrue() {
-        PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
-
-        assertTrue(mapping.matches("SQL Query"));
+    void ofAlwaysCreatesLiteralMappingEvenWithSpecialChars() {
+        assertFalse(PropertyMapping.of("a.b", "f.txt").isRegex());
+        assertFalse(PropertyMapping.of("a*b", "f.txt").isRegex());
+        assertFalse(PropertyMapping.of("sql.args.1.value", "f.txt").isRegex());
+        assertFalse(PropertyMapping.of("a|b", "f.txt").isRegex());
+        assertFalse(PropertyMapping.of("db-fetch-sql-query", "query.sql").isRegex());
+        assertFalse(PropertyMapping.of("SQL Query", "query.sql").isRegex());
     }
 
     @Test
-    void exactNameDoesNotMatchDifferentNameReturnsFalse() {
-        PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
-
-        assertFalse(mapping.matches("sql query"));
-        assertFalse(mapping.matches("SQL"));
-        assertFalse(mapping.matches(""));
-    }
-
-    @Test
-    void regexPatternWithPipeAndParensIsRegex() {
-        PropertyMapping mapping = PropertyMapping.of("(SQL Query|db-fetch-sql-query)", "query.sql");
+    void ofRegexCreatesRegexMapping() {
+        PropertyMapping mapping = PropertyMapping.ofRegex("SQL Query|db-fetch-sql-query", "query.sql");
 
         assertTrue(mapping.isRegex());
+        assertEquals("SQL Query|db-fetch-sql-query", mapping.getPropertyNameOrRegex());
     }
 
     @Test
-    void regexPatternMatchesEitherAlternative() {
-        PropertyMapping mapping = PropertyMapping.of("(SQL Query|db-fetch-sql-query)", "query.sql");
-
-        assertTrue(mapping.matches("SQL Query"));
-        assertTrue(mapping.matches("db-fetch-sql-query"));
-        assertFalse(mapping.matches("other"));
-    }
-
-    @Test
-    void regexPatternDotStarMatchesAnyString() {
-        PropertyMapping mapping = PropertyMapping.of("Script.*", "script.groovy");
-
-        assertTrue(mapping.matches("Script Body"));
-        assertTrue(mapping.matches("Script File"));
-        assertFalse(mapping.matches("script body"));
-    }
-
-    @Test
-    void regexPatternGetCompiledPatternReturnsPattern() {
-        PropertyMapping mapping = PropertyMapping.of("(a|b)", "file.txt");
+    void ofRegexGetCompiledPatternReturnsPattern() {
+        PropertyMapping mapping = PropertyMapping.ofRegex("(a|b)", "file.txt");
 
         assertNotNull(mapping.getCompiledPattern());
         assertEquals("(a|b)", mapping.getCompiledPattern().pattern());
@@ -79,24 +56,8 @@ class PropertyMappingTest {
     }
 
     @Test
-    void invalidRegexThrowsPatternSyntaxException() {
-        assertThrows(PatternSyntaxException.class, () -> PropertyMapping.of("[invalid", "file.txt"));
-    }
-
-    @Test
-    void specialCharsRecognizedAsRegex() {
-        assertTrue(PropertyMapping.of("a.b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a*b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a+b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a?b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a^b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a$b", "f.txt").isRegex());
-        assertTrue(PropertyMapping.of("a|b", "f.txt").isRegex());
-    }
-
-    @Test
-    void hyphenAndSpaceNotRegex() {
-        assertFalse(PropertyMapping.of("db-fetch-sql-query", "query.sql").isRegex());
-        assertFalse(PropertyMapping.of("SQL Query", "query.sql").isRegex());
+    void ofRegexInvalidPatternThrowsPatternSyntaxException() {
+        assertThrows(PatternSyntaxException.class,
+                () -> PropertyMapping.ofRegex("[invalid", "file.txt"));
     }
 }

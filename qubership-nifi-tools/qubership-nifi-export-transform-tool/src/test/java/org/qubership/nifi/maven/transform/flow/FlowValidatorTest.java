@@ -73,6 +73,58 @@ class FlowValidatorTest {
     }
 
     @Test
+    void validateNoErrorWhenSameNameProcessorsAreInDifferentChildGroups() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup groupA = new ProcessGroup("GroupA", "gid-a", List.of(), List.of(), root, false);
+        ProcessGroup groupB = new ProcessGroup("GroupB", "gid-b", List.of(), List.of(), root, false);
+        Processor p1 = new Processor("MyProcessor", TYPE, "id1", MAPPER.createObjectNode(), groupA);
+        Processor p2 = new Processor("MyProcessor", TYPE, "id2", MAPPER.createObjectNode(), groupB);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    void validateReturnsErrorWhenSameNameProcessorsAreInChildGroupsWithSameName() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup group1 = new ProcessGroup("SameGroup", "gid1", List.of(), List.of(), root, false);
+        ProcessGroup group2 = new ProcessGroup("SameGroup", "gid2", List.of(), List.of(), root, false);
+        Processor p1 = new Processor("MyProcessor", TYPE, "id1", MAPPER.createObjectNode(), group1);
+        Processor p2 = new Processor("MyProcessor", TYPE, "id2", MAPPER.createObjectNode(), group2);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).contains("Duplicate"));
+        assertTrue(errors.get(0).contains("SameGroup / MyProcessor"));
+    }
+
+    @Test
+    void validateNoErrorWhenParentGroupNamesMatchButChildGroupNamesDiffer() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup parent1 = new ProcessGroup("group1", "gid1", List.of(), List.of(), root, false);
+        ProcessGroup parent2 = new ProcessGroup("group1", "gid2", List.of(), List.of(), root, false);
+        ProcessGroup child1 = new ProcessGroup("group11", "gid11", List.of(), List.of(), parent1, false);
+        ProcessGroup child2 = new ProcessGroup("group12", "gid22", List.of(), List.of(), parent2, false);
+        Processor p1 = new Processor("MyProcessor", TYPE, "id1", MAPPER.createObjectNode(), child1);
+        Processor p2 = new Processor("MyProcessor", TYPE, "id2", MAPPER.createObjectNode(), child2);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
     void validateReturnsErrorForInvalidCharsInProcessorName() {
         ProcessGroup root = rootGroup();
         Processor p = new Processor("My*Processor", TYPE, "id", MAPPER.createObjectNode(), root);
@@ -115,7 +167,7 @@ class FlowValidatorTest {
                 root, Map.of(TYPE, List.of(p)));
 
         List<String> errors = validator.validate(flow,
-                config(PropertyMapping.of("Script.*", "script.groovy")));
+                config(PropertyMapping.ofRegex("Script.*", "script.groovy")));
 
         assertEquals(1, errors.size());
         assertTrue(errors.get(0).contains("Script.*"));
@@ -132,7 +184,7 @@ class FlowValidatorTest {
                 root, Map.of(TYPE, List.of(p)));
 
         List<String> errors = validator.validate(flow,
-                config(PropertyMapping.of("Script.*", "script.groovy")));
+                config(PropertyMapping.ofRegex("Script.*", "script.groovy")));
 
         assertTrue(errors.isEmpty());
     }
