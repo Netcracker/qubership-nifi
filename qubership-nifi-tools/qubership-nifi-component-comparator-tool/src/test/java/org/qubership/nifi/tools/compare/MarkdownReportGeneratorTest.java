@@ -141,9 +141,9 @@ class MarkdownReportGeneratorTest {
         gen.generate(records);
 
         String content = Files.readString(Path.of(gen.getOutputPath()));
-        assertTrue(content.contains("| Processors | 1 | 1 | 0 | 0 | 2 |"));
-        assertTrue(content.contains("| Controller Services | 0 | 0 | 1 | 0 | 1 |"));
-        assertTrue(content.contains("| Reporting Tasks | 0 | 0 | 0 | 0 | 0 |"));
+        assertTrue(content.contains("| Processors | 1 | 1 | 0 | 0 | 0 | 0 | 2 |"));
+        assertTrue(content.contains("| Controller Services | 0 | 0 | 1 | 0 | 0 | 0 | 1 |"));
+        assertTrue(content.contains("| Reporting Tasks | 0 | 0 | 0 | 0 | 0 | 0 | 0 |"));
     }
 
     @Test
@@ -223,7 +223,32 @@ class MarkdownReportGeneratorTest {
         gen.generate(records);
 
         String content = Files.readString(Path.of(gen.getOutputPath()));
-        assertTrue(content.contains("| Controller service reference changes | 1 |"));
-        assertTrue(content.contains("| Controller Services | 1 | 0 | 0 | 1 | 1 |"));
+        assertTrue(content.contains("| Renamed controller service references | 1 |"));
+        assertTrue(content.contains("| Deleted controller service references | 0 |"));
+        assertTrue(content.contains("| Added controller service references | 0 |"));
+        // The CS ref rename is excluded from the regular renamed count; only the plain rename remains.
+        assertTrue(content.contains("| Renamed properties | 1 |"));
+        assertTrue(content.contains("| Controller Services | 0 | 0 | 0 | 1 | 0 | 0 | 1 |"));
+    }
+
+    @Test
+    void generateSummarySplitsControllerServiceReferencesByChangeType() throws IOException {
+        MarkdownReportGenerator gen = new MarkdownReportGenerator(tempDir);
+
+        List<String[]> records = new ArrayList<>();
+        records.add(new String[]{"C1", "controllerService", "deleted",
+                "Pool", "", "old", "", "org.apache.nifi.dbcp.DBCPService"});
+        records.add(new String[]{"C2", "controllerService", "added",
+                "", "Pool", "", "new", "org.apache.nifi.dbcp.DBCPService"});
+        gen.generate(records);
+
+        String content = Files.readString(Path.of(gen.getOutputPath()));
+        assertTrue(content.contains("| Renamed controller service references | 0 |"));
+        assertTrue(content.contains("| Deleted controller service references | 1 |"));
+        assertTrue(content.contains("| Added controller service references | 1 |"));
+        // Both changes are CS refs, so the regular deleted/added counts stay at zero.
+        assertTrue(content.contains("| Deleted properties | 0 |"));
+        assertTrue(content.contains("| Added properties | 0 |"));
+        assertTrue(content.contains("| Controller Services | 0 | 0 | 0 | 0 | 1 | 1 | 2 |"));
     }
 }

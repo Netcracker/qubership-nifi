@@ -325,7 +325,7 @@ class MainTest {
         // Markdown: CS type in the table and the summary metric
         String md = Files.readString(mdPath());
         assertTrue(md.contains(csType));
-        assertTrue(md.contains("| Controller service reference changes | 1 |"));
+        assertTrue(md.contains("| Renamed controller service references | 1 |"));
 
         // CSV: CS type recorded in the new column
         String csv = Files.readString(csvPath());

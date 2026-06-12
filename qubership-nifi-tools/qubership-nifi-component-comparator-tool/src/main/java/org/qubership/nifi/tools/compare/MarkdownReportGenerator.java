@@ -119,10 +119,12 @@ public class MarkdownReportGenerator {
     private void appendSummary(StringBuilder sb,
                                List<String[]> csvRecords,
                                Map<String, Map<String, List<String[]>>> grouped) {
-        long renamed = countByChangeType(csvRecords, "rename");
-        long deleted = countByChangeType(csvRecords, "deleted");
-        long added = countByChangeType(csvRecords, "added");
-        long controllerServiceRefs = countControllerServiceRefs(csvRecords);
+        long renamed = countNonCsRefByChangeType(csvRecords, "rename");
+        long deleted = countNonCsRefByChangeType(csvRecords, "deleted");
+        long added = countNonCsRefByChangeType(csvRecords, "added");
+        long csRenamed = countControllerServiceRefsByChangeType(csvRecords, "rename");
+        long csDeleted = countControllerServiceRefsByChangeType(csvRecords, "deleted");
+        long csAdded = countControllerServiceRefsByChangeType(csvRecords, "added");
         long affectedComponents = csvRecords.stream()
                 .map(r -> r[IDX_COMPONENT_NAME])
                 .distinct()
@@ -135,8 +137,9 @@ public class MarkdownReportGenerator {
         sb.append("| Renamed properties | ").append(renamed).append(" |\n");
         sb.append("| Deleted properties | ").append(deleted).append(" |\n");
         sb.append("| Added properties | ").append(added).append(" |\n");
-        sb.append("| Controller service reference changes | ")
-                .append(controllerServiceRefs).append(" |\n");
+        sb.append("| Renamed controller service references | ").append(csRenamed).append(" |\n");
+        sb.append("| Deleted controller service references | ").append(csDeleted).append(" |\n");
+        sb.append("| Added controller service references | ").append(csAdded).append(" |\n");
         sb.append("| Affected components | ").append(affectedComponents).append(" |\n");
         sb.append("\n");
 
@@ -146,17 +149,21 @@ public class MarkdownReportGenerator {
     private void appendComponentTypeSummary(StringBuilder sb,
                                             Map<String, Map<String, List<String[]>>> grouped) {
         sb.append("### Changes by Component Type\n\n");
-        sb.append("| Component Type | Renamed | Deleted | Added | CS Refs | Total |\n");
-        sb.append("|----------------|--------:|--------:|------:|--------:|------:|\n");
+        sb.append("| Component Type | Renamed | Deleted | Added | CS Ref Renamed | CS Ref Deleted "
+                + "| CS Ref Added | Total |\n");
+        sb.append("|----------------|--------:|--------:|------:|---------------:|---------------:"
+                + "|-------------:|------:|\n");
 
         for (String folder : FOLDER_ORDER) {
             Map<String, List<String[]>> components = grouped.get(folder);
             List<String[]> allRecords = flattenRecords(components);
 
-            long renamed = countByChangeType(allRecords, "rename");
-            long deletedCount = countByChangeType(allRecords, "deleted");
-            long addedCount = countByChangeType(allRecords, "added");
-            long csRefs = countControllerServiceRefs(allRecords);
+            long renamed = countNonCsRefByChangeType(allRecords, "rename");
+            long deletedCount = countNonCsRefByChangeType(allRecords, "deleted");
+            long addedCount = countNonCsRefByChangeType(allRecords, "added");
+            long csRenamed = countControllerServiceRefsByChangeType(allRecords, "rename");
+            long csDeleted = countControllerServiceRefsByChangeType(allRecords, "deleted");
+            long csAdded = countControllerServiceRefsByChangeType(allRecords, "added");
             long total = allRecords.size();
 
             String displayName = FOLDER_DISPLAY_NAMES.getOrDefault(folder, folder);
@@ -164,7 +171,9 @@ public class MarkdownReportGenerator {
                     .append(" | ").append(renamed)
                     .append(" | ").append(deletedCount)
                     .append(" | ").append(addedCount)
-                    .append(" | ").append(csRefs)
+                    .append(" | ").append(csRenamed)
+                    .append(" | ").append(csDeleted)
+                    .append(" | ").append(csAdded)
                     .append(" | ").append(total)
                     .append(" |\n");
         }
@@ -202,15 +211,17 @@ public class MarkdownReportGenerator {
         }
     }
 
-    private long countByChangeType(List<String[]> records, String changeType) {
+    private long countNonCsRefByChangeType(List<String[]> records, String changeType) {
         return records.stream()
+                .filter(r -> cellAt(r, IDX_CS_REF).isEmpty())
                 .filter(r -> changeType.equals(r[IDX_CHANGE_TYPE]))
                 .count();
     }
 
-    private long countControllerServiceRefs(List<String[]> records) {
+    private long countControllerServiceRefsByChangeType(List<String[]> records, String changeType) {
         return records.stream()
                 .filter(r -> !cellAt(r, IDX_CS_REF).isEmpty())
+                .filter(r -> changeType.equals(r[IDX_CHANGE_TYPE]))
                 .count();
     }
 
