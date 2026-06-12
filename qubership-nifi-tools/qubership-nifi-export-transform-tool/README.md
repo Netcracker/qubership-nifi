@@ -2,7 +2,7 @@
 
 `qubership-nifi-export-transform-tool` is a Maven plugin for managing inline property values
 in exported Apache NiFi flow JSON files.
-It provides two operations — **Extract** and **Build** — that together allow storing
+It provides two operations - **Extract** and **Build** - that together allow storing
 SQL queries, Groovy scripts, Jolt specifications, and other large processor properties
 as separate files in version control instead of embedding them inside the flow JSON.
 
@@ -50,9 +50,9 @@ The table below describes the plugin parameters:
 
 | Parameter    | Goal             | Default | Description                                                                                     |
 |--------------|------------------|---------|-------------------------------------------------------------------------------------------------|
-| `config`     | extract, build   | —       | Required. Path to the YAML configuration file specifying which processor types to process.      |
+| `config`     | extract, build   | -       | Required. Path to the YAML configuration file specifying which processor types to process.      |
 | `export-dir` | extract, build   | `nifi`  | Path to the directory containing exported NiFi flow JSON files.                                 |
-| `delete`     | build            | `false` | When `true`, deletes extracted files and their directories after a successful Build.             |
+| `delete`     | build            | `false` | When `true`, deletes extracted files and their directories after a successful Build.            |
 
 ### pom.xml configuration
 
@@ -92,7 +92,7 @@ Each entry maps a target filename to the NiFi property whose value should be ext
 
 There are two forms for specifying the property name:
 
-**Simple form** — use when the property display name is stable across NiFi versions:
+**Simple form** - use when the property display name is stable across NiFi versions:
 
 ```yaml
 processorTypes:
@@ -100,7 +100,7 @@ processorTypes:
       <targetFilename>: <propertyDisplayName>
 ```
 
-**Regex form** — use when the property display name differs across NiFi versions:
+**Regular expression form** - use when the property display name differs across NiFi versions:
 
 ```yaml
 processorTypes:
@@ -123,4 +123,4 @@ processorTypes:
 ```
 
 A ready-to-use configuration file covering the most common qubership-nifi processor types
-is available at [config/configuration-default.yaml](https://github.com/Netcracker/.github/blob/main/qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
+is available at [config/configuration-default.yaml](../../qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
