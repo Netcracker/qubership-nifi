@@ -45,7 +45,6 @@ public class JsonComparator {
     private Map<String, Set<String>> allowedToDelete = new HashMap<>();
     private final List<String[]> csvRecords = new ArrayList<>();
     private final Map<String, Map<String, String>> typeToChangedProperties = new HashMap<>();
-    private final Map<String, Map<String, String>> typeToControllerServiceRefs = new HashMap<>();
     private final Map<String, String> typeToFolderMap = new HashMap<>();
 
     private boolean isLoaded = false;
@@ -132,19 +131,6 @@ public class JsonComparator {
     }
 
     /**
-     * Returns the controller-service references produced by {@link #compare()}.
-     * Only renamed properties that reference a controller service are included.
-     * Added properties are excluded because the JSON mapping records only renamed
-     * and removed properties, and deleted properties are skipped because they have
-     * no new API name to key by. The key is the new API name.
-     *
-     * @return unmodifiable map of componentType to (new API name -> controller-service type)
-     */
-    public Map<String, Map<String, String>> getTypeToControllerServiceRefs() {
-        return Collections.unmodifiableMap(typeToControllerServiceRefs);
-    }
-
-    /**
      * Returns the mapping of component type to subfolder name.
      *
      * @return unmodifiable map of componentType to subfolder
@@ -191,7 +177,6 @@ public class JsonComparator {
         allowedToDelete.clear();
         csvRecords.clear();
         typeToChangedProperties.clear();
-        typeToControllerServiceRefs.clear();
         typeToFolderMap.clear();
     }
 
@@ -414,7 +399,6 @@ public class JsonComparator {
                             new PropertyNames(sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
                                     sourceProp.getApiName(), matchingTarget.getApiName()), csType));
                     recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
-                    recordControllerServiceRef(componentType, matchingTarget.getApiName(), csType);
                 }
             } else {
                 String csType = sourceProp.getControllerServiceType();
@@ -424,7 +408,6 @@ public class JsonComparator {
                 if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
                     recordDeleted(componentType, sourceProp.getApiName());
                 }
-                // Deleted properties are intentionally skipped: they have no new API name to key by.
             }
         }
     }
@@ -445,8 +428,6 @@ public class JsonComparator {
                 csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
                         new PropertyNames("", targetProp.getDisplayName(),
                                 "", targetProp.getApiName()), csType));
-                // Added properties are intentionally skipped in the references map: the JSON
-                // mapping records only renamed and removed properties, not added ones.
             }
         }
     }
@@ -473,14 +454,6 @@ public class JsonComparator {
     private void recordDeleted(String componentType, String apiName) {
         typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
                 .put(apiName, null);
-    }
-
-    private void recordControllerServiceRef(String componentType, String displayName, String csType) {
-        if (componentType == null || displayName == null || csType == null) {
-            return;
-        }
-        typeToControllerServiceRefs.computeIfAbsent(componentType, k -> new HashMap<>())
-                .put(displayName, csType);
     }
 
     /**

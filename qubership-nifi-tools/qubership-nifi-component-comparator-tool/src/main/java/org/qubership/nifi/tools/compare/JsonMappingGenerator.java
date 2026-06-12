@@ -18,54 +18,64 @@ public class JsonMappingGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingGenerator.class);
 
-    private static final String JSON_OUTPUT_FILE = "NiFiTypeMapping.json";
+    private static final String DEFAULT_OUTPUT_FILE = "NiFiTypeMapping.json";
 
-    private static final String CONTROLLER_SERVICE_REFERENCES_KEY = "controllerServiceReferences";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private static final Set<String> INCLUDED_FOLDERS = Set.of(
+    private static final Set<String> DEFAULT_INCLUDED_FOLDERS = Set.of(
             "controllerService", "reportingTask"
     );
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final Path outputDir;
 
+    private final String outputFileName;
+
+    private final Set<String> includedFolders;
+
     /**
-     * Creates a new JSON mapping generator.
+     * Creates a JSON mapping generator for controller-service and reporting-task types.
+     * Writes to {@code NiFiTypeMapping.json}.
      *
      * @param outputDirValue directory where the JSON file will be written
      */
     public JsonMappingGenerator(final Path outputDirValue) {
+        this(outputDirValue, DEFAULT_OUTPUT_FILE, DEFAULT_INCLUDED_FOLDERS);
+    }
+
+    /**
+     * Creates a JSON mapping generator for a specific output file and set of subfolders.
+     *
+     * @param outputDirValue      directory where the JSON file will be written
+     * @param outputFileNameValue name of the JSON file to write
+     * @param includedFoldersValue subfolders whose types are included in the output
+     */
+    public JsonMappingGenerator(final Path outputDirValue,
+                                final String outputFileNameValue,
+                                final Set<String> includedFoldersValue) {
         this.outputDir = outputDirValue;
+        this.outputFileName = outputFileNameValue;
+        this.includedFolders = includedFoldersValue;
     }
 
     /**
      * Generates the type-mapping JSON file.
-     * Components whose subfolder is not in {@link #INCLUDED_FOLDERS}
-     * (e.g. processors) are excluded from the output.
+     * Components whose subfolder is not in the configured included folders are excluded
+     * from the output.
      * <p>
      * Renamed properties are written as {@code "oldName": "newName"}.
      * Deleted properties are written as {@code "apiName": null}.
-     * <p>
-     * Renamed properties that reference a controller service are additionally written
-     * under a sibling {@code controllerServiceReferences} object as
-     * {@code "componentType": {"newApiName": "controllerServiceType"}}. The section is
-     * omitted when there are no such references.
      *
-     * @param typeToChangedProperties      map of componentType to (name -> newName or null) changes
-     * @param typeToFolderMap              map of componentType to subfolder name
-     * @param typeToControllerServiceRefs  map of componentType to (new API name ->
-     *                                     controller-service type) for CS-reference properties
+     * @param typeToChangedProperties map of componentType to (name -> newName or null) changes
+     * @param typeToFolderMap         map of componentType to subfolder name
      */
     public void generate(Map<String, Map<String, String>> typeToChangedProperties,
-                         Map<String, String> typeToFolderMap,
-                         Map<String, Map<String, String>> typeToControllerServiceRefs) {
-        LOGGER.info("Generating type mapping JSON...");
+                         Map<String, String> typeToFolderMap) {
+        LOGGER.info("Generating type mapping JSON for {}...", outputFileName);
 
         ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
         typeToChangedProperties.forEach((type, changes) -> {
             String folder = typeToFolderMap.get(type);
-            if (folder != null && !INCLUDED_FOLDERS.contains(folder)) {
+            if (folder != null && !includedFolders.contains(folder)) {
                 LOGGER.debug("Skipping type {} from folder '{}' in JSON mapping", type, folder);
                 return;
             }
@@ -80,8 +90,6 @@ public class JsonMappingGenerator {
             rootNode.set(type, typeNode);
         });
 
-        addControllerServiceReferences(rootNode, typeToControllerServiceRefs, typeToFolderMap);
-
         try (FileWriter writer = new FileWriter(getOutputPath())) {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(rootNode));
@@ -92,39 +100,12 @@ public class JsonMappingGenerator {
         }
     }
 
-    private void addControllerServiceReferences(ObjectNode rootNode,
-                                                Map<String, Map<String, String>> typeToControllerServiceRefs,
-                                                Map<String, String> typeToFolderMap) {
-        if (typeToControllerServiceRefs == null || typeToControllerServiceRefs.isEmpty()) {
-            return;
-        }
-
-        ObjectNode referencesNode = OBJECT_MAPPER.createObjectNode();
-        typeToControllerServiceRefs.forEach((type, refs) -> {
-            String folder = typeToFolderMap.get(type);
-            if (folder != null && !INCLUDED_FOLDERS.contains(folder)) {
-                return;
-            }
-            if (refs == null || refs.isEmpty()) {
-                return;
-            }
-            ObjectNode typeNode = OBJECT_MAPPER.createObjectNode();
-            refs.forEach(typeNode::put);
-            referencesNode.set(type, typeNode);
-        });
-
-        if (!referencesNode.isEmpty()) {
-            rootNode.set(CONTROLLER_SERVICE_REFERENCES_KEY, referencesNode);
-            LOGGER.info("Controller-service references written for {} types", referencesNode.size());
-        }
-    }
-
     /**
      * Returns the absolute path of the JSON output file.
      *
-     * @return absolute path to NiFiTypeMapping.json
+     * @return absolute path to the configured JSON output file
      */
     public String getOutputPath() {
-        return outputDir.resolve(JSON_OUTPUT_FILE).toAbsolutePath().toString();
+        return outputDir.resolve(outputFileName).toAbsolutePath().toString();
     }
 }

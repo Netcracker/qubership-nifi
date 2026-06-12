@@ -85,6 +85,10 @@ class MainTest {
         return outputDir.resolve("NiFiTypeMapping.json");
     }
 
+    private Path processorJsonPath() {
+        return outputDir.resolve("NiFiProcessorTypeMapping.json");
+    }
+
     private Path mdPath() {
         return outputDir.resolve("NiFiComponentsDelta.md");
     }
@@ -143,7 +147,7 @@ class MainTest {
     }
 
     @Test
-    void mainProcessorsRenameInCsvButNotInJson() throws IOException {
+    void mainProcessorsRenameInCsvAndProcessorJsonButNotInTypeMapping() throws IOException {
         writeJson(sourceDir, "processors", "Proc.json",
                 "org.example.Proc", prop("old-api", "Display"));
         writeJson(targetDir, "processors", "Proc.json",
@@ -156,10 +160,44 @@ class MainTest {
         assertTrue(csv.contains("rename"));
         assertTrue(csv.contains("processors"));
 
-        // JSON should NOT contain processors
+        // NiFiTypeMapping.json should NOT contain processors
         JsonNode json = MAPPER.readTree(jsonPath().toFile());
         assertFalse(json.has("org.example.Proc"),
                 "Processors must be excluded from NiFiTypeMapping.json");
+
+        // NiFiProcessorTypeMapping.json SHOULD contain the processor rename
+        JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
+        assertTrue(procJson.has("org.example.Proc"));
+        assertEquals("new-api", procJson.get("org.example.Proc").get("old-api").asText());
+    }
+
+    @Test
+    void mainProcessorTypeMappingExcludesControllerServiceAndReportingTask() throws IOException {
+        writeJson(sourceDir, "processors", "P.json",
+                "org.example.P", prop("p-old", "PD"));
+        writeJson(targetDir, "processors", "P.json",
+                "org.example.P", prop("p-new", "PD"));
+
+        writeJson(sourceDir, "controllerService", "S.json",
+                "org.example.S", prop("s-old", "SD"));
+        writeJson(targetDir, "controllerService", "S.json",
+                "org.example.S", prop("s-new", "SD"));
+
+        runMain();
+
+        JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
+        assertEquals(1, procJson.size(), "Only processor types expected");
+        assertTrue(procJson.has("org.example.P"));
+        assertFalse(procJson.has("org.example.S"));
+    }
+
+    @Test
+    void mainEmptyDirectoriesProducesEmptyProcessorJson() throws IOException {
+        runMain();
+
+        assertTrue(Files.exists(processorJsonPath()));
+        JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
+        assertEquals(0, procJson.size());
     }
 
     @Test
@@ -270,7 +308,7 @@ class MainTest {
     }
 
     @Test
-    void mainControllerServiceReferenceAppearsInJsonAndMarkdown() throws IOException {
+    void mainControllerServiceReferenceAppearsInCsvAndMarkdown() throws IOException {
         String csType = "org.apache.nifi.dbcp.DBCPService";
         writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
                 propWithCsByValue("old-api", "Database Connection Pooling Service", csType));
@@ -279,12 +317,10 @@ class MainTest {
 
         runMain();
 
-        // JSON: rename map unchanged, plus a controllerServiceReferences section
+        // JSON: rename map only, no controllerServiceReferences section
         JsonNode json = MAPPER.readTree(jsonPath().toFile());
         assertEquals("new-api", json.get("org.example.Svc").get("old-api").asText());
-        JsonNode refs = json.get("controllerServiceReferences");
-        assertTrue(refs != null && refs.has("org.example.Svc"));
-        assertEquals(csType, refs.get("org.example.Svc").get("new-api").asText());
+        assertFalse(json.has("controllerServiceReferences"));
 
         // Markdown: CS type in the table and the summary metric
         String md = Files.readString(mdPath());

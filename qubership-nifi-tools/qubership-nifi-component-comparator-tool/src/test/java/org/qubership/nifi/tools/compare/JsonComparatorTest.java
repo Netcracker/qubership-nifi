@@ -575,7 +575,7 @@ class JsonComparatorTest {
     }
 
     @Test
-    void renamedCsRefByValueSetsCsRefColumnAndRefsMap() throws IOException {
+    void renamedCsRefByValueSetsCsRefColumn() throws IOException {
         String csType = "org.apache.nifi.dbcp.DBCPService";
         writeJson(sourceDir, "processors", "ExecuteSQL.json", "org.example.ExecuteSQL",
                 propWithCsByValue("old-api", "Database Connection Pooling Service", csType));
@@ -588,10 +588,6 @@ class JsonComparatorTest {
         assertEquals(1, records.size());
         assertEquals("rename", records.get(0)[2]);
         assertEquals(csType, records.get(0)[7]);
-
-        Map<String, String> refs = comparator.getTypeToControllerServiceRefs()
-                .get("org.example.ExecuteSQL");
-        assertEquals(csType, refs.get("new-api"));
     }
 
     @Test
@@ -607,12 +603,10 @@ class JsonComparatorTest {
         List<String[]> records = comparator.getCsvRecords();
         assertEquals(1, records.size());
         assertEquals(csType, records.get(0)[7]);
-        assertEquals(csType, comparator.getTypeToControllerServiceRefs()
-                .get("org.example.Svc").get("new-api"));
     }
 
     @Test
-    void deletedCsRefSetsCsRefColumnButIsSkippedInRefsMap() throws IOException {
+    void deletedCsRefSetsCsRefColumn() throws IOException {
         String csType = "org.apache.nifi.dbcp.DBCPService";
         writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
                 prop("keep", "Keep") + ","
@@ -626,12 +620,10 @@ class JsonComparatorTest {
         assertEquals(1, records.size());
         assertEquals("deleted", records.get(0)[2]);
         assertEquals(csType, records.get(0)[7]);
-        // Deleted properties are skipped in the references map (no new API name to key by).
-        assertTrue(comparator.getTypeToControllerServiceRefs().isEmpty());
     }
 
     @Test
-    void addedCsRefSetsCsRefColumnButIsSkippedInRefsMap() throws IOException {
+    void addedCsRefSetsCsRefColumn() throws IOException {
         String csType = "org.apache.nifi.ssl.SSLContextService";
         writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
                 prop("keep", "Keep"));
@@ -645,8 +637,6 @@ class JsonComparatorTest {
         assertEquals(1, records.size());
         assertEquals("added", records.get(0)[2]);
         assertEquals(csType, records.get(0)[7]);
-        // Added properties are skipped in the references map (JSON records only renamed/removed).
-        assertTrue(comparator.getTypeToControllerServiceRefs().isEmpty());
     }
 
     @Test
@@ -661,6 +651,5 @@ class JsonComparatorTest {
         List<String[]> records = comparator.getCsvRecords();
         assertEquals(1, records.size());
         assertEquals("", records.get(0)[7]);
-        assertTrue(comparator.getTypeToControllerServiceRefs().isEmpty());
     }
 }
