@@ -123,4 +123,4 @@ processorTypes:
 ```
 
 A ready-to-use configuration file covering the most common qubership-nifi processor types
-is available at [config/configuration-default.yaml](../../config/configuration-default.yaml).
+is available at [config/configuration-default.yaml](https://github.com/Netcracker/.github/blob/main/qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
