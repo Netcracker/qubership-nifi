@@ -1,4 +1,4 @@
-package org.qubership.nifi;
+package org.qubership.nifi.maven.transform.it;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,6 +32,7 @@ class ExportTransformIT {
      */
     @Test
     void testExtractThenBuild(@TempDir Path tempDir) throws Exception {
+        String pluginVersion = System.getProperty("export.transform.version");
         // --- Setup: copy test resources to temp directory ---
         Path resourcesDir = Path.of("src/test/resources");
         Path configSource = resourcesDir.resolve("conf-for-it.yaml");
@@ -48,7 +49,7 @@ class ExportTransformIT {
         // --- Step 1: Extract ---
         List<String> extractCommand = List.of(
                 mvn,
-                "org.qubership.nifi:qubership-nifi-export-transform-tool:2.5.3-SNAPSHOT:extract",
+                "org.qubership.nifi:qubership-nifi-export-transform-tool:" + pluginVersion + ":extract",
                 "-Dconfig=" + configTarget.toAbsolutePath(),
                 "-Dexport-dir=" + flowDirTarget.toAbsolutePath()
         );
@@ -89,7 +90,7 @@ class ExportTransformIT {
         // --- Step 2: Build ---
         List<String> buildCommand = List.of(
                 mvn,
-                "org.qubership.nifi:qubership-nifi-export-transform-tool:2.5.3-SNAPSHOT:build",
+                "org.qubership.nifi:qubership-nifi-export-transform-tool:" + pluginVersion + ":build",
                 "-Dconfig=" + configTarget.toAbsolutePath(),
                 "-Dexport-dir=" + flowDirTarget.toAbsolutePath()
         );
