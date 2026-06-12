@@ -107,8 +107,6 @@
         <module>qubership-nifi-consul-templates</module>
         <module>qubership-consul</module>
         <module>qubership-nifi-quarkus-consul</module>
-        <module>nifi-pg-samples-test</module>
-        <module>nifi-pg-child-simple-test</module>
     </modules>
 
     <reporting>
