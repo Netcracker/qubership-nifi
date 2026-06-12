@@ -3,9 +3,11 @@ package org.qubership.nifi.maven.transform.config;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PluginConfigTest {
 
@@ -30,6 +32,35 @@ class PluginConfigTest {
 
         assertThrows(UnsupportedOperationException.class,
                 () -> config.getProcessorTypes().add(typeConfig(REPLACE_TEXT)));
+    }
+
+    @Test
+    void findByTypeReturnsConfigForKnownType() {
+        ProcessorTypeConfig c = typeConfig(EXECUTE_SQL);
+        PluginConfig config = new PluginConfig(List.of(c));
+
+        Optional<ProcessorTypeConfig> result = config.findByType(EXECUTE_SQL);
+
+        assertTrue(result.isPresent());
+        assertEquals(c, result.get());
+    }
+
+    @Test
+    void findByTypeReturnsEmptyForUnknownType() {
+        PluginConfig config = new PluginConfig(List.of(typeConfig(EXECUTE_SQL)));
+
+        Optional<ProcessorTypeConfig> result = config.findByType(REPLACE_TEXT);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByTypeReturnsEmptyForEmptyConfig() {
+        PluginConfig config = new PluginConfig(List.of());
+
+        Optional<ProcessorTypeConfig> result = config.findByType(EXECUTE_SQL);
+
+        assertTrue(result.isEmpty());
     }
 
     private ProcessorTypeConfig typeConfig(String fqn) {

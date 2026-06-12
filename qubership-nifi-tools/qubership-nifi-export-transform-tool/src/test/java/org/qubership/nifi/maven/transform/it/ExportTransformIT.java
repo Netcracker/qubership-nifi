@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ExportTransformIT {
 
@@ -29,6 +31,8 @@ class ExportTransformIT {
 
     /**
      * Full Extract and Build cycle test.
+     *
+     * @param tempDir temporary directory provided by JUnit for this test
      */
     @Test
     void testExtractThenBuild(@TempDir Path tempDir) throws Exception {
@@ -142,6 +146,9 @@ class ExportTransformIT {
 
     /**
      * Recursively copies a directory tree from source to target.
+     *
+     * @param source path to the source directory
+     * @param target path to the target directory
      */
     private void copyDirectory(Path source, Path target) throws IOException {
         try (Stream<Path> stream = Files.walk(source)) {

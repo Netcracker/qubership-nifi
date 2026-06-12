@@ -13,8 +13,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FlowReaderTest {
@@ -69,7 +70,7 @@ class FlowReaderTest {
     void readBuildsProcessorsByTypeMapForConfiguredType() throws IOException {
         Path file = writeFlow("flow.json", flowWithProcessor("MyProcessor", TYPE));
 
-        FlowFile flow = reader.read(file);
+        FlowFile flow = reader.read(file).orElseThrow();
 
         List<Processor> processors = flow.getProcessorsByType(TYPE);
         assertEquals(1, processors.size());
@@ -80,7 +81,7 @@ class FlowReaderTest {
     void readIgnoresProcessorsOfUnconfiguredType() throws IOException {
         Path file = writeFlow("flow.json", flowWithProcessor("OtherProcessor", "org.other.Type"));
 
-        FlowFile flow = reader.read(file);
+        FlowFile flow = reader.read(file).orElseThrow();
 
         assertTrue(flow.getProcessorsByType("org.other.Type").isEmpty());
     }
@@ -89,7 +90,7 @@ class FlowReaderTest {
     void readSetsFilePathAndFlowName() throws IOException {
         Path file = writeFlow("my-flow.json", flowWithProcessor("P", TYPE));
 
-        FlowFile flow = reader.read(file);
+        FlowFile flow = reader.read(file).orElseThrow();
 
         assertEquals(file, flow.getFilePath());
         assertEquals("my-flow", flow.getFlowName());
@@ -115,7 +116,7 @@ class FlowReaderTest {
                 """.formatted(TYPE);
         Path file = writeFlow("flow.json", json);
 
-        FlowFile flow = reader.read(file);
+        FlowFile flow = reader.read(file).orElseThrow();
 
         List<Processor> processors = flow.getProcessorsByType(TYPE);
         assertEquals(1, processors.size());
@@ -123,7 +124,7 @@ class FlowReaderTest {
     }
 
     @Test
-    void readCreatesEmptyPropertiesNodeWhenAbsent() throws IOException {
+    void readReturnsEmptyPropertyWhenPropertiesFieldAbsent() throws IOException {
         String json = """
                 {
                   "flowContents": {
@@ -135,17 +136,19 @@ class FlowReaderTest {
                 """.formatted(TYPE);
         Path file = writeFlow("flow.json", json);
 
-        FlowFile flow = reader.read(file);
+        FlowFile flow = reader.read(file).orElseThrow();
 
         Processor p = flow.getProcessorsByType(TYPE).get(0);
         assertTrue(p.findProperty("anything").isEmpty());
     }
 
     @Test
-    void readThrowsWhenFlowContentsMissing() throws IOException {
+    void readReturnsEmptyWhenFlowContentsMissing() throws IOException {
         Path file = writeFlow("flow.json", "{\"other\": \"value\"}");
 
-        assertThrows(IllegalArgumentException.class, () -> reader.read(file));
+        Optional<FlowFile> result = reader.read(file);
+
+        assertTrue(result.isEmpty());
     }
 
     @Test

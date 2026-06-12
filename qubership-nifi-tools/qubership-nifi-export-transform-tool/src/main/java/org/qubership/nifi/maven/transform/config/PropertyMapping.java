@@ -21,30 +21,27 @@ public final class PropertyMapping {
     }
 
     /**
-     * Creates a PropertyMapping from a property name or regex pattern and a target filename.
+     * Creates a PropertyMapping with a literal (exact) property name match.
      *
-     * @param propertyNameOrRegex property name or regex pattern
-     * @param targetFilename      name of the file to extract the property value into
+     * @param propertyName   exact property name to match
+     * @param targetFilename name of the file to extract the property value into
      * @return new PropertyMapping instance
-     * @throws PatternSyntaxException if the string looks like a regex but has invalid syntax
      */
-    public static PropertyMapping of(String propertyNameOrRegex, String targetFilename) {
-        boolean isRegex = looksLikeRegex(propertyNameOrRegex);
-        Pattern compiled = isRegex ? Pattern.compile(propertyNameOrRegex) : null;
-        return new PropertyMapping(propertyNameOrRegex, targetFilename, isRegex, compiled);
+    public static PropertyMapping of(String propertyName, String targetFilename) {
+        return new PropertyMapping(propertyName, targetFilename, false, null);
     }
 
     /**
-     * Returns true if the given property name matches this mapping.
+     * Creates a PropertyMapping with a regex pattern to match property names.
+     * Throws {@link java.util.regex.PatternSyntaxException} if the pattern is invalid.
      *
-     * @param propertyName property name to test
-     * @return true if the name matches
+     * @param pattern        regex pattern to match property names
+     * @param targetFilename name of the file to extract the property value into
+     * @return new PropertyMapping instance
      */
-    public boolean matches(String propertyName) {
-        if (isRegex) {
-            return compiledPattern.matcher(propertyName).matches();
-        }
-        return propertyNameOrRegex.equals(propertyName);
+    public static PropertyMapping ofRegex(String pattern, String targetFilename) {
+        Pattern compiled = Pattern.compile(pattern);
+        return new PropertyMapping(pattern, targetFilename, true, compiled);
     }
 
     /**
@@ -88,19 +85,4 @@ public final class PropertyMapping {
         return compiledPattern;
     }
 
-    /**
-     * Determines whether the given string should be treated as a regex
-     * by checking for the presence of regex special characters.
-     *
-     * @param value string to test
-     * @return true if the string contains regex special characters
-     */
-    private static boolean looksLikeRegex(final String value) {
-        return value.chars().anyMatch(c ->
-                c == '.' || c == '*' || c == '+' || c == '?'
-                        || c == '(' || c == ')' || c == '[' || c == ']'
-                        || c == '{' || c == '}' || c == '^' || c == '$'
-                        || c == '|' || c == '\\'
-        );
-    }
 }

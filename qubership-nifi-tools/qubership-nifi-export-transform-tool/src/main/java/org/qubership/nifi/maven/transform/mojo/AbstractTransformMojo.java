@@ -16,7 +16,7 @@ import java.io.File;
 public abstract class AbstractTransformMojo extends AbstractMojo {
 
     /**
-     * Path to the plugin configuration YAML file.
+     * Path to the processor types configuration YAML file.
      * Required parameter.
      */
     @Parameter(property = "config", required = true)
@@ -30,10 +30,10 @@ public abstract class AbstractTransformMojo extends AbstractMojo {
     protected File exportDir;
 
     /**
-     * Loads and parses the plugin configuration file.
+     * Loads and parses the plugin configuration.
      *
      * @return parsed PluginConfig
-     * @throws MojoExecutionException if the file is not found, not readable,
+     * @throws MojoExecutionException if a config file is not found, not readable,
      *                                or contains invalid YAML
      */
     protected PluginConfig loadConfig() throws MojoExecutionException {

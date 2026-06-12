@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.maven.transform.config.PluginConfig;
+import org.qubership.nifi.tools.jsonformat.JsonFormat;
+import org.qubership.nifi.tools.jsonformat.JsonFormatDetector;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -38,26 +41,29 @@ public class FlowReader {
 
     /**
      * Reads a single JSON file and builds a FlowFile.
+     * Returns an empty Optional if the file does not contain a flowContents field,
+     * meaning it is not a NiFi flow export - callers should skip such files.
      *
-     * @param flowFilePath path to the flow JSON file
-     * @return parsed FlowFile with object model, mutable JSON tree and processorsByType map
-     * @throws IOException              if the file cannot be read or contains invalid JSON
-     * @throws IllegalArgumentException if "flowContents" is missing from the JSON
+     * @param flowFilePath path to the JSON file to read
+     * @return Optional containing the parsed FlowFile, or empty if flowContents is absent
+     * @throws IOException if the file cannot be read or contains invalid JSON
      */
-    public FlowFile read(Path flowFilePath) throws IOException {
-        JsonNode rootNode = jsonMapper.readTree(flowFilePath.toFile());
+    public Optional<FlowFile> read(Path flowFilePath) throws IOException {
+        String content = Files.readString(flowFilePath);
+        JsonFormat detectedFormat = JsonFormatDetector.detect(content);
+        JsonNode rootNode = jsonMapper.readTree(content);
 
         JsonNode flowContentsNode = rootNode.get("flowContents");
         if (flowContentsNode == null || flowContentsNode.isNull()) {
-            throw new IllegalArgumentException(
-                    "Missing 'flowContents' in flow file: " + flowFilePath.toAbsolutePath());
+            return Optional.empty();
         }
 
         Map<String, List<Processor>> processorsByType = new HashMap<>();
         ProcessGroup rootGroup = parseProcessGroup(
                 flowContentsNode, null, processorsByType);
 
-        return new FlowFile(flowFilePath, rootNode, rootGroup, processorsByType);
+        return Optional.of(new FlowFile(
+                flowFilePath, rootNode, rootGroup, processorsByType, detectedFormat));
     }
 
     /**
@@ -161,7 +167,8 @@ public class FlowReader {
 
     /**
      * Builds a Processor from a JSON node.
-     * If "properties" is absent, an empty ObjectNode is created and inserted into the tree.
+     * If "properties" is absent, a detached empty ObjectNode is used — it is NOT inserted
+     * into the tree, so the JSON is not modified unless a property value is actually written.
      *
      * @param node        JSON node of the processor
      * @param parentGroup process group that owns this processor
@@ -172,14 +179,10 @@ public class FlowReader {
         String typeFqn = getTextOrEmpty(node, "type");
         String identifier = getTextOrEmpty(node, "identifier");
 
-        ObjectNode propertiesNode;
         JsonNode propsRaw = node.get("properties");
-        if (propsRaw != null && propsRaw.isObject()) {
-            propertiesNode = (ObjectNode) propsRaw;
-        } else {
-            propertiesNode = jsonMapper.createObjectNode();
-            ((ObjectNode) node).set("properties", propertiesNode);
-        }
+        ObjectNode propertiesNode = (propsRaw != null && propsRaw.isObject())
+                ? (ObjectNode) propsRaw
+                : jsonMapper.createObjectNode();
 
         return new Processor(name, typeFqn, identifier, propertiesNode, parentGroup);
     }

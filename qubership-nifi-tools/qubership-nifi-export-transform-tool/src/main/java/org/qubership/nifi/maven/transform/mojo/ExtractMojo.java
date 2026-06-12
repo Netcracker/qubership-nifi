@@ -38,7 +38,7 @@ public final class ExtractMojo extends AbstractTransformMojo {
         ExtractService service = new ExtractService(
                 getLog(),
                 new FlowReader(new ObjectMapper(), config),
-                new FlowWriter(new ObjectMapper()),
+                new FlowWriter(),
                 new FlowValidator(),
                 new FileSystemService(),
                 new PropertyResolver(getLog()),

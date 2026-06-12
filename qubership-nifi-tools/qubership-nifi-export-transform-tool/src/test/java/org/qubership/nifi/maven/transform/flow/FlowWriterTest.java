@@ -40,7 +40,7 @@ class FlowWriterTest {
         Path file = tempDir.resolve("flow.json");
         FlowFile flow = new FlowFile(file, root, rootGroup(), Map.of());
 
-        new FlowWriter(MAPPER).write(flow);
+        new FlowWriter().write(flow);
 
         JsonNode read = MAPPER.readTree(file.toFile());
         assertEquals("test", read.get("flowName").asText());
@@ -59,7 +59,7 @@ class FlowWriterTest {
         FlowFile flow = new FlowFile(file, root, rootGroup(), Map.of());
 
         propsNode.put("SQL Query", "SELECT 2");
-        new FlowWriter(MAPPER).write(flow);
+        new FlowWriter().write(flow);
 
         JsonNode read = MAPPER.readTree(file.toFile());
         assertEquals("SELECT 2",
@@ -72,11 +72,11 @@ class FlowWriterTest {
 
         ObjectNode root1 = MAPPER.createObjectNode();
         root1.put("version", "1");
-        new FlowWriter(MAPPER).write(new FlowFile(file, root1, rootGroup(), Map.of()));
+        new FlowWriter().write(new FlowFile(file, root1, rootGroup(), Map.of()));
 
         ObjectNode root2 = MAPPER.createObjectNode();
         root2.put("version", "2");
-        new FlowWriter(MAPPER).write(new FlowFile(file, root2, rootGroup(), Map.of()));
+        new FlowWriter().write(new FlowFile(file, root2, rootGroup(), Map.of()));
 
         JsonNode read = MAPPER.readTree(file.toFile());
         assertEquals("2", read.get("version").asText());

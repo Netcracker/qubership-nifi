@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,7 +123,7 @@ class BuildServiceTest {
         Path targetFile = Path.of("exports", "flowConf_flow", "MyProcessor", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceResolver.resolve(flow, processor, property)).thenReturn(targetFile);
         when(fileSystem.readText(targetFile)).thenReturn("SELECT 1");
@@ -143,7 +144,7 @@ class BuildServiceTest {
         PluginConfig config = config(mapping);
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.empty());
 
         service.build(config, exportDir, false);
@@ -163,7 +164,7 @@ class BuildServiceTest {
         ProcessorProperty property = emptyProperty("SQL Query");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
 
         service.build(config, exportDir, false);
@@ -173,7 +174,7 @@ class BuildServiceTest {
     }
 
     @Test
-    void buildCollectsInlineValueErrorAndSkipsFlowWriter() throws IOException {
+    void buildSkipsInlinePropertyWithNoExtractedFile() throws IOException {
         Path exportDir = Path.of("exports");
         Path flowPath = Path.of("exports", "flow.json");
         Processor processor = new Processor("P", TYPE, "id", MAPPER.createObjectNode(), rootGroup());
@@ -183,8 +184,28 @@ class BuildServiceTest {
         ProcessorProperty property = inlineProperty("SQL Query", "SELECT 1");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
+
+        assertDoesNotThrow(() -> service.build(config, exportDir, false));
+        verify(flowWriter, never()).write(any());
+    }
+
+    @Test
+    void buildThrowsWhenInlinePropertyConflictsWithExtractedFile() throws IOException, BuildException {
+        Path exportDir = Path.of("exports");
+        Path flowPath = Path.of("exports", "flow.json");
+        Processor processor = new Processor("P", TYPE, "id", MAPPER.createObjectNode(), rootGroup());
+        FlowFile flow = flowWith(flowPath, processor);
+        PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
+        PluginConfig config = config(mapping);
+        ProcessorProperty property = inlineProperty("SQL Query", "SELECT 1");
+
+        when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
+        when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
+        org.mockito.Mockito.doThrow(new BuildException("conflict"))
+                .when(referenceResolver).checkConflict(any(), any(), any(), any());
 
         assertThrows(BuildException.class, () -> service.build(config, exportDir, false));
         verify(flowWriter, never()).write(any());
@@ -201,7 +222,7 @@ class BuildServiceTest {
         ProcessorProperty property = referenceProperty("SQL Query");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceResolver.resolve(flow, processor, property))
                 .thenThrow(new BuildException("Referenced file does not exist"));
@@ -224,7 +245,7 @@ class BuildServiceTest {
         Path targetFile = Path.of("exports", "flowConf_flow", "P", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceResolver.resolve(flow, processor, property)).thenReturn(targetFile);
         when(fileSystem.readText(targetFile)).thenReturn("SELECT 1");
@@ -248,7 +269,7 @@ class BuildServiceTest {
         Path targetFile = Path.of("exports", "flowConf_flow", "P", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceResolver.resolve(flow, processor, property)).thenReturn(targetFile);
         when(fileSystem.readText(targetFile)).thenReturn("SELECT 1");
@@ -269,7 +290,7 @@ class BuildServiceTest {
         ProcessorProperty property = referenceProperty("SQL Query");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath));
-        when(flowReader.read(flowPath)).thenReturn(flow);
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
         when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
         when(referenceResolver.resolve(flow, processor, property))
                 .thenThrow(new BuildException("file missing"));
@@ -296,8 +317,8 @@ class BuildServiceTest {
         Path targetFile2 = Path.of("exports", "flowConf_flow2", "P2", "query.sql");
 
         when(flowReader.findFlowPaths(exportDir)).thenReturn(List.of(flowPath1, flowPath2));
-        when(flowReader.read(flowPath1)).thenReturn(flow1);
-        when(flowReader.read(flowPath2)).thenReturn(flow2);
+        when(flowReader.read(flowPath1)).thenReturn(Optional.of(flow1));
+        when(flowReader.read(flowPath2)).thenReturn(Optional.of(flow2));
         when(propertyResolver.resolve(eq(p1), any())).thenReturn(Optional.of(refProp1));
         when(propertyResolver.resolve(eq(p2), any())).thenReturn(Optional.of(refProp2));
         when(referenceResolver.resolve(eq(flow1), eq(p1), any()))

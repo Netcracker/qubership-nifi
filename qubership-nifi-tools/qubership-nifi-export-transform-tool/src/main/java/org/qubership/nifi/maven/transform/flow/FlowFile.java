@@ -1,6 +1,7 @@
 package org.qubership.nifi.maven.transform.flow;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.tools.jsonformat.JsonFormat;
 
 import java.nio.file.Path;
 import java.util.Collections;
@@ -33,7 +34,35 @@ public class FlowFile {
     private final Map<String, List<Processor>> processorsByType;
 
     /**
+     * JSON formatting detected when the file was read.
+     * Used by FlowWriter to reproduce the original formatting on write.
+     */
+    private final JsonFormat detectedFormat;
+
+    /**
      * Constructor for class FlowFile.
+     *
+     * @param filePathValue         path to the source JSON file on disk
+     * @param rootNodeValue         full JSON tree of the file
+     * @param rootGroupValue        root process group parsed from the flowContents section
+     * @param processorsByTypeValue map of processor type FQN to matching processors, built by FlowReader
+     * @param detectedFormatValue   JSON formatting detected when the file was read
+     */
+    public FlowFile(final Path filePathValue,
+                    final JsonNode rootNodeValue,
+                    final ProcessGroup rootGroupValue,
+                    final Map<String, List<Processor>> processorsByTypeValue,
+                    final JsonFormat detectedFormatValue) {
+        this.filePath = filePathValue;
+        this.rootNode = rootNodeValue;
+        this.rootGroup = rootGroupValue;
+        this.processorsByType = Collections.unmodifiableMap(processorsByTypeValue);
+        this.detectedFormat = detectedFormatValue;
+    }
+
+    /**
+     * Convenience constructor that uses {@link JsonFormat#defaults()} as the detected format.
+     * Intended for use in tests and contexts where formatting is not relevant.
      *
      * @param filePathValue         path to the source JSON file on disk
      * @param rootNodeValue         full JSON tree of the file
@@ -44,10 +73,8 @@ public class FlowFile {
                     final JsonNode rootNodeValue,
                     final ProcessGroup rootGroupValue,
                     final Map<String, List<Processor>> processorsByTypeValue) {
-        this.filePath = filePathValue;
-        this.rootNode = rootNodeValue;
-        this.rootGroup = rootGroupValue;
-        this.processorsByType = Collections.unmodifiableMap(processorsByTypeValue);
+        this(filePathValue, rootNodeValue, rootGroupValue,
+                processorsByTypeValue, JsonFormat.defaults());
     }
 
     /**
@@ -100,5 +127,15 @@ public class FlowFile {
      */
     public ProcessGroup getRootGroup() {
         return rootGroup;
+    }
+
+    /**
+     * Returns the JSON formatting detected when this file was read.
+     * Used by FlowWriter to reproduce the original formatting on write.
+     *
+     * @return detected JSON format
+     */
+    public JsonFormat getDetectedFormat() {
+        return detectedFormat;
     }
 }

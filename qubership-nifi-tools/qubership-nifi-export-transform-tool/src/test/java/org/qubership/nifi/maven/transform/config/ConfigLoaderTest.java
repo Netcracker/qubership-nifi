@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -72,19 +73,34 @@ class ConfigLoaderTest {
     }
 
     @Test
-    void loadRegexPropertyNameIsRecognizedAsRegex() throws Exception {
+    void loadLiteralPropertyNameWithDotIsNotRegex() throws Exception {
         Path config = yaml("""
                 processorTypes:
                   - org.qubership.SomeProcessor:
-                      query.sql: (SQL Query|db-fetch-sql-query)
+                      query.sql: sql.args.1.value
+                """);
+
+        PluginConfig result = loader.load(config);
+
+        PropertyMapping mapping = result.getProcessorTypes().get(0).getPropertyMappings().get(0);
+        assertFalse(mapping.isRegex());
+        assertEquals("sql.args.1.value", mapping.getPropertyNameOrRegex());
+    }
+
+    @Test
+    void loadRegexFormParsesPatternAndMatchesBothAlternatives() throws Exception {
+        Path config = yaml("""
+                processorTypes:
+                  - org.qubership.SomeProcessor:
+                      query.sql:
+                        regex: SQL Query|db-fetch-sql-query
                 """);
 
         PluginConfig result = loader.load(config);
 
         PropertyMapping mapping = result.getProcessorTypes().get(0).getPropertyMappings().get(0);
         assertTrue(mapping.isRegex());
-        assertTrue(mapping.matches("SQL Query"));
-        assertTrue(mapping.matches("db-fetch-sql-query"));
+        assertEquals("SQL Query|db-fetch-sql-query", mapping.getPropertyNameOrRegex());
     }
 
     @Test
@@ -214,15 +230,42 @@ class ConfigLoaderTest {
     }
 
     @Test
-    void loadInvalidRegexInPropertyNameThrowsConfigException() throws Exception {
+    void loadInvalidRegexInRegexFormThrowsConfigException() throws Exception {
         Path config = yaml("""
                 processorTypes:
                   - org.qubership.SomeProcessor:
-                      file.txt: '[invalid'
+                      file.txt:
+                        regex: '[invalid'
                 """);
 
         ConfigException e = assertThrows(ConfigException.class, () -> loader.load(config));
         assertTrue(e.getMessage().contains("Invalid regex"));
+    }
+
+    @Test
+    void loadRegexFormMissingRegexKeyThrowsConfigException() throws Exception {
+        Path config = yaml("""
+                processorTypes:
+                  - org.qubership.SomeProcessor:
+                      file.txt:
+                        notRegex: SQL Query
+                """);
+
+        ConfigException e = assertThrows(ConfigException.class, () -> loader.load(config));
+        assertTrue(e.getMessage().contains("'regex' key"));
+    }
+
+    @Test
+    void loadPropertyMappingAsListThrowsConfigException() throws Exception {
+        Path config = yaml("""
+                processorTypes:
+                  - org.qubership.SomeProcessor:
+                      file.txt:
+                        - SQL Query
+                """);
+
+        ConfigException e = assertThrows(ConfigException.class, () -> loader.load(config));
+        assertTrue(e.getMessage().contains("string") || e.getMessage().contains("'regex' key"));
     }
 
     // -------------------------------------------------------------------------

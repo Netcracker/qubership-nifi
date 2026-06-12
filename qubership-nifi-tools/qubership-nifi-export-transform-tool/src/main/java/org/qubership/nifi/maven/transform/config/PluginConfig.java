@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+
 /**
  * Root model of the plugin configuration YAML file.
  * Created by ConfigLoader after parsing the YAML structure.
@@ -16,7 +17,7 @@ public class PluginConfig {
     private final Set<String> processorTypeFqns;
 
     /**
-     * Constructs a PluginConfig from the given list of processor type configurations.
+     * Constructs a PluginConfig from the parsed list of processor type configurations.
      *
      * @param processorTypesValue list of processor type configurations parsed from the YAML file
      */
@@ -47,10 +48,10 @@ public class PluginConfig {
     }
 
     /**
-     * Finds a processor type configuration by its fully qualified class name.
+     * Finds the configuration for the given processor type FQN.
      *
      * @param typeFqn fully qualified processor type name
-     * @return matching config, or empty if not found
+     * @return Optional containing the matching ProcessorTypeConfig, or empty if not found
      */
     public Optional<ProcessorTypeConfig> findByType(String typeFqn) {
         return processorTypes.stream()

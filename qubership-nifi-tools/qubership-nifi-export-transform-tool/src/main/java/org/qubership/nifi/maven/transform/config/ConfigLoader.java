@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
+
 /**
  * Loads the plugin configuration YAML file and builds the PluginConfig model.
  *
@@ -120,7 +121,8 @@ public class ConfigLoader {
 
     /**
      * Parses property mappings for a single processor type.
-     * Each entry: key = target filename, value = property name or regex.
+     * Each entry: key = target filename, value = either a literal property name (String)
+     * or a map with a single "regex" key for an explicit regex pattern.
      *
      * @param typeFqn     fully-qualified processor type name, used in error messages
      * @param mappingsMap raw map from the YAML entry
@@ -136,23 +138,49 @@ public class ConfigLoader {
             String targetFilename = entry.getKey().toString().trim();
             Object propertyObj = entry.getValue();
 
-            if (propertyObj == null || propertyObj.toString().isBlank()) {
+            if (propertyObj == null) {
                 throw new ConfigException(
                         "Property name for file '" + targetFilename
                                 + "' in processor type '" + typeFqn
                                 + "' must not be empty in: " + configPath.toAbsolutePath());
             }
 
-            String propertyNameOrRegex = propertyObj.toString();
-            validateTargetFilename(targetFilename, propertyNameOrRegex, typeFqn, configPath);
+            if (propertyObj instanceof String propStr) {
+                if (propStr.isBlank()) {
+                    throw new ConfigException(
+                            "Property name for file '" + targetFilename
+                                    + "' in processor type '" + typeFqn
+                                    + "' must not be empty in: " + configPath.toAbsolutePath());
+                }
+                validateTargetFilename(targetFilename, propStr, typeFqn, configPath);
+                mappings.add(PropertyMapping.of(propStr, targetFilename));
 
-            try {
-                mappings.add(PropertyMapping.of(propertyNameOrRegex, targetFilename));
-            } catch (PatternSyntaxException e) {
+            } else if (propertyObj instanceof Map<?, ?> propMap) {
+                Object regexObj = propMap.get("regex");
+                if (regexObj == null || regexObj.toString().isBlank()) {
+                    throw new ConfigException(
+                            "Property mapping for file '" + targetFilename
+                                    + "' in processor type '" + typeFqn
+                                    + "' uses map form but is missing a 'regex' key"
+                                    + " in: " + configPath.toAbsolutePath());
+                }
+                String pattern = regexObj.toString();
+                validateTargetFilename(targetFilename, pattern, typeFqn, configPath);
+                try {
+                    mappings.add(PropertyMapping.ofRegex(pattern, targetFilename));
+                } catch (PatternSyntaxException e) {
+                    throw new ConfigException(
+                            "Invalid regex pattern '" + pattern
+                                    + "' for processor type '" + typeFqn
+                                    + "': " + e.getMessage(), e);
+                }
+
+            } else {
                 throw new ConfigException(
-                        "Invalid regex pattern '" + propertyNameOrRegex
-                                + "' for processor type '" + typeFqn
-                                + "': " + e.getMessage(), e);
+                        "Property mapping for file '" + targetFilename
+                                + "' in processor type '" + typeFqn
+                                + "' must be a string (literal name) or a map with a 'regex' key"
+                                + " in: " + configPath.toAbsolutePath());
             }
         }
 

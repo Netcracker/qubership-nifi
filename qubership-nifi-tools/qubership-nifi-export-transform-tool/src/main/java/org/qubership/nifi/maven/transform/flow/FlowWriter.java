@@ -1,33 +1,28 @@
 package org.qubership.nifi.maven.transform.flow;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.qubership.nifi.tools.jsonformat.JsonFormatReformatter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
- * Writes a modified FlowFile back to disk.
+ * Writes a modified FlowFile back to disk, reproducing the original JSON formatting.
  */
 public class FlowWriter {
 
-    private final ObjectMapper jsonMapper;
-
-    /**
-     * Constructs a FlowWriter using the given Jackson mapper for JSON serialization.
-     *
-     * @param jsonMapperValue Jackson ObjectMapper used to serialize flow JSON files
-     */
-    public FlowWriter(final ObjectMapper jsonMapperValue) {
-        this.jsonMapper = jsonMapperValue;
-    }
+    private final JsonFormatReformatter reformatter = new JsonFormatReformatter();
 
     /**
      * Saves the FlowFile to its original path on disk.
      * Property value changes are already applied in-place to rootNode.
+     * The output uses the same JSON formatting that was detected when the file was read.
      *
      * @param flow modified FlowFile to write
      * @throws IOException if the file cannot be written
      */
     public void write(FlowFile flow) throws IOException {
-        jsonMapper.writeValue(flow.getFilePath().toFile(), flow.getRootNode());
+        String json = reformatter.write(flow.getRootNode(), flow.getDetectedFormat());
+        Files.writeString(flow.getFilePath(), json, StandardCharsets.UTF_8);
     }
 }
