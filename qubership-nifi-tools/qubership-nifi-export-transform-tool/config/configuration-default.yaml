@@ -1,8 +1,10 @@
 processorTypes:
   - org.apache.nifi.processors.standard.ExecuteSQL:
-      sql_query.sql: SQL Query
+      sql_query.sql:
+        regex: SQL (?:Query|select query)
   - org.apache.nifi.processors.standard.ExecuteSQLRecord:
-      sql_query.sql: SQL Query
+      sql_query.sql:
+        regex: SQL (?:Query|select query)
   - org.apache.nifi.processors.standard.QueryDatabaseTable:
       custom_query.sql: Custom Query
   - org.apache.nifi.processors.standard.QueryDatabaseTableRecord:
