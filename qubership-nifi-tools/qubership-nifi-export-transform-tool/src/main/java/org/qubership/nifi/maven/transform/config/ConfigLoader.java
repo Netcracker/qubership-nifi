@@ -196,21 +196,14 @@ public class ConfigLoader {
     private void validateTargetFilename(String filename, String propertyName,
                                         String typeFqn, Path configPath) throws ConfigException {
         Path path = Path.of(filename);
-        if (path.isAbsolute()) {
+        if (path.isAbsolute() || path.getNameCount() != 1
+                || "..".equals(path.getFileName().toString())) {
             throw new ConfigException(
-                    "Target filename must be a relative path, got '" + filename
+                    "Target filename must be a simple file name with no directory separators, got '"
+                            + filename
                             + "' for property '" + propertyName
                             + "' in type '" + typeFqn
                             + "' in: " + configPath.toAbsolutePath());
-        }
-        for (Path segment : path) {
-            if ("..".equals(segment.toString())) {
-                throw new ConfigException(
-                        "Target filename must not contain '..' path traversal, got '" + filename
-                                + "' for property '" + propertyName
-                                + "' in type '" + typeFqn
-                                + "' in: " + configPath.toAbsolutePath());
-            }
         }
     }
 }
