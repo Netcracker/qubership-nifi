@@ -199,7 +199,7 @@ public class ConfigLoader {
         if (path.isAbsolute() || path.getNameCount() != 1
                 || "..".equals(path.getFileName().toString())) {
             throw new ConfigException(
-                    "Target filename must be a simple file name with no directory separators, got '"
+                    "Target filename must be a simple file name with no directory separators or '..', got '"
                             + filename
                             + "' for property '" + propertyName
                             + "' in type '" + typeFqn
