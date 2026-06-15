@@ -9,6 +9,13 @@ handle_error() {
 
 delete_tmp_files() {
     rm -f ./flow-about.json ./target-cs.json
+    #remove temp files used during conversion:
+    if [ -f "$tmp" ]; then
+        rm -f "$tmp"
+    fi
+    if [ -f "$tmp2" ]; then
+        rm -f "$tmp2"
+    fi
 }
 
 pathToFlow=$1
@@ -100,8 +107,13 @@ for file in "${exportFlow[@]}"; do
         end' "$file" > "$tmp" || handle_error "Error while updating external controller services in flow - $file"
 
     if [ "$DEBUG_MODE" = "true" ]; then
-        echo "DEBUG: diff between $file and $tmp"
-        diff "$file" "$tmp"
+        echo "DEBUG: diff between original and modified $file"
+        # create temp file and save in jq default formatting:
+        tmp2=$(mktemp)
+        jq '.' "$file" > "$tmp2"
+        #compare tmp2 and tmp:
+        diff "$tmp2" "$tmp"
+        rm -f "$tmp2"
     fi
     mv "$tmp" "$file"
 done

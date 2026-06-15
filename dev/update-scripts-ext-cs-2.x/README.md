@@ -13,12 +13,15 @@ property was renamed via automatic property migration mechanism, causing NiFi to
 incorrectly.
 
 For each export that declares a non-empty `externalControllerServices` map, the
-script looks up the same-named controller service in the target NiFi (top-level /
-root services) and rewrites the foreign ID everywhere it appears:
+script looks up the same-named controller service in the target NiFi root PG
+and replaces the ID everywhere it appears:
 
 - the `externalControllerServices` map key,
 - its `identifier` field,
 - and every component `properties` value that referenced that ID.
+
+Note: externalControllerServices are looked up only on root PG level. If not found, warning is printed out and no
+changes are applied.
 
 The script first checks the target NiFi version and only applies changes when the
 target major version is `2`; otherwise it skips. If a target controller service
