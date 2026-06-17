@@ -35,7 +35,7 @@ public class FlowValidator {
         // Paths are intentionally checked across all processor types, not just within a single type.
         // Two different types can map to the same target file name (for example, query.sql for the
         // SQL Query property), so two processors that share a path would write to the same file.
-        // Requiring unique paths guarantees that each extracted file belongs to a single processor
+        // Requiring unique paths guarantees that each extracted directory belongs to a single processor
         // and avoids mixing data from two sources, which would confuse users.
         Map<String, String> seenPaths = new HashMap<>();
 
