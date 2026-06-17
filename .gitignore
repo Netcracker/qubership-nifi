@@ -73,9 +73,5 @@ upgrade-temp-data/
 # APM dependencies
 apm_modules/
 
-# NiFi pg test modules
-nifi-pg-child-simple-test/
-nifi-pg-samples-test/
-
 # Claude instructions
 CLAUDE.md
