@@ -61,14 +61,14 @@ class PropertyResolverTest {
     }
 
     @Test
-    void resolveByExactNameReturnsEmptyAndLogsWarnWhenPropertyAbsent() {
+    void resolveByExactNameReturnsEmptyAndLogsDebugWhenPropertyAbsent() {
         Processor processor = new Processor("P", TYPE, "id", MAPPER.createObjectNode(), rootGroup());
         PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
 
         Optional<ProcessorProperty> result = resolver.resolve(processor, mapping);
 
         assertTrue(result.isEmpty());
-        verify(log).warn(argThat((CharSequence msg) -> msg.toString().contains("SQL Query")));
+        verify(log).debug(argThat((CharSequence msg) -> msg.toString().contains("SQL Query")));
     }
 
     @Test
@@ -83,14 +83,14 @@ class PropertyResolverTest {
     }
 
     @Test
-    void resolveByRegexReturnsEmptyAndLogsWarnWhenNoMatchFound() {
+    void resolveByRegexReturnsEmptyAndLogsDebugWhenNoMatchFound() {
         Processor processor = processorWith("SQL Query", "SELECT 1");
         PropertyMapping mapping = PropertyMapping.ofRegex("Script.*", "script.groovy");
 
         Optional<ProcessorProperty> result = resolver.resolve(processor, mapping);
 
         assertTrue(result.isEmpty());
-        verify(log).warn(argThat((CharSequence msg) -> msg.toString().contains("Script.*")));
+        verify(log).debug(argThat((CharSequence msg) -> msg.toString().contains("Script.*")));
     }
 
     @Test

@@ -32,6 +32,11 @@ public class FlowValidator {
     public List<String> validate(FlowFile flow, PluginConfig config) {
         List<String> errors = new ArrayList<>();
 
+        // Paths are intentionally checked across all processor types, not just within a single type.
+        // Two different types can map to the same target file name (for example, query.sql for the
+        // SQL Query property), so two processors that share a path would write to the same file.
+        // Requiring unique paths guarantees that each extracted file belongs to a single processor
+        // and avoids mixing data from two sources, which would confuse users.
         Map<String, String> seenPaths = new HashMap<>();
 
         for (var typeConfig : config.getProcessorTypes()) {
@@ -57,10 +62,10 @@ public class FlowValidator {
                 errors.add(String.format(
                         "Duplicate processor path '%s': "
                                 + "processor '%s' and processor '%s' produce the same path. "
-                                + "Processors of the same type must have unique paths "
+                                + "Processors must have unique paths "
                                 + "(parent process group names + processor name) within the flow, "
                                 + "since the path determines the directory structure during Extract.",
-                        fullPath, typeFqn, existingId, processor.getIdentifier()));
+                        fullPath, existingId, processor.getIdentifier()));
             }
         }
     }

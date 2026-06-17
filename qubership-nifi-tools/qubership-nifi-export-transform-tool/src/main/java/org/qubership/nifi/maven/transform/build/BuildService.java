@@ -197,7 +197,7 @@ public class BuildService {
         ProcessorProperty property = propertyOpt.get();
 
         if (property.isEmpty()) {
-            log.warn(String.format(
+            log.debug(String.format(
                     "Property '%s' of processor '%s' (id: %s, group: '%s', groupId: %s, flow: '%s') "
                             + "is empty or null. Skipping.",
                     property.getName(),

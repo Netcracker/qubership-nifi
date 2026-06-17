@@ -13,7 +13,8 @@ as separate files in version control instead of embedding them inside the flow J
 
 ## Prerequisites
 
-The plugin must be installed to the local Maven repository before use.
+- Java - JDK 21
+- Maven - Maven 3.x
 
 ## Usage
 
@@ -74,7 +75,7 @@ This is useful when flow JSON files need to be restored automatically before pac
                         <goal>build</goal>
                     </goals>
                     <configuration>
-                        <configFile>${project.basedir}/config/configuration-default-regex.yaml</configFile>
+                        <configFile>${project.basedir}/config/configuration-default.yaml</configFile>
                         <exportDir>${project.basedir}/nifi</exportDir>
                         <delete>false</delete>
                     </configuration>

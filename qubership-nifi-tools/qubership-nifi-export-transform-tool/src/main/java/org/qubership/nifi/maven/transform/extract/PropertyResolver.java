@@ -55,7 +55,7 @@ public class PropertyResolver {
                 mapping.getPropertyNameOrRegex());
 
         if (result.isEmpty()) {
-            log.warn(String.format(
+            log.debug(String.format(
                     "Property '%s' is not set in processor '%s'. Skipping.",
                     mapping.getPropertyNameOrRegex(), processor.getName()));
         }
@@ -82,7 +82,7 @@ public class PropertyResolver {
                 mapping.getCompiledPattern());
 
         if (matches.isEmpty()) {
-            log.warn(String.format(
+            log.debug(String.format(
                     "No property matching regex '%s' found in processor '%s'. Skipping.",
                     mapping.getPropertyNameOrRegex(), processor.getName()));
             return Optional.empty();

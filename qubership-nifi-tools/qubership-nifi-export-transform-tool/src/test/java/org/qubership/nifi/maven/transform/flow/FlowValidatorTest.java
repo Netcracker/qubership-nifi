@@ -70,6 +70,8 @@ class FlowValidatorTest {
         assertEquals(1, errors.size());
         assertTrue(errors.get(0).contains("Duplicate"));
         assertTrue(errors.get(0).contains("MyProcessor"));
+        assertTrue(errors.get(0).contains("id-1"));
+        assertTrue(errors.get(0).contains("id-2"));
     }
 
     @Test
