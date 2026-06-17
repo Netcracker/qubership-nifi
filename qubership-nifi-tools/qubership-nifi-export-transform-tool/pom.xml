@@ -14,7 +14,7 @@
     <packaging>maven-plugin</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Maven plugin for extracting and restoring processor property values
-        (SQL, scripts, Jolt specs) in exported NiFi flow JSON files.</description>
+        in exported Apache NiFi versioned flow JSON files.</description>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -40,7 +40,7 @@
         </dependency>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
-            <artifactId>qubership-nifi-json-format-lib</artifactId>
+            <artifactId>qubership-nifi-tools-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 

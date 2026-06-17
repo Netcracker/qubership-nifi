@@ -1,11 +1,11 @@
-# qubership-nifi-json-format-lib
+# qubership-nifi-tools-common
 
 A reusable library that re-serializes a JSON file through Jackson while preserving the input file's
 formatting. It is intended for workflows that parse a JSON file, modify some elements in the Jackson
 tree, and write it back without producing noisy whitespace-only diffs.
 
 A thin command-line wrapper is available in
-[`qubership-nifi-json-format-tool`](../qubership-nifi-json-format-tool/README.md).
+[`qubership-nifi-tools-common-test-tool`](../qubership-nifi-tools-common-test-tool/README.md).
 
 ## How it works
 

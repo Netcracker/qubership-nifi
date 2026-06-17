@@ -65,8 +65,8 @@
         <module>qubership-nifi-component-comparator-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
         <module>qubership-nifi-openapi-enricher</module>
-        <module>qubership-nifi-json-format-lib</module>
-        <module>qubership-nifi-json-format-tool</module>
+        <module>qubership-nifi-tools-common</module>
+        <module>qubership-nifi-tools-common-test-tool</module>
         <module>qubership-nifi-export-transform-tool</module>
     </modules>
 
