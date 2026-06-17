@@ -72,6 +72,3 @@ upgrade-temp-data/
 
 # APM dependencies
 apm_modules/
-
-# Claude instructions
-CLAUDE.md
