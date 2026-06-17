@@ -69,9 +69,11 @@ public class FlowReader {
     /**
      * Recursively walks the directory and collects paths to all *.json flow files.
      * Skips directories whose name starts with "flowConf_" — those are created by the plugin.
+     * The returned list is sorted in natural path order so processing, logging, and error
+     * reporting are reproducible across runs and machines.
      *
      * @param exportDir root directory containing exported flow files
-     * @return list of paths to flow JSON files
+     * @return sorted list of paths to flow JSON files
      * @throws IOException if the directory cannot be walked
      */
     public List<Path> findFlowPaths(Path exportDir) throws IOException {
@@ -80,6 +82,7 @@ public class FlowReader {
                     .filter(path -> !isInsideFlowConfDir(path, exportDir))
                     .filter(Files::isRegularFile)
                     .filter(path -> path.toString().endsWith(".json"))
+                    .sorted()
                     .toList();
         }
     }

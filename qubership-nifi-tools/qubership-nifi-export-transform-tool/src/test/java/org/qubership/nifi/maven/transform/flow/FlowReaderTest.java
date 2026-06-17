@@ -175,6 +175,19 @@ class FlowReaderTest {
     }
 
     @Test
+    void findFlowPathsReturnsPathsInSortedOrder() throws IOException {
+        writeFlow("c.json", "{}");
+        writeFlow("a.json", "{}");
+        writeFlow("b.json", "{}");
+
+        List<Path> paths = reader.findFlowPaths(tempDir);
+
+        assertEquals(paths.stream().sorted().toList(), paths);
+        assertEquals(List.of("a.json", "b.json", "c.json"),
+                paths.stream().map(p -> p.getFileName().toString()).toList());
+    }
+
+    @Test
     void findFlowPathsSkipsNonJsonFiles() throws IOException {
         writeFlow("flow.json", "{}");
         writeFlow("flow.xml", "<root/>");
