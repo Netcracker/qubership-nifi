@@ -1,0 +1,140 @@
+{
+  "org.apache.nifi.processors.aws.ml.translate.StartAwsTranslateJob": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.standard.ExecuteSQLRecord": {
+    "SQL select query": "SQL Query"
+  },
+  "org.apache.nifi.processors.jolt.JoltTransformJSON": {
+    "jolt-spec": "Jolt Specification",
+    "jolt-transform": "Jolt Transform",
+    "jolt-custom-class": "Custom Transformation Class Name",
+    "jolt-custom-modules": "Custom Module Directory",
+    "pretty_print": "Pretty Print"
+  },
+  "org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.amqp.processors.ConsumeAMQP": {
+    "ssl-context-service": "SSL Context Service",
+    "User Name": "Username",
+    "cert-authentication": "Client Certificate Authentication Enabled"
+  },
+  "org.apache.nifi.processors.standard.InvokeHTTP": {
+    "Attributes to Send": "Request Header Attributes Pattern",
+    "use-etag": "Response Cache Enabled",
+    "Basic Authentication Password": "Request Password",
+    "cookie-strategy": "Response Cookie Strategy",
+    "send-message-body": "Request Body Enabled",
+    "set-form-filename": "Request Multipart Form-Data Filename Enabled",
+    "Always Output Response": "Response Generation Required",
+    "etag-max-cache-size": "Response Cache Size",
+    "Content-Encoding": "Request Content-Encoding",
+    "disable-http2": "HTTP/2 Disabled",
+    "idle-timeout": "Socket Idle Timeout",
+    "Put Response Body In Attribute": "Response Body Attribute Name",
+    "Use Chunked Encoding": "Request Chunked Transfer-Encoding Enabled",
+    "Follow Redirects": "Response Redirects Enabled",
+    "Remote URL": "HTTP URL",
+    "form-body-form-name": "Request Multipart Form-Data Name",
+    "Content-Type": "Request Content-Type",
+    "flow-file-naming-strategy": "Response FlowFile Naming Strategy",
+    "max-idle-connections": "Socket Idle Connections",
+    "Read Timeout": "Socket Read Timeout",
+    "Max Length To Put In Attribute": "Response Body Attribute Size",
+    "ignore-response-content": "Response Body Ignored",
+    "Digest Authentication": "Request Digest Authentication Enabled",
+    "Add Response Headers to Request": "Response Header Request Attributes Enabled",
+    "oauth2-access-token-provider": "Request OAuth2 Access Token Provider",
+    "Basic Authentication Username": "Request Username",
+    "Include Date Header": "Request Date Header Enabled",
+    "Penalize on \"No Retry\"": "Request Failure Penalization Enabled",
+    "Useragent": "Request User-Agent"
+  },
+  "org.apache.nifi.processors.aws.s3.TagS3Object": {
+    "version": "Version"
+  },
+  "org.apache.nifi.processors.aws.ml.polly.GetAwsPollyJobStatus": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.standard.ExtractText": {
+    "extract-text-enable-named-groups": "Enable named group support",
+    "extract-text-enable-repeating-capture-group": "Enable repeating capture group"
+  },
+  "org.apache.nifi.processors.aws.ml.transcribe.GetAwsTranscribeJobStatus": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.aws.ml.translate.GetAwsTranslateJobStatus": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.standard.ConvertRecord": {
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "include-zero-record-flowfiles": "Include Zero Record FlowFiles"
+  },
+  "org.apache.nifi.processors.standard.ListenFTP": {
+    "bind-address": "Address",
+    "password": "Password",
+    "ssl-context-service": "SSL Context Service",
+    "listening-port": "Port",
+    "username": "Username"
+  },
+  "org.apache.nifi.processors.elasticsearch.PutElasticsearchRecord": {
+    "put-es-record-not_found-is-error": "put-es-not_found-is-error"
+  },
+  "org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream": {
+    "amazon-kinesis-stream-cloudwatch-flag": "Report Metrics to CloudWatch",
+    "kinesis-stream-name": "Amazon Kinesis Stream Name",
+    "amazon-kinesis-stream-initial-position": "Initial Stream Position",
+    "amazon-kinesis-stream-record-writer": "Record Writer",
+    "amazon-kinesis-stream-application-name": "Application Name",
+    "amazon-kinesis-stream-failover-timeout": "Failover Timeout",
+    "amazon-kinesis-stream-retry-count": "Retry Count",
+    "amazon-kinesis-stream-timestamp-format": "Timestamp Format",
+    "amazon-kinesis-stream-graceful-shutdown-timeout": "Graceful Shutdown Timeout",
+    "amazon-kinesis-stream-record-reader": "Record Reader",
+    "amazon-kinesis-stream-checkpoint-interval": "Checkpoint Interval",
+    "amazon-kinesis-stream-dynamodb-override": "DynamoDB Override",
+    "amazon-kinesis-stream-retry-wait": "Retry Wait",
+    "amazon-kinesis-stream-position-timestamp": "Stream Position Timestamp"
+  },
+  "org.apache.nifi.processors.aws.ml.polly.StartAwsPollyJob": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.amqp.processors.PublishAMQP": {
+    "ssl-context-service": "SSL Context Service",
+    "User Name": "Username",
+    "cert-authentication": "Client Certificate Authentication Enabled"
+  },
+  "org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.airtable.QueryAirtableTable": {
+    "api-key": "pat"
+  },
+  "org.apache.nifi.processors.standard.ExecuteSQL": {
+    "SQL select query": "SQL Query"
+  },
+  "org.apache.nifi.processors.jolt.JoltTransformRecord": {
+    "jolt-record-transform-cache-size": "Transform Cache Size",
+    "jolt-record-custom-class": "Custom Transformation Class Name",
+    "jolt-record-custom-modules": "Custom Module Directory",
+    "jolt-record-transform": "Jolt Transform",
+    "jolt-record-spec": "Jolt Specification"
+  },
+  "org.apache.nifi.processors.standard.UpdateRecord": {
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "replacement-value-strategy": "Replacement Value Strategy"
+  },
+  "org.apache.nifi.processors.standard.RemoveRecordField": {
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.aws.ml.transcribe.StartAwsTranscribeJob": {
+    "aws-region": "Region"
+  },
+  "org.apache.nifi.processors.elasticsearch.PutElasticsearchJson": {
+    "put-es-json-not_found-is-error": "put-es-not_found-is-error"
+  }
+}

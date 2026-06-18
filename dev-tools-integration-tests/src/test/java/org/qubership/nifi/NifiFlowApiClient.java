@@ -31,6 +31,7 @@ import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Thin HTTP client for the NiFi REST API used by integration tests.
@@ -424,6 +425,83 @@ public class NifiFlowApiClient {
                 validationErrorsMessage.append("].");
             }
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Versioned flow state
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the versioned flow state of a process group, read from
+     * {@code GET /nifi-api/process-groups/{id}}. Prefers the top-level {@code versionedFlowState}
+     * field and falls back to {@code component.versionControlInformation.state}.
+     *
+     * @param pgId process group id
+     * @return the versioned flow state (e.g. {@code "UP_TO_DATE"}), or an empty string if not set
+     */
+    public String getVersionedFlowState(final String pgId) throws IOException, InterruptedException {
+        JsonNode pg = getProcessGroupById(pgId);
+        String state = pg.path("versionedFlowState").asText("");
+        if (state.isEmpty()) {
+            state = pg.path("component").path("versionControlInformation").path("state").asText("");
+        }
+        return state;
+    }
+
+    /**
+     * Returns the local modifications of a versioned process group, i.e. the
+     * {@code componentDifferences} array from
+     * {@code GET /nifi-api/process-groups/{id}/local-modifications}.
+     *
+     * @param pgId process group id
+     * @return {@code componentDifferences} JSON array node
+     */
+    public JsonNode getLocalModifications(final String pgId) throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/process-groups/" + pgId + "/local-modifications"))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when getting local modifications for PG " + pgId
+                        + ". Response: " + resp.body());
+        return MAPPER.readTree(resp.body()).path("componentDifferences");
+    }
+
+    /**
+     * Waits (up to 30 s) for the process group to report a versioned flow state, then asserts it is
+     * {@code UP_TO_DATE}. For {@code LOCALLY_MODIFIED} / {@code LOCALLY_MODIFIED_AND_STALE} the local
+     * modifications are appended to the failure message; any other non-{@code UP_TO_DATE} state fails
+     * with the state name.
+     *
+     * @param pgId process group id
+     */
+    public void assertProcessGroupUpToDate(final String pgId) throws IOException, InterruptedException {
+        LOG.info("Waiting for PG {} to report a versioned flow state", pgId);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .until(() -> !getVersionedFlowState(pgId).isEmpty());
+
+        String state = getVersionedFlowState(pgId);
+        if ("UP_TO_DATE".equals(state)) {
+            LOG.info("PG {} is UP_TO_DATE", pgId);
+            return;
+        }
+
+        StringBuilder message = new StringBuilder("Imported PG ").append(pgId)
+                .append(" versioned flow state is ").append(state).append(" (expected UP_TO_DATE)");
+        if ("LOCALLY_MODIFIED".equals(state) || "LOCALLY_MODIFIED_AND_STALE".equals(state)) {
+            message.append(". Local modifications: ");
+            for (JsonNode component : getLocalModifications(pgId)) {
+                message.append("[").append(component.path("componentName").asText()).append(": ");
+                for (JsonNode difference : component.path("differences")) {
+                    message.append(difference.path("difference").asText()).append("; ");
+                }
+                message.append("]");
+            }
+        }
+        fail(message.toString());
     }
 
     // -------------------------------------------------------------------------

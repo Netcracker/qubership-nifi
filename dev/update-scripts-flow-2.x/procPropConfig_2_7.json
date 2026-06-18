@@ -1,0 +1,1574 @@
+{
+  "org.apache.nifi.processors.azure.eventhub.GetAzureEventHub": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.box.ListBoxFileInfo": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.ISPEnrichIP": {
+    "Geo Database File": "MaxMind Database File"
+  },
+  "org.apache.nifi.processors.standard.DeleteSFTP": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.EvaluateXQuery": {
+    "Validate DTD": "Allow DTD"
+  },
+  "org.apache.nifi.processors.mongodb.RunMongoAggregation": {
+    "mongo-client-service": "Client Service",
+    "mongo-agg-query": "Query",
+    "mongo-charset": "Character Set",
+    "mongo-query-attribute": "Query Output Attribute",
+    "results-per-flowfile": "Results Per FlowFile",
+    "mongo-date-format": "Date Format",
+    "json-type": "JSON Type",
+    "allow-disk-use": "Allow Disk Use"
+  },
+  "org.apache.nifi.processors.standard.QueryRecord": {
+    "dbf-default-precision": "Default Decimal Precision",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "include-zero-record-flowfiles": "Include Zero Record FlowFiles",
+    "dbf-default-scale": "Default Decimal Scale"
+  },
+  "org.apache.nifi.processors.mqtt.PublishMQTT": {
+    "Session state": "Session State",
+    "Quality of Service(QoS)": "Quality of Service",
+    "Connection Timeout (seconds)": "Connection Timeout",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "message-demarcator": "Message Demarcator",
+    "Keep Alive Interval (seconds)": "Keep Alive"
+  },
+  "org.apache.nifi.processors.pgp.DecryptContentPGP": {
+    "private-key-service": "Private Key Service",
+    "passphrase": "Passphrase",
+    "decryption-strategy": "Decryption Strategy"
+  },
+  "org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.ExtractRecordSchema": {
+    "cache-size": "Schema Cache Size",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.splunk.PutSplunkHTTP": {
+    "character-set": "Character Set",
+    "request-channel": "Splunk Request Channel",
+    "Port": "HTTP Event Collector Port",
+    "source-type": "Source Type",
+    "host": "Host",
+    "index": "Index",
+    "Token": "HTTP Event Collector Token",
+    "content-type": "Content Type",
+    "source": "Source"
+  },
+  "org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.pgp.EncryptContentPGP": {
+    "public-key-service": "Public Key Service",
+    "public-key-search": "Public Key Search",
+    "file-encoding": "File Encoding",
+    "passphrase": "Passphrase",
+    "symmetric-key-algorithm": "Symmetric-Key Algorithm"
+  },
+  "org.apache.nifi.processors.elasticsearch.PaginatedJsonQueryElasticsearch": {
+    "el-rest-pagination-type": "Pagination Type",
+    "es-rest-size": "Size",
+    "es-rest-query-sort": "Sort",
+    "el-rest-query-clause": "Query Clause",
+    "el-rest-query-definition-style": "Query Definition Style",
+    "es-rest-query-script-fields": "Script Fields",
+    "es-rest-query-aggs": "Aggregations",
+    "el-rest-pagination-keep-alive": "Pagination Keep Alive",
+    "el-rest-format-hits": "Search Results Format",
+    "el-rest-split-up-hits": "Search Results Split",
+    "el-rest-query": "Query",
+    "el-rest-split-up-aggregations": "Aggregation Results Split",
+    "el-rest-format-aggregations": "Aggregation Results Format",
+    "el-rest-fetch-index": "Index",
+    "el-rest-output-no-hits": "Output No Hits",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "es-rest-query-fields": "Fields",
+    "el-query-attribute": "Query Attribute"
+  },
+  "org.apache.nifi.processors.azure.storage.MoveAzureDataLakeStorage": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.azure.storage.ListAzureDataLakeStorage": {
+    "listing-strategy": "Listing Strategy",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache"
+  },
+  "org.apache.nifi.processors.aws.ml.transcribe.StartAwsTranscribeJob": {
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.splunk.QuerySplunkIndexingStatus": {
+    "request-channel": "Splunk Request Channel",
+    "Port": "HTTP Event Collector Port",
+    "max-query-size": "Maximum Query Size",
+    "Token": "HTTP Event Collector Token",
+    "ttl": "Maximum Waiting Time"
+  },
+  "org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.ExecuteSQLRecord": {
+    "sql-pre-query": "SQL Pre-Query",
+    "esql-max-rows": "Max Rows Per Flow File",
+    "esql-output-batch-size": "Output Batch Size",
+    "esql-fetch-size": "Fetch Size",
+    "esqlrecord-record-writer": "Record Writer",
+    "dbf-default-precision": "Default Decimal Precision",
+    "sql-post-query": "SQL Post-Query",
+    "esql-auto-commit": "Set Auto Commit",
+    "dbf-user-logical-types": "Use Avro Logical Types",
+    "esqlrecord-normalize": "Normalize Table/Column Names",
+    "dbf-default-scale": "Default Decimal Scale"
+  },
+  "org.apache.nifi.processors.elasticsearch.DeleteByQueryElasticsearch": {
+    "el-rest-fetch-index": "Index",
+    "el-rest-query-clause": "Query Clause",
+    "el-rest-query-definition-style": "Query Definition Style",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "el-query-attribute": "Query Attribute",
+    "el-rest-query": "Query"
+  },
+  "org.apache.nifi.processors.box.DeleteBoxFileMetadataInstance": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.snmp.processors.ListenTrapSNMP": {
+    "snmp-usm-users-source": "USM Users Input Method",
+    "snmp-usm-users-file-path": "USM Users JSON File Path",
+    "snmp-security-level": "SNMP Security Level",
+    "snmp-usm-security-names": "SNMP Users Security Names",
+    "snmp-community": "SNMP Community",
+    "snmp-manager-port": "SNMP Manager Port",
+    "snmp-usm-users-json-content": "USM Users JSON Content",
+    "snmp-version": "SNMP Version"
+  },
+  "org.apache.nifi.processors.standard.QueryDatabaseTable": {
+    "db-fetch-db-type": "Database Type",
+    "dbf-default-precision": "Default Decimal Precision",
+    "db-fetch-sql-query": "Custom Query",
+    "db-fetch-where-clause": "Additional WHERE Clause",
+    "dbf-normalize": "Normalize Table and Column Names",
+    "dbf-user-logical-types": "Use Avro Logical Types",
+    "qdbt-output-batch-size": "Output Batch Size",
+    "transaction-isolation-level": "Transaction Isolation Level",
+    "qdbt-max-rows": "Max Rows Per Flow File",
+    "qdbt-max-frags": "Maximum Number of Fragments",
+    "dbf-default-scale": "Default Decimal Scale",
+    "initial-load-strategy": "Initial Load Strategy"
+  },
+  "org.apache.nifi.processors.GeoEnrichIP": {
+    "Geo Database File": "MaxMind Database File"
+  },
+  "org.apache.nifi.processors.elasticsearch.GetElasticsearch": {
+    "el-rest-fetch-index": "Index",
+    "get-es-id": "Document Id",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "get-es-attribute-name": "Attribute Name",
+    "get-es-destination": "Destination"
+  },
+  "org.apache.nifi.processors.aws.kinesis.firehose.PutKinesisFirehose": {
+    "Max message buffer size": "Max Message Buffer Size",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.ExtractText": {
+    "Enable named group support": "Enable Named Groups",
+    "Enable repeating capture group": "Enable Repeating Capture Group"
+  },
+  "org.apache.nifi.processors.standard.GenerateTableFetch": {
+    "gen-table-output-flowfile-on-zero-results": "Output Empty FlowFile on Zero Results",
+    "db-fetch-db-type": "Database Type",
+    "gen-table-custom-orderby-column": "Custom ORDER BY Column",
+    "gen-table-fetch-partition-size": "Partition Size",
+    "db-fetch-where-clause": "Additional WHERE Clause",
+    "gen-table-column-for-val-partitioning": "Column for Value Partitioning"
+  },
+  "org.apache.nifi.processors.aws.ml.transcribe.GetAwsTranscribeJobStatus": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.websocket.ListenWebSocket": {
+    "server-url-path": "Server URL Path",
+    "websocket-server-controller-service": "WebSocket Server Controller Service"
+  },
+  "org.apache.nifi.processors.box.CreateBoxMetadataTemplate": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.LookupAttribute": {
+    "lookup-service": "Lookup Service",
+    "include-empty-values": "Include Empty Values"
+  },
+  "org.apache.nifi.processors.standard.QueryDatabaseTableRecord": {
+    "db-fetch-db-type": "Database Type",
+    "dbf-default-precision": "Default Decimal Precision",
+    "db-fetch-sql-query": "Custom Query",
+    "qdbtr-normalize": "Normalize Table/Column Names",
+    "qdbtr-record-writer": "Record Writer",
+    "db-fetch-where-clause": "Additional WHERE Clause",
+    "dbf-user-logical-types": "Use Avro Logical Types",
+    "qdbt-output-batch-size": "Output Batch Size",
+    "qdbt-max-rows": "Max Rows Per Flow File",
+    "qdbt-max-frags": "Maximum Number of Fragments",
+    "dbf-default-scale": "Default Decimal Scale",
+    "initial-load-strategy": "Initial Load Strategy"
+  },
+  "org.apache.nifi.processors.aws.dynamodb.GetDynamoDB": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "Json Document attribute": "Json Document",
+    "Batch items for each request (between 1 and 50)": "Batch Items Per Request",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.jslt.JSLTTransformJSON": {
+    "jslt-transform-pretty_print": "Pretty Print",
+    "jslt-transform-result-filter": "Transform Result Filter",
+    "jslt-transform-transformation": "JSLT Transformation",
+    "jslt-transform-cache-size": "Transform Cache Size",
+    "jslt-transform-transformation-strategy": "Transformation Strategy"
+  },
+  "org.apache.nifi.processors.gcp.bigquery.PutBigQuery": {
+    "bigquery-api-endpoint": "BigQuery API Endpoint",
+    "bq.transfer.type": "Transfer Type",
+    "bq.skip.invalid.rows": "Skip Invalid Rows",
+    "bq.table.name": "Table Name",
+    "bq.append.record.count": "Append Record Count",
+    "bq.dataset": "Dataset",
+    "bq.record.reader": "Record Reader",
+    "gcp-retry-count": "Number of Retries",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcp-project-id": "Project ID"
+  },
+  "org.apache.nifi.processors.mongodb.gridfs.FetchGridFS": {
+    "mongo-operation-mode": "Operation Mode",
+    "gridfs-file-name": "File Name",
+    "gridfs-client-service": "Client Service",
+    "mongo-query-attribute": "Query Output Attribute",
+    "gridfs-database-name": "Mongo Database Name",
+    "gridfs-query": "Query",
+    "gridfs-bucket-name": "Bucket Name"
+  },
+  "org.apache.nifi.processors.gcp.pubsub.PublishGCPubSub": {
+    "gcp-pubsub-publish-batch-size": "Batch Size Threshold",
+    "api-endpoint": "API Endpoint",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcp-pubsub-topic": "Topic Name",
+    "gcp-pubsub-publish-batch-delay": "Batch Delay Threshold",
+    "gcp-project-id": "Project ID",
+    "gcp-batch-bytes": "Batch Bytes Threshold"
+  },
+  "org.apache.nifi.processors.aws.lambda.PutLambda": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "Amazon Lambda Qualifier (version)": "Amazon Lambda Qualifier",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow": {
+    "Value to track": "Value to Track",
+    "Time window": "Time Window",
+    "Sub-window length": "Subwindow Length"
+  },
+  "org.apache.nifi.processors.standard.UnpackContent": {
+    "allow-stored-entries-wdd": "Allow Stored Entries With Data Descriptor"
+  },
+  "org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.PartitionRecord": {
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.standard.FetchFTP": {
+    "ftp-use-utf8": "Use UTF-8 Encoding",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "fetchfiletransfer-notfound-loglevel": "Log Level When File Not Found"
+  },
+  "org.apache.nifi.processors.aws.sqs.GetSQS": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.sqs.PutSQS": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.jolt.JoltTransformRecord": {
+    "jolt-record-record-writer": "Record Writer",
+    "jolt-record-record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.standard.HandleHttpResponse": {
+    "Attributes to add to the HTTP Response (Regex)": "Attributes for HTTP Response"
+  },
+  "org.apache.nifi.processors.mongodb.gridfs.DeleteGridFS": {
+    "delete-gridfs-query": "Query",
+    "gridfs-file-name": "File Name",
+    "gridfs-client-service": "Client Service",
+    "mongo-query-attribute": "Query Output Attribute",
+    "gridfs-database-name": "Mongo Database Name",
+    "gridfs-bucket-name": "Bucket Name"
+  },
+  "org.apache.nifi.processors.standard.PutEmail": {
+    "attribute-name-regex": "Attributes to Send as Headers Regular Expression",
+    "oauth2-access-token-provider": "OAuth2 Access Token Provider",
+    "input-character-set": "Input Character Set",
+    "email-ff-content-as-message": "FlowFile Content as Message",
+    "authorization-mode": "Authorization Mode",
+    "SMTP TLS": "SMTP START TLS"
+  },
+  "org.apache.nifi.processors.dropbox.PutDropbox": {
+    "dropbox-credential-service": "Dropbox Credential Service",
+    "folder": "Folder",
+    "conflict-resolution-strategy": "Conflict Resolution Strategy",
+    "chunked-upload-size": "Chunked Upload Size",
+    "chunked-upload-threshold": "Chunked Upload Threshold",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "file-name": "Filename"
+  },
+  "org.apache.nifi.processors.smb.FetchSmb": {
+    "smb-client-provider-service": "SMB Client Provider Service",
+    "remote-file": "Remote File"
+  },
+  "org.apache.nifi.processors.standard.PutRecord": {
+    "put-record-include-zero-record-results": "Include Zero Record Results",
+    "put-record-reader": "Record Reader",
+    "put-record-sink": "Record Destination Service"
+  },
+  "org.apache.nifi.processors.standard.Wait": {
+    "wait-buffer-count": "Wait Buffer Count",
+    "wait-mode": "Wait Mode",
+    "attribute-copy-mode": "Attribute Copy Mode",
+    "distributed-cache-service": "Distributed Cache Service",
+    "releasable-flowfile-count": "Releasable FlowFile Count",
+    "release-signal-id": "Release Signal Identifier",
+    "signal-counter-name": "Signal Counter Name",
+    "expiration-duration": "Expiration Duration",
+    "target-signal-count": "Target Signal Count",
+    "wait-penalty-duration": "Wait Penalty Duration"
+  },
+  "org.apache.nifi.processors.azure.storage.ListAzureBlobStorage_v12": {
+    "listing-strategy": "Listing Strategy",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache"
+  },
+  "org.apache.nifi.processors.standard.HandleHttpRequest": {
+    "container-queue-size": "Container Queue Size",
+    "multipart-read-buffer-size": "Multipart Read Buffer Size",
+    "multipart-request-max-size": "Multipart Request Max Size",
+    "parameters-to-attributes": "Parameters to Attributes"
+  },
+  "org.apache.nifi.processors.standard.ReplaceText": {
+    "Regular Expression": "Search Value"
+  },
+  "org.apache.nifi.processors.smb.PutSmbFile": {
+    "use-encryption": "Use Encryption",
+    "enable-dfs": "Enable DFS",
+    "timeout": "Timeout",
+    "smb-dialect": "SMB Dialect"
+  },
+  "org.apache.nifi.processors.standard.ListDatabaseTables": {
+    "list-db-tables-db-connection": "Database Connection Pooling Service",
+    "list-db-refresh-interval": "Refresh Interval",
+    "list-db-tables-catalog": "Catalog",
+    "record-writer": "Record Writer",
+    "list-db-include-count": "Include Count",
+    "list-db-tables-name-pattern": "Table Name Pattern",
+    "list-db-tables-schema-pattern": "Schema Pattern",
+    "list-db-tables-types": "Table Types"
+  },
+  "org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.GenerateFlowFile": {
+    "character-set": "Character Set",
+    "mime-type": "Mime Type",
+    "generate-ff-custom-text": "Custom Text"
+  },
+  "org.apache.nifi.processors.gcp.storage.ListGCSBucket": {
+    "listing-strategy": "Listing Strategy",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "gcs-use-generations": "Use Generations",
+    "record-writer": "Record Writer",
+    "gcp-retry-count": "Number of Retries",
+    "storage-api-url": "Storage API URL",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache",
+    "gcs-bucket": "Bucket",
+    "gcp-project-id": "Project ID",
+    "gcs-prefix": "Prefix"
+  },
+  "org.apache.nifi.processors.aws.s3.TagS3Object": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.ml.translate.GetAwsTranslateJobStatus": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.snmp.processors.GetSNMP": {
+    "snmp-security-level": "SNMP Security Level",
+    "snmp-authentication-passphrase": "SNMP Authentication Passphrase",
+    "snmp-port": "SNMP Agent Port",
+    "snmp-retries": "Number of Retries",
+    "snmp-private-protocol-passphrase": "SNMP Privacy Passphrase",
+    "snmp-security-name": "SNMP Security Name",
+    "snmp-textual-oid": "Textual OID",
+    "snmp-private-protocol": "SNMP Privacy Protocol",
+    "snmp-strategy": "SNMP Strategy",
+    "snmp-oid": "OID",
+    "snmp-community": "SNMP Community",
+    "snmp-version": "SNMP Version",
+    "snmp-hostname": "SNMP Agent Hostname",
+    "snmp-timeout": "Timeout",
+    "snmp-authentication-protocol": "SNMP Authentication Protocol"
+  },
+  "org.apache.nifi.processors.mongodb.GetMongo": {
+    "mongo-client-service": "Client Service",
+    "mongo-charset": "Character Set",
+    "mongo-query-attribute": "Query Output Attribute",
+    "results-per-flowfile": "Results Per FlowFile",
+    "mongo-date-format": "Date Format",
+    "json-type": "JSON Type",
+    "use-pretty-printing": "Pretty Print Results JSON",
+    "get-mongo-send-empty": "Send Empty Result"
+  },
+  "org.apache.nifi.processors.standard.UpdateCounter": {
+    "counter-name": "Counter Name",
+    "delta": "Delta"
+  },
+  "org.apache.nifi.processors.standard.ForkRecord": {
+    "include-parent-fields": "Include Parent Fields",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "fork-mode": "Mode"
+  },
+  "org.apache.nifi.processors.azure.storage.queue.PutAzureQueueStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.gcp.pubsub.ConsumeGCPubSub": {
+    "gcp-pubsub-publish-batch-size": "Batch Size Threshold",
+    "api-endpoint": "API Endpoint",
+    "gcp-pubsub-subscription": "Subscription",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcp-project-id": "Project ID"
+  },
+  "org.apache.nifi.processors.azure.storage.CopyAzureBlobStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.mongodb.DeleteMongo": {
+    "mongo-client-service": "Client Service",
+    "delete-mongo-fail-on-no-delete": "Fail When Nothing Is Deleted",
+    "delete-mongo-delete-mode": "Delete Mode"
+  },
+  "org.apache.nifi.processors.smb.ListSmb": {
+    "max-file-age": "Maximum File Age",
+    "initial-listing-strategy": "Initial Listing Strategy",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "min-file-size": "Minimum File Size",
+    "max-file-size": "Maximum File Size",
+    "et-time-window": "Entity Tracking Time Window",
+    "directory": "Input Directory",
+    "smb-client-provider-service": "SMB Client Provider Service",
+    "listing-strategy": "Listing Strategy",
+    "initial-listing-timestamp": "Initial Listing Timestamp",
+    "min-file-age": "Minimum File Age",
+    "file-name-suffix-filter": "Ignore Files with Suffix",
+    "target-system-timestamp-precision": "Target System Timestamp Precision",
+    "et-state-cache": "Entity Tracking State Cache",
+    "file-filter": "File Filter",
+    "path-filter": "Path Filter"
+  },
+  "org.apache.nifi.processors.elasticsearch.UpdateByQueryElasticsearch": {
+    "el-rest-fetch-index": "Index",
+    "el-rest-query-clause": "Query Clause",
+    "el-rest-query-definition-style": "Query Definition Style",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "el-query-attribute": "Query Attribute",
+    "el-rest-script": "Script",
+    "el-rest-query": "Query"
+  },
+  "org.apache.nifi.processors.websocket.ConnectWebSocket": {
+    "websocket-client-controller-service": "WebSocket Client Controller Service",
+    "websocket-client-id": "WebSocket Client Id"
+  },
+  "org.apache.nifi.processors.box.GetBoxGroupMembers": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.elasticsearch.SearchElasticsearch": {
+    "el-rest-pagination-type": "Pagination Type",
+    "es-rest-size": "Size",
+    "es-rest-query-sort": "Sort",
+    "el-rest-query-clause": "Query Clause",
+    "el-rest-query-definition-style": "Query Definition Style",
+    "es-rest-query-script-fields": "Script Fields",
+    "es-rest-query-aggs": "Aggregations",
+    "el-rest-pagination-keep-alive": "Pagination Keep Alive",
+    "el-rest-format-hits": "Search Results Format",
+    "el-rest-split-up-hits": "Search Results Split",
+    "el-rest-query": "Query",
+    "el-rest-split-up-aggregations": "Aggregation Results Split",
+    "el-rest-format-aggregations": "Aggregation Results Format",
+    "el-rest-fetch-index": "Index",
+    "el-rest-output-no-hits": "Output No Hits",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "restart-on-finish": "Restart On Finish",
+    "es-rest-query-fields": "Fields",
+    "el-query-attribute": "Query Attribute"
+  },
+  "org.apache.nifi.processors.twitter.ConsumeTwitter": {
+    "read-timeout": "Read Timeout",
+    "poll-fields": "Poll Fields",
+    "backoff-attempts": "Backoff Attempts",
+    "bearer-token": "Bearer Token",
+    "place-fields": "Place Fields",
+    "media-fields": "Media Fields",
+    "batch-size": "Batch Size",
+    "connect-timeout": "Connect Timeout",
+    "backoff-time": "Backoff Time",
+    "queue-size": "Queue Size",
+    "stream-endpoint": "Stream Endpoint",
+    "base-path": "Base Path",
+    "tweet-fields": "Tweet Fields",
+    "maximum-backoff-time": "Maximum Backoff Time",
+    "backfill-minutes": "Backfill Minutes",
+    "user-fields": "User Fields",
+    "expansions": "Expansions"
+  },
+  "org.apache.nifi.processors.standard.ListenHTTP": {
+    "authorized-issuer-dn-pattern": "Authorized Issuer DN Pattern",
+    "multipart-read-buffer-size": "Multipart Read Buffer Size",
+    "multipart-request-max-size": "Multipart Request Max Size",
+    "client-authentication": "Client Authentication",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "HTTP Headers to receive as Attributes (Regex)": "HTTP Headers for Attributes",
+    "health-check-port": "Listening Port for Health Check Requests",
+    "Authorized DN Pattern": "Authorized Subject DN Pattern",
+    "max-thread-pool-size": "Maximum Thread Pool Size"
+  },
+  "org.apache.nifi.processors.standard.ExecuteProcess": {
+    "Output MIME type": "MIME Type"
+  },
+  "org.apache.nifi.processors.aws.dynamodb.PutDynamoDB": {
+    "Character set of document": "Document Character Set",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "Json Document attribute": "Json Document",
+    "Batch items for each request (between 1 and 50)": "Batch Items Per Request",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.aws.ml.polly.GetAwsPollyJobStatus": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.MergeContent": {
+    "Footer File": "Footer",
+    "Demarcator File": "Demarcator",
+    "Maximum number of Bins": "Maximum Number of Bins",
+    "Header File": "Header",
+    "mergecontent-metadata-strategy": "Metadata Strategy"
+  },
+  "org.apache.nifi.processors.email.ExtractEmailHeaders": {
+    "STRICT_ADDRESS_PARSING": "Email Address Parsing",
+    "CAPTURED_HEADERS": "Additional Header List"
+  },
+  "org.apache.nifi.processors.standard.AttributesToCSV": {
+    "null-value": "Null Value",
+    "include-core-attributes": "Include Core Attributes",
+    "attributes-regex": "Attributes Regular Expression",
+    "destination": "Destination",
+    "include-schema": "Include Schema",
+    "attribute-list": "Attribute List"
+  },
+  "org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.GenerateRecord": {
+    "nullable-fields": "Nullable Fields",
+    "number-of-records": "Number of Records",
+    "record-writer": "Record Writer",
+    "schema-text": "Schema Text",
+    "null-percentage": "Null Value Percentage"
+  },
+  "org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.box.FetchBoxFileInfo": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.MergeRecord": {
+    "max-bin-age": "Max Bin Age",
+    "correlation-attribute-name": "Correlation Attribute Name",
+    "min-records": "Minimum Number of Records",
+    "max-bin-size": "Maximum Bin Size",
+    "record-writer": "Record Writer",
+    "merge-strategy": "Merge Strategy",
+    "record-reader": "Record Reader",
+    "max-records": "Maximum Number of Records",
+    "min-bin-size": "Minimum Bin Size",
+    "max.bin.count": "Maximum Number of Bins"
+  },
+  "org.apache.nifi.cdc.mysql.processors.CaptureChangeMySQL": {
+    "capture-change-mysql-include-ddl-events": "Include DDL Events",
+    "capture-change-mysql-db-name-pattern": "Database/Schema Name Pattern",
+    "capture-change-mysql-init-seq-id": "Initial Sequence ID",
+    "capture-change-mysql-name-pattern": "Table Name Pattern",
+    "capture-change-mysql-driver-class": "MySQL Driver Class Name",
+    "capture-change-mysql-driver-locations": "MySQL Driver Locations",
+    "number-of-events-per-flowfile": "Events Per FlowFile",
+    "capture-change-mysql-include-begin-commit": "Include Begin/Commit Events",
+    "capture-change-mysql-server-id": "Server ID",
+    "capture-change-mysql-init-binlog-filename": "Initial Binlog Filename",
+    "capture-change-mysql-init-binlog-position": "Initial Binlog Position",
+    "capture-change-mysql-init-gtid": "Initial Binlog GTID",
+    "capture-change-mysql-hosts": "MySQL Nodes",
+    "capture-change-mysql-username": "Username",
+    "capture-change-mysql-retrieve-all-records": "Retrieve All Records",
+    "capture-change-mysql-use-gtid": "Use Binlog GTID",
+    "capture-change-mysql-password": "Password",
+    "capture-change-mysql-max-wait-time": "Max Wait Time",
+    "events-per-flowfile-strategy": "Event Processing Strategy"
+  },
+  "org.apache.nifi.processors.gcp.storage.DeleteGCSObject": {
+    "gcs-key": "Key",
+    "gcp-retry-count": "Number of Retries",
+    "storage-api-url": "Storage API URL",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcs-bucket": "Bucket",
+    "gcp-project-id": "Project ID",
+    "gcs-generation": "Generation"
+  },
+  "org.apache.nifi.processors.standard.ExecuteStreamCommand": {
+    "argumentsStrategy": "Command Arguments Strategy"
+  },
+  "org.apache.nifi.processors.aws.s3.PutS3Object": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.box.GetBoxFileCollaborators": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.PutSFTP": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.aws.sns.PutSNS": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "Amazon Resource Name (ARN)": "Amazon Resource Name",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.geohash.GeohashRecord": {
+    "mode": "Mode",
+    "geohash-level": "Geohash Level",
+    "geohash-record-path": "Geohash Record Path",
+    "routing-strategy": "Routing Strategy",
+    "geohash-format": "Geohash Format",
+    "record-writer": "Record Writer",
+    "longitude-record-path": "Longitude Record Path",
+    "record-reader": "Record Reader",
+    "latitude-record-path": "Latitude Record Path"
+  },
+  "org.apache.nifi.processors.box.FetchBoxFile": {
+    "box-client-service": "Box Client Service",
+    "box-file-id": "File ID"
+  },
+  "org.apache.nifi.processors.standard.AttributesToJSON": {
+    "attributes-to-json-regex": "Attributes Regular Expression"
+  },
+  "org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.gcp.vision.StartGcpVisionAnnotateImagesOperation": {
+    "json-payload": "JSON Payload",
+    "output-bucket": "Output Bucket",
+    "vision-feature-type": "Vision Feature Type",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.ml.translate.StartAwsTranslateJob": {
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.PutSQL": {
+    "putsql-sql-statement": "SQL Statement",
+    "database-session-autocommit": "Database Session AutoCommit",
+    "rollback-on-failure": "Rollback On Failure"
+  },
+  "org.apache.nifi.processors.azure.eventhub.PutAzureEventHub": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.standard.ListFile": {
+    "listing-strategy": "Listing Strategy",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "max-listing-time": "Max Directory Listing Time",
+    "record-writer": "Record Writer",
+    "target-system-timestamp-precision": "Target System Timestamp Precision",
+    "track-performance": "Track Performance",
+    "max-performance-metrics": "Maximum Number of Files to Track",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache",
+    "et-node-identifier": "Entity Tracking Node Identifier",
+    "max-operation-time": "Max Disk Operation Time"
+  },
+  "org.apache.nifi.processors.standard.UpdateDatabaseTable": {
+    "updatedatabasetable-table-name": "Table Name",
+    "updatedatabasetable-query-timeout": "Query Timeout",
+    "updatedatabasetable-create-table": "Create Table Strategy",
+    "updatedatabasetable-update-field-names": "Update Field Names",
+    "updatedatabasetable-quoted-column-identifiers": "Quote Column Identifiers",
+    "updatedatabasetable-schema-name": "Schema Name",
+    "updatedatabasetable-dbcp-service": "Database Connection Pooling Service",
+    "updatedatabasetable-translate-field-names": "Translate Field Names",
+    "updatedatabasetable-catalog-name": "Catalog Name",
+    "updatedatabasetable-primary-keys": "Primary Key Fields",
+    "db-type": "Database Type",
+    "record-reader": "Record Reader",
+    "updatedatabasetable-quoted-table-identifiers": "Quote Table Identifiers",
+    "updatedatabasetable-record-writer": "Record Writer"
+  },
+  "org.apache.nifi.processors.standard.GetSFTP": {
+    "follow-symlink": "Follow Symbolic Links",
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.aws.sqs.DeleteSQS": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.s3.GetS3ObjectTags": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.ValidateRecord": {
+    "allow-extra-fields": "Allow Extra Fields",
+    "schema-branch": "Schema Branch",
+    "record-writer": "Record Writer",
+    "strict-type-checking": "Strict Type Checking",
+    "schema-name": "Schema Name",
+    "invalid-record-writer": "Record Writer for Invalid Records",
+    "schema-registry": "Schema Registry",
+    "coerce-types": "Force Types From Reader Schema",
+    "validation-details-attribute-name": "Validation Details Attribute Name",
+    "record-reader": "Record Reader",
+    "maximum-validation-details-length": "Maximum Validation Details Length",
+    "schema-access-strategy": "Schema Access Strategy",
+    "schema-version": "Schema Version",
+    "schema-text": "Schema Text"
+  },
+  "org.apache.nifi.processors.box.FetchBoxFileRepresentation": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.mongodb.PutMongo": {
+    "mongo-client-service": "Client Service",
+    "putmongo-update-query": "Update Query",
+    "put-mongo-update-mode": "Update Mode"
+  },
+  "org.apache.nifi.processors.gcp.drive.PutGoogleDrive": {
+    "connect-timeout": "Connect Timeout",
+    "conflict-resolution-strategy": "Conflict Resolution Strategy",
+    "chunked-upload-size": "Chunked Upload Size",
+    "read-timeout": "Read Timeout",
+    "chunked-upload-threshold": "Chunked Upload Threshold",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "folder-id": "Folder ID",
+    "file-name": "Filename",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.groovyx.ExecuteGroovyScript": {
+    "groovyx-script-body": "Script Body",
+    "groovyx-failure-strategy": "Failure Strategy",
+    "groovyx-additional-classpath": "Additional Classpath",
+    "groovyx-script-file": "Script File"
+  },
+  "org.apache.nifi.processors.standard.PutDatabaseRecord": {
+    "put-db-record-allow-multiple-statements": "Allow Multiple SQL Statements",
+    "table-schema-cache-size": "Table Schema Cache Size",
+    "put-db-record-schema-name": "Schema Name",
+    "put-db-record-field-containing-sql": "Field Containing SQL",
+    "put-db-record-quoted-table-identifiers": "Quote Table Identifiers",
+    "put-db-record-unmatched-column-behavior": "Unmatched Column Behavior",
+    "put-db-record-catalog-name": "Database Name",
+    "put-db-record-translate-field-names": "Translate Field Names",
+    "put-db-record-dcbp-service": "Database Connection Pooling Service",
+    "put-db-record-query-timeout": "Max Wait Time",
+    "rollback-on-failure": "Rollback On Failure",
+    "put-db-record-statement-type": "Statement Type",
+    "put-db-record-binary-format": "Binary String Format",
+    "db-type": "Database Type",
+    "put-db-record-update-keys": "Update Keys",
+    "put-db-record-quoted-identifiers": "Quote Column Identifiers",
+    "put-db-record-table-name": "Table Name",
+    "put-db-record-unmatched-field-behavior": "Unmatched Field Behavior",
+    "put-db-record-max-batch-size": "Maximum Batch Size",
+    "put-db-record-record-reader": "Record Reader",
+    "database-session-autocommit": "Database Session AutoCommit"
+  },
+  "org.apache.nifi.processors.aws.s3.CopyS3Object": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.elasticsearch.PutElasticsearchRecord": {
+    "put-es-record-at-timestamp-time-format": "Time Format",
+    "put-es-record-batch-size": "Batch Size",
+    "put-es-record-scripted-upsert-path": "Scripted Upsert Record Path",
+    "put-es-record-index-op": "Index Operation",
+    "put-es-record-type-record-path": "Type Record Path",
+    "put-es-record-at-timestamp-date-format": "Date Format",
+    "put-es-output-error-responses": "Output Error Responses",
+    "put-es-record-dynamic-templates-path": "Dynamic Templates Record Path",
+    "el-rest-client-service": "Client Service",
+    "put-es-record-log-error-responses": "Log Error Responses",
+    "put-es-not_found-is-error": "Treat Not Found as Success",
+    "put-es-record-error-writer": "Result Record Writer",
+    "put-es-record-at-timestamp-timestamp-format": "Timestamp Format",
+    "put-es-record-id-path": "ID Record Path",
+    "put-es-record-retain-at-timestamp-field": "Retain Record Timestamp",
+    "el-rest-fetch-index": "Index",
+    "put-es-record-index-op-path": "Index Operation Record Path",
+    "put-es-record-retain-id-field": "Retain Record Path ID Field",
+    "put-es-record-script-path": "Script Record Path",
+    "el-rest-type": "Type",
+    "put-es-record-at-timestamp": "Timestamp Value",
+    "put-es-record-index-record-path": "Index Record Path",
+    "put-es-record-at-timestamp-path": "Timestamp Record Path",
+    "put-es-record-reader": "Record Reader",
+    "put-es-record-bulk-error-groups": "Group Results by Bulk Error Type"
+  },
+  "org.apache.nifi.processors.aws.s3.GetS3ObjectMetadata": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.cipher.VerifyContentMAC": {
+    "secret-key-encoding": "Secret Key Encoding",
+    "mac-algorithm": "Message Authentication Code Algorithm",
+    "secret-key": "Secret Key",
+    "message-authentication-code": "Message Authentication Code",
+    "message-authentication-code-encoding": "Message Authentication Code Encoding"
+  },
+  "org.apache.nifi.snmp.processors.SetSNMP": {
+    "snmp-security-level": "SNMP Security Level",
+    "snmp-authentication-passphrase": "SNMP Authentication Passphrase",
+    "snmp-port": "SNMP Agent Port",
+    "snmp-retries": "Number of Retries",
+    "snmp-community": "SNMP Community",
+    "snmp-version": "SNMP Version",
+    "snmp-private-protocol-passphrase": "SNMP Privacy Passphrase",
+    "snmp-hostname": "SNMP Agent Hostname",
+    "snmp-security-name": "SNMP Security Name",
+    "snmp-private-protocol": "SNMP Privacy Protocol",
+    "snmp-timeout": "Timeout",
+    "snmp-authentication-protocol": "SNMP Authentication Protocol"
+  },
+  "org.apache.nifi.processors.standard.DebugFlow": {
+    "Fail When @OnUnscheduled called": "Fail When @OnUnscheduled Called",
+    "Fail When @OnScheduled called": "Fail When @OnScheduled Called",
+    "Fail When @OnStopped called": "Fail When @OnStopped Called"
+  },
+  "org.apache.nifi.processors.standard.GetFTP": {
+    "ftp-use-utf8": "Use UTF-8 Encoding",
+    "follow-symlink": "Follow Symbolic Links",
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.zendesk.GetZendesk": {
+    "zendesk-authentication-value-name": "Authentication Credential",
+    "zendesk-export-method": "Export Method",
+    "zendesk-subdomain": "Subdomain Name",
+    "zendesk-user": "User Name",
+    "zendesk-resource": "Resource",
+    "zendesk-query-start-timestamp": "Query Start Timestamp",
+    "web-client-service-provider": "Web Client Service Provider",
+    "zendesk-authentication-type-name": "Authentication Type"
+  },
+  "org.apache.nifi.processors.standard.ListFTP": {
+    "ftp-use-utf8": "Use UTF-8 Encoding",
+    "listing-strategy": "Listing Strategy",
+    "follow-symlink": "Follow Symbolic Links",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "target-system-timestamp-precision": "Target System Timestamp Precision",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache"
+  },
+  "org.apache.nifi.processors.email.ConsumeIMAP": {
+    "delete.messages": "Delete Messages",
+    "password": "Password",
+    "folder": "Folder",
+    "port": "Port",
+    "connection.timeout": "Connection Timeout",
+    "oauth2-access-token-provider": "OAuth2 Access Token Provider",
+    "host": "Host Name",
+    "user": "User Name",
+    "authorization-mode": "Authorization Mode",
+    "fetch.size": "Fetch Size"
+  },
+  "org.apache.nifi.processors.standard.ExecuteSQL": {
+    "sql-pre-query": "SQL Pre-Query",
+    "esql-max-rows": "Max Rows Per Flow File",
+    "compression-format": "Compression Format",
+    "esql-output-batch-size": "Output Batch Size",
+    "esql-fetch-size": "Fetch Size",
+    "dbf-default-precision": "Default Decimal Precision",
+    "sql-post-query": "SQL Post-Query",
+    "esql-auto-commit": "Set Auto Commit",
+    "dbf-normalize": "Normalize Table and Column Names",
+    "dbf-user-logical-types": "Use Avro Logical Types",
+    "dbf-default-scale": "Default Decimal Scale"
+  },
+  "org.apache.nifi.processors.box.ListBoxFileMetadataInstances": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.salesforce.PutSalesforceObject": {
+    "salesforce-api-version": "API Version",
+    "salesforce-url": "Salesforce Instance URL",
+    "read-timeout": "Read Timeout",
+    "oauth2-access-token-provider": "OAuth2 Access Token Provider",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.gcp.storage.FetchGCSObject": {
+    "gcs-object-range-start": "Range Start",
+    "gcs-key": "Key",
+    "gcs-server-side-encryption-key": "Server Side Encryption Key",
+    "gcs-object-range-length": "Range Length",
+    "gcp-retry-count": "Number of Retries",
+    "storage-api-url": "Storage API URL",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcs-bucket": "Bucket",
+    "gcp-project-id": "Project ID",
+    "gcs-generation": "Object Generation"
+  },
+  "org.apache.nifi.processors.gcp.vision.GetGcpVisionAnnotateImagesOperationStatus": {
+    "operationKey": "GCP Operation Key",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.elasticsearch.PutElasticsearchJson": {
+    "put-es-json-dynamic_templates": "Dynamic Templates",
+    "put-es-record-batch-size": "Batch Size",
+    "put-es-record-index-op": "Index Operation",
+    "put-es-output-error-responses": "Output Error Responses",
+    "el-rest-fetch-index": "Index",
+    "put-es-json-scripted-upsert": "Scripted Upsert",
+    "put-es-json-charset": "Character Set",
+    "el-rest-client-service": "Client Service",
+    "put-es-record-log-error-responses": "Log Error Responses",
+    "put-es-json-id-attr": "Identifier Attribute",
+    "el-rest-type": "Type",
+    "put-es-not_found-is-error": "Treat Not Found as Success",
+    "put-es-json-script": "Script"
+  },
+  "org.apache.nifi.processors.standard.LogMessage": {
+    "log-message": "Log Message",
+    "log-level": "Log Level",
+    "log-prefix": "Log Prefix"
+  },
+  "org.apache.nifi.processors.box.PutBoxFile": {
+    "subfolder-name": "Subfolder Name",
+    "box-folder-id": "Folder ID",
+    "conflict-resolution-strategy": "Conflict Resolution Strategy",
+    "chunked-upload-threshold": "Chunked Upload Threshold",
+    "box-client-service": "Box Client Service",
+    "create-folder": "Create Subfolder",
+    "file-name": "Filename"
+  },
+  "org.apache.nifi.processors.standard.FlattenJson": {
+    "ignore-reserved-characters": "Ignore Reserved Characters",
+    "flatten-mode": "Flatten Mode",
+    "flatten-json-separator": "Separator",
+    "flatten-json-pretty-print-json": "Pretty Print JSON",
+    "flatten-json-return-type": "Return Type",
+    "flatten-json-character-set": "Character Set"
+  },
+  "org.apache.nifi.processors.elasticsearch.JsonQueryElasticsearch": {
+    "es-rest-size": "Size",
+    "es-rest-query-sort": "Sort",
+    "el-rest-query-clause": "Query Clause",
+    "el-rest-query-definition-style": "Query Definition Style",
+    "es-rest-query-script-fields": "Script Fields",
+    "es-rest-query-aggs": "Aggregations",
+    "el-rest-format-hits": "Search Results Format",
+    "el-rest-split-up-hits": "Search Results Split",
+    "el-rest-query": "Query",
+    "el-rest-split-up-aggregations": "Aggregation Results Split",
+    "el-rest-format-aggregations": "Aggregation Results Format",
+    "el-rest-fetch-index": "Index",
+    "el-rest-output-no-hits": "Output No Hits",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "es-rest-query-fields": "Fields",
+    "el-query-attribute": "Query Attribute"
+  },
+  "org.apache.nifi.processors.standard.RetryFlowFile": {
+    "penalize-retries": "Penalize Retries",
+    "maximum-retries": "Maximum Retries",
+    "Fail on Non-numerical Overwrite": "Fail on Nonnumerical Overwrite",
+    "reuse-mode": "Reuse Mode",
+    "retry-attribute": "Retry Attribute"
+  },
+  "org.apache.nifi.processors.standard.TransformXml": {
+    "xslt-controller-key": "XSLT Lookup Key",
+    "xslt-controller": "XSLT Lookup",
+    "secure-processing": "Secure Processing",
+    "cache-size": "Cache Size",
+    "indent-output": "Indent",
+    "XSLT file name": "XSLT File Name",
+    "cache-ttl-after-last-access": "Cache Duration"
+  },
+  "org.apache.nifi.processors.dropbox.ListDropbox": {
+    "dropbox-credential-service": "Dropbox Credential Service",
+    "listing-strategy": "Listing Strategy",
+    "folder": "Folder",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "recursive-search": "Search Recursively",
+    "et-state-cache": "Entity Tracking State Cache",
+    "min-age": "Minimum File Age"
+  },
+  "org.apache.nifi.processors.standard.PutDistributedMapCache": {
+    "Cache update strategy": "Cache Update Strategy",
+    "Max cache entry size": "Max Cache Size"
+  },
+  "org.apache.nifi.processors.standard.PackageFlowFile": {
+    "max-batch-size": "Maximum Batch Size"
+  },
+  "org.apache.nifi.processors.mongodb.GetMongoRecord": {
+    "mongo-client-service": "Client Service",
+    "get-mongo-record-writer-factory": "Record Writer",
+    "mongo-query-attribute": "Query Output Attribute",
+    "mongodb-schema-name": "Schema Name"
+  },
+  "org.apache.nifi.processors.standard.FetchSFTP": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "fetchfiletransfer-notfound-loglevel": "Log Level When File Not Found"
+  },
+  "org.apache.nifi.processors.box.ListBoxFileMetadataTemplates": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.TailFile": {
+    "tail-base-directory": "Base Directory",
+    "reread-on-nul": "Reread on NUL Encountered",
+    "tailfile-recursive-lookup": "Recursive Lookup",
+    "File Location": "State Location",
+    "tailfile-maximum-age": "Maximum Age",
+    "File to Tail": "Files to Tail",
+    "pre-allocated-buffer-size": "Preallocated Buffer Size",
+    "tailfile-lookup-frequency": "Lookup Frequency",
+    "tail-mode": "Tailing Mode"
+  },
+  "org.apache.nifi.jms.processors.ConsumeJMS": {
+    "character-set": "Character Set",
+    "cflib": "JMS Client Libraries",
+    "cf": "JMS Connection Factory Implementation Class",
+    "output-strategy": "Output Strategy",
+    "Shared subscription": "Shared Subscription",
+    "record-writer": "Record Writer",
+    "java.naming.factory.initial": "JNDI Initial Context Factory Class",
+    "java.naming.provider.url": "JNDI Provider URL",
+    "naming.factory.libraries": "JNDI / JMS Client Libraries",
+    "Durable subscription": "Durable Subscription",
+    "broker": "JMS Broker URI",
+    "connection.factory.name": "JNDI Name of the Connection Factory",
+    "SSL Context Service": "JMS SSL Context Service",
+    "java.naming.security.principal": "JNDI Principal",
+    "record-reader": "Record Reader",
+    "java.naming.security.credentials": "JNDI Credentials"
+  },
+  "org.apache.nifi.processors.standard.IdentifyMimeType": {
+    "config-strategy": "Config Strategy",
+    "use-filename-in-detection": "Use Filename In Detection"
+  },
+  "org.apache.nifi.processors.mqtt.ConsumeMQTT": {
+    "add-attributes-as-fields": "Add Attributes as Fields",
+    "Session state": "Session State",
+    "Quality of Service(QoS)": "Quality of Service",
+    "Connection Timeout (seconds)": "Connection Timeout",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "message-demarcator": "Message Demarcator",
+    "Keep Alive Interval (seconds)": "Keep Alive"
+  },
+  "org.apache.nifi.redis.processor.PutRedisHashRecord": {
+    "hash-value-record-path": "Hash Value Record Path",
+    "charset": "Character Set",
+    "redis-connection-pool": "Redis Connection Pool",
+    "record-reader": "Record Reader",
+    "data-record-path": "Data Record Path"
+  },
+  "org.apache.nifi.processors.hubspot.GetHubSpot": {
+    "result-limit": "Result Limit",
+    "incremental-delay": "Incremental Delay",
+    "object-type": "Object Type",
+    "is-incremental": "Incremental Loading",
+    "access-token": "Access Token",
+    "incremental-initial-start-time": "Incremental Initial Start Time",
+    "web-client-service-provider": "Web Client Service Provider"
+  },
+  "org.apache.nifi.processors.GeoEnrichIPRecord": {
+    "geo-enrich-ip-split-found-not-found": "Separate Enriched From Not Enriched",
+    "geo-enrich-ip-country-record-path": "Country Record Path",
+    "geo-enrich-ip-country-iso-record-path": "Country ISO Code Record Path",
+    "geo-enrich-ip-city-record-path": "City Record Path",
+    "Geo Database File": "MaxMind Database File",
+    "geo-enrich-ip-record-reader": "Record Reader",
+    "geo-enrich-ip-record-writer": "Record Writer",
+    "geo-enrich-ip-longitude-record-path": "Longitude Record Path",
+    "geo-enrich-ip-country-postal-record-path": "Country Postal Code Record Path",
+    "geo-enrich-ip-ip-record-path": "IP Address Record Path",
+    "geo-enrich-ip-latitude-record-path": "Latitude Record Path"
+  },
+  "org.apache.nifi.processors.websocket.PutWebSocket": {
+    "websocket-session-id": "WebSocket Session Id",
+    "websocket-controller-service-id": "WebSocket Controller Service Id",
+    "websocket-message-type": "WebSocket Message Type",
+    "websocket-endpoint-id": "WebSocket Endpoint Id"
+  },
+  "org.apache.nifi.processors.aws.ml.polly.StartAwsPollyJob": {
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.pgp.VerifyContentPGP": {
+    "public-key-service": "Public Key Service"
+  },
+  "org.apache.nifi.processors.standard.JoinEnrichment": {
+    "dbf-default-precision": "Default Decimal Precision",
+    "dbf-default-scale": "Default Decimal Scale",
+    "Maximum number of Bins": "Maximum Number of Bins"
+  },
+  "org.apache.nifi.processors.aws.dynamodb.DeleteDynamoDB": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "Batch items for each request (between 1 and 50)": "Batch Items Per Request",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.ParseSyslog5424": {
+    "include_policy": "Include Message Body in Attributes",
+    "nil_policy": "NIL Policy"
+  },
+  "org.apache.nifi.processors.gcp.drive.ListGoogleDrive": {
+    "connect-timeout": "Connect Timeout",
+    "listing-strategy": "Listing Strategy",
+    "read-timeout": "Read Timeout",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "folder-id": "Folder ID",
+    "et-time-window": "Entity Tracking Time Window",
+    "recursive-search": "Search Recursively",
+    "et-state-cache": "Entity Tracking State Cache",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service",
+    "min-age": "Minimum File Age"
+  },
+  "org.apache.nifi.processors.dropbox.FetchDropbox": {
+    "dropbox-credential-service": "Dropbox Credential Service",
+    "file": "File",
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.pgp.SignContentPGP": {
+    "private-key-service": "Private Key Service",
+    "signing-strategy": "Signing Strategy",
+    "private-key-id": "Private Key ID",
+    "file-encoding": "File Encoding",
+    "hash-algorithm": "Hash Algorithm"
+  },
+  "org.apache.nifi.processors.standard.LogAttribute": {
+    "Log prefix": "Log Prefix",
+    "character-set": "Character Set",
+    "attributes-to-ignore-regex": "Attributes to Ignore Regular Expression",
+    "attributes-to-log-regex": "Attributes to Log Regular Expression"
+  },
+  "org.apache.nifi.processors.workday.GetWorkdayReport": {
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.hl7.ExtractHL7Attributes": {
+    "hl7-input-version": "HL7 Input Version",
+    "use-segment-names": "Use Segment Names",
+    "skip-validation": "Skip Validation",
+    "parse-segment-fields": "Parse Segment Fields"
+  },
+  "org.apache.nifi.processors.box.FetchBoxFileMetadataInstance": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.box.ConsumeBoxEnterpriseEvents": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob": {
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.SampleRecord": {
+    "sample-record-reservoir": "Reservoir Size",
+    "record-writer": "Record Writer",
+    "sample-record-interval": "Sampling Interval",
+    "sample-record-probability": "Sampling Probability",
+    "record-reader": "Record Reader",
+    "sample-record-sampling-strategy": "Sampling Strategy",
+    "sample-record-random-seed": "Random Seed",
+    "sample-record-range": "Sampling Range"
+  },
+  "org.apache.nifi.processors.mongodb.PutMongoRecord": {
+    "mongo-client-service": "Client Service",
+    "ordered": "Ordered",
+    "insert_count": "Batch Size",
+    "update-key-fields": "Update Key Fields",
+    "update-mode": "Update Mode",
+    "record-reader": "Record Reader",
+    "bypass-validation": "Bypass Validation"
+  },
+  "org.apache.nifi.processors.standard.ListSFTP": {
+    "listing-strategy": "Listing Strategy",
+    "follow-symlink": "Follow Symbolic Links",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "target-system-timestamp-precision": "Target System Timestamp Precision",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache"
+  },
+  "org.apache.nifi.processors.standard.InvokeHTTP": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.box.CreateBoxFileMetadataInstance": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.CalculateRecordStats": {
+    "record-stats-limit": "Record Stats Limit",
+    "record-stats-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.box.UpdateBoxFileMetadataInstance": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.standard.ListenTCP": {
+    "Max Number of TCP Connections": "Worker Threads",
+    "idle-timeout": "Idle Connection Timeout",
+    "Message Delimiter": "Batching Message Delimiter",
+    "pool-receive-buffers": "Pool Receive Buffers"
+  },
+  "org.apache.nifi.processors.mongodb.PutMongoBulkOperations": {
+    "mongo-client-service": "Client Service"
+  },
+  "org.apache.nifi.processors.shopify.GetShopify": {
+    "api-version": "API Version",
+    "store-domain": "Store Domain",
+    "result-limit": "Result Limit",
+    "incremental-delay": "Incremental Delay",
+    "is-incremental": "Incremental Loading",
+    "access-token": "Access Token",
+    "incremental-initial-start-time": "Incremental Initial Start Time",
+    "web-client-service-provider": "Web Client Service Provider",
+    "object-category": "Object Category"
+  },
+  "org.apache.nifi.processors.standard.ExtractGrok": {
+    "Grok Pattern file": "Grok Patterns",
+    "Named captures only": "Named Captures Only"
+  },
+  "org.apache.nifi.processors.network.ParseNetflowv5": {
+    "FIELDS_DESTINATION": "Parsed Fields Destination"
+  },
+  "org.apache.nifi.processors.standard.CryptographicHashContent": {
+    "hash_algorithm": "Hash Algorithm",
+    "fail_when_empty": "Fail When Content Empty"
+  },
+  "org.apache.nifi.processors.standard.LookupRecord": {
+    "result-contents": "Record Result Contents",
+    "routing-strategy": "Routing Strategy",
+    "record-path-lookup-miss-result-cache-size": "Cache Size",
+    "result-record-path": "Result RecordPath",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader",
+    "lookup-service": "Lookup Service",
+    "record-update-strategy": "Record Update Strategy"
+  },
+  "org.apache.nifi.processors.standard.CountText": {
+    "ajust-immediately": "Call Immediate Adjustment",
+    "character-encoding": "Character Encoding",
+    "text-line-count": "Count Lines",
+    "text-character-count": "Count Characters",
+    "text-line-nonempty-count": "Count Non-Empty Lines",
+    "text-word-count": "Count Words",
+    "split-words-on-symbols": "Split Words on Symbols"
+  },
+  "org.apache.nifi.processors.salesforce.QuerySalesforceObject": {
+    "age-delay": "Age Delay",
+    "read-timeout": "Read Timeout",
+    "initial-age-filter": "Initial Age Start Time",
+    "query-type": "Query Type",
+    "field-names": "Field Names",
+    "record-writer": "Record Writer",
+    "custom-where-condition": "Custom WHERE Condition",
+    "include-deleted-records": "Include Deleted Records",
+    "sobject-name": "sObject Name",
+    "salesforce-api-version": "API Version",
+    "salesforce-url": "Salesforce Instance URL",
+    "custom-soql-query": "Custom SOQL Query",
+    "create-zero-record-files": "Create Zero Record FlowFiles",
+    "oauth2-access-token-provider": "OAuth2 Access Token Provider",
+    "age-field": "Age Field"
+  },
+  "org.apache.nifi.processors.standard.ListenUDPRecord": {
+    "batch-size": "Batch Size",
+    "sending-host-port": "Sending Host Port",
+    "poll-timeout": "Poll Timeout",
+    "sending-host": "Sending Host",
+    "record-writer": "Record Writer",
+    "record-reader": "Record Reader"
+  },
+  "org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.attributes.UpdateAttribute": {
+    "canonical-value-lookup-cache-size": "Cache Value Lookup Cache Size"
+  },
+  "org.apache.nifi.processors.standard.ListenUDP": {
+    "Message Delimiter": "Batching Message Delimiter"
+  },
+  "org.apache.nifi.processors.standard.FetchFile": {
+    "Log level when file not found": "File not Found Log Level",
+    "Log level when permission denied": "Permission Denied Log Level"
+  },
+  "org.apache.nifi.processors.standard.DeduplicateRecord": {
+    "distributed-map-cache": "Distributed Map Cache Client",
+    "put-cache-identifier": "Cache Entry Identifier",
+    "filter-capacity-hint": "Filter Capacity Hint",
+    "record-writer": "Record Writer",
+    "deduplication-strategy": "Deduplication Strategy",
+    "record-hashing-algorithm": "Record Hashing Algorithm",
+    "cache-identifier": "Cache Identifier",
+    "record-reader": "Record Reader",
+    "include-zero-record-flowfiles": "Include Zero Record FlowFiles",
+    "filter-type": "Filter Type",
+    "bloom-filter-certainty": "Bloom Filter Certainty"
+  },
+  "org.apache.nifi.processors.standard.EvaluateXPath": {
+    "Validate DTD": "Allow DTD"
+  },
+  "org.apache.nifi.processors.standard.Notify": {
+    "signal-counter-delta": "Signal Counter Delta",
+    "distributed-cache-service": "Distributed Cache Service",
+    "signal-buffer-count": "Signal Buffer Count",
+    "release-signal-id": "Release Signal Identifier",
+    "signal-counter-name": "Signal Counter Name",
+    "attribute-cache-regex": "Attribute Cache Regular Expression"
+  },
+  "org.apache.nifi.processors.elasticsearch.ConsumeElasticsearch": {
+    "el-rest-pagination-type": "Pagination Type",
+    "es-rest-size": "Size",
+    "es-rest-query-sort": "Sort",
+    "es-rest-additional-filters": "Additional Filters",
+    "es-rest-query-script-fields": "Script Fields",
+    "es-rest-range-field": "Range Query Field",
+    "es-rest-query-aggs": "Aggregations",
+    "el-rest-pagination-keep-alive": "Pagination Keep Alive",
+    "el-rest-format-hits": "Search Results Format",
+    "el-rest-split-up-hits": "Search Results Split",
+    "es-rest-range-initial-value": "Initial Value",
+    "el-rest-split-up-aggregations": "Aggregation Results Split",
+    "el-rest-format-aggregations": "Aggregation Results Format",
+    "el-rest-fetch-index": "Index",
+    "es-rest-range-time-zone": "Initial Value Date Time Zone",
+    "el-rest-output-no-hits": "Output No Hits",
+    "el-rest-client-service": "Client Service",
+    "el-rest-type": "Type",
+    "es-rest-query-fields": "Fields",
+    "el-query-attribute": "Query Attribute",
+    "es-rest-sort-order": "Sort Order",
+    "es-rest-range-format": "Initial Value Date Format"
+  },
+  "org.apache.nifi.processors.smb.GetSmbFile": {
+    "use-encryption": "Use Encryption",
+    "enable-dfs": "Enable DFS",
+    "timeout": "Timeout",
+    "smb-dialect": "SMB Dialect"
+  },
+  "org.apache.nifi.processors.windows.event.log.ConsumeWindowsEventLog": {
+    "maxQueue": "Maximum Queue Size",
+    "maxBuffer": "Maximum Buffer Size",
+    "query": "XPath Query",
+    "channel": "Channel",
+    "inactiveDurationToReconnect": "Inactive Duration to Reconnect"
+  },
+  "org.apache.nifi.processors.aws.s3.DeleteS3Object": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.ValidateCsv": {
+    "validate-csv-violations": "Include Violations",
+    "validate-csv-schema": "Schema",
+    "validate-csv-eol": "End of Line Symbols",
+    "validate-csv-delimiter": "Delimiter Character",
+    "validate-csv-header": "Header",
+    "validate-csv-quote": "Quote Character",
+    "validate-csv-strategy": "Validation Strategy"
+  },
+  "org.apache.nifi.processors.mongodb.gridfs.PutGridFS": {
+    "putgridfs-chunk-size": "Chunk Size",
+    "putgridfs-hash-attribute": "Hash Attribute",
+    "gridfs-file-name": "File Name",
+    "gridfs-client-service": "Client Service",
+    "putgridfs-enforce-uniqueness": "Enforce Uniqueness",
+    "gridfs-database-name": "Mongo Database Name",
+    "putgridfs-properties-prefix": "File Properties Prefix",
+    "gridfs-bucket-name": "Bucket Name"
+  },
+  "org.apache.nifi.jms.processors.PublishJMS": {
+    "character-set": "Character Set",
+    "cflib": "JMS Client Libraries",
+    "allow-illegal-chars-in-jms-header-names": "Allow Illegal Characters in Header Names",
+    "cf": "JMS Connection Factory Implementation Class",
+    "record-writer": "Record Writer",
+    "java.naming.factory.initial": "JNDI Initial Context Factory Class",
+    "java.naming.provider.url": "JNDI Provider URL",
+    "naming.factory.libraries": "JNDI / JMS Client Libraries",
+    "broker": "JMS Broker URI",
+    "connection.factory.name": "JNDI Name of the Connection Factory",
+    "SSL Context Service": "JMS SSL Context Service",
+    "attributes-to-send-as-jms-headers-regex": "Attributes to Send as JMS Headers",
+    "java.naming.security.principal": "JNDI Principal",
+    "record-reader": "Record Reader",
+    "message-body-type": "Message Body Type",
+    "java.naming.security.credentials": "JNDI Credentials"
+  },
+  "org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage_v12": {
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.snmp.processors.SendTrapSNMP": {
+    "snmp-trap-manager-port": "SNMP Manager Port",
+    "snmp-security-level": "SNMP Security Level",
+    "snmp-authentication-passphrase": "SNMP Authentication Passphrase",
+    "snmp-retries": "Number of Retries",
+    "snmp-trap-oid-value": "Trap OID Value",
+    "snmp-private-protocol-passphrase": "SNMP Privacy Passphrase",
+    "snmp-trap-specific-type": "Specific Trap Type",
+    "snmp-security-name": "SNMP Security Name",
+    "snmp-private-protocol": "SNMP Privacy Protocol",
+    "snmp-trap-agent-address": "SNMP Trap Agent Address",
+    "snmp-trap-enterprise-oid": "Enterprise OID",
+    "snmp-community": "SNMP Community",
+    "snmp-trap-manager-host": "SNMP Manager Host",
+    "snmp-version": "SNMP Version",
+    "snmp-trap-generic-type": "Generic Trap Type",
+    "snmp-timeout": "Timeout",
+    "snmp-authentication-protocol": "SNMP Authentication Protocol"
+  },
+  "org.apache.nifi.processors.gcp.drive.FetchGoogleDrive": {
+    "connect-timeout": "Connect Timeout",
+    "read-timeout": "Read Timeout",
+    "drive-file-id": "File ID",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.aws.dynamodb.PutDynamoDBRecord": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.standard.EnforceOrder": {
+    "initial-order": "Initial Order",
+    "group-id": "Group Identifier",
+    "inactive-timeout": "Inactive Timeout",
+    "wait-timeout": "Wait Timeout",
+    "batch-count": "Batch Count",
+    "maximum-order": "Maximum Order",
+    "order-attribute": "Order Attribute"
+  },
+  "org.apache.nifi.processors.email.ConsumePOP3": {
+    "delete.messages": "Delete Messages",
+    "password": "Password",
+    "folder": "Folder",
+    "port": "Port",
+    "connection.timeout": "Connection Timeout",
+    "oauth2-access-token-provider": "OAuth2 Access Token Provider",
+    "host": "Host Name",
+    "user": "User Name",
+    "authorization-mode": "Authorization Mode",
+    "fetch.size": "Fetch Size"
+  },
+  "org.apache.nifi.processors.gcp.vision.GetGcpVisionAnnotateFilesOperationStatus": {
+    "operationKey": "GCP Operation Key",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.evtx.ParseEvtx": {
+    "granularity": "Granularity"
+  },
+  "org.apache.nifi.processors.box.ListBoxFile": {
+    "listing-strategy": "Listing Strategy",
+    "box-folder-id": "Folder ID",
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "record-writer": "Record Writer",
+    "et-time-window": "Entity Tracking Time Window",
+    "box-client-service": "Box Client Service",
+    "recursive-search": "Search Recursively",
+    "et-state-cache": "Entity Tracking State Cache",
+    "min-age": "Minimum File Age"
+  },
+  "org.apache.nifi.processors.standard.PutFTP": {
+    "ftp-use-utf8": "Use UTF-8 Encoding",
+    "proxy-configuration-service": "Proxy Configuration Service"
+  },
+  "org.apache.nifi.processors.zendesk.PutZendeskTicket": {
+    "zendesk-authentication-value-name": "Authentication Credential",
+    "zendesk-priority": "Priority",
+    "zendesk-subdomain": "Subdomain Name",
+    "zendesk-user": "User Name",
+    "zendesk-type": "Type",
+    "web-client-service-provider": "Web Client Service Provider",
+    "zendesk-record-reader": "Record Reader",
+    "zendesk-authentication-type-name": "Authentication Type",
+    "zendesk-comment-body": "Comment Body",
+    "zendesk-subject": "Subject"
+  },
+  "org.apache.nifi.processors.aws.s3.FetchS3Object": {
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.gcp.storage.PutGCSObject": {
+    "gcs-content-disposition-type": "Content Disposition Type",
+    "gcs-server-side-encryption-key": "Server Side Encryption Key",
+    "gcp-retry-count": "Number of Retries",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "gcs-overwrite-object": "Overwrite Object",
+    "gcs-content-type": "Content Type",
+    "gcs-object-crc32c": "CRC32C Checksum",
+    "gcp-project-id": "Project ID",
+    "gcs-key": "Key",
+    "gzip.content.enabled": "GZIP Compression Enabled",
+    "storage-api-url": "Storage API URL",
+    "gcs-bucket": "Bucket",
+    "gcs-object-acl": "Object ACL"
+  },
+  "org.apache.nifi.processors.box.ConsumeBoxEvents": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.box.ExtractStructuredBoxFileMetadata": {
+    "box-client-service": "Box Client Service"
+  },
+  "org.apache.nifi.processors.aws.s3.ListS3": {
+    "et-initial-listing-target": "Entity Tracking Initial Listing Target",
+    "proxy-configuration-service": "Proxy Configuration Service",
+    "et-time-window": "Entity Tracking Time Window",
+    "et-state-cache": "Entity Tracking State Cache",
+    "AWS Credentials Provider service": "AWS Credentials Provider Service"
+  },
+  "org.apache.nifi.processors.gcp.vision.StartGcpVisionAnnotateFilesOperation": {
+    "json-payload": "JSON Payload",
+    "output-bucket": "Output Bucket",
+    "vision-feature-type": "Vision Feature Type",
+    "gcp-credentials-provider-service": "GCP Credentials Provider Service"
+  }
+}

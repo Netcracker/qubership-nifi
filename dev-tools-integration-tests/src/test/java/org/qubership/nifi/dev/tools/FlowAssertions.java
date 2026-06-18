@@ -113,13 +113,30 @@ final class FlowAssertions {
         assertEquals(expectedCsId, ext.path(expectedCsId).path("identifier").asText(),
                 "external controller service identifier must be rewritten to the target CS id");
 
+        // Assert on property values rather than fixed key names: the 2.x property migration may
+        // rename put-record-sink / put-record-reader (e.g. to "Record Destination Service" /
+        // "Record Reader" from 2.7), so the destination-service and reader references must be
+        // matched by value. The external sink reference must now be the target CS id, and the
+        // in-flow reader id must be left unchanged.
         JsonNode putRecord = findProcessorByName(snapshot.path("flowContents"), "PutRecord");
         assertNotNull(putRecord, "flow must contain a PutRecord processor");
         JsonNode props = putRecord.path("properties");
-        assertEquals(expectedCsId, props.path("put-record-sink").asText(),
-                "put-record-sink must reference the target CS id after rewrite");
-        assertEquals(inFlowReaderId, props.path("put-record-reader").asText(),
-                "in-flow put-record-reader id must be left unchanged");
+        assertEquals(1, countPropertyValue(props, expectedCsId),
+                "PutRecord must reference the target CS id " + expectedCsId
+                        + " exactly once after the external CS rewrite, but properties were: " + props);
+        assertEquals(1, countPropertyValue(props, inFlowReaderId),
+                "in-flow record reader id " + inFlowReaderId
+                        + " must be left unchanged on PutRecord, but properties were: " + props);
+    }
+
+    private static int countPropertyValue(final JsonNode properties, final String value) {
+        int count = 0;
+        for (JsonNode propValue : properties) {
+            if (propValue.isTextual() && value.equals(propValue.asText())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static JsonNode findProcessorByName(final JsonNode flowContents, final String name) {

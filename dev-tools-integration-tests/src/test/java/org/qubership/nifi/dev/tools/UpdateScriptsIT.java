@@ -341,6 +341,7 @@ class UpdateScriptsIT {
         api.waitForControllerServicesState(createdId, "ENABLED");
         // invalidCount == 0 proves the external reference resolved to the precreated CS by id.
         api.waitForPgValidation(createdId, nifiVersion);
+        api.assertProcessGroupUpToDate(createdId);
     }
 
     static Stream<String> controllerServiceFiles() {
@@ -491,6 +492,7 @@ class UpdateScriptsIT {
         api.changeControllerServicesStateForPg(createdId, "ENABLED");
         api.waitForControllerServicesState(createdId, "ENABLED");
         api.waitForPgValidation(createdId, nifiVersion);
+        api.assertProcessGroupUpToDate(createdId);
     }
 
     // -------------------------------------------------------------------------
