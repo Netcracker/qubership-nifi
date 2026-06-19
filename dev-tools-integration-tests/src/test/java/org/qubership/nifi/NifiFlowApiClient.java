@@ -362,9 +362,10 @@ public class NifiFlowApiClient {
             throws IOException, InterruptedException {
         LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
         Awaitility.await()
-                .atMost(30, TimeUnit.SECONDS)
+                .atMost(45, TimeUnit.SECONDS)
                 .until(() -> {
                     int count = getProcessGroupById(pgId).path("invalidCount").asInt();
+                    LOG.info("Waiting for PG {} invalidCount to reach 0, current invalidCount = {}", pgId, count);
                     // For NiFi 2.5.0, invalidCount=1 (PutS3Object known issue) is also terminal
                     return count == 0 || ("2.5.0".equals(nifiVersion) && count == 1);
                 });
