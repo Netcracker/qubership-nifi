@@ -65,3 +65,5 @@ Controller services follow the same pattern with interface and implementation sp
 - The `docs/user-guide.md` is generated: edit `docs/template/user-guide-template.md` or
   `qubership-nifi-tools/qubership-nifi-docs-generator`.
 - The `docs/openapi/openapi.json` is generated: edit `qubership-nifi-tools/qubership-nifi-openapi-enricher` to change.
+- Use ASCII characters only in source code and documentation. Avoid Unicode punctuation such as em-dashes,
+  smart quotes, and arrows; use the ASCII equivalents (`-`, `->`, straight quotes) instead.

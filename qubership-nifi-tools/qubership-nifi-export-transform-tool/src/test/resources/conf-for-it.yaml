@@ -1,0 +1,7 @@
+processorTypes:
+  - org.apache.nifi.processors.standard.ExecuteSQL:
+      sql_query.sql: SQL Query
+  - org.apache.nifi.processors.groovyx.ExecuteGroovyScript:
+      script_body.groovy: Script Body
+  - org.apache.nifi.processors.jolt.JoltTransformJSON:
+      jolt_spec.json: Jolt Specification

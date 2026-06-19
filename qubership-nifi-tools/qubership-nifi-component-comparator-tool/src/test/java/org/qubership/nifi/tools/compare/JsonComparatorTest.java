@@ -54,6 +54,24 @@ class JsonComparatorTest {
                 apiName, apiName, displayName, description);
     }
 
+    // Property descriptor with a typeProvidedByValue controller-service reference (NiFi 2.x).
+    private String propWithCsByValue(String apiName, String displayName, String csType) {
+        return String.format(
+                "\"%s\":{\"name\":\"%s\",\"displayName\":\"%s\",\"description\":\"\","
+                        + "\"typeProvidedByValue\":{\"group\":\"org.apache.nifi\","
+                        + "\"artifact\":\"nifi-standard-services-api-nar\","
+                        + "\"version\":\"2.0.0\",\"type\":\"%s\"}}",
+                apiName, apiName, displayName, csType);
+    }
+
+    // Property descriptor with an identifiesControllerService reference (NiFi 1.x).
+    private String propWithCsIdentifies(String apiName, String displayName, String csType) {
+        return String.format(
+                "\"%s\":{\"name\":\"%s\",\"displayName\":\"%s\",\"description\":\"\","
+                        + "\"identifiesControllerService\":\"%s\"}",
+                apiName, apiName, displayName, csType);
+    }
+
     private void loadAndCompare() throws IOException {
         comparator.load(sourceDir.toString(), targetDir.toString(), null);
         comparator.compare();
@@ -554,5 +572,84 @@ class JsonComparatorTest {
         assertEquals(2, props.size());
         assertEquals("new-api", props.get("old-api"));
         assertNull(props.get("kerb-api"));
+    }
+
+    @Test
+    void renamedCsRefByValueSetsCsRefColumn() throws IOException {
+        String csType = "org.apache.nifi.dbcp.DBCPService";
+        writeJson(sourceDir, "processors", "ExecuteSQL.json", "org.example.ExecuteSQL",
+                propWithCsByValue("old-api", "Database Connection Pooling Service", csType));
+        writeJson(targetDir, "processors", "ExecuteSQL.json", "org.example.ExecuteSQL",
+                propWithCsByValue("new-api", "Database Connection Pooling Service", csType));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("rename", records.get(0)[2]);
+        assertEquals(csType, records.get(0)[7]);
+    }
+
+    @Test
+    void renamedCsRefIdentifiesSetsCsRefColumn() throws IOException {
+        String csType = "org.apache.nifi.proxy.ProxyConfigurationService";
+        writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
+                propWithCsIdentifies("old-api", "Proxy Configuration Service", csType));
+        writeJson(targetDir, "controllerService", "Svc.json", "org.example.Svc",
+                propWithCsIdentifies("new-api", "Proxy Configuration Service", csType));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals(csType, records.get(0)[7]);
+    }
+
+    @Test
+    void deletedCsRefSetsCsRefColumn() throws IOException {
+        String csType = "org.apache.nifi.dbcp.DBCPService";
+        writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
+                prop("keep", "Keep") + ","
+                        + propWithCsByValue("gone", "Connection Pool", csType));
+        writeJson(targetDir, "controllerService", "Svc.json", "org.example.Svc",
+                prop("keep", "Keep"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("deleted", records.get(0)[2]);
+        assertEquals(csType, records.get(0)[7]);
+    }
+
+    @Test
+    void addedCsRefSetsCsRefColumn() throws IOException {
+        String csType = "org.apache.nifi.ssl.SSLContextService";
+        writeJson(sourceDir, "controllerService", "Svc.json", "org.example.Svc",
+                prop("keep", "Keep"));
+        writeJson(targetDir, "controllerService", "Svc.json", "org.example.Svc",
+                prop("keep", "Keep") + ","
+                        + propWithCsByValue("new-prop", "SSL Context Service", csType));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("added", records.get(0)[2]);
+        assertEquals(csType, records.get(0)[7]);
+    }
+
+    @Test
+    void nonCsRefChangeLeavesCsRefColumnEmpty() throws IOException {
+        writeJson(sourceDir, "processors", "Proc.json", "org.example.Proc",
+                prop("old-api", "Display"));
+        writeJson(targetDir, "processors", "Proc.json", "org.example.Proc",
+                prop("new-api", "Display"));
+
+        loadAndCompare();
+
+        List<String[]> records = comparator.getCsvRecords();
+        assertEquals(1, records.size());
+        assertEquals("", records.get(0)[7]);
     }
 }

@@ -43,6 +43,7 @@ class CsvReportGeneratorTest {
         assertEquals(1, lines.size(), "Only header expected for empty records");
         assertTrue(lines.get(0).contains("Component Name"));
         assertTrue(lines.get(0).contains("Change Type"));
+        assertTrue(lines.get(0).contains("Controller Service Reference"));
     }
 
     @Test

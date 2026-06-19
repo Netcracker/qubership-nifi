@@ -1,0 +1,39 @@
+processorTypes:
+  - org.apache.nifi.processors.standard.ExecuteSQL:
+      sql_query.sql:
+        regex: SQL (?:Query|select query)
+  - org.apache.nifi.processors.standard.ExecuteSQLRecord:
+      sql_query.sql:
+        regex: SQL (?:Query|select query)
+  - org.apache.nifi.processors.standard.QueryDatabaseTable:
+      custom_query.sql: Custom Query
+  - org.apache.nifi.processors.standard.QueryDatabaseTableRecord:
+      custom_query.sql: Custom Query
+  - org.qubership.nifi.processors.extract.QueryDatabaseToCSV:
+      custom_query.sql: custom-query
+  - org.qubership.nifi.processors.QueryDatabaseToJson:
+      sql_query.sql: db-fetch-sql-query
+  - org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge:
+      sql_query.sql: db-fetch-sql-query
+  - org.qubership.nifi.processors.QueryIdsAndFetchTableToJson:
+      custom_query.sql: custom-query
+  - org.apache.nifi.processors.standard.PutSQL:
+      sql_statement.sql: SQL Statement
+  - org.qubership.nifi.processors.PutSQLRecord:
+      sql_statement.sql: sql-statement
+  - org.qubership.nifi.processors.FetchTableToJson:
+      custom_query.sql: custom-query
+  - org.apache.nifi.processors.groovyx.ExecuteGroovyScript:
+      script_body.groovy: Script Body
+  - org.apache.nifi.processors.script.ExecuteScript:
+      script_body.groovy: Script Body
+  - org.apache.nifi.processors.script.InvokeScriptedProcessor:
+      script_body.groovy: Script Body
+  - org.apache.nifi.processors.script.ScriptedTransformRecord:
+      script_body.groovy: Script Body
+  - org.qubership.nifi.processors.PostgreSQLBulkLoader:
+      sql_query.sql: sql-query
+  - org.apache.nifi.processors.jolt.JoltTransformJSON:
+      jolt_spec.json: Jolt Specification
+  - org.apache.nifi.processors.jolt.JoltTransformRecord:
+      jolt_spec.json: Jolt Specification

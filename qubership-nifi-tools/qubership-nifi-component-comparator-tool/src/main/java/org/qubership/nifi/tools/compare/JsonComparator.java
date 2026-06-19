@@ -364,6 +364,7 @@ public class JsonComparator {
 
             ComponentProperties cp = new ComponentProperties(apiName, displayName, description);
             cp.setEquivalentNameMappings(nameMappings);
+            cp.setControllerServiceType(extractControllerServiceType(prop));
             result.add(cp);
         });
 
@@ -391,15 +392,19 @@ public class JsonComparator {
 
             if (matchingTarget != null) {
                 if (!Objects.equals(sourceProp.getApiName(), matchingTarget.getApiName())) {
+                    String csType = matchingTarget.referencesControllerService()
+                            ? matchingTarget.getControllerServiceType()
+                            : sourceProp.getControllerServiceType();
                     csvRecords.add(createCsvRecord(fileName, componentFolder, "rename",
-                            sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
-                            sourceProp.getApiName(), matchingTarget.getApiName()));
+                            new PropertyNames(sourceProp.getDisplayName(), matchingTarget.getDisplayName(),
+                                    sourceProp.getApiName(), matchingTarget.getApiName()), csType));
                     recordRename(componentType, sourceProp.getApiName(), matchingTarget.getApiName());
                 }
             } else {
+                String csType = sourceProp.getControllerServiceType();
                 csvRecords.add(createCsvRecord(fileName, componentFolder, "deleted",
-                        sourceProp.getDisplayName(), "",
-                        sourceProp.getApiName(), ""));
+                        new PropertyNames(sourceProp.getDisplayName(), "",
+                                sourceProp.getApiName(), ""), csType));
                 if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
                     recordDeleted(componentType, sourceProp.getApiName());
                 }
@@ -419,9 +424,10 @@ public class JsonComparator {
                             : srcProp.compareUniqueDisplayName(targetProp));
 
             if (!existsInSource) {
+                String csType = targetProp.getControllerServiceType();
                 csvRecords.add(createCsvRecord(fileName, componentFolder, "added",
-                        "", targetProp.getDisplayName(),
-                        "", targetProp.getApiName()));
+                        new PropertyNames("", targetProp.getDisplayName(),
+                                "", targetProp.getApiName()), csType));
             }
         }
     }
@@ -450,6 +456,32 @@ public class JsonComparator {
                 .put(apiName, null);
     }
 
+    /**
+     * Extracts the controller-service interface type referenced by a property descriptor.
+     * NiFi 1.x exports expose it as a textual {@code identifiesControllerService}, while
+     * NiFi 2.x exports expose it as {@code typeProvidedByValue.type}.
+     *
+     * @param prop the property-descriptor JSON node
+     * @return the controller-service interface type, or null if the property is not a reference
+     */
+    private String extractControllerServiceType(JsonNode prop) {
+        if (prop == null) {
+            return null;
+        }
+        JsonNode identifies = prop.get("identifiesControllerService");
+        if (identifies != null && identifies.isTextual()) {
+            return identifies.asText();
+        }
+        JsonNode providedByValue = prop.get("typeProvidedByValue");
+        if (providedByValue != null && providedByValue.isObject()) {
+            JsonNode typeNode = providedByValue.get("type");
+            if (typeNode != null && typeNode.isTextual()) {
+                return typeNode.asText();
+            }
+        }
+        return null;
+    }
+
     private String getShortTypeName(String fullTypeName) {
         if (fullTypeName == null || fullTypeName.isEmpty()) {
             return null;
@@ -460,17 +492,21 @@ public class JsonComparator {
                 : fullTypeName;
     }
 
+    private record PropertyNames(String displayNameOld, String displayNameNew,
+                                 String apiNameOld, String apiNameNew) {
+    }
+
     private String[] createCsvRecord(String filename, String componentType, String changeType,
-                                     String displayNameOld, String displayNameNew,
-                                     String apiNameOld, String apiNameNew) {
+                                     PropertyNames names, String controllerServiceRef) {
         return new String[]{
                 removeJsonExtension(filename),
                 componentType != null ? componentType : "",
                 changeType,
-                displayNameOld,
-                displayNameNew,
-                apiNameOld,
-                apiNameNew
+                names.displayNameOld(),
+                names.displayNameNew(),
+                names.apiNameOld(),
+                names.apiNameNew(),
+                controllerServiceRef != null ? controllerServiceRef : ""
         };
     }
 

@@ -33,12 +33,21 @@
 
     <properties>
         <jetty.version>12.1.5</jetty.version>
+        <maven-plugin-api.version>3.9.14</maven-plugin-api.version>
+        <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
+        <mockito-junit-jupiter.version>5.11.0</mockito-junit-jupiter.version>
         <!-- Skip ITs by default; enable with profile tools-integration-tests -->
         <skipITs>true</skipITs>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito-junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson</groupId>
                 <artifactId>jackson-bom</artifactId>
@@ -63,6 +72,9 @@
         <module>qubership-nifi-component-comparator-tool</module>
         <module>qubership-nifi-docs-generator-it</module>
         <module>qubership-nifi-openapi-enricher</module>
+        <module>qubership-nifi-tools-common</module>
+        <module>qubership-nifi-tools-common-test-tool</module>
+        <module>qubership-nifi-export-transform-tool</module>
     </modules>
 
     <profiles>

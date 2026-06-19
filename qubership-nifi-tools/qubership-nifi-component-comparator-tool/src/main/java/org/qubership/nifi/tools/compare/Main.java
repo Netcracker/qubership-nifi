@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 /**
  * Main entrypoint for component comparator tool.
@@ -72,13 +73,20 @@ public final class Main {
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
+            JsonMappingGenerator processorJsonGenerator = new JsonMappingGenerator(
+                    outputDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+            processorJsonGenerator.generate(
+                    comparator.getTypeToChangedProperties(),
+                    comparator.getTypeToFolderMap());
+
             MarkdownReportGenerator mdGenerator = new MarkdownReportGenerator(outputDir);
             mdGenerator.generate(comparator.getCsvRecords());
 
             LOGGER.info("Comparison completed successfully!");
-            LOGGER.info("CSV Report:      {}", csvGenerator.getOutputPath());
-            LOGGER.info("JSON Report:     {}", jsonGenerator.getOutputPath());
-            LOGGER.info("Markdown Report: {}", mdGenerator.getOutputPath());
+            LOGGER.info("CSV Report:           {}", csvGenerator.getOutputPath());
+            LOGGER.info("JSON Report:          {}", jsonGenerator.getOutputPath());
+            LOGGER.info("Processor JSON Report: {}", processorJsonGenerator.getOutputPath());
+            LOGGER.info("Markdown Report:      {}", mdGenerator.getOutputPath());
 
         } catch (IOException e) {
             LOGGER.error("Fatal error during comparison: {}", e.getMessage(), e);

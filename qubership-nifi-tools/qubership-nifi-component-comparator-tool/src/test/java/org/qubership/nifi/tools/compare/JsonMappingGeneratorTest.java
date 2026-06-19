@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -140,11 +141,63 @@ class JsonMappingGeneratorTest {
         Map<String, Map<String, String>> renames = new HashMap<>();
         renames.put("org.example.Unknown", Map.of("old", "new"));
 
-        // empty folder map — folder is null
+        // empty folder map - folder is null
         gen.generate(renames, Map.of());
 
         JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
-        // folder == null → condition (folder != null && !INCLUDED) is false → type is included
+        // folder == null -> condition (folder != null && !INCLUDED) is false -> type is included
         assertTrue(root.has("org.example.Unknown"));
+    }
+
+    @Test
+    void processorGeneratorOutputPathContainsProcessorFileName() {
+        JsonMappingGenerator gen = new JsonMappingGenerator(
+                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+        assertTrue(gen.getOutputPath().endsWith("NiFiProcessorTypeMapping.json"));
+    }
+
+    @Test
+    void processorGeneratorIncludesProcessorRenamesAndDeletions() throws IOException {
+        JsonMappingGenerator gen = new JsonMappingGenerator(
+                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+
+        Map<String, String> changes = new HashMap<>();
+        changes.put("old-api", "new-api");
+        changes.put("gone-api", null);
+        Map<String, Map<String, String>> renames = Map.of("org.example.MyProc", changes);
+        Map<String, String> folderMap = Map.of("org.example.MyProc", "processors");
+
+        gen.generate(renames, folderMap);
+
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        JsonNode procNode = root.get("org.example.MyProc");
+        assertTrue(procNode != null && procNode.has("old-api"));
+        assertEquals("new-api", procNode.get("old-api").asText());
+        assertTrue(procNode.get("gone-api").isNull());
+    }
+
+    @Test
+    void processorGeneratorExcludesControllerServiceAndReportingTask() throws IOException {
+        JsonMappingGenerator gen = new JsonMappingGenerator(
+                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+
+        Map<String, Map<String, String>> renames = new HashMap<>();
+        renames.put("org.example.MyProc", Map.of("p-old", "p-new"));
+        renames.put("org.example.MyService", Map.of("s-old", "s-new"));
+        renames.put("org.example.MyTask", Map.of("t-old", "t-new"));
+
+        Map<String, String> folderMap = Map.of(
+                "org.example.MyProc", "processors",
+                "org.example.MyService", "controllerService",
+                "org.example.MyTask", "reportingTask"
+        );
+
+        gen.generate(renames, folderMap);
+
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        assertEquals(1, root.size(), "Only processors expected");
+        assertTrue(root.has("org.example.MyProc"));
+        assertFalse(root.has("org.example.MyService"));
+        assertFalse(root.has("org.example.MyTask"));
     }
 }
