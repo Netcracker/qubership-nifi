@@ -59,7 +59,7 @@ skipped.
 The script reads the available component types from the target NiFi
 (`/nifi-api/flow/processor-types`, `/nifi-api/flow/controller-service-types`, and
 `/nifi-api/flow/reporting-task-types`) and builds a `group/artifact` to version map. It then sets
-the version on every bundle whose `group/artifact` the target NiFi provides — the component bundle
+the version on every bundle whose `group/artifact` the target NiFi provides - the component bundle
 and any nested bundle such as `controllerServiceApis` or `identifiesControllerServiceBundle`. For
 each bundle the target does not provide, the script logs a warning and leaves the version unchanged.
 

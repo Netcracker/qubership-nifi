@@ -218,9 +218,9 @@ update_versions() {
                 "leaving its version unchanged in $file"
         done < <(jq -r --argjson bundleMap "$bundleMap" '
             [ .. | objects | (.bundle?, .identifiesControllerServiceBundle?)
-              | select(type == "object" and has("group") and has("artifact") and has("version"))
-              | select($bundleMap["\(.group)/\(.artifact)"] == null)
-              | "\(.group)/\(.artifact)" ] | unique[]' "$file")
+                | select(type == "object" and has("group") and has("artifact") and has("version"))
+                | select($bundleMap["\(.group)/\(.artifact)"] == null)
+                | "\(.group)/\(.artifact)" ] | unique[]' "$file")
 
         tmp=$(mktemp)
         #Set version only on real bundle objects (value of a "bundle" key, including
@@ -229,8 +229,8 @@ update_versions() {
         jq --argjson bundleMap "$bundleMap" '
             def setver($b):
                 if ($b | type) == "object"
-                   and ($b | has("group") and has("artifact") and has("version"))
-                   and ($bundleMap["\($b.group)/\($b.artifact)"] != null)
+                    and ($b | has("group") and has("artifact") and has("version"))
+                    and ($bundleMap["\($b.group)/\($b.artifact)"] != null)
                 then $b + {version: $bundleMap["\($b.group)/\($b.artifact)"]}
                 else $b end;
             def fix:
@@ -238,8 +238,8 @@ update_versions() {
                 then map_values(fix)
                     | if has("bundle") then .bundle = setver(.bundle) else . end
                     | if has("identifiesControllerServiceBundle")
-                      then .identifiesControllerServiceBundle = setver(.identifiesControllerServiceBundle)
-                      else . end
+                        then .identifiesControllerServiceBundle = setver(.identifiesControllerServiceBundle)
+                        else . end
                 elif type == "array" then map(fix)
                 else . end;
             fix' "$file" > "$tmp" || handle_error "Error while updating component versions in flow - $file"
@@ -287,22 +287,22 @@ apply_property_step() {
             then (.type as $t
                 # (a) properties: rename the key, or drop it when the mapping value is null
                 | (if (.properties? | type) == "object"
-                   then .properties |= with_entries(
-                       .key as $k
-                       | if ($delta[$t] | has($k))
-                         then (if $delta[$t][$k] != null then .key = $delta[$t][$k] else empty end)
-                         else . end)
-                   else . end)
+                    then .properties |= with_entries(
+                        .key as $k
+                        | if ($delta[$t] | has($k))
+                            then (if $delta[$t][$k] != null then .key = $delta[$t][$k] else empty end)
+                            else . end)
+                    else . end)
                 # (b) propertyDescriptors: mirror (a), keeping the inner "name" in sync with the key
                 | (if (.propertyDescriptors? | type) == "object"
-                   then .propertyDescriptors |= with_entries(
-                       .key as $k
-                       | if ($delta[$t] | has($k))
-                         then (if $delta[$t][$k] != null
-                               then .key = $delta[$t][$k] | .value.name = $delta[$t][$k]
-                               else empty end)
-                         else . end)
-                   else . end))
+                    then .propertyDescriptors |= with_entries(
+                        .key as $k
+                        | if ($delta[$t] | has($k))
+                            then (if $delta[$t][$k] != null
+                                    then .key = $delta[$t][$k] | .value.name = $delta[$t][$k]
+                                    else empty end)
+                            else . end)
+                    else . end))
             else . end
         )' "$file" > "$tmp" || handle_error "Error while updating property names (2.$minorStep) in flow - $file"
 
