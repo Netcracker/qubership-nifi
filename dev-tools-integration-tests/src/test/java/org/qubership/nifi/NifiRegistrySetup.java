@@ -237,6 +237,7 @@ public final class NifiRegistrySetup {
             LOG.info("Found existing user identity={} id={}", identity, userId);
         }
         addUserToPolicy(registryUrl, httpClient, userId, "read/proxy");
+        addUserToPolicy(registryUrl, httpClient, userId, "read/buckets");
     }
 
     private static ObjectNode getRegistryPolicy(final String registryUrl,
