@@ -19,9 +19,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.testcontainers.shaded.org.awaitility.core.ConditionTimeoutException;
 
 import java.io.IOException;
 import java.net.URI;
@@ -361,14 +363,29 @@ public class NifiFlowApiClient {
     public void waitForPgValidation(final String pgId, final String nifiVersion)
             throws IOException, InterruptedException {
         LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
-        Awaitility.await()
-                .atMost(45, TimeUnit.SECONDS)
-                .until(() -> {
-                    int count = getProcessGroupById(pgId).path("invalidCount").asInt();
-                    LOG.info("Waiting for PG {} invalidCount to reach 0, current invalidCount = {}", pgId, count);
-                    // For NiFi 2.5.0, invalidCount=1 (PutS3Object known issue) is also terminal
-                    return count == 0 || ("2.5.0".equals(nifiVersion) && count == 1);
-                });
+        try {
+            Awaitility.await()
+                    .atMost(45, TimeUnit.SECONDS)
+                    .until(() -> {
+                        int count = getProcessGroupById(pgId).path("invalidCount").asInt();
+                        LOG.info("Waiting for PG {} invalidCount to reach 0, current invalidCount = {}", pgId, count);
+                        // For NiFi 2.5.0, invalidCount=1 (PutS3Object known issue) is also terminal
+                        return count == 0 || ("2.5.0".equals(nifiVersion) && count == 1);
+                    });
+        } catch (ConditionTimeoutException e) {
+            //catch timeout and print validation messages for debug:
+            try {
+                StringBuilder validationErrorsMessage = getValidationErrorsMessage(pgId);
+                LOG.warn("Timeout on waiting for invalidCount to reach 0. Validation errors = {}",
+                        validationErrorsMessage);
+            } catch (IOException | InterruptedException ex) {
+                LOG.error("Failed to get validation messages", ex);
+                //rethrow original timeout exception
+                throw e;
+            }
+            //rethrow original timeout exception
+            throw e;
+        }
 
         JsonNode pgJson = getProcessGroupById(pgId);
         int invalidCount = pgJson.path("invalidCount").asInt();
@@ -378,6 +395,23 @@ public class NifiFlowApiClient {
         }
 
         // invalidCount > 0 — gather details and check for known exceptions
+        StringBuilder validationErrorsMessage = getValidationErrorsMessage(pgId);
+        if ("2.5.0".equals(nifiVersion)
+                && invalidCount == 1
+                && !validationErrorsMessage.isEmpty()
+                && validationErrorsMessage.toString().contains(
+                        "Processor name = PutS3Object. Validation errors: "
+                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
+                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
+            LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
+                    validationErrorsMessage);
+            return;
+        }
+        assertEquals(0, invalidCount, "Created PG must not have invalid components. "
+                + "Validation errors: " + validationErrorsMessage);
+    }
+
+    private @NotNull StringBuilder getValidationErrorsMessage(String pgId) throws IOException, InterruptedException {
         StringBuilder validationErrorsMessage = new StringBuilder();
         JsonNode mainPgFlow = getProcessGroupFlowById(pgId);
         LOG.info("Processing processors validation errors for PG with id = {}", pgId);
@@ -394,19 +428,7 @@ public class NifiFlowApiClient {
                 }
             }
         }
-        if ("2.5.0".equals(nifiVersion)
-                && invalidCount == 1
-                && !validationErrorsMessage.isEmpty()
-                && validationErrorsMessage.toString().contains(
-                        "Processor name = PutS3Object. Validation errors: "
-                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
-                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
-            LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
-                    validationErrorsMessage);
-            return;
-        }
-        assertEquals(0, invalidCount, "Created PG must not have invalid components. "
-                + "Validation errors: " + validationErrorsMessage);
+        return validationErrorsMessage;
     }
 
     private static void addValidationErrorsForPg(final JsonNode getResponseJson,
