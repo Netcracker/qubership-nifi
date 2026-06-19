@@ -45,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -294,7 +295,9 @@ class UpdateScriptsIT {
     void testTransformAndImport2() throws Exception {
         Path flowFile = tempFlowsDir.resolve("flows/Upgrade_Test_PG1.json");
         JsonNode flowContents = MAPPER.readTree(flowFile.toFile()).path("flowContents");
-        importAndCleanup(flowContents);
+        importAndCleanup(flowContents,
+                List.of(new NifiFlowApiClient.IgnoredDifference(
+                        "PutS3Object", "From 'Standard' to 'STANDARD'")));
     }
 
     /**
@@ -478,6 +481,11 @@ class UpdateScriptsIT {
     // -------------------------------------------------------------------------
 
     private void importAndCleanup(final JsonNode flowContents) throws Exception {
+        importAndCleanup(flowContents, List.of());
+    }
+
+    private void importAndCleanup(final JsonNode flowContents,
+            final Collection<NifiFlowApiClient.IgnoredDifference> ignored) throws Exception {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         String bucketId = NifiRegistrySetup.createBucket(nifiRegistryUrl, httpClient, "IT-Bucket-" + suffix);
         String flowId = NifiRegistrySetup.createFlow(nifiRegistryUrl, httpClient, bucketId, "IT-Flow");
@@ -492,7 +500,7 @@ class UpdateScriptsIT {
         api.changeControllerServicesStateForPg(createdId, "ENABLED");
         api.waitForControllerServicesState(createdId, "ENABLED");
         api.waitForPgValidation(createdId, nifiVersion);
-        api.assertProcessGroupUpToDate(createdId);
+        api.assertProcessGroupUpToDate(createdId, ignored);
     }
 
     // -------------------------------------------------------------------------

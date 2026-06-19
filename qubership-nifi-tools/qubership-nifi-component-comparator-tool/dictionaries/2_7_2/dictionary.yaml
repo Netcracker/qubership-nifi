@@ -127,3 +127,60 @@ propertiesAllowedToDelete:
 
   - StandardS3EncryptionService:
     - KMS Region
+
+  - CaptureChangeMySQL:
+    - Distributed Map Cache Client - unused
+  - CopyS3Object:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - Owner
+    - Signer Override
+    - Write Permission User List
+  - DeleteS3Object:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - FullControl User List
+    - Owner
+    - Read ACL User List
+    - Read Permission User List
+    - Signer Override
+    - Write ACL User List
+    - Write Permission User List
+  - FetchS3Object:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - Signer Override
+  - GetS3ObjectMetadata:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - FullControl User List
+    - Owner
+    - Read ACL User List
+    - Read Permission User List
+    - Signer Override
+  - GetS3ObjectTags:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - FullControl User List
+    - Owner
+    - Read ACL User List
+    - Read Permission User List
+    - Signer Override
+  - ListS3:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - Signer Override
+  - ListenSyslog:
+    - Socket Keep Alive
+  - PutS3Object:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - Expiration Time Rule
+    - Owner
+    - Server Side Encryption
+    - Signer Override
+    - Write Permission User List
+  - TagS3Object:
+    - Custom Signer Class Name
+    - Custom Signer Module Location
+    - Signer Override

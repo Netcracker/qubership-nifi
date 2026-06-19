@@ -1,276 +1,276 @@
 {
-  "org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric": {
-    "sampleCount": "Sample Count",
-    "MetricName": "Metric Name",
-    "maximum": "Maximum",
-    "sum": "Sum",
-    "minimum": "Minimum"
+  "org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric" : {
+    "sampleCount" : "Sample Count",
+    "MetricName" : "Metric Name",
+    "maximum" : "Maximum",
+    "sum" : "Sum",
+    "minimum" : "Minimum"
   },
-  "org.apache.nifi.processors.aws.ml.translate.StartAwsTranslateJob": {
-    "json-payload": "JSON Payload"
+  "org.apache.nifi.processors.aws.ml.translate.StartAwsTranslateJob" : {
+    "json-payload" : "JSON Payload"
   },
-  "org.apache.nifi.processors.azure.storage.ListAzureBlobStorage_v12": {
-    "blob-name-prefix": "Blob Name Prefix",
-    "storage-credentials-service": "Storage Credentials",
-    "container-name": "Container Name"
+  "org.apache.nifi.processors.azure.storage.ListAzureBlobStorage_v12" : {
+    "blob-name-prefix" : "Blob Name Prefix",
+    "storage-credentials-service" : "Storage Credentials",
+    "container-name" : "Container Name"
   },
-  "org.apache.nifi.processors.azure.eventhub.GetAzureEventHub": {
-    "use-managed-identity": "Use Azure Managed Identity",
-    "Shared Access Policy Primary Key": "Shared Access Policy Key",
-    "Partition Receiver Timeout (millseconds)": "Partition Receiver Timeout",
-    "Event Hub Consumer Group": "Consumer Group",
-    "Event Hub Message Enqueue Time": "Message Enqueue Time",
-    "Partition Recivier Fetch Size": "Partition Receiver Fetch Size"
+  "org.apache.nifi.processors.azure.eventhub.GetAzureEventHub" : {
+    "use-managed-identity" : "Use Azure Managed Identity",
+    "Shared Access Policy Primary Key" : "Shared Access Policy Key",
+    "Partition Receiver Timeout (millseconds)" : "Partition Receiver Timeout",
+    "Event Hub Consumer Group" : "Consumer Group",
+    "Event Hub Message Enqueue Time" : "Message Enqueue Time",
+    "Partition Recivier Fetch Size" : "Partition Receiver Fetch Size"
   },
-  "org.apache.nifi.processors.azure.eventhub.PutAzureEventHub": {
-    "partitioning-key-attribute-name": "Partitioning Key Attribute Name",
-    "use-managed-identity": "Use Azure Managed Identity",
-    "Shared Access Policy Primary Key": "Shared Access Policy Key",
-    "max-batch-size": "Maximum Batch Size"
+  "org.apache.nifi.processors.azure.eventhub.PutAzureEventHub" : {
+    "partitioning-key-attribute-name" : "Partitioning Key Attribute Name",
+    "use-managed-identity" : "Use Azure Managed Identity",
+    "Shared Access Policy Primary Key" : "Shared Access Policy Key",
+    "max-batch-size" : "Maximum Batch Size"
   },
-  "org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob": {
-    "json-payload": "JSON Payload",
-    "textract-type": "Textract Type"
+  "org.apache.nifi.processors.aws.ml.textract.StartAwsTextractJob" : {
+    "json-payload" : "JSON Payload",
+    "textract-type" : "Textract Type"
   },
-  "org.apache.nifi.processors.azure.cosmos.document.PutAzureCosmosDBRecord": {
-    "insert-batch-size": "Insert Batch Size",
-    "azure-cosmos-db-partition-key": "Cosmos DB Partition Key",
-    "azure-cosmos-db-container-id": "Cosmos DB Container ID",
-    "azure-cosmos-db-uri": "Cosmos DB URI",
-    "record-reader": "Record Reader",
-    "azure-cosmos-db-consistency-level": "Cosmos DB Consistency Level",
-    "azure-cosmos-db-conflict-handling-strategy": "Cosmos DB Conflict Handling Strategy",
-    "azure-cosmos-db-connection-service": "Cosmos DB Connection Service",
-    "azure-cosmos-db-key": "Cosmos DB Access Key",
-    "azure-cosmos-db-name": "Cosmos DB Name"
+  "org.apache.nifi.processors.azure.cosmos.document.PutAzureCosmosDBRecord" : {
+    "insert-batch-size" : "Insert Batch Size",
+    "azure-cosmos-db-partition-key" : "Cosmos DB Partition Key",
+    "azure-cosmos-db-container-id" : "Cosmos DB Container ID",
+    "azure-cosmos-db-uri" : "Cosmos DB URI",
+    "record-reader" : "Record Reader",
+    "azure-cosmos-db-consistency-level" : "Cosmos DB Consistency Level",
+    "azure-cosmos-db-conflict-handling-strategy" : "Cosmos DB Conflict Handling Strategy",
+    "azure-cosmos-db-connection-service" : "Cosmos DB Connection Service",
+    "azure-cosmos-db-key" : "Cosmos DB Access Key",
+    "azure-cosmos-db-name" : "Cosmos DB Name"
   },
-  "org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12": {
-    "conflict-resolution-strategy": "Conflict Resolution Strategy",
-    "blob-name": "Blob Name",
-    "create-container": "Create Container",
-    "storage-credentials-service": "Storage Credentials",
-    "container-name": "Container Name"
+  "org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12" : {
+    "conflict-resolution-strategy" : "Conflict Resolution Strategy",
+    "blob-name" : "Blob Name",
+    "create-container" : "Create Container",
+    "storage-credentials-service" : "Storage Credentials",
+    "container-name" : "Container Name"
   },
-  "org.apache.nifi.processors.standard.ListenSyslog": {
-    "Max Number of TCP Connections": "Worker Threads",
-    "socket-keep-alive": "Socket Keep Alive"
+  "org.apache.nifi.processors.standard.ListenSyslog" : {
+    "Max Number of TCP Connections" : "Worker Threads",
+    "socket-keep-alive" : "Socket Keep Alive"
   },
-  "org.apache.nifi.processors.aws.s3.GetS3ObjectTags": {
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.GetS3ObjectTags" : {
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.processors.aws.s3.TagS3Object": {
-    "tag-value": "Tag Value",
-    "tag-key": "Tag Key",
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "append-tag": "Append Tag",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.TagS3Object" : {
+    "tag-value" : "Tag Value",
+    "tag-key" : "Tag Key",
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "append-tag" : "Append Tag",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.processors.aws.ml.translate.GetAwsTranslateJobStatus": {
-    "awsTaskId": "AWS Task ID"
+  "org.apache.nifi.processors.aws.ml.translate.GetAwsTranslateJobStatus" : {
+    "awsTaskId" : "AWS Task ID"
   },
-  "org.apache.nifi.processors.aws.s3.CopyS3Object": {
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "canned-acl": "Canned ACL",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.CopyS3Object" : {
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "canned-acl" : "Canned ACL",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.processors.aws.s3.GetS3ObjectMetadata": {
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.GetS3ObjectMetadata" : {
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage": {
-    "filesystem-name": "Filesystem Name",
-    "number-of-retries": "Number of Retries",
-    "range-length": "Range Length",
-    "range-start": "Range Start",
-    "adls-credentials-service": "ADLS Credentials",
-    "directory-name": "Directory Name",
-    "file-name": "File Name"
+  "org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage" : {
+    "filesystem-name" : "Filesystem Name",
+    "number-of-retries" : "Number of Retries",
+    "range-length" : "Range Length",
+    "range-start" : "Range Start",
+    "adls-credentials-service" : "ADLS Credentials",
+    "directory-name" : "Directory Name",
+    "file-name" : "File Name"
   },
-  "org.apache.nifi.processors.azure.storage.queue.PutAzureQueueStorage_v12": {
-    "storage-endpoint-suffix": "Endpoint Suffix"
+  "org.apache.nifi.processors.azure.storage.queue.PutAzureQueueStorage_v12" : {
+    "storage-endpoint-suffix" : "Endpoint Suffix"
   },
-  "org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub": {
-    "use-managed-identity": "Use Azure Managed Identity",
-    "event-hub-shared-access-policy-name": "Shared Access Policy Name",
-    "event-hub-namespace": "Event Hub Namespace",
-    "record-writer": "Record Writer",
-    "event-hub-prefetch-count": "Prefetch Count",
-    "event-hub-initial-offset": "Initial Offset",
-    "storage-container-name": "Storage Container Name",
-    "storage-account-name": "Storage Account Name",
-    "event-hub-batch-size": "Batch Size",
-    "storage-sas-token": "Storage SAS Token",
-    "event-hub-shared-access-policy-primary-key": "Shared Access Policy Key",
-    "event-hub-message-receive-timeout": "Message Receive Timeout",
-    "storage-account-key": "Storage Account Key",
-    "record-reader": "Record Reader",
-    "checkpoint-strategy": "Checkpoint Strategy",
-    "event-hub-consumer-group": "Consumer Group",
-    "event-hub-name": "Event Hub Name"
+  "org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub" : {
+    "use-managed-identity" : "Use Azure Managed Identity",
+    "event-hub-shared-access-policy-name" : "Shared Access Policy Name",
+    "event-hub-namespace" : "Event Hub Namespace",
+    "record-writer" : "Record Writer",
+    "event-hub-prefetch-count" : "Prefetch Count",
+    "event-hub-initial-offset" : "Initial Offset",
+    "storage-container-name" : "Storage Container Name",
+    "storage-account-name" : "Storage Account Name",
+    "event-hub-batch-size" : "Batch Size",
+    "storage-sas-token" : "Storage SAS Token",
+    "event-hub-shared-access-policy-primary-key" : "Shared Access Policy Key",
+    "event-hub-message-receive-timeout" : "Message Receive Timeout",
+    "storage-account-key" : "Storage Account Key",
+    "record-reader" : "Record Reader",
+    "checkpoint-strategy" : "Checkpoint Strategy",
+    "event-hub-consumer-group" : "Consumer Group",
+    "event-hub-name" : "Event Hub Name"
   },
-  "org.apache.nifi.processors.azure.storage.CopyAzureBlobStorage_v12": {
-    "conflict-resolution-strategy": "Conflict Resolution Strategy",
-    "blob-name": "Destination Blob Name",
-    "create-container": "Create Container",
-    "storage-credentials-service": "Destination Storage Credentials",
-    "container-name": "Destination Container Name"
+  "org.apache.nifi.processors.azure.storage.CopyAzureBlobStorage_v12" : {
+    "conflict-resolution-strategy" : "Conflict Resolution Strategy",
+    "blob-name" : "Destination Blob Name",
+    "create-container" : "Create Container",
+    "storage-credentials-service" : "Destination Storage Credentials",
+    "container-name" : "Destination Container Name"
   },
-  "org.apache.nifi.processors.airtable.QueryAirtableTable": {
-    "pat": "Personal Access Token",
-    "query-time-window-lag": "Query Time Window Lag",
-    "api-url": "API URL",
-    "custom-filter": "Custom Filter",
-    "query-page-size": "Query Page Size",
-    "table-id": "Table ID",
-    "max-records-per-flowfile": "Max Records Per FlowFile",
-    "base-id": "Base ID",
-    "fields": "Fields",
-    "web-client-service-provider": "Web Client Service Provider"
+  "org.apache.nifi.processors.airtable.QueryAirtableTable" : {
+    "pat" : "Personal Access Token",
+    "query-time-window-lag" : "Query Time Window Lag",
+    "api-url" : "API URL",
+    "custom-filter" : "Custom Filter",
+    "query-page-size" : "Query Page Size",
+    "table-id" : "Table ID",
+    "max-records-per-flowfile" : "Max Records Per FlowFile",
+    "base-id" : "Base ID",
+    "fields" : "Fields",
+    "web-client-service-provider" : "Web Client Service Provider"
   },
-  "org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage_v12": {
-    "range-length": "Range Length",
-    "range-start": "Range Start",
-    "blob-name": "Blob Name",
-    "storage-credentials-service": "Storage Credentials",
-    "container-name": "Container Name"
+  "org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage_v12" : {
+    "range-length" : "Range Length",
+    "range-start" : "Range Start",
+    "blob-name" : "Blob Name",
+    "storage-credentials-service" : "Storage Credentials",
+    "container-name" : "Container Name"
   },
-  "org.apache.nifi.processors.azure.storage.MoveAzureDataLakeStorage": {
-    "filesystem-name": "Destination Filesystem",
-    "conflict-resolution-strategy": "Conflict Resolution Strategy",
-    "adls-credentials-service": "ADLS Credentials",
-    "source-filesystem-name": "Source Filesystem",
-    "source-directory-name": "Source Directory",
-    "directory-name": "Destination Directory",
-    "file-name": "File Name"
+  "org.apache.nifi.processors.azure.storage.MoveAzureDataLakeStorage" : {
+    "filesystem-name" : "Destination Filesystem",
+    "conflict-resolution-strategy" : "Conflict Resolution Strategy",
+    "adls-credentials-service" : "ADLS Credentials",
+    "source-filesystem-name" : "Source Filesystem",
+    "source-directory-name" : "Source Directory",
+    "directory-name" : "Destination Directory",
+    "file-name" : "File Name"
   },
-  "org.apache.nifi.processors.azure.storage.ListAzureDataLakeStorage": {
-    "filesystem-name": "Filesystem Name",
-    "adls-credentials-service": "ADLS Credentials",
-    "directory-name": "Directory Name",
-    "recurse-subdirectories": "Recurse Subdirectories",
-    "file-filter": "File Filter",
-    "include-temporary-files": "Include Temporary Files",
-    "path-filter": "Path Filter"
+  "org.apache.nifi.processors.azure.storage.ListAzureDataLakeStorage" : {
+    "filesystem-name" : "Filesystem Name",
+    "adls-credentials-service" : "ADLS Credentials",
+    "directory-name" : "Directory Name",
+    "recurse-subdirectories" : "Recurse Subdirectories",
+    "file-filter" : "File Filter",
+    "include-temporary-files" : "Include Temporary Files",
+    "path-filter" : "Path Filter"
   },
-  "org.apache.nifi.processors.asana.GetAsanaObject": {
-    "asana-team-name": "Team",
-    "asana-tag-name": "Tag",
-    "distributed-cache-service": "Distributed Cache Service",
-    "asana-section-name": "Section Name",
-    "asana-output-batch-size": "Output Batch Size",
-    "asana-project-name": "Project Name",
-    "asana-controller-service": "Asana Client Service",
-    "asana-object-type": "Object Type"
+  "org.apache.nifi.processors.asana.GetAsanaObject" : {
+    "asana-team-name" : "Team",
+    "asana-tag-name" : "Tag",
+    "distributed-cache-service" : "Distributed Cache Service",
+    "asana-section-name" : "Section Name",
+    "asana-output-batch-size" : "Output Batch Size",
+    "asana-project-name" : "Project Name",
+    "asana-controller-service" : "Asana Client Service",
+    "asana-object-type" : "Object Type"
   },
-  "org.apache.nifi.processors.aws.ml.transcribe.StartAwsTranscribeJob": {
-    "json-payload": "JSON Payload"
+  "org.apache.nifi.processors.aws.ml.transcribe.StartAwsTranscribeJob" : {
+    "json-payload" : "JSON Payload"
   },
-  "org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage": {
-    "filesystem-name": "Filesystem Name",
-    "adls-credentials-service": "ADLS Credentials",
-    "filesystem-object-type": "Filesystem Object Type",
-    "directory-name": "Directory Name",
-    "file-name": "File Name"
+  "org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage" : {
+    "filesystem-name" : "Filesystem Name",
+    "adls-credentials-service" : "ADLS Credentials",
+    "filesystem-object-type" : "Filesystem Object Type",
+    "directory-name" : "Directory Name",
+    "file-name" : "File Name"
   },
-  "org.apache.nifi.processors.aws.s3.DeleteS3Object": {
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.DeleteS3Object" : {
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.amqp.processors.ConsumeAMQP": {
-    "header.separator": "Header Separator",
-    "header.format": "Header Output Format",
-    "batch.size": "Batch Size",
-    "auto.acknowledge": "Auto-Acknowledge Messages",
-    "prefetch.count": "Prefetch Count",
-    "remove.curly.braces": "Remove Curly Braces",
-    "header.key.prefix": "Header Key Prefix"
+  "org.apache.nifi.amqp.processors.ConsumeAMQP" : {
+    "header.separator" : "Header Separator",
+    "header.format" : "Header Output Format",
+    "batch.size" : "Batch Size",
+    "auto.acknowledge" : "Auto-Acknowledge Messages",
+    "prefetch.count" : "Prefetch Count",
+    "remove.curly.braces" : "Remove Curly Braces",
+    "header.key.prefix" : "Header Key Prefix"
   },
-  "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage_v12": {
-    "delete-snapshots-option": "Delete Snapshots Option",
-    "blob-name": "Blob Name",
-    "storage-credentials-service": "Storage Credentials",
-    "container-name": "Container Name"
+  "org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage_v12" : {
+    "delete-snapshots-option" : "Delete Snapshots Option",
+    "blob-name" : "Blob Name",
+    "storage-credentials-service" : "Storage Credentials",
+    "container-name" : "Container Name"
   },
-  "org.apache.nifi.processors.aws.ml.polly.GetAwsPollyJobStatus": {
-    "awsTaskId": "AWS Task ID"
+  "org.apache.nifi.processors.aws.ml.polly.GetAwsPollyJobStatus" : {
+    "awsTaskId" : "AWS Task ID"
   },
-  "org.apache.nifi.processors.aws.ml.transcribe.GetAwsTranscribeJobStatus": {
-    "awsTaskId": "AWS Task ID"
+  "org.apache.nifi.processors.aws.ml.transcribe.GetAwsTranscribeJobStatus" : {
+    "awsTaskId" : "AWS Task ID"
   },
-  "org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage_v12": {
-    "storage-endpoint-suffix": "Endpoint Suffix"
+  "org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage_v12" : {
+    "storage-endpoint-suffix" : "Endpoint Suffix"
   },
-  "org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage": {
-    "filesystem-name": "Filesystem Name",
-    "conflict-resolution-strategy": "Conflict Resolution Strategy",
-    "adls-credentials-service": "ADLS Credentials",
-    "directory-name": "Directory Name",
-    "file-name": "File Name",
-    "writing-strategy": "Writing Strategy",
-    "base-temporary-path": "Base Temporary Path"
+  "org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage" : {
+    "filesystem-name" : "Filesystem Name",
+    "conflict-resolution-strategy" : "Conflict Resolution Strategy",
+    "adls-credentials-service" : "ADLS Credentials",
+    "directory-name" : "Directory Name",
+    "file-name" : "File Name",
+    "writing-strategy" : "Writing Strategy",
+    "base-temporary-path" : "Base Temporary Path"
   },
-  "org.apache.nifi.processors.aws.dynamodb.PutDynamoDBRecord": {
-    "partition-key-field": "Partition Key Field",
-    "sort-key-strategy": "Sort Key Strategy",
-    "record-reader": "Record Reader",
-    "partition-key-strategy": "Partition Key Strategy",
-    "partition-key-attribute": "Partition Key Attribute",
-    "sort-key-field": "Sort Key Field"
+  "org.apache.nifi.processors.aws.dynamodb.PutDynamoDBRecord" : {
+    "partition-key-field" : "Partition Key Field",
+    "sort-key-strategy" : "Sort Key Strategy",
+    "record-reader" : "Record Reader",
+    "partition-key-strategy" : "Partition Key Strategy",
+    "partition-key-attribute" : "Partition Key Attribute",
+    "sort-key-field" : "Sort Key Field"
   },
-  "org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream": {
-    "kinesis-stream-name": "Stream Name",
-    "message-batch-size": "Message Batch Size",
-    "amazon-kinesis-stream-partition-key": "Stream Partition Key",
-    "max-message-buffer-size": "Max Message Buffer Size"
+  "org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream" : {
+    "kinesis-stream-name" : "Stream Name",
+    "message-batch-size" : "Message Batch Size",
+    "amazon-kinesis-stream-partition-key" : "Stream Partition Key",
+    "max-message-buffer-size" : "Max Message Buffer Size"
   },
-  "org.apache.nifi.processors.aws.ml.polly.StartAwsPollyJob": {
-    "json-payload": "JSON Payload"
+  "org.apache.nifi.processors.aws.ml.polly.StartAwsPollyJob" : {
+    "json-payload" : "JSON Payload"
   },
-  "org.apache.nifi.amqp.processors.PublishAMQP": {
-    "header.separator": "Header Separator"
+  "org.apache.nifi.amqp.processors.PublishAMQP" : {
+    "header.separator" : "Header Separator"
   },
-  "org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus": {
-    "awsTaskId": "AWS Task ID",
-    "textract-type": "Textract Type"
+  "org.apache.nifi.processors.aws.ml.textract.GetAwsTextractJobStatus" : {
+    "awsTaskId" : "AWS Task ID",
+    "textract-type" : "Textract Type"
   },
-  "org.apache.nifi.processors.aws.s3.FetchS3Object": {
-    "range-length": "Range Length",
-    "range-start": "Range Start",
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "requester-pays": "Requester Pays",
-    "encryption-service": "Encryption Service",
-    "custom-signer-module-location": "Custom Signer Module Location"
+  "org.apache.nifi.processors.aws.s3.FetchS3Object" : {
+    "range-length" : "Range Length",
+    "range-start" : "Range Start",
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "requester-pays" : "Requester Pays",
+    "encryption-service" : "Encryption Service",
+    "custom-signer-module-location" : "Custom Signer Module Location"
   },
-  "org.apache.nifi.processors.aws.sqs.PutSQS": {
-    "message-group-id": "Message Group ID",
-    "deduplication-message-id": "Deduplication Message ID"
+  "org.apache.nifi.processors.aws.sqs.PutSQS" : {
+    "message-group-id" : "Message Group ID",
+    "deduplication-message-id" : "Deduplication Message ID"
   },
-  "org.apache.nifi.processors.aws.s3.ListS3": {
-    "write-s3-user-metadata": "Write User Metadata",
-    "list-type": "List Type",
-    "prefix": "Prefix",
-    "record-writer": "Record Writer",
-    "max-age": "Maximum Object Age",
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "requester-pays": "Requester Pays",
-    "custom-signer-module-location": "Custom Signer Module Location",
-    "listing-strategy": "Listing Strategy",
-    "write-s3-object-tags": "Write Object Tags",
-    "delimiter": "Delimiter",
-    "min-age": "Minimum Object Age",
-    "use-versions": "Use Versions"
+  "org.apache.nifi.processors.aws.s3.ListS3" : {
+    "write-s3-user-metadata" : "Write User Metadata",
+    "list-type" : "List Type",
+    "prefix" : "Prefix",
+    "record-writer" : "Record Writer",
+    "max-age" : "Maximum Object Age",
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "requester-pays" : "Requester Pays",
+    "custom-signer-module-location" : "Custom Signer Module Location",
+    "listing-strategy" : "Listing Strategy",
+    "write-s3-object-tags" : "Write Object Tags",
+    "delimiter" : "Delimiter",
+    "min-age" : "Minimum Object Age",
+    "use-versions" : "Use Versions"
   },
-  "org.apache.nifi.processors.aws.s3.PutS3Object": {
-    "s3-object-tags-prefix": "Object Tags Prefix",
-    "use-path-style-access": "Use Path Style Access",
-    "use-chunked-encoding": "Use Chunked Encoding",
-    "s3-object-remove-tags-prefix": "Remove Tag Prefix",
-    "server-side-encryption": "Server Side Encryption",
-    "custom-signer-class-name": "Custom Signer Class Name",
-    "encryption-service": "Encryption Service",
-    "canned-acl": "Canned ACL",
-    "custom-signer-module-location": "Custom Signer Module Location",
-    "s3-temporary-directory-multipart": "Temporary Directory Multipart State"
+  "org.apache.nifi.processors.aws.s3.PutS3Object" : {
+    "s3-object-tags-prefix" : "Object Tags Prefix",
+    "use-path-style-access" : "Use Path Style Access",
+    "use-chunked-encoding" : "Use Chunked Encoding",
+    "s3-object-remove-tags-prefix" : "Remove Tag Prefix",
+    "server-side-encryption" : "Server Side Encryption",
+    "custom-signer-class-name" : "Custom Signer Class Name",
+    "encryption-service" : "Encryption Service",
+    "canned-acl" : "Canned ACL",
+    "custom-signer-module-location" : "Custom Signer Module Location",
+    "s3-temporary-directory-multipart" : "Temporary Directory Multipart State"
   }
 }

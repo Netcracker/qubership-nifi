@@ -11,3 +11,7 @@ displayNameMapping:
       Max Bytes to Buffer: Max Batch Size
   - PutElasticsearchJson:
       Batch Size: Max FlowFiles Per Batch
+propertiesAllowedToDelete:
+  - ConsumeKinesis:
+    - Checkpoint Interval
+    - Metrics Publishing

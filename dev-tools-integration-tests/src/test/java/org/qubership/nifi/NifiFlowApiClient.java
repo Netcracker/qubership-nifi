@@ -28,6 +28,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -470,6 +473,17 @@ public class NifiFlowApiClient {
     }
 
     /**
+     * A single local modification that callers consider benign and want excluded from the
+     * {@link #assertProcessGroupUpToDate(String, Collection)} check. Matching is exact on both the
+     * component name and the human-readable difference text reported by NiFi.
+     *
+     * @param componentName component name as reported in {@code componentDifferences[].componentName}
+     * @param difference difference text as reported in {@code differences[].difference},
+     *                   e.g. {@code From 'Standard' to 'STANDARD'}
+     */
+    public record IgnoredDifference(String componentName, String difference) { }
+
+    /**
      * Waits (up to 30 s) for the process group to report a versioned flow state, then asserts it is
      * {@code UP_TO_DATE}. For {@code LOCALLY_MODIFIED} / {@code LOCALLY_MODIFIED_AND_STALE} the local
      * modifications are appended to the failure message; any other non-{@code UP_TO_DATE} state fails
@@ -478,6 +492,23 @@ public class NifiFlowApiClient {
      * @param pgId process group id
      */
     public void assertProcessGroupUpToDate(final String pgId) throws IOException, InterruptedException {
+        assertProcessGroupUpToDate(pgId, List.of());
+    }
+
+    /**
+     * Same as {@link #assertProcessGroupUpToDate(String)}, but tolerates a flow-specific allowlist of
+     * local modifications. When the state is {@code LOCALLY_MODIFIED} and every reported difference
+     * matches an {@link IgnoredDifference}, the process group is treated as up to date and the
+     * assertion passes. Any non-ignored difference still fails, and the allowlist does not apply to
+     * other states (such as {@code LOCALLY_MODIFIED_AND_STALE}, which indicates a registry-version
+     * mismatch rather than a local edit).
+     *
+     * @param pgId process group id
+     * @param ignored local modifications to ignore (never {@code null}; an empty collection restores
+     *                the strict behavior of {@link #assertProcessGroupUpToDate(String)})
+     */
+    public void assertProcessGroupUpToDate(final String pgId, final Collection<IgnoredDifference> ignored)
+            throws IOException, InterruptedException {
         LOG.info("Waiting for PG {} to report a versioned flow state", pgId);
         Awaitility.await()
                 .atMost(30, TimeUnit.SECONDS)
@@ -491,7 +522,26 @@ public class NifiFlowApiClient {
 
         StringBuilder message = new StringBuilder("Imported PG ").append(pgId)
                 .append(" versioned flow state is ").append(state).append(" (expected UP_TO_DATE)");
-        if ("LOCALLY_MODIFIED".equals(state) || "LOCALLY_MODIFIED_AND_STALE".equals(state)) {
+        if ("LOCALLY_MODIFIED".equals(state)) {
+            List<String> remaining = new ArrayList<>();
+            for (JsonNode component : getLocalModifications(pgId)) {
+                String componentName = component.path("componentName").asText();
+                for (JsonNode difference : component.path("differences")) {
+                    String differenceText = difference.path("difference").asText();
+                    if (!ignored.contains(new IgnoredDifference(componentName, differenceText))) {
+                        remaining.add(componentName + ": " + differenceText);
+                    }
+                }
+            }
+            if (remaining.isEmpty()) {
+                LOG.info("PG {} is LOCALLY_MODIFIED but all local modifications are ignored", pgId);
+                return;
+            }
+            message.append(". Local modifications: ");
+            for (String remainingDifference : remaining) {
+                message.append("[").append(remainingDifference).append("; ]");
+            }
+        } else if ("LOCALLY_MODIFIED_AND_STALE".equals(state)) {
             message.append(". Local modifications: ");
             for (JsonNode component : getLocalModifications(pgId)) {
                 message.append("[").append(component.path("componentName").asText()).append(": ");

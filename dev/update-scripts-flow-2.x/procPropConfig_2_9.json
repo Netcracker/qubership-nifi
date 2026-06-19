@@ -1,20 +1,22 @@
 {
-  "org.apache.nifi.processors.standard.QueryDatabaseTableRecord": {
-    "Max Rows Per Flow File": "Max Rows Per FlowFile"
+  "org.apache.nifi.processors.standard.QueryDatabaseTableRecord" : {
+    "Max Rows Per Flow File" : "Max Rows Per FlowFile"
   },
-  "org.apache.nifi.processors.standard.QueryDatabaseTable": {
-    "Max Rows Per Flow File": "Max Rows Per FlowFile"
+  "org.apache.nifi.processors.standard.QueryDatabaseTable" : {
+    "Max Rows Per Flow File" : "Max Rows Per FlowFile"
   },
-  "org.apache.nifi.processors.standard.ExecuteSQL": {
-    "Max Rows Per Flow File": "Max Rows Per FlowFile"
+  "org.apache.nifi.processors.standard.ExecuteSQL" : {
+    "Max Rows Per Flow File" : "Max Rows Per FlowFile"
   },
-  "org.apache.nifi.processors.standard.ExecuteSQLRecord": {
-    "Max Rows Per Flow File": "Max Rows Per FlowFile"
+  "org.apache.nifi.processors.standard.ExecuteSQLRecord" : {
+    "Max Rows Per Flow File" : "Max Rows Per FlowFile"
   },
-  "org.apache.nifi.processors.aws.kinesis.ConsumeKinesis": {
-    "Max Bytes to Buffer": "Max Batch Size"
+  "org.apache.nifi.processors.aws.kinesis.ConsumeKinesis" : {
+    "Max Bytes to Buffer" : "Max Batch Size",
+    "Checkpoint Interval" : null,
+    "Metrics Publishing" : null
   },
-  "org.apache.nifi.processors.elasticsearch.PutElasticsearchJson": {
-    "Batch Size": "Max FlowFiles Per Batch"
+  "org.apache.nifi.processors.elasticsearch.PutElasticsearchJson" : {
+    "Batch Size" : "Max FlowFiles Per Batch"
   }
 }

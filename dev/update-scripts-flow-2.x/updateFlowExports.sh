@@ -8,8 +8,8 @@
 #                   service names in the target NiFi root process group.
 #   --versions      Bump every component bundle version to the version installed in the
 #                   target NiFi.
-#   --properties    Rename or remove component properties renamed by NiFi 2.x property
-#                   migration, using the bundled mapping configs.
+#   --properties    Rename or remove component properties (and their propertyDescriptors)
+#                   renamed by NiFi 2.x property migration, using the bundled mapping configs.
 #
 # When no flag is supplied, all three updates run.
 
@@ -283,13 +283,26 @@ apply_property_step() {
     jq --slurpfile cs "$csConfig" --slurpfile proc "$procConfig" '
         ($cs[0] * $proc[0]) as $delta
         | walk(
-            if type == "object" and ((.type? | type) == "string")
-               and ((.properties? | type) == "object") and ($delta[.type] != null)
-            then (.type as $t | .properties |= with_entries(
-                    .key as $k
-                    | if ($delta[$t] | has($k))
-                      then (if $delta[$t][$k] != null then .key = $delta[$t][$k] else empty end)
-                      else . end))
+            if type == "object" and ((.type? | type) == "string") and ($delta[.type] != null)
+            then (.type as $t
+                # (a) properties: rename the key, or drop it when the mapping value is null
+                | (if (.properties? | type) == "object"
+                   then .properties |= with_entries(
+                       .key as $k
+                       | if ($delta[$t] | has($k))
+                         then (if $delta[$t][$k] != null then .key = $delta[$t][$k] else empty end)
+                         else . end)
+                   else . end)
+                # (b) propertyDescriptors: mirror (a), keeping the inner "name" in sync with the key
+                | (if (.propertyDescriptors? | type) == "object"
+                   then .propertyDescriptors |= with_entries(
+                       .key as $k
+                       | if ($delta[$t] | has($k))
+                         then (if $delta[$t][$k] != null
+                               then .key = $delta[$t][$k] | .value.name = $delta[$t][$k]
+                               else empty end)
+                         else . end)
+                   else . end))
             else . end
         )' "$file" > "$tmp" || handle_error "Error while updating property names (2.$minorStep) in flow - $file"
 

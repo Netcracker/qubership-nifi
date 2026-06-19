@@ -66,10 +66,12 @@ each bundle the target does not provide, the script logs a warning and leaves th
 ### Properties (`--properties`)
 
 NiFi 2.x renamed and removed many component properties. The script applies the bundled mapping
-configs to rename or delete properties keyed by component type. It detects the oldest
-`org.apache.nifi` component version in each export and applies the mappings for every version step
-between that version and the target NiFi version. This update runs only when the target version is
-`2.5` or later; otherwise it is skipped.
+configs to rename or delete properties keyed by component type. The same mappings also update each
+component's `propertyDescriptors` map: a renamed property's descriptor key and its inner `name`
+field are renamed (the `displayName` is left intact), and a removed property's descriptor is
+deleted. It detects the oldest `org.apache.nifi` component version in each export and applies the
+mappings for every version step between that version and the target NiFi version. This update runs
+only when the target version is `2.5` or later; otherwise it is skipped.
 
 ## Mapping configuration
 

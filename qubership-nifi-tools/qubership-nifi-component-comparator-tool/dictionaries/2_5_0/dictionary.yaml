@@ -50,3 +50,27 @@ propertiesAllowedToDelete:
 
   - ElasticSearchClientServiceImpl:
     - Retry timeout
+
+  - ConsumeAMQP:
+    - Client Auth
+  - ConsumeAzureEventHub:
+    - Consumer Hostname
+  - ConsumeJMS:
+    - Session Cache Size
+  - ListFTP:
+    - Distributed Cache Service
+  - ListSFTP:
+    - Distributed Cache Service
+    - Remote Poll Batch Size
+  - ListenHTTP:
+    - Max Data to Receive per Second
+  - ListenTCP:
+    - Max Number of Receiving Message Handler Threads
+  - PublishAMQP:
+    - Client Auth
+  - PublishJMS:
+    - Session Cache Size
+  - PutElasticsearchJson:
+    - Output Error Documents
+  - QueryRecord:
+    - Cache Schema

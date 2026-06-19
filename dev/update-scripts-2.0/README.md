@@ -27,6 +27,7 @@ The table below describes environment variables used in script
 ## Mapping config
 
 Configuration file that stores the mapping between the old and new types for NiFi components.
+
 ```json
 {
     "org.apache.nifi.processors.standard.JoltTransformJSON": {
