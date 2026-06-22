@@ -72,6 +72,8 @@ permissions:
 
 jobs:
   maven-build-and-test:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Input parameters
@@ -86,7 +88,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Cache Maven dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
@@ -97,12 +99,12 @@ jobs:
         with:
           java-version: ${{ inputs.java-version || '21' }}
           distribution: 'temurin'
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.gpg-private-key }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
       - name: Run local maven build with sonar
-        if: ${{ !inputs.skip-sonar }}
+        #skip if explicit skip is set or when SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && env.SONAR_TOKEN }}
         run: >
           mvn --batch-mode package
           -Dgpg.skip=true
@@ -110,30 +112,35 @@ jobs:
           -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.organization=${SONAR_ORGANIZATION}
           -Dsonar.host.url=${SONAR_HOST_URL}
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PLUGIN_VERSION: "${{ vars.SONAR_PLUGIN_VERSION }}"
           SONAR_ORGANIZATION: "${{ vars.SONAR_ORGANIZATION }}"
           SONAR_PROJECT_KEY: "${{ vars.SONAR_PROJECT_KEY }}"
           SONAR_HOST_URL: "${{ vars.SONAR_HOST_URL }}"
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Run local maven build w/o sonar
-        if: ${{ inputs.skip-sonar }}
+        #execute if explicit skip is set or when either SONAR_HOST_URL or SONAR_TOKEN are empty
+        if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL || !env.SONAR_TOKEN }}
         run: >
-          mvn --batch-mode package
+          mvn --batch-mode package -Dgpg.skip=true
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: maven-unit-test-logs
           path: |
             **/target/surefire-reports/**/*.xml
+            **/target/failsafe-reports/**/*.xml
+            **/target/failsafe-reports/**/*.txt
           retention-days: 2
       - name: Upload all Maven target directories
         if: ${{ inputs.upload-artifact }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ inputs.artifact-id }}
           path: '**/target'
