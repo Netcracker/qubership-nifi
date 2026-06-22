@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine/java:21-jre as base
+ARG BASE_IMAGE_VERSION='21-alpine-2.3.3'
+ARG BASE_IMAGE_VERSION_SHA256='sha256:4c17f37e13bc57e01c70cde41af64a067969d301b92c53c4d7d22ff88abff61d'
+
+FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
 
 USER root
 #add jq:
 RUN apk add --no-cache \
-    jq=1.7.1-r0 \
-    bash=5.2.26-r0 \
-    curl=8.14.1-r2
+    jq=1.8.1-r0
 
 ENV NIFI_BASE_DIR /opt/nifi
 ENV NIFI_HOME $NIFI_BASE_DIR/nifi-current
@@ -33,25 +34,15 @@ ENV HOME=${NIFI_HOME}
 RUN mkdir -p /opt/nifi/nifi-home-dir \
     && ln -s /opt/nifi/nifi-home-dir /home/nifi \
     && chown 10001:0 /opt/nifi/nifi-home-dir \
-    && chmod 775 /opt/nifi/nifi-home-dir \
-    && chmod 664 /opt/java/openjdk/lib/security/cacerts \
-    && mkdir -p /etc/ssl/certs/java/ \
-    && ln -s /opt/java/openjdk/lib/security/cacerts /etc/ssl/certs/java/cacerts \
-    && adduser --disabled-password \
-        --gecos "" \
-        --home "${NIFI_HOME}" \
-        --ingroup "root" \
-        --no-create-home \
-        --uid 10001 \
-        nifi
+    && chmod 775 /opt/nifi/nifi-home-dir
 
 USER 10001
 
-FROM alpine/java:21-jdk as upd
+FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 as upd
 
 USER root
 
-RUN apk add --no-cache zip=3.0-r12 \
+RUN apk add --no-cache zip=3.0-r13 \
     && mkdir -p /tmp-upd \
     && chown 10001:0 /tmp-upd
 
@@ -165,5 +156,5 @@ VOLUME ${NIFI_HOME}/run
 VOLUME ${NIFI_HOME}/work
 
 EXPOSE 8080 8443 10000 8000
-ENTRYPOINT ["../scripts/start.sh"]
+CMD ["bash", "../scripts/start.sh"]
 HEALTHCHECK NONE

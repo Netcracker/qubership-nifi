@@ -90,20 +90,6 @@ sed -i -e 's|<property name="Authorizations File">\./conf/authorizations.xml</pr
 # Create conf directory
 mkdir -p "${NIFI_HOME}"/persistent_conf/conf
 
-# Generate keystores
-if [ -d /tmp/cert ]; then
-    if [ -z "${CERTIFICATE_FILE_PASSWORD}" ]; then
-        export CERTIFICATE_FILE_PASSWORD="changeit"
-    fi
-    export CERTIFICATE_KEYSTORE_LOCATION="/etc/ssl/certs/java/cacerts"
-
-    info "Importing certificates from /tmp/cert directory..."
-    find /tmp/cert -print | grep -E '\.cer|\.pem' | grep -v '\.\.' | sed -E 's|/tmp/cert/(.*)|/tmp/cert/\1 \1|g' | xargs -n 2 --no-run-if-empty bash -c \
-        'keytool -importcert -cacerts -file "$1" -alias "$2" -storepass "${CERTIFICATE_FILE_PASSWORD}" -noprompt' argv0 || warn "Failed to import certificate"
-else
-    info "Directory /tmp/cert doesn't exist, skipping import."
-fi
-
 if [[ "$NIFI_CLUSTER_IS_NODE" == "true" && "$IS_STATEFUL_SET" == "true" ]]; then
     #cluster case with StatefulSet, certificates are numbered and all are mounted by number:
     numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
