@@ -482,10 +482,10 @@ fi
 
 if [ "$NIFI_CLUSTER_IS_NODE" == "true" ]; then
     startMode="$START_MODE_CLUSTER"
-    
+
     numberNode=${HOSTNAME##"$MICROSERVICE_NAME"-}
     baseNode="$BASE_NODE_COUNT"
-    
+
     if [ "$numberNode" -gt "$((baseNode-1))" ]; then
         if [ "$startMode" == "delete" ]; then
             rm -f "${NIFI_HOME}/persistent_conf/conf/flow.xml.gz"
