@@ -11,7 +11,8 @@
 #   --properties    Rename or remove component properties (and their propertyDescriptors)
 #                   renamed by NiFi 2.x property migration, using the bundled mapping configs.
 #                   Also removes the descriptors of sensitive properties that NiFi 2.x leaves
-#                   orphaned when the property is empty (csRemoveWhenEmptyConfig / procRemoveWhenEmptyConfig).
+#                   orphaned when the property value is absent or null
+#                   (csRemoveWhenEmptyConfig / procRemoveWhenEmptyConfig).
 #
 # When no flag is supplied, all three updates run.
 
@@ -118,7 +119,13 @@ update_external_cs() {
         handle_error "Failed to get target NiFi controller services"
     fi
 
-    #Duplicate names: from_entries keeps the last one.
+    #from_entries keeps only the last id when a name repeats, so a reference to a duplicated
+    #name may resolve to the wrong service. Warn for every name that occurs more than once:
+    while IFS= read -r dupName; do
+        [ -n "$dupName" ] && echo "WARNING: Multiple controller services named '$dupName' found in target NiFi root;" \
+            "references to this name may resolve to the wrong service."
+    done < <(jq -r '[.controllerServices[].component.name] | group_by(.) | map(select(length > 1) | .[0]) | .[]' ./target-cs.json)
+
     local nameToId
     nameToId=$(jq -c '[.controllerServices[] | {key: .component.name, value: .id}] | from_entries' ./target-cs.json) \
         || handle_error "Error building controller service name to id map"
@@ -312,14 +319,20 @@ apply_property_step() {
 }
 
 # Removes the propertyDescriptors that NiFi 2.x migration leaves orphaned for one upgrade step in $file.
-# These are sensitive properties whose 2.x migration NiFi handles only when they carry a value; when the
-# property is empty its descriptor is removed, otherwise it is left for NiFi to migrate.
+# These are sensitive properties whose 2.x migration NiFi handles only when they carry a value; its
+# descriptor is removed only when the property value is absent or null; any value (including "") is
+# left for NiFi to migrate.
 apply_remove_when_empty_step() {
     local file=$1 minorStep=$2
     local csConfig=$SCRIPT_DIR/csRemoveWhenEmptyConfig_2_${minorStep}.json
     local procConfig=$SCRIPT_DIR/procRemoveWhenEmptyConfig_2_${minorStep}.json
     [ -f "$csConfig" ] || csConfig=/dev/null
     [ -f "$procConfig" ] || procConfig=/dev/null
+
+    #Nothing to remove when both configs are empty - skip the no-op rewrite:
+    if ! jq -s -e '((.[0] // {}) * (.[1] // {})) | length > 0' "$csConfig" "$procConfig" >/dev/null 2>&1; then
+        return 0
+    fi
 
     tmp=$(mktemp)
     #Component type FQCNs do not collide between controller services and processors, so the two mappings
@@ -399,6 +412,9 @@ main() {
 
     get_target_version
 
+    #Order matters: update_properties must run before update_versions. Property mappings are
+    #chosen from the source version, which flow_source_version derives from org.apache.nifi
+    #bundle versions - the same versions update_versions overwrites.
     [ "$doProperties" = true ] && update_properties
     [ "$doVersions" = true ] && update_versions
     [ "$doExternalCs" = true ] && update_external_cs

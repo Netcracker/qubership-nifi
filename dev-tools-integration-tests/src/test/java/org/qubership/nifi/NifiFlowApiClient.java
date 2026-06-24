@@ -462,22 +462,29 @@ public class NifiFlowApiClient {
     private List<InvalidProcessor> collectInvalidProcessors(final String pgId)
             throws IOException, InterruptedException {
         List<InvalidProcessor> invalidProcessors = new ArrayList<>();
-        JsonNode mainPgFlow = getProcessGroupFlowById(pgId);
         LOG.info("Processing processors validation errors for PG with id = {}", pgId);
-        addInvalidProcessors(mainPgFlow, invalidProcessors);
-        JsonNode childPgsNode = mainPgFlow.path("processGroupFlow").path("flow").path("processGroups");
+        collectInvalidProcessors(getProcessGroupFlowById(pgId), invalidProcessors);
+        return invalidProcessors;
+    }
+
+    private void collectInvalidProcessors(final JsonNode pgFlow,
+                                          final List<InvalidProcessor> invalidProcessors)
+            throws IOException, InterruptedException {
+        addInvalidProcessors(pgFlow, invalidProcessors);
+        JsonNode childPgsNode = pgFlow.path("processGroupFlow").path("flow").path("processGroups");
         if (childPgsNode.isArray()) {
             for (JsonNode childPg : (ArrayNode) childPgsNode) {
                 int childInvalidCount = childPg.path("invalidCount").asInt();
                 String childPgId = childPg.path("id").asText();
                 LOG.info("Child PG with id = {} has invalidCount = {}", childPgId, childInvalidCount);
+                // invalidCount aggregates the whole subtree, so a non-zero count means an invalid
+                // component lives somewhere below; descend until we reach the group that holds it.
                 if (childInvalidCount > 0) {
                     LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
-                    addInvalidProcessors(getProcessGroupFlowById(childPgId), invalidProcessors);
+                    collectInvalidProcessors(getProcessGroupFlowById(childPgId), invalidProcessors);
                 }
             }
         }
-        return invalidProcessors;
     }
 
     private static void addInvalidProcessors(final JsonNode getResponseJson,
