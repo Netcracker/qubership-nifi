@@ -29,7 +29,7 @@ Registered in `.claude/settings.json`:
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python .claude/hooks/linters-hook/lint_changed_file.py"
+                        "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/linters-hook/lint_changed_file.py\""
                     }
                 ]
             }
@@ -37,6 +37,9 @@ Registered in `.claude/settings.json`:
     }
 }
 ```
+
+The script path is anchored to `$CLAUDE_PROJECT_DIR` (the directory Claude Code was started
+in) so the hook resolves the script from any working directory, including a subdirectory.
 
 ## Prerequisites
 

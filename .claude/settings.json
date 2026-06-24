@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/linters-hook/lint_changed_file.py"
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/linters-hook/lint_changed_file.py\""
           }
         ]
       }
