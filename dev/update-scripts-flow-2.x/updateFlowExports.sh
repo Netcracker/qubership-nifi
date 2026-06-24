@@ -27,7 +27,7 @@ handle_error() {
 }
 
 delete_tmp_files() {
-    rm -f ./flow-about.json ./target-cs.json ./proc-types.json ./cs-types.json ./rt-types.json
+    rm -f ./flow-about.json ./target-cs.json ./proc-types.json ./cs-types.json
     #remove temp files used during conversion:
     [ -n "$tmp" ] && [ -f "$tmp" ] && rm -f "$tmp"
     [ -n "$tmp2" ] && [ -f "$tmp2" ] && rm -f "$tmp2"
@@ -184,7 +184,6 @@ build_target_bundle_map() {
     local endpoints=(
         "processor-types|./proc-types.json"
         "controller-service-types|./cs-types.json"
-        "reporting-task-types|./rt-types.json"
     )
     local files=()
     local item path outFile
@@ -205,7 +204,7 @@ build_target_bundle_map() {
     #as nifi-standard-services-api-nar that no component type lists as its own bundle, yet flows
     #reference them under controllerServiceApis - so they must be in the map to be updated.
     bundleMap=$(jq -s '
-        [ .[] | (.processorTypes // []), (.controllerServiceTypes // []), (.reportingTaskTypes // []) ]
+        [ .[] | (.processorTypes // []), (.controllerServiceTypes // []) ]
         | add
         | [ .[] | (.bundle, ((.controllerServiceApis // [])[].bundle))
                 | {key: "\(.group)/\(.artifact)", value: .version} ]
