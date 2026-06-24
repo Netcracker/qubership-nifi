@@ -10,8 +10,10 @@
 #                   target NiFi.
 #   --properties    Rename or remove component properties (and their propertyDescriptors)
 #                   renamed by NiFi 2.x property migration, using the bundled mapping configs.
-#                   Also removes the descriptors of sensitive properties that NiFi 2.x leaves
-#                   orphaned when the property value is absent or null
+#                   Also removes leftover descriptors of sensitive properties: NiFi 2.x migration
+#                   normally drops these while it renames or deletes properties, but skips them
+#                   because the script already applied those changes. Removed only when the
+#                   property value is absent or null
 #                   (csRemoveWhenEmptyConfig / procRemoveWhenEmptyConfig).
 #
 # When no flag is supplied, all three updates run.
@@ -318,10 +320,11 @@ apply_property_step() {
     replace_with_debug "$tmp" "$file"
 }
 
-# Removes the propertyDescriptors that NiFi 2.x migration leaves orphaned for one upgrade step in $file.
-# These are sensitive properties whose 2.x migration NiFi handles only when they carry a value; its
-# descriptor is removed only when the property value is absent or null; any value (including "") is
-# left for NiFi to migrate.
+# Removes the leftover propertyDescriptors for one upgrade step in $file. NiFi 2.x migration normally
+# drops these while renaming or deleting their properties, but skips them because the script already
+# applied those changes, so on import migration finds nothing to change. These are sensitive properties
+# whose 2.x migration NiFi handles only when they carry a value; the descriptor is removed only when the
+# property value is absent or null; any value (including "") is left for NiFi to migrate.
 apply_remove_when_empty_step() {
     local file=$1 minorStep=$2
     local csConfig=$SCRIPT_DIR/csRemoveWhenEmptyConfig_2_${minorStep}.json

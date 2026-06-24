@@ -73,12 +73,15 @@ deleted. It detects the oldest `org.apache.nifi` component version in each expor
 mappings for every version step between that version and the target NiFi version. This update runs
 only when the target version is `2.5` or later; otherwise it is skipped.
 
-For each step the script then applies the remove-when-empty configs. Some sensitive properties have
-complicated 2.x migration logic that NiFi handles itself when the property carries a value, so the
-rename and delete configs deliberately omit them. When such a property is left unset, its value is
-absent from the export but its descriptor remains, and the orphaned sensitive descriptor breaks the
-import. The remove-when-empty configs remove that descriptor only when its property value is absent
-or null; a property that still carries a value is left for NiFi's own migration to handle.
+For each step the script then applies the remove-when-empty configs. NiFi's 2.x migration removes a
+property's descriptor as a side effect of renaming or deleting that property. Because the script applies
+those renames and deletes itself, the migration that runs on import finds the properties already changed
+and leaves their descriptors in place. Some sensitive properties have complicated 2.x migration logic
+that NiFi handles itself when the property carries a value, so the rename and delete configs deliberately
+omit them. When such a property is left unset, its value is absent from the export but its leftover
+descriptor remains and breaks the import. The remove-when-empty configs remove that descriptor only when
+its property value is absent or null; a property that still carries a value is left for NiFi's own
+migration to handle.
 
 ## Mapping configuration
 
