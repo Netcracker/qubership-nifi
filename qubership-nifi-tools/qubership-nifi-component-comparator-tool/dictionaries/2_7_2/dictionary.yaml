@@ -184,3 +184,10 @@ propertiesAllowedToDelete:
     - Custom Signer Class Name
     - Custom Signer Module Location
     - Signer Override
+
+# Properties whose descriptor must be removed only when the property is empty. The current entries are
+# sensitive properties with complex 2.x migration logic that NiFi applies only when the value is present,
+# so their populated values are migrated by NiFi itself and are not listed above.
+propertiesToRemoveWhenEmpty:
+  - StandardS3EncryptionService:
+    - Key ID or Key Material

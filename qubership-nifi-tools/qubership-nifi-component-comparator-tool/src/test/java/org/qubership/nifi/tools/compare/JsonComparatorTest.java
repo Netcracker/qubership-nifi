@@ -640,6 +640,70 @@ class JsonComparatorTest {
     }
 
     @Test
+    void removeWhenEmptyDeletedSensitivePropertyRecordedAsNull() throws IOException {
+        writeJson(sourceDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep") + "," + prop("access-key-api", "Access Key ID"));
+        writeJson(targetDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesToRemoveWhenEmpty:\n"
+                        + "- PutS3Object:\n"
+                        + "    - Access Key ID\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> removals = comparator.getTypeToDescriptorsToRemoveWhenEmpty()
+                .get("org.apache.nifi.processors.aws.s3.PutS3Object");
+        assertTrue(removals.containsKey("access-key-api"));
+        assertNull(removals.get("access-key-api"));
+        // The new section must not leak into the regular rename/delete mapping.
+        assertTrue(comparator.getTypeToChangedProperties().isEmpty());
+    }
+
+    @Test
+    void removeWhenEmptyDeletedPropertyNotInSectionNotRecorded() throws IOException {
+        writeJson(sourceDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep") + "," + prop("other-api", "Other Property"));
+        writeJson(targetDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesToRemoveWhenEmpty:\n"
+                        + "- PutS3Object:\n"
+                        + "    - Access Key ID\n");
+
+        loadAndCompare(dict.toString());
+
+        assertTrue(comparator.getTypeToDescriptorsToRemoveWhenEmpty().isEmpty());
+    }
+
+    @Test
+    void removeWhenEmptyCaseInsensitiveMatch() throws IOException {
+        writeJson(sourceDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep") + "," + prop("access-key-api", "access key id"));
+        writeJson(targetDir, "processors", "PutS3Object.json",
+                "org.apache.nifi.processors.aws.s3.PutS3Object",
+                prop("keep-api", "Keep"));
+
+        Path dict = writeDictionary(
+                "propertiesToRemoveWhenEmpty:\n"
+                        + "- PutS3Object:\n"
+                        + "    - Access Key ID\n");
+
+        loadAndCompare(dict.toString());
+
+        Map<String, String> removals = comparator.getTypeToDescriptorsToRemoveWhenEmpty()
+                .get("org.apache.nifi.processors.aws.s3.PutS3Object");
+        assertTrue(removals.containsKey("access-key-api"));
+    }
+
+    @Test
     void nonCsRefChangeLeavesCsRefColumnEmpty() throws IOException {
         writeJson(sourceDir, "processors", "Proc.json", "org.example.Proc",
                 prop("old-api", "Display"));

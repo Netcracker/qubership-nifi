@@ -10,6 +10,8 @@
 #                   target NiFi.
 #   --properties    Rename or remove component properties (and their propertyDescriptors)
 #                   renamed by NiFi 2.x property migration, using the bundled mapping configs.
+#                   Also removes the descriptors of sensitive properties that NiFi 2.x leaves
+#                   orphaned when the property is empty (csRemoveWhenEmptyConfig / procRemoveWhenEmptyConfig).
 #
 # When no flag is supplied, all three updates run.
 
@@ -309,6 +311,39 @@ apply_property_step() {
     replace_with_debug "$tmp" "$file"
 }
 
+# Removes the propertyDescriptors that NiFi 2.x migration leaves orphaned for one upgrade step in $file.
+# These are sensitive properties whose 2.x migration NiFi handles only when they carry a value; when the
+# property is empty its descriptor is removed, otherwise it is left for NiFi to migrate.
+apply_remove_when_empty_step() {
+    local file=$1 minorStep=$2
+    local csConfig=$SCRIPT_DIR/csRemoveWhenEmptyConfig_2_${minorStep}.json
+    local procConfig=$SCRIPT_DIR/procRemoveWhenEmptyConfig_2_${minorStep}.json
+    [ -f "$csConfig" ] || csConfig=/dev/null
+    [ -f "$procConfig" ] || procConfig=/dev/null
+
+    tmp=$(mktemp)
+    #Component type FQCNs do not collide between controller services and processors, so the two mappings
+    #merge cleanly into a single delta. A descriptor is removed only when its property value is absent or
+    #null - any non-null value (including "") is left for NiFi's own migration to handle.
+    jq --slurpfile cs "$csConfig" --slurpfile proc "$procConfig" '
+        (($cs[0] // {}) * ($proc[0] // {})) as $delta
+        | walk(
+            if type == "object" and ((.type? | type) == "string") and ($delta[.type] != null)
+            then .type as $t
+                | (.properties // {}) as $props
+                | if (.propertyDescriptors? | type) == "object"
+                    then .propertyDescriptors |= with_entries(
+                        .key as $k
+                        | if (($delta[$t] | has($k)) and ($props[$k] == null))
+                            then empty else . end)
+                    else . end
+            else . end
+        )' "$file" > "$tmp" \
+        || handle_error "Error while removing empty descriptors (2.$minorStep) in flow - $file"
+
+    replace_with_debug "$tmp" "$file"
+}
+
 update_properties() {
     if ((targetMajor != 2 || targetMinor < 5)); then
         echo "Target NiFi version $targetMajor.$targetMinor has no property mappings. Skipping properties update."
@@ -336,6 +371,7 @@ update_properties() {
             if ((targetMinor >= step)) && ((srcMajor == 1 || (srcMajor == 2 && srcMinor < step))); then
                 echo "  Applying 2.$step property mappings to $file"
                 apply_property_step "$file" "$step"
+                apply_remove_when_empty_step "$file" "$step"
             fi
         done
     done

@@ -129,6 +129,114 @@ final class FlowAssertions {
                         + " must be left unchanged on PutRecord, but properties were: " + props);
     }
 
+    /**
+     * Asserts that every {@code org.apache.nifi} bundle in the export carries the expected version.
+     * Covers the component bundle and any nested bundle (such as {@code controllerServiceApis[].bundle}).
+     * Use the fixture's original version to assert {@code --versions} did NOT run, or the target NiFi
+     * version to assert it did.
+     *
+     * @param snapshot        the full flow-export snapshot node
+     * @param expectedVersion the version every {@code org.apache.nifi} bundle must carry
+     */
+    static void assertAllApacheBundleVersions(final JsonNode snapshot, final String expectedVersion) {
+        assertApacheBundleVersionsRecursive(snapshot, expectedVersion);
+    }
+
+    private static void assertApacheBundleVersionsRecursive(final JsonNode node, final String expectedVersion) {
+        if (node.isObject()) {
+            JsonNode bundle = node.get("bundle");
+            if (bundle != null && bundle.isObject()
+                    && "org.apache.nifi".equals(bundle.path("group").asText())) {
+                assertEquals(expectedVersion, bundle.path("version").asText(),
+                        "org.apache.nifi bundle " + bundle.path("artifact").asText()
+                                + " must carry version " + expectedVersion + " but was: " + bundle);
+            }
+            for (JsonNode child : node) {
+                assertApacheBundleVersionsRecursive(child, expectedVersion);
+            }
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                assertApacheBundleVersionsRecursive(child, expectedVersion);
+            }
+        }
+    }
+
+    /**
+     * Asserts that the external controller service reference was NOT rewritten: the
+     * {@code externalControllerServices} map is still keyed by the original id with a matching
+     * {@code identifier}, and the given processor still references that id by value (matched by
+     * value so the check tolerates a property-key rename by {@code --properties}).
+     *
+     * @param snapshot      the full flow-export snapshot node
+     * @param processorName the processor whose property must still reference the original id
+     * @param originalId    the foreign external controller service id that must remain unchanged
+     */
+    static void assertExternalCsNotRewritten(final JsonNode snapshot, final String processorName,
+                                             final String originalId) {
+        JsonNode ext = snapshot.path("externalControllerServices");
+        assertTrue(ext.has(originalId),
+                "externalControllerServices must still be keyed by the original id " + originalId
+                        + " but was: " + ext.toString());
+        assertEquals(originalId, ext.path(originalId).path("identifier").asText(),
+                "external controller service identifier must remain the original id " + originalId);
+
+        JsonNode processor = findProcessorByName(snapshot.path("flowContents"), processorName);
+        assertNotNull(processor, "flow must contain a " + processorName + " processor");
+        assertEquals(1, countPropertyValue(processor.path("properties"), originalId),
+                processorName + " must still reference the original external CS id " + originalId
+                        + " exactly once, but properties were: " + processor.path("properties"));
+    }
+
+    /**
+     * Asserts a processor's properties were renamed by the {@code --properties} update: each new
+     * name is present (with a matching {@code propertyDescriptors} entry) and each old name is gone.
+     *
+     * @param snapshot      the full flow-export snapshot node
+     * @param processorName the processor whose properties to check
+     * @param renames       {@code {oldKey, newKey}} pairs that should have been applied
+     */
+    static void assertProcessorPropertiesRenamed(final JsonNode snapshot, final String processorName,
+                                                 final String[][] renames) {
+        JsonNode processor = findProcessorByName(snapshot.path("flowContents"), processorName);
+        assertNotNull(processor, "flow must contain a " + processorName + " processor");
+        JsonNode props = processor.path("properties");
+        JsonNode descriptors = processor.path("propertyDescriptors");
+        for (String[] rename : renames) {
+            String oldKey = rename[0];
+            String newKey = rename[1];
+            assertFalse(props.has(oldKey),
+                    processorName + " property '" + oldKey + "' should have been renamed to '" + newKey + "'");
+            assertTrue(props.has(newKey),
+                    processorName + " should contain renamed property '" + newKey
+                            + "', but properties were: " + props);
+            assertFalse(descriptors.has(oldKey),
+                    processorName + " propertyDescriptors should not contain old key '" + oldKey + "'");
+            assertTrue(descriptors.has(newKey),
+                    processorName + " propertyDescriptors should contain renamed key '" + newKey + "'");
+            assertEquals(newKey, descriptors.path(newKey).path("name").asText(),
+                    processorName + " descriptor '" + newKey + "' inner name must be renamed in lockstep");
+        }
+    }
+
+    /**
+     * Asserts a processor's properties were NOT renamed: every given old name is still present,
+     * proving the {@code --properties} update did not run.
+     *
+     * @param snapshot      the full flow-export snapshot node
+     * @param processorName the processor whose properties to check
+     * @param oldKeys       the original property keys that must remain unchanged
+     */
+    static void assertProcessorPropertiesNotRenamed(final JsonNode snapshot, final String processorName,
+                                                    final String... oldKeys) {
+        JsonNode processor = findProcessorByName(snapshot.path("flowContents"), processorName);
+        assertNotNull(processor, "flow must contain a " + processorName + " processor");
+        JsonNode props = processor.path("properties");
+        for (String oldKey : oldKeys) {
+            assertTrue(props.has(oldKey),
+                    processorName + " property '" + oldKey + "' must be unchanged, but properties were: " + props);
+        }
+    }
+
     private static int countPropertyValue(final JsonNode properties, final String value) {
         int count = 0;
         for (JsonNode propValue : properties) {

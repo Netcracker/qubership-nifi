@@ -43,8 +43,10 @@ public class JsonComparator {
     private Map<String, String> fileSubfolderMap = new HashMap<>();
     private Map<String, Map<String, String>> dictionaryMappings = new HashMap<>();
     private Map<String, Set<String>> allowedToDelete = new HashMap<>();
+    private Map<String, Set<String>> removeWhenEmpty = new HashMap<>();
     private final List<String[]> csvRecords = new ArrayList<>();
     private final Map<String, Map<String, String>> typeToChangedProperties = new HashMap<>();
+    private final Map<String, Map<String, String>> typeToDescriptorsToRemoveWhenEmpty = new HashMap<>();
     private final Map<String, String> typeToFolderMap = new HashMap<>();
 
     private boolean isLoaded = false;
@@ -131,6 +133,17 @@ public class JsonComparator {
     }
 
     /**
+     * Returns the descriptors to remove when their property is empty, produced by {@link #compare()}.
+     * Each entry maps a deleted, sensitive property's API name to {@code null}, signaling that its
+     * propertyDescriptor must be removed during an upgrade only when the property carries no value.
+     *
+     * @return unmodifiable map of componentType to (apiName -> null) removals
+     */
+    public Map<String, Map<String, String>> getTypeToDescriptorsToRemoveWhenEmpty() {
+        return Collections.unmodifiableMap(typeToDescriptorsToRemoveWhenEmpty);
+    }
+
+    /**
      * Returns the mapping of component type to subfolder name.
      *
      * @return unmodifiable map of componentType to subfolder
@@ -175,8 +188,10 @@ public class JsonComparator {
         fileSubfolderMap.clear();
         dictionaryMappings.clear();
         allowedToDelete.clear();
+        removeWhenEmpty.clear();
         csvRecords.clear();
         typeToChangedProperties.clear();
+        typeToDescriptorsToRemoveWhenEmpty.clear();
         typeToFolderMap.clear();
     }
 
@@ -207,6 +222,9 @@ public class JsonComparator {
             }
             if (data.containsKey("propertiesAllowedToDelete")) {
                 parseAllowedToDelete(data.get("propertiesAllowedToDelete"));
+            }
+            if (data.containsKey("propertiesToRemoveWhenEmpty")) {
+                parseRemoveWhenEmpty(data.get("propertiesToRemoveWhenEmpty"));
             }
         } catch (IOException e) {
             throw e;
@@ -316,6 +334,65 @@ public class JsonComparator {
         return displayName != null && allowed.contains(displayName.toLowerCase());
     }
 
+    /**
+     * Parses the propertiesToRemoveWhenEmpty section from the dictionary YAML.
+     *
+     * @param removeObj the parsed YAML object for propertiesToRemoveWhenEmpty
+     */
+    @SuppressWarnings("unchecked")
+    private void parseRemoveWhenEmpty(Object removeObj) {
+        if (!(removeObj instanceof List)) {
+            return;
+        }
+
+        for (Object item : (List<?>) removeObj) {
+            if (!(item instanceof Map)) {
+                continue;
+            }
+
+            ((Map<?, ?>) item).forEach((key, value) -> {
+                if (!(value instanceof List)) {
+                    return;
+                }
+                Set<String> displayNames = new HashSet<>();
+                for (Object name : (List<?>) value) {
+                    if (name != null) {
+                        displayNames.add(name.toString().toLowerCase());
+                    }
+                }
+                if (!displayNames.isEmpty()) {
+                    removeWhenEmpty.put(key.toString(), displayNames);
+                    LOGGER.info("Remove when empty: {} ({} properties)",
+                            key, displayNames.size());
+                }
+            });
+        }
+    }
+
+    /**
+     * Checks if a deleted property's descriptor should be removed only when its property is empty.
+     * Such a property is recorded only if it is listed in the
+     * propertiesToRemoveWhenEmpty section of the dictionary for its component type.
+     *
+     * @param componentType full component type (e.g. org.apache.nifi.processors.aws.s3.PutS3Object)
+     * @param displayName   the displayName of the deleted property
+     * @return true if the property is in the remove-when-empty list
+     */
+    private boolean isRemoveWhenEmpty(String componentType, String displayName) {
+        if (removeWhenEmpty.isEmpty()) {
+            return false;
+        }
+        String shortType = getShortTypeName(componentType);
+        if (shortType == null) {
+            return false;
+        }
+        Set<String> names = removeWhenEmpty.get(shortType);
+        if (names == null) {
+            return false;
+        }
+        return displayName != null && names.contains(displayName.toLowerCase());
+    }
+
     private void compareCommonFiles(Set<String> commonFiles) {
         for (String fileName : commonFiles) {
             JsonNode sourceProps   = sourceJsonMap.get(fileName);
@@ -408,6 +485,9 @@ public class JsonComparator {
                 if (isDeleteAllowed(componentType, sourceProp.getDisplayName())) {
                     recordDeleted(componentType, sourceProp.getApiName());
                 }
+                if (isRemoveWhenEmpty(componentType, sourceProp.getDisplayName())) {
+                    recordRemoveWhenEmpty(componentType, sourceProp.getApiName());
+                }
             }
         }
     }
@@ -453,6 +533,11 @@ public class JsonComparator {
 
     private void recordDeleted(String componentType, String apiName) {
         typeToChangedProperties.computeIfAbsent(componentType, k -> new HashMap<>())
+                .put(apiName, null);
+    }
+
+    private void recordRemoveWhenEmpty(String componentType, String apiName) {
+        typeToDescriptorsToRemoveWhenEmpty.computeIfAbsent(componentType, k -> new HashMap<>())
                 .put(apiName, null);
     }
 

@@ -74,3 +74,110 @@ propertiesAllowedToDelete:
     - Output Error Documents
   - QueryRecord:
     - Cache Schema
+
+# Properties whose descriptor must be removed only when the property is empty. The current entries are
+# sensitive properties with complex 2.x migration logic that NiFi applies only when the value is present,
+# so their populated values are migrated by NiFi itself and are not listed above.
+propertiesToRemoveWhenEmpty:
+  - DeleteDynamoDB:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - DeleteGCSObject:
+    - HTTP Proxy Password
+  - DeleteS3Object:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - DeleteSFTP:
+    - Http Proxy Password
+  - DeleteSQS:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - FetchFTP:
+    - Http Proxy Password
+  - FetchGCSObject:
+    - HTTP Proxy Password
+  - FetchS3Object:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - FetchSFTP:
+    - Http Proxy Password
+  - GetDynamoDB:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - GetFTP:
+    - Http Proxy Password
+  - GetSFTP:
+    - Http Proxy Password
+  - GetSQS:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - InvokeHTTP:
+    - Proxy Password
+  - ListFTP:
+    - Http Proxy Password
+  - ListGCSBucket:
+    - HTTP Proxy Password
+  - ListS3:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - ListSFTP:
+    - Http Proxy Password
+  - PutCloudWatchMetric:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutDynamoDB:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutFTP:
+    - Http Proxy Password
+  - PutGCSObject:
+    - HTTP Proxy Password
+  - PutKinesisFirehose:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutKinesisStream:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutLambda:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutS3Object:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutSFTP:
+    - Http Proxy Password
+  - PutSNS:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - PutSQS:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password
+  - SiteToSiteBulletinReportingTask:
+    - HTTP Proxy password
+  - SiteToSiteMetricsReportingTask:
+    - HTTP Proxy password
+  - SiteToSiteProvenanceReportingTask:
+    - HTTP Proxy password
+  - SiteToSiteReportingRecordSink:
+    - HTTP Proxy password
+  - SiteToSiteStatusReportingTask:
+    - HTTP Proxy password
+  - TagS3Object:
+    - Access Key ID
+    - Secret Access Key
+    - Proxy Password

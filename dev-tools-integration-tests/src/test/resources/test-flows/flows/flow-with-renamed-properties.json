@@ -1,8 +1,8 @@
 {
     "flowContents": {
-        "identifier": "a1a1a1a1-0000-0000-0000-000000000001",
-        "instanceIdentifier": "b2b2b2b2-0000-0000-0000-000000000001",
-        "name": "flow-with-external-cs",
+        "identifier": "c1c1c1c1-0000-0000-0000-000000000001",
+        "instanceIdentifier": "c2c2c2c2-0000-0000-0000-000000000001",
+        "name": "flow-with-renamed-properties",
         "comments": "",
         "position": {
             "x": 0.0,
@@ -12,13 +12,13 @@
         "remoteProcessGroups": [],
         "processors": [
             {
-                "identifier": "44444444-0000-0000-0000-000000000001",
-                "instanceIdentifier": "44444444-1111-0000-0000-000000000001",
+                "identifier": "99999999-0000-0000-0000-000000000001",
+                "instanceIdentifier": "99999999-1111-0000-0000-000000000001",
                 "name": "GenerateFlowFile",
                 "comments": "",
                 "position": {
                     "x": 100.0,
-                    "y": 100.0
+                    "y": 0.0
                 },
                 "type": "org.apache.nifi.processors.standard.GenerateFlowFile",
                 "bundle": {
@@ -29,7 +29,6 @@
                 "properties": {
                     "character-set": "UTF-8",
                     "File Size": "10B",
-                    "mime-type": null,
                     "generate-ff-custom-text": "{\"id\": 1}",
                     "Batch Size": "1",
                     "Unique FlowFiles": "false",
@@ -45,12 +44,6 @@
                     "File Size": {
                         "name": "File Size",
                         "displayName": "File Size",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "mime-type": {
-                        "name": "mime-type",
-                        "displayName": "Mime Type",
                         "identifiesControllerService": false,
                         "sensitive": false
                     },
@@ -95,45 +88,45 @@
                 "backoffMechanism": "PENALIZE_FLOWFILE",
                 "maxBackoffPeriod": "10 mins",
                 "componentType": "PROCESSOR",
-                "groupIdentifier": "a1a1a1a1-0000-0000-0000-000000000001"
+                "groupIdentifier": "c1c1c1c1-0000-0000-0000-000000000001"
             },
             {
-                "identifier": "33333333-0000-0000-0000-000000000001",
-                "instanceIdentifier": "33333333-1111-0000-0000-000000000001",
-                "name": "PutRecord",
+                "identifier": "66666666-0000-0000-0000-000000000001",
+                "instanceIdentifier": "66666666-1111-0000-0000-000000000001",
+                "name": "ConvertRecord",
                 "comments": "",
                 "position": {
                     "x": 100.0,
-                    "y": 300.0
+                    "y": 100.0
                 },
-                "type": "org.apache.nifi.processors.standard.PutRecord",
+                "type": "org.apache.nifi.processors.standard.ConvertRecord",
                 "bundle": {
                     "group": "org.apache.nifi",
                     "artifact": "nifi-standard-nar",
                     "version": "1.28.1"
                 },
                 "properties": {
-                    "put-record-include-zero-record-results": "false",
-                    "put-record-reader": "22222222-0000-0000-0000-000000000001",
-                    "put-record-sink": "18a13b92-2d58-445d-9983-c8745deefcae"
+                    "record-reader": "77777777-0000-0000-0000-000000000001",
+                    "record-writer": "88888888-0000-0000-0000-000000000001",
+                    "include-zero-record-flowfiles": "true"
                 },
                 "propertyDescriptors": {
-                    "put-record-include-zero-record-results": {
-                        "name": "put-record-include-zero-record-results",
-                        "displayName": "Include Zero Record Results",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "put-record-reader": {
-                        "name": "put-record-reader",
+                    "record-reader": {
+                        "name": "record-reader",
                         "displayName": "Record Reader",
                         "identifiesControllerService": true,
                         "sensitive": false
                     },
-                    "put-record-sink": {
-                        "name": "put-record-sink",
-                        "displayName": "Record Destination Service",
+                    "record-writer": {
+                        "name": "record-writer",
+                        "displayName": "Record Writer",
                         "identifiesControllerService": true,
+                        "sensitive": false
+                    },
+                    "include-zero-record-flowfiles": {
+                        "name": "include-zero-record-flowfiles",
+                        "displayName": "Include Zero Record FlowFiles",
+                        "identifiesControllerService": false,
                         "sensitive": false
                     }
                 },
@@ -148,8 +141,7 @@
                 "concurrentlySchedulableTaskCount": 1,
                 "autoTerminatedRelationships": [
                     "success",
-                    "failure",
-                    "retry"
+                    "failure"
                 ],
                 "scheduledState": "ENABLED",
                 "retryCount": 10,
@@ -157,31 +149,31 @@
                 "backoffMechanism": "PENALIZE_FLOWFILE",
                 "maxBackoffPeriod": "10 mins",
                 "componentType": "PROCESSOR",
-                "groupIdentifier": "a1a1a1a1-0000-0000-0000-000000000001"
+                "groupIdentifier": "c1c1c1c1-0000-0000-0000-000000000001"
             }
         ],
         "inputPorts": [],
         "outputPorts": [],
         "connections": [
             {
-                "identifier": "55555555-0000-0000-0000-000000000001",
-                "instanceIdentifier": "55555555-1111-0000-0000-000000000001",
+                "identifier": "aaaaaaaa-0000-0000-0000-000000000001",
+                "instanceIdentifier": "aaaaaaaa-1111-0000-0000-000000000001",
                 "name": "",
                 "source": {
-                    "id": "44444444-0000-0000-0000-000000000001",
+                    "id": "99999999-0000-0000-0000-000000000001",
                     "type": "PROCESSOR",
-                    "groupId": "a1a1a1a1-0000-0000-0000-000000000001",
+                    "groupId": "c1c1c1c1-0000-0000-0000-000000000001",
                     "name": "GenerateFlowFile",
                     "comments": "",
-                    "instanceIdentifier": "44444444-1111-0000-0000-000000000001"
+                    "instanceIdentifier": "99999999-1111-0000-0000-000000000001"
                 },
                 "destination": {
-                    "id": "33333333-0000-0000-0000-000000000001",
+                    "id": "66666666-0000-0000-0000-000000000001",
                     "type": "PROCESSOR",
-                    "groupId": "a1a1a1a1-0000-0000-0000-000000000001",
-                    "name": "PutRecord",
+                    "groupId": "c1c1c1c1-0000-0000-0000-000000000001",
+                    "name": "ConvertRecord",
                     "comments": "",
-                    "instanceIdentifier": "33333333-1111-0000-0000-000000000001"
+                    "instanceIdentifier": "66666666-1111-0000-0000-000000000001"
                 },
                 "labelIndex": 0,
                 "zIndex": 0,
@@ -197,15 +189,15 @@
                 "partitioningAttribute": "",
                 "loadBalanceCompression": "DO_NOT_COMPRESS",
                 "componentType": "CONNECTION",
-                "groupIdentifier": "a1a1a1a1-0000-0000-0000-000000000001"
+                "groupIdentifier": "c1c1c1c1-0000-0000-0000-000000000001"
             }
         ],
         "labels": [],
         "funnels": [],
         "controllerServices": [
             {
-                "identifier": "22222222-0000-0000-0000-000000000001",
-                "instanceIdentifier": "22222222-1111-0000-0000-000000000001",
+                "identifier": "77777777-0000-0000-0000-000000000001",
+                "instanceIdentifier": "77777777-1111-0000-0000-000000000001",
                 "name": "InFlowJsonTreeReader",
                 "comments": "",
                 "type": "org.apache.nifi.json.JsonTreeReader",
@@ -215,61 +207,12 @@
                     "version": "1.28.1"
                 },
                 "properties": {
-                    "schema-access-strategy": "infer-schema",
-                    "schema-registry": null,
-                    "schema-name": "${schema.name}",
-                    "schema-text": "${avro.schema}",
-                    "starting-field-strategy": "ROOT_NODE",
-                    "schema-application-strategy": "SELECTED_PART",
-                    "Max String Length": "20 MB",
-                    "Allow Comments": "false"
+                    "schema-access-strategy": "infer-schema"
                 },
                 "propertyDescriptors": {
                     "schema-access-strategy": {
                         "name": "schema-access-strategy",
                         "displayName": "Schema Access Strategy",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "schema-registry": {
-                        "name": "schema-registry",
-                        "displayName": "Schema Registry",
-                        "identifiesControllerService": true,
-                        "sensitive": false
-                    },
-                    "schema-name": {
-                        "name": "schema-name",
-                        "displayName": "Schema Name",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "schema-text": {
-                        "name": "schema-text",
-                        "displayName": "Schema Text",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "starting-field-strategy": {
-                        "name": "starting-field-strategy",
-                        "displayName": "Starting Field Strategy",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "schema-application-strategy": {
-                        "name": "schema-application-strategy",
-                        "displayName": "Schema Application Strategy",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "Max String Length": {
-                        "name": "Max String Length",
-                        "displayName": "Max String Length",
-                        "identifiesControllerService": false,
-                        "sensitive": false
-                    },
-                    "Allow Comments": {
-                        "name": "Allow Comments",
-                        "displayName": "Allow Comments",
                         "identifiesControllerService": false,
                         "sensitive": false
                     }
@@ -287,7 +230,51 @@
                 "scheduledState": "ENABLED",
                 "bulletinLevel": "WARN",
                 "componentType": "CONTROLLER_SERVICE",
-                "groupIdentifier": "a1a1a1a1-0000-0000-0000-000000000001"
+                "groupIdentifier": "c1c1c1c1-0000-0000-0000-000000000001"
+            },
+            {
+                "identifier": "88888888-0000-0000-0000-000000000001",
+                "instanceIdentifier": "88888888-1111-0000-0000-000000000001",
+                "name": "InFlowJsonRecordSetWriter",
+                "comments": "",
+                "type": "org.apache.nifi.json.JsonRecordSetWriter",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-record-serialization-services-nar",
+                    "version": "1.28.1"
+                },
+                "properties": {
+                    "Schema Write Strategy": "no-schema",
+                    "schema-access-strategy": "inherit-record-schema"
+                },
+                "propertyDescriptors": {
+                    "Schema Write Strategy": {
+                        "name": "Schema Write Strategy",
+                        "displayName": "Schema Write Strategy",
+                        "identifiesControllerService": false,
+                        "sensitive": false
+                    },
+                    "schema-access-strategy": {
+                        "name": "schema-access-strategy",
+                        "displayName": "Schema Access Strategy",
+                        "identifiesControllerService": false,
+                        "sensitive": false
+                    }
+                },
+                "controllerServiceApis": [
+                    {
+                        "type": "org.apache.nifi.serialization.RecordSetWriterFactory",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "nifi-standard-services-api-nar",
+                            "version": "1.28.1"
+                        }
+                    }
+                ],
+                "scheduledState": "ENABLED",
+                "bulletinLevel": "WARN",
+                "componentType": "CONTROLLER_SERVICE",
+                "groupIdentifier": "c1c1c1c1-0000-0000-0000-000000000001"
             }
         ],
         "variables": {},
@@ -298,12 +285,7 @@
         "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
         "componentType": "PROCESS_GROUP"
     },
-    "externalControllerServices": {
-        "18a13b92-2d58-445d-9983-c8745deefcae": {
-            "identifier": "18a13b92-2d58-445d-9983-c8745deefcae",
-            "name": "CommonQubershipPrometheusRecordSink123"
-        }
-    },
+    "externalControllerServices": {},
     "parameterContexts": {},
     "flowEncodingVersion": "1.0",
     "parameterProviders": {},

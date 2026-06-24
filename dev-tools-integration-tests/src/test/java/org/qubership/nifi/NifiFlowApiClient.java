@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -351,30 +350,66 @@ public class NifiFlowApiClient {
     }
 
     /**
-     * Waits (up to 30 s) for the process group's {@code invalidCount} to reach an acceptable
-     * terminal state, then asserts that no invalid components remain.
+     * A single invalid-component validation error that a caller considers benign and wants excluded
+     * from the {@link #waitForPgValidation(String, Collection)} check. A processor is treated as
+     * valid when every one of its reported validation errors matches some allowlist entry: the
+     * {@code processorName} equals the component name and the error text contains
+     * {@code validationErrorSubstring}.
      *
-     * <p>For NiFi 2.5.0, {@code invalidCount == 1} caused by the known
-     * {@code PutS3Object} sensitive-properties issue is silently accepted.
+     * <p>Matching on a substring (rather than the full error text) keeps the entry robust to NiFi's
+     * verbose, slightly version-dependent wording; pick a stable anchor such as a controller-service
+     * id or a distinctive phrase.
      *
-     * @param pgId        process group id
-     * @param nifiVersion NiFi version string (e.g. {@code "2.5.0"})
+     * @param processorName            component name as reported in the flow's {@code processors}
+     * @param validationErrorSubstring substring every validation error of that processor must contain
      */
-    public void waitForPgValidation(final String pgId, final String nifiVersion)
+    public record IgnoredValidationError(String processorName, String validationErrorSubstring) { }
+
+    /**
+     * Holds an invalid processor's name and its reported validation errors, so the same data can
+     * feed both the human-readable log message and the ignored-error matching.
+     *
+     * @param name   invalid processor's component name
+     * @param errors validation error texts reported for that processor
+     */
+    private record InvalidProcessor(String name, List<String> errors) { }
+
+    /**
+     * Waits (up to 45 s) for the process group to have no invalid components, then asserts none
+     * remain. Equivalent to {@link #waitForPgValidation(String, Collection)} with no tolerated
+     * errors.
+     *
+     * @param pgId process group id
+     */
+    public void waitForPgValidation(final String pgId) throws IOException, InterruptedException {
+        waitForPgValidation(pgId, List.of());
+    }
+
+    /**
+     * Waits (up to 45 s) for the process group to have no invalid components other than the ones in
+     * {@code ignored}, then asserts none remain. An invalid processor counts as tolerated only when
+     * every one of its validation errors matches an {@link IgnoredValidationError}; any non-matching
+     * error still fails the check.
+     *
+     * @param pgId    process group id
+     * @param ignored validation errors to tolerate (never {@code null}; an empty collection requires
+     *                a fully valid process group)
+     */
+    public void waitForPgValidation(final String pgId, final Collection<IgnoredValidationError> ignored)
             throws IOException, InterruptedException {
-        LOG.info("Waiting for PG {} invalidCount to reach 0", pgId);
+        LOG.info("Waiting for PG {} to have no non-ignored invalid components", pgId);
         try {
+            // Poll the same per-component validation view the assertion below uses. NiFi's PG-level
+            // invalidCount and the per-component validationStatus are eventually consistent but can
+            // briefly disagree right after import, so relying on invalidCount here would let the
+            // wait return before the per-component view has settled.
             Awaitility.await()
                     .atMost(45, TimeUnit.SECONDS)
-                    .until(() -> {
-                        int count = getProcessGroupById(pgId).path("invalidCount").asInt();
-                        // For NiFi 2.5.0, invalidCount=1 (PutS3Object known issue) is also terminal
-                        return count == 0 || ("2.5.0".equals(nifiVersion) && count == 1);
-                    });
+                    .until(() -> countNonIgnored(collectInvalidProcessors(pgId), ignored) == 0);
         } catch (ConditionTimeoutException e) {
             //catch timeout and print validation messages for debug:
             try {
-                StringBuilder validationErrorsMessage = getValidationErrorsMessage(pgId);
+                String validationErrorsMessage = buildValidationErrorsMessage(collectInvalidProcessors(pgId));
                 LOG.warn("Timeout on waiting for invalidCount to reach 0. Validation errors = {}",
                         validationErrorsMessage);
             } catch (IOException | InterruptedException ex) {
@@ -386,35 +421,50 @@ public class NifiFlowApiClient {
             throw e;
         }
 
-        JsonNode pgJson = getProcessGroupById(pgId);
-        int invalidCount = pgJson.path("invalidCount").asInt();
-        if (invalidCount == 0) {
-            LOG.info("PG {} has no invalid components", pgId);
+        List<InvalidProcessor> invalidProcessors = collectInvalidProcessors(pgId);
+        long nonIgnored = countNonIgnored(invalidProcessors, ignored);
+        if (nonIgnored == 0) {
+            if (invalidProcessors.isEmpty()) {
+                LOG.info("PG {} has no invalid components", pgId);
+            } else {
+                LOG.warn("PG {} has only ignored invalid components: {}", pgId,
+                        buildValidationErrorsMessage(invalidProcessors));
+            }
             return;
         }
-
-        // invalidCount > 0 — gather details and check for known exceptions
-        StringBuilder validationErrorsMessage = getValidationErrorsMessage(pgId);
-        if ("2.5.0".equals(nifiVersion)
-                && invalidCount == 1
-                && !validationErrorsMessage.isEmpty()
-                && validationErrorsMessage.toString().contains(
-                        "Processor name = PutS3Object. Validation errors: "
-                        + "['Component' is invalid because Sensitive Dynamic Properties [Access Key, "
-                        + "proxy-user-password, Secret Key] configured but not supported,].")) {
-            LOG.warn("Invalid PutS3Object processor in 2.5.0, skipping. Validation errors = {}",
-                    validationErrorsMessage);
-            return;
-        }
-        assertEquals(0, invalidCount, "Created PG must not have invalid components. "
-                + "Validation errors: " + validationErrorsMessage);
+        assertEquals(0L, nonIgnored, "Created PG must not have non-ignored invalid components. "
+                + "Validation errors: " + buildValidationErrorsMessage(invalidProcessors));
     }
 
-    private @NotNull StringBuilder getValidationErrorsMessage(String pgId) throws IOException, InterruptedException {
-        StringBuilder validationErrorsMessage = new StringBuilder();
+    private static long countNonIgnored(final List<InvalidProcessor> invalidProcessors,
+                                        final Collection<IgnoredValidationError> ignored) {
+        return invalidProcessors.stream()
+                .filter(processor -> !isFullyIgnored(processor, ignored))
+                .count();
+    }
+
+    private static boolean isFullyIgnored(final InvalidProcessor processor,
+                                          final Collection<IgnoredValidationError> ignored) {
+        if (processor.errors().isEmpty()) {
+            return false;
+        }
+        for (String error : processor.errors()) {
+            boolean matched = ignored.stream().anyMatch(entry ->
+                    entry.processorName().equals(processor.name())
+                            && error.contains(entry.validationErrorSubstring()));
+            if (!matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<InvalidProcessor> collectInvalidProcessors(final String pgId)
+            throws IOException, InterruptedException {
+        List<InvalidProcessor> invalidProcessors = new ArrayList<>();
         JsonNode mainPgFlow = getProcessGroupFlowById(pgId);
         LOG.info("Processing processors validation errors for PG with id = {}", pgId);
-        addValidationErrorsForPg(mainPgFlow, validationErrorsMessage);
+        addInvalidProcessors(mainPgFlow, invalidProcessors);
         JsonNode childPgsNode = mainPgFlow.path("processGroupFlow").path("flow").path("processGroups");
         if (childPgsNode.isArray()) {
             for (JsonNode childPg : (ArrayNode) childPgsNode) {
@@ -423,15 +473,15 @@ public class NifiFlowApiClient {
                 LOG.info("Child PG with id = {} has invalidCount = {}", childPgId, childInvalidCount);
                 if (childInvalidCount > 0) {
                     LOG.info("Processing processors validation errors for child PG with id = {}", childPgId);
-                    addValidationErrorsForPg(getProcessGroupFlowById(childPgId), validationErrorsMessage);
+                    addInvalidProcessors(getProcessGroupFlowById(childPgId), invalidProcessors);
                 }
             }
         }
-        return validationErrorsMessage;
+        return invalidProcessors;
     }
 
-    private static void addValidationErrorsForPg(final JsonNode getResponseJson,
-                                                  final StringBuilder validationErrorsMessage) {
+    private static void addInvalidProcessors(final JsonNode getResponseJson,
+                                             final List<InvalidProcessor> invalidProcessors) {
         JsonNode processorsNode = getResponseJson.path("processGroupFlow").path("flow").path("processors");
         if (!processorsNode.isArray()) {
             return;
@@ -441,15 +491,27 @@ public class NifiFlowApiClient {
         for (JsonNode processorNode : (ArrayNode) processorsNode) {
             JsonNode component = processorNode.path("component");
             if ("INVALID".equals(component.path("validationStatus").asText())) {
-                validationErrorsMessage.append("Processor name = ")
-                        .append(component.path("name").asText())
-                        .append(". Validation errors: [");
+                List<String> errors = new ArrayList<>();
                 for (JsonNode validationError : (ArrayNode) component.path("validationErrors")) {
-                    validationErrorsMessage.append(validationError.asText()).append(",");
+                    errors.add(validationError.asText());
                 }
-                validationErrorsMessage.append("].");
+                invalidProcessors.add(new InvalidProcessor(component.path("name").asText(), errors));
             }
         }
+    }
+
+    private static String buildValidationErrorsMessage(final List<InvalidProcessor> invalidProcessors) {
+        StringBuilder validationErrorsMessage = new StringBuilder();
+        for (InvalidProcessor processor : invalidProcessors) {
+            validationErrorsMessage.append("Processor name = ")
+                    .append(processor.name())
+                    .append(". Validation errors: [");
+            for (String error : processor.errors()) {
+                validationErrorsMessage.append(error).append(",");
+            }
+            validationErrorsMessage.append("].");
+        }
+        return validationErrorsMessage.toString();
     }
 
     // -------------------------------------------------------------------------

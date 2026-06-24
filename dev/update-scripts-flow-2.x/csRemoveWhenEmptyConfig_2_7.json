@@ -1,0 +1,5 @@
+{
+  "org.apache.nifi.processors.aws.s3.encryption.StandardS3EncryptionService" : {
+    "Key ID or Key Material" : null
+  }
+}

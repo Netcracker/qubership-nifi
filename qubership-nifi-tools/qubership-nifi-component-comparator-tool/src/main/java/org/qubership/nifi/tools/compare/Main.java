@@ -79,6 +79,19 @@ public final class Main {
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
+            JsonMappingGenerator removeWhenEmptyJsonGenerator = new JsonMappingGenerator(
+                    outputDir, "NiFiTypeMappingRemoveWhenEmpty.json",
+                    Set.of("controllerService", "reportingTask"));
+            removeWhenEmptyJsonGenerator.generate(
+                    comparator.getTypeToDescriptorsToRemoveWhenEmpty(),
+                    comparator.getTypeToFolderMap());
+
+            JsonMappingGenerator processorRemoveWhenEmptyJsonGenerator = new JsonMappingGenerator(
+                    outputDir, "NiFiProcessorTypeMappingRemoveWhenEmpty.json", Set.of("processors"));
+            processorRemoveWhenEmptyJsonGenerator.generate(
+                    comparator.getTypeToDescriptorsToRemoveWhenEmpty(),
+                    comparator.getTypeToFolderMap());
+
             MarkdownReportGenerator mdGenerator = new MarkdownReportGenerator(outputDir);
             mdGenerator.generate(comparator.getCsvRecords());
 
@@ -86,6 +99,10 @@ public final class Main {
             LOGGER.info("CSV Report:           {}", csvGenerator.getOutputPath());
             LOGGER.info("JSON Report:          {}", jsonGenerator.getOutputPath());
             LOGGER.info("Processor JSON Report: {}", processorJsonGenerator.getOutputPath());
+            LOGGER.info("Remove-when-empty JSON Report:           {}",
+                    removeWhenEmptyJsonGenerator.getOutputPath());
+            LOGGER.info("Processor remove-when-empty JSON Report: {}",
+                    processorRemoveWhenEmptyJsonGenerator.getOutputPath());
             LOGGER.info("Markdown Report:      {}", mdGenerator.getOutputPath());
 
         } catch (IOException e) {

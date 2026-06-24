@@ -1,0 +1,17 @@
+{
+  "org.apache.nifi.reporting.SiteToSiteBulletinReportingTask" : {
+    "s2s-http-proxy-password" : null
+  },
+  "org.apache.nifi.reporting.SiteToSiteMetricsReportingTask" : {
+    "s2s-http-proxy-password" : null
+  },
+  "org.apache.nifi.reporting.sink.SiteToSiteReportingRecordSink" : {
+    "s2s-http-proxy-password" : null
+  },
+  "org.apache.nifi.reporting.SiteToSiteStatusReportingTask" : {
+    "s2s-http-proxy-password" : null
+  },
+  "org.apache.nifi.reporting.SiteToSiteProvenanceReportingTask" : {
+    "s2s-http-proxy-password" : null
+  }
+}

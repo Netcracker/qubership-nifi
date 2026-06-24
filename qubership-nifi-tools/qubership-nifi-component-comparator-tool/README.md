@@ -1,13 +1,17 @@
 # qubership-nifi-component-comparator-tool
 
 Command-line tool for comparing component properties from two different NiFi versions.
-The qubership-nifi-component-comparator-tool produces four files:
+The qubership-nifi-component-comparator-tool produces six files:
 
 - a CSV file containing detailed information about the comparison results.
 - a Markdown file containing detailed information about the comparison results.
 - a JSON file (`NiFiTypeMapping.json`) used later when updating Controller Services and Reporting Task
   exports.
 - a JSON file (`NiFiProcessorTypeMapping.json`) used later when updating Processor exports.
+- a JSON file (`NiFiTypeMappingRemoveWhenEmpty.json`) listing Controller Service and Reporting Task
+  descriptors to remove when their property is empty.
+- a JSON file (`NiFiProcessorTypeMappingRemoveWhenEmpty.json`) listing Processor descriptors to remove
+  when their property is empty.
 
 ## Prerequisites
 
@@ -40,6 +44,8 @@ mvn exec:java \
   NiFiComponentsDelta.csv
   NiFiTypeMapping.json
   NiFiProcessorTypeMapping.json
+  NiFiTypeMappingRemoveWhenEmpty.json
+  NiFiProcessorTypeMappingRemoveWhenEmpty.json
   NiFiComponentsDelta.md
 ```
 
@@ -54,6 +60,23 @@ Both share the same shape, `{ componentType: { oldApiName: newApiName | null } }
 its old API name to the new one, and a deleted property maps its API name to `null`. Deletions are recorded
 only when the property is listed in the dictionary's `propertiesAllowedToDelete` section for its component
 type; renames are always recorded.
+
+## Remove-when-empty mappings
+
+Some sensitive properties have complicated migration logic that Apache NiFi handles itself when the
+property carries a value, so the dictionary deliberately omits them from the rename and deletion mappings.
+When such a property is left unset, its value is absent from the export but its descriptor remains, and the
+orphaned sensitive descriptor breaks the import. To cover that case, the tool emits two more files:
+
+- `NiFiTypeMappingRemoveWhenEmpty.json` covers controller services and reporting tasks.
+- `NiFiProcessorTypeMappingRemoveWhenEmpty.json` covers processors.
+
+Both share the shape `{ componentType: { apiName: null } }`. An entry marks a descriptor that the upgrade
+script must remove only when the matching property is empty. A property is recorded here only when it is
+deleted in the target version and listed in the dictionary's `propertiesToRemoveWhenEmpty` section
+for its component type. The two sections are mutually exclusive: list a property under
+`propertiesAllowedToDelete` for an unconditional delete, or under `propertiesToRemoveWhenEmpty`
+for a conditional one, not both.
 
 ## Controller service references
 
