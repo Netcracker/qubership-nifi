@@ -1,4 +1,4 @@
-# Linter hook (checkstyle + codespell + editorconfig + markdownlint)
+# Linter hook (checkstyle + codespell + editorconfig-checker + markdownlint)
 
 A Claude Code [`PostToolUse`](https://docs.claude.com/en/docs/claude-code/hooks) hook that
 lints each file right after Claude writes or edits it, so lint problems are caught locally
@@ -15,7 +15,7 @@ codespell, checkstyle, and markdownlint reuse the consumer repository's existing
 `.github/linters/.markdownlint.json` (the same rules CI, `maven-checkstyle-plugin`,
 and the super-linter use). editorconfig-checker reads the formatting rules from the root
 `.editorconfig`; it has no tool config of its own (`.editorconfig-checker.json` / `.ecrc`)
-in the repo, so it runs with default settings, the same as CI.
+in the repository, so it runs with default settings, the same as CI.
 
 Test fixtures (`*/test/resources/*`) and APM agent content (`skills`/`rules`/`commands`
 under `.claude`/`.cursor`/`.agents`) are skipped, mirroring the `FILTER_REGEX_EXCLUDE`
@@ -26,7 +26,7 @@ It never hard-blocks your edits.
 
 ## Wiring
 
-This hook is declared in `lint-changed-file.json` next to this README and deployed by
+This hook is declared in `lint-changed-file.json` next to this `README.md` and deployed by
 `apm install` / `apm compile`. The command is anchored to `${PLUGIN_ROOT}`, which APM
 rewrites to the installed package root, so the script resolves from any working directory:
 
@@ -53,7 +53,7 @@ package and re-run `apm install` instead.
 ## Finding the consumer repository root
 
 The linter configs live in the **consumer** repository, not in this package, so the script
-discovers the repo root at runtime rather than from its own deployed path, in this order:
+discovers the repository root at runtime rather than from its own deployed path, in this order:
 
 1. `CLAUDE_PROJECT_DIR` if set (Claude Code sets it);
 2. the current working directory, if it already contains `.github/`;

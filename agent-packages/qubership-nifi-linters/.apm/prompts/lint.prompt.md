@@ -14,7 +14,7 @@ Treat `$ARGUMENTS` as a module directory path relative to the repository root. R
 command **from the repository root** so the linter configs' relative paths resolve.
 codespell, checkstyle, and markdownlint reuse the configs under `.github/linters/`;
 editorconfig-checker reads the formatting rules from the root `.editorconfig` and runs
-with default settings (the repo has no `.editorconfig-checker.json`). These are the same
+with default settings (the repository has no `.editorconfig-checker.json`). These are the same
 rules CI enforces.
 
 Every command excludes Maven build output (`target/`), test fixtures
@@ -79,7 +79,7 @@ editorconfig-checker -exclude 'target/|/test/resources/|/\.(cursor|claude|agents
 ```
 
 editorconfig-checker reads the formatting rules from the root `.editorconfig`. With no
-`-config` flag it runs with default tool settings -- the repo has no
+`-config` flag it runs with default tool settings -- the repository has no
 `.editorconfig-checker.json` -- the same as CI. `-exclude` adds the build-output,
 test-fixture, and APM agent content filters on top of the tool's built-in excludes. If
 `editorconfig-checker` is not on `PATH`, print a one-line note and skip this step (do not
