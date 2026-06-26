@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Claude Code PostToolUse hook: lint the file that was just written/edited.
 
-Runs codespell on every changed file, checkstyle on changed .java files, and
-markdownlint on changed .md files, reusing the project's existing linter configs
-under .github/linters/.
+Runs codespell and editorconfig-checker on every changed file, checkstyle on
+changed .java files, and markdownlint on changed .md files. codespell, checkstyle,
+and markdownlint reuse the project's existing configs under .github/linters/;
+editorconfig-checker reads the formatting rules from the root .editorconfig and runs with
+default settings (the repo has no .editorconfig-checker.json), the same as CI. Test
+fixtures and APM agent content (skills/rules/commands) are skipped, mirroring the
+FILTER_REGEX_EXCLUDE filter in .github/super-linter.env.
 
 On findings the hook prints a summary to stderr and exits 2 so Claude Code
-feeds the output back to Claude. Missing tools (codespell / java / the
-checkstyle jar / a markdownlint CLI) are reported as a note and skipped -- they
-never block edits.
+feeds the output back to Claude. Missing tools (codespell / editorconfig-checker /
+java / the checkstyle jar / a markdownlint CLI) are reported as a note and skipped
+-- they never block edits.
 
 The checkstyle jar is NOT downloaded automatically: set the CHECKSTYLE_JAR
 environment variable to a locally-downloaded checkstyle-*-all.jar. markdownlint
@@ -19,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +34,14 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 CODESPELL_CONFIG = REPO_ROOT / ".github" / "linters" / ".codespellrc"
 CHECKSTYLE_CONFIG = REPO_ROOT / ".github" / "linters" / "sun_checks.xml"
 MARKDOWNLINT_CONFIG = REPO_ROOT / ".github" / "linters" / ".markdownlint.json"
+
+# Mirrors FILTER_REGEX_EXCLUDE in .github/super-linter.env: skip test fixtures and
+# APM agent content (skills/rules/commands). Hooks are intentionally left in scope.
+# Matched against the absolute POSIX path so the leading ".*/" also catches
+# repo-root content such as ".claude/skills/...".
+EXCLUDE_PATTERN = re.compile(
+    r"^(.+/test/resources/.*|.*/\.(cursor|claude|agents)/(skills|rules|commands)/.*)$"
+)
 
 
 def note(message: str) -> None:
@@ -74,6 +87,29 @@ def run_codespell(file_path: Path) -> str | None:
         return None
     # codespell exits non-zero when it finds misspellings; output is on stdout.
     output = (result.stdout or "").strip()
+    return output or None
+
+
+def run_editorconfig_checker(file_path: Path) -> str | None:
+    """Return editorconfig-checker violations if any, else None. Runs on every file.
+
+    Reads the formatting rules from the repository's root .editorconfig and runs with
+    default tool settings (no -config flag; the repo has no .editorconfig-checker.json),
+    the same as CI's super-linter.
+    """
+    if shutil.which("editorconfig-checker") is None:
+        note("editorconfig-checker skipped: not on PATH (see https://editorconfig-checker.github.io)")
+        return None
+    cmd = ["editorconfig-checker", str(file_path)]
+    try:
+        result = subprocess.run(
+            cmd, cwd=REPO_ROOT, capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        note(f"editorconfig-checker skipped: failed to run ({exc})")
+        return None
+    # editorconfig-checker exits non-zero on violations and prints them to stdout.
+    output = ((result.stdout or "") + (result.stderr or "")).strip()
     return output or None
 
 
@@ -166,6 +202,10 @@ def main() -> int:
     except ValueError:
         return 0
 
+    # Skip test fixtures and APM agent content, mirroring CI's super-linter filter.
+    if EXCLUDE_PATTERN.match(file_path.as_posix()):
+        return 0
+
     findings: list[str] = []
 
     codespell_out = None
@@ -175,6 +215,14 @@ def main() -> int:
         note(f"codespell skipped: unexpected error ({exc})")
     if codespell_out:
         findings.append(f"codespell:\n{codespell_out}")
+
+    editorconfig_out = None
+    try:
+        editorconfig_out = run_editorconfig_checker(file_path)
+    except Exception as exc:
+        note(f"editorconfig-checker skipped: unexpected error ({exc})")
+    if editorconfig_out:
+        findings.append(f"editorconfig-checker:\n{editorconfig_out}")
 
     if file_path.suffix == ".java":
         checkstyle_out = None

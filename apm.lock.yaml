@@ -1,34 +1,106 @@
 lockfile_version: '1'
-generated_at: '2026-06-08T18:50:39.073612+00:00'
-apm_version: 0.18.0
+generated_at: '2026-06-26T12:30:11.002374+00:00'
+apm_version: 0.22.0
 dependencies:
 - repo_url: Netcracker/qubership-workflow-hub
+  name: qubership-workflow-hub-usage
   host: github.com
   resolved_commit: 20aa408fa385ba72417bd4345e2c9c5b4d7049d9
   resolved_ref: 20aa408fa385ba72417bd4345e2c9c5b4d7049d9
+  version: 1.0.0
   virtual_path: agent-packages/qubership-workflow-hub-usage
   is_virtual: true
   package_type: apm_package
   deployed_files:
   - .agents/skills/qubership-actions-guide
+  - .agents/skills/qubership-actions-guide/SKILL.md
+  - .agents/skills/qubership-actions-guide/cla.md
+  - .agents/skills/qubership-actions-guide/cleanup.md
+  - .agents/skills/qubership-actions-guide/docker.md
+  - .agents/skills/qubership-actions-guide/helm.md
+  - .agents/skills/qubership-actions-guide/maven.md
+  - .agents/skills/qubership-actions-guide/pr.md
+  - .agents/skills/qubership-actions-guide/release.md
+  - .agents/skills/qubership-actions-guide/security.md
+  - .agents/skills/qubership-actions-guide/utilities.md
   - .agents/skills/qubership-templates-guide
+  - .agents/skills/qubership-templates-guide/SKILL.md
   - .agents/skills/qubership-workflow-conventions
+  - .agents/skills/qubership-workflow-conventions/SKILL.md
+  - .agents/skills/qubership-workflow-conventions/debugging-playbook.md
+  - .agents/skills/qubership-workflow-conventions/security-model.md
+  - .agents/skills/qubership-workflow-conventions/workflow-patterns.md
+  - .agents/skills/qubership-workflow-conventions/zizmor-rules.md
   - .claude/rules/qubership-workflow-hub-usage.md
   - .claude/skills/qubership-actions-guide
+  - .claude/skills/qubership-actions-guide/SKILL.md
+  - .claude/skills/qubership-actions-guide/cla.md
+  - .claude/skills/qubership-actions-guide/cleanup.md
+  - .claude/skills/qubership-actions-guide/docker.md
+  - .claude/skills/qubership-actions-guide/helm.md
+  - .claude/skills/qubership-actions-guide/maven.md
+  - .claude/skills/qubership-actions-guide/pr.md
+  - .claude/skills/qubership-actions-guide/release.md
+  - .claude/skills/qubership-actions-guide/security.md
+  - .claude/skills/qubership-actions-guide/utilities.md
   - .claude/skills/qubership-templates-guide
+  - .claude/skills/qubership-templates-guide/SKILL.md
   - .claude/skills/qubership-workflow-conventions
+  - .claude/skills/qubership-workflow-conventions/SKILL.md
+  - .claude/skills/qubership-workflow-conventions/debugging-playbook.md
+  - .claude/skills/qubership-workflow-conventions/security-model.md
+  - .claude/skills/qubership-workflow-conventions/workflow-patterns.md
+  - .claude/skills/qubership-workflow-conventions/zizmor-rules.md
   - .cursor/rules/qubership-workflow-hub-usage.mdc
+  - .github/instructions/qubership-workflow-hub-usage.instructions.md
   deployed_file_hashes:
-    .claude/rules/qubership-workflow-hub-usage.md: sha256:b1605dcfd8afc0a1b656b6a7de9321a974057d96fec0461e5d16115e728b8e0c
-    .cursor/rules/qubership-workflow-hub-usage.mdc: sha256:b0bd8c88d74d5df5913b9eb990cb3809ffe2c04d9027c212cf1b3c1713dad5d8
+    .agents/skills/qubership-actions-guide/SKILL.md: sha256:627a5195b6508a21f5e06cd161698d213236f8e055382d0dfeca5d60c06d6dc6
+    .agents/skills/qubership-actions-guide/cla.md: sha256:8a1e577ed449e90cc9e1026d65e09ff6df9f8482ab0d3b4247dbe66c6d6c59ae
+    .agents/skills/qubership-actions-guide/cleanup.md: sha256:aa8ba46d37aec6ae140b05021170cebd079a38cd047bd990b273623f90386d5a
+    .agents/skills/qubership-actions-guide/docker.md: sha256:d55990512d51790d52d311c8afb337b1c1ceba00bd259f1a5dfbd088fea84ee0
+    .agents/skills/qubership-actions-guide/helm.md: sha256:bc6a047f25b7af0901463997f4cf993d86e93ca53ca5322bb343f207753d9001
+    .agents/skills/qubership-actions-guide/maven.md: sha256:e3b010af5ebc1e4292d22b5b493e03c3d1532f77c2662c6d7fd6cf16d9c0d17c
+    .agents/skills/qubership-actions-guide/pr.md: sha256:ea078c21a1b9c48b151db3a4e50fe878f596404d396f801b1119ced6b057bdcd
+    .agents/skills/qubership-actions-guide/release.md: sha256:c567391146041b1d3c1bdc3d50e3ec4027cc79ba1b125fd4ecb8f3af99cdd8bc
+    .agents/skills/qubership-actions-guide/security.md: sha256:e336d1a28fc2a5afcd34b3a307814c28c5c2b450c9180637c17b6335ea44b3e3
+    .agents/skills/qubership-actions-guide/utilities.md: sha256:9a94b30e419f4f3d845e4d1dc6601bc6aff18670680c36cb7ba1aa21738ae3c8
+    .agents/skills/qubership-templates-guide/SKILL.md: sha256:d6048e55952f5d9b0bc044917ed5900a75d8c360a44b3eb7d60b01b72edc3131
+    .agents/skills/qubership-workflow-conventions/SKILL.md: sha256:2b096034e38e056cd186d293b835fbc1e027cd02eae491cc868c617614072d16
+    .agents/skills/qubership-workflow-conventions/debugging-playbook.md: sha256:e4f64350cb736a3552101b67a0ecc0d005221ee10cd2d6e184d69b7aaa6e0c8d
+    .agents/skills/qubership-workflow-conventions/security-model.md: sha256:0c6bf6c7f5d66cd816722c7256d0770163473e5164e0eab10d6adb9c4df458c5
+    .agents/skills/qubership-workflow-conventions/workflow-patterns.md: sha256:3c1bec007706ee3c000c30b021690ccaa4714489051f8a375104874bd82354d2
+    .agents/skills/qubership-workflow-conventions/zizmor-rules.md: sha256:bd1158e9054db88057160dc0ccf6ef4be50e4cc3356d9bfd7280ca45579fa09a
+    .claude/rules/qubership-workflow-hub-usage.md: sha256:2265743ec65c358d2a339fd0795b7164a26cc5d63762d2d57b0e58897ff55361
+    .claude/skills/qubership-actions-guide/SKILL.md: sha256:627a5195b6508a21f5e06cd161698d213236f8e055382d0dfeca5d60c06d6dc6
+    .claude/skills/qubership-actions-guide/cla.md: sha256:8a1e577ed449e90cc9e1026d65e09ff6df9f8482ab0d3b4247dbe66c6d6c59ae
+    .claude/skills/qubership-actions-guide/cleanup.md: sha256:aa8ba46d37aec6ae140b05021170cebd079a38cd047bd990b273623f90386d5a
+    .claude/skills/qubership-actions-guide/docker.md: sha256:d55990512d51790d52d311c8afb337b1c1ceba00bd259f1a5dfbd088fea84ee0
+    .claude/skills/qubership-actions-guide/helm.md: sha256:bc6a047f25b7af0901463997f4cf993d86e93ca53ca5322bb343f207753d9001
+    .claude/skills/qubership-actions-guide/maven.md: sha256:e3b010af5ebc1e4292d22b5b493e03c3d1532f77c2662c6d7fd6cf16d9c0d17c
+    .claude/skills/qubership-actions-guide/pr.md: sha256:ea078c21a1b9c48b151db3a4e50fe878f596404d396f801b1119ced6b057bdcd
+    .claude/skills/qubership-actions-guide/release.md: sha256:c567391146041b1d3c1bdc3d50e3ec4027cc79ba1b125fd4ecb8f3af99cdd8bc
+    .claude/skills/qubership-actions-guide/security.md: sha256:e336d1a28fc2a5afcd34b3a307814c28c5c2b450c9180637c17b6335ea44b3e3
+    .claude/skills/qubership-actions-guide/utilities.md: sha256:9a94b30e419f4f3d845e4d1dc6601bc6aff18670680c36cb7ba1aa21738ae3c8
+    .claude/skills/qubership-templates-guide/SKILL.md: sha256:d6048e55952f5d9b0bc044917ed5900a75d8c360a44b3eb7d60b01b72edc3131
+    .claude/skills/qubership-workflow-conventions/SKILL.md: sha256:2b096034e38e056cd186d293b835fbc1e027cd02eae491cc868c617614072d16
+    .claude/skills/qubership-workflow-conventions/debugging-playbook.md: sha256:e4f64350cb736a3552101b67a0ecc0d005221ee10cd2d6e184d69b7aaa6e0c8d
+    .claude/skills/qubership-workflow-conventions/security-model.md: sha256:0c6bf6c7f5d66cd816722c7256d0770163473e5164e0eab10d6adb9c4df458c5
+    .claude/skills/qubership-workflow-conventions/workflow-patterns.md: sha256:3c1bec007706ee3c000c30b021690ccaa4714489051f8a375104874bd82354d2
+    .claude/skills/qubership-workflow-conventions/zizmor-rules.md: sha256:bd1158e9054db88057160dc0ccf6ef4be50e4cc3356d9bfd7280ca45579fa09a
+    .cursor/rules/qubership-workflow-hub-usage.mdc: sha256:500ce630e8ac4b0ece281e6671cc450164bafd76782f21efb80abd4c16c40bb9
+    .github/instructions/qubership-workflow-hub-usage.instructions.md: sha256:47eac4635e84c32f1add837a67655f1ed222fae0116fda1db7106466c846dbf2
   content_hash: sha256:4b8d413b93976992553ebd495a3cf18741cccf1b5f4691e77bfec75a756af000
 - repo_url: _local/qubership-nifi-linters
+  name: qubership-nifi-linters
+  version: 1.1.0
   package_type: apm_package
   deployed_files:
   - .claude/commands/lint.md
   - .cursor/commands/lint.md
+  - .github/prompts/lint.prompt.md
   deployed_file_hashes:
-    .claude/commands/lint.md: sha256:3e451f38bfcff9f3b5a9801b83b2ffea0b3082e271f15ddbd542712f0194a3af
-    .cursor/commands/lint.md: sha256:3e451f38bfcff9f3b5a9801b83b2ffea0b3082e271f15ddbd542712f0194a3af
+    .claude/commands/lint.md: sha256:0d61c982cbb29151fcb0c58140cfb68f1edce7140b3821cb19e6b313ef7cafb7
+    .cursor/commands/lint.md: sha256:0d61c982cbb29151fcb0c58140cfb68f1edce7140b3821cb19e6b313ef7cafb7
+    .github/prompts/lint.prompt.md: sha256:b0cc138a4f7ff91ece13883116ae9b3af49f5dc238c90858a59f8b9e6ab8dbd0
   source: local
   local_path: ./agent-packages/qubership-nifi-linters

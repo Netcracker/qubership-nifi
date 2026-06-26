@@ -1,17 +1,24 @@
-# Linter hook (checkstyle + codespell + markdownlint)
+# Linter hook (checkstyle + codespell + editorconfig + markdownlint)
 
 A Claude Code [`PostToolUse`](https://docs.claude.com/en/docs/claude-code/hooks) hook that
 lints each file right after Claude writes or edits it, so lint problems are caught locally
 instead of waiting for the CI `super-linter` workflow.
 
 - **codespell** runs on every changed file.
+- **editorconfig-checker** runs on every changed file.
 - **checkstyle** runs on changed `.java` files.
 - **markdownlint** runs on changed `.md` files.
 
-All reuse the project's existing configs:
+codespell, checkstyle, and markdownlint reuse the project's existing configs:
 `.github/linters/.codespellrc`, `.github/linters/sun_checks.xml`, and
 `.github/linters/.markdownlint.json` (the same rules CI, `maven-checkstyle-plugin`,
-and the super-linter use).
+and the super-linter use). editorconfig-checker reads the formatting rules from the root
+`.editorconfig`; it has no tool config of its own (`.editorconfig-checker.json` / `.ecrc`)
+in the repo, so it runs with default settings, the same as CI.
+
+Test fixtures (`*/test/resources/*`) and APM agent content (`skills`/`rules`/`commands`
+under `.claude`/`.cursor`/`.agents`) are skipped, mirroring the `FILTER_REGEX_EXCLUDE`
+filter in `.github/super-linter.env`. Hook scripts stay in scope.
 
 When a file has linting issues, the hook reports them back to Claude (so it can fix them).
 It never hard-blocks your edits.
@@ -43,13 +50,14 @@ in) so the hook resolves the script from any working directory, including a subd
 
 ## Prerequisites
 
-| Tool               | Needed for          | Install                                                                 |
-|--------------------|---------------------|-------------------------------------------------------------------------|
-| `python`           | running the hook    | already required for codespell                                          |
-| `codespell`        | spell checking      | `pip install codespell`                                                 |
-| `java` (JDK)       | running checkstyle  | any JDK on `PATH`                                                       |
-| checkstyle jar     | checkstyle rules    | download manually, see below                                            |
-| `markdownlint` CLI | linting `.md` files | `npm i -g markdownlint-cli2` (preferred) or `npm i -g markdownlint-cli` |
+| Tool                   | Needed for            | Install                                                                 |
+|------------------------|-----------------------|-------------------------------------------------------------------------|
+| `python`               | running the hook      | already required for codespell                                          |
+| `codespell`            | spell checking        | `pip install codespell`                                                 |
+| `editorconfig-checker` | `.editorconfig` rules | see <https://editorconfig-checker.github.io/>                           |
+| `java` (JDK)           | running checkstyle    | any JDK on `PATH`                                                       |
+| checkstyle jar         | checkstyle rules      | download manually, see below                                            |
+| `markdownlint` CLI     | linting `.md` files   | `npm i -g markdownlint-cli2` (preferred) or `npm i -g markdownlint-cli` |
 
 If any tool is missing the hook prints a one-line note and skips that linter - it
 will not block editing. With nothing installed, the hook is effectively a no-op.
@@ -71,7 +79,7 @@ Set it in your shell profile, for example:
 - `bash`/`zsh`: `export CHECKSTYLE_JAR=/path/to/checkstyle-13.2.0-all.jar`
 
 `CHECKSTYLE_JAR` may be absolute or relative to the repository root. When it is unset or
-points at a missing file, only `codespell` runs.
+points at a missing file, checkstyle is skipped; the other linters still run.
 
 ## How it works
 
