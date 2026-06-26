@@ -36,4 +36,6 @@ the [APM documentation](https://microsoft.github.io/apm/#install-apm) for instal
 - **adapt-nifi-flows-to-2-x**: This package provides skill to help adapt Apache NiFi flows to version 2.x. It includes
   scripts and templates to facilitate the migration process.
 - **qubership-nifi-linters**: This package provides the `/lint` command that runs codespell,
-  checkstyle and markdownlint against a module, reusing the repo's configs under `.github/linters/`.
+  checkstyle, markdownlint and editorconfig-checker against a module, reusing the repo's configs
+  under `.github/linters/`. It also installs a PostToolUse hook that lints each file as it is
+  written or edited.

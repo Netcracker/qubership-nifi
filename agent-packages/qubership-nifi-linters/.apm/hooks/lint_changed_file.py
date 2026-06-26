@@ -14,6 +14,13 @@ feeds the output back to Claude. Missing tools (codespell / editorconfig-checker
 java / the checkstyle jar / a markdownlint CLI) are reported as a note and skipped
 -- they never block edits.
 
+This script ships inside the qubership-nifi-linters APM package and is deployed via
+`apm install` (its command is anchored to ${PLUGIN_ROOT}). Because the deployed location
+is not fixed relative to the repository, the repo root is discovered at runtime rather than
+from the script's own path: CLAUDE_PROJECT_DIR if set, else the current working directory
+when it contains .github/, else `git rev-parse --show-toplevel`, else the working directory.
+The linter configs (.github/linters/*, root .editorconfig) are expected in the consumer repo.
+
 The checkstyle jar is NOT downloaded automatically: set the CHECKSTYLE_JAR
 environment variable to a locally-downloaded checkstyle-*-all.jar. markdownlint
 requires Node plus markdownlint-cli2 (preferred) or markdownlint-cli. See README.md.
@@ -29,8 +36,34 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Repo root = three levels up from .claude/hooks/linters-hook/lint_changed_file.py
-REPO_ROOT = Path(__file__).resolve().parents[3]
+
+def find_repo_root() -> Path:
+    """Locate the consumer repository root, independent of this script's location.
+
+    Order: CLAUDE_PROJECT_DIR env var (set by Claude Code); else the current working
+    directory if it already contains .github/; else `git rev-parse --show-toplevel`;
+    else the current working directory as a last resort.
+    """
+    env_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    if env_dir:
+        return Path(env_dir).resolve()
+    cwd = Path.cwd()
+    if (cwd / ".github").is_dir():
+        return cwd
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=cwd, capture_output=True, text=True, check=False,
+        )
+        top = (result.stdout or "").strip()
+        if result.returncode == 0 and top:
+            return Path(top).resolve()
+    except OSError:
+        pass
+    return cwd
+
+
+REPO_ROOT = find_repo_root()
 CODESPELL_CONFIG = REPO_ROOT / ".github" / "linters" / ".codespellrc"
 CHECKSTYLE_CONFIG = REPO_ROOT / ".github" / "linters" / "sun_checks.xml"
 MARKDOWNLINT_CONFIG = REPO_ROOT / ".github" / "linters" / ".markdownlint.json"

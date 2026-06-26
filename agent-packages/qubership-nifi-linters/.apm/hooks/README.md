@@ -2,14 +2,15 @@
 
 A Claude Code [`PostToolUse`](https://docs.claude.com/en/docs/claude-code/hooks) hook that
 lints each file right after Claude writes or edits it, so lint problems are caught locally
-instead of waiting for the CI `super-linter` workflow.
+instead of waiting for the CI `super-linter` workflow. It ships as part of the
+`qubership-nifi-linters` APM package and is wired up by `apm install`.
 
 - **codespell** runs on every changed file.
 - **editorconfig-checker** runs on every changed file.
 - **checkstyle** runs on changed `.java` files.
 - **markdownlint** runs on changed `.md` files.
 
-codespell, checkstyle, and markdownlint reuse the project's existing configs:
+codespell, checkstyle, and markdownlint reuse the consumer repository's existing configs:
 `.github/linters/.codespellrc`, `.github/linters/sun_checks.xml`, and
 `.github/linters/.markdownlint.json` (the same rules CI, `maven-checkstyle-plugin`,
 and the super-linter use). editorconfig-checker reads the formatting rules from the root
@@ -25,28 +26,39 @@ It never hard-blocks your edits.
 
 ## Wiring
 
-Registered in `.claude/settings.json`:
+This hook is declared in `lint-changed-file.json` next to this README and deployed by
+`apm install` / `apm compile`. The command is anchored to `${PLUGIN_ROOT}`, which APM
+rewrites to the installed package root, so the script resolves from any working directory:
 
 ```json
 {
-    "hooks": {
-        "PostToolUse": [
-            {
-                "matcher": "Write|Edit",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/linters-hook/lint_changed_file.py\""
-                    }
-                ]
-            }
-        ]
-    }
+    "PostToolUse": [
+        {
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "python \"${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py\""
+                }
+            ]
+        }
+    ]
 }
 ```
 
-The script path is anchored to `$CLAUDE_PROJECT_DIR` (the directory Claude Code was started
-in) so the hook resolves the script from any working directory, including a subdirectory.
+Do not hand-edit the generated `.claude/settings.json` hook entry (or the Cursor / Codex
+equivalents) - APM owns it and tracks it in the `.claude/apm-hooks.json` sidecar. Edit this
+package and re-run `apm install` instead.
+
+## Finding the consumer repository root
+
+The linter configs live in the **consumer** repository, not in this package, so the script
+discovers the repo root at runtime rather than from its own deployed path, in this order:
+
+1. `CLAUDE_PROJECT_DIR` if set (Claude Code sets it);
+2. the current working directory, if it already contains `.github/`;
+3. `git rev-parse --show-toplevel`;
+4. the current working directory as a last resort.
 
 ## Prerequisites
 
@@ -88,8 +100,9 @@ and runs the linters from the repository root (so the configs' relative paths - 
 `SuppressionFilter` reference to `.github/linters/config/suppressions.xml` - resolve).
 On findings, it writes a summary to stderr and exits `2`; otherwise it exits `0` silently.
 
-Manual dry-run:
+Manual dry-run (from the consumer repository root):
 
 ```bash
-echo '{"tool_input":{"file_path":"path/to/File.java"}}' | python .claude/hooks/linters-hook/lint_changed_file.py
+echo '{"tool_input":{"file_path":"path/to/File.java"}}' \
+  | python apm_modules/_local/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
 ```
