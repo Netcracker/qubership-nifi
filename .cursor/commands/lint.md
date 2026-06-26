@@ -6,11 +6,11 @@ allowed-tools:
 - Grep
 - Glob
 argument-hint: <module-path>
-description: Run codespell, checkstyle, markdownlint and editorconfig-checker on a
-  module and fix the findings.
+description: Run codespell, checkstyle, markdownlint, editorconfig-checker and textlint
+  on a module and fix the findings.
 ---
 
-Lint the module `$ARGUMENTS` with the project's four linters, then fix every finding
+Lint the module `$ARGUMENTS` with the project's five linters, then fix every finding
 in the source.
 
 If `$ARGUMENTS` is empty, ask which module to lint (a directory path relative to the
@@ -18,9 +18,9 @@ repository root, e.g. `qubership-nifi-common`) and stop until the user answers.
 
 Treat `$ARGUMENTS` as a module directory path relative to the repository root. Run every
 command **from the repository root** so the linter configs' relative paths resolve.
-codespell, checkstyle, and markdownlint reuse the configs under `.github/linters/`;
+codespell, checkstyle, markdownlint, and textlint reuse the configs under `.github/linters/`;
 editorconfig-checker reads the formatting rules from the root `.editorconfig` and runs
-with default settings (the repo has no `.editorconfig-checker.json`). These are the same
+with default settings (the repository has no `.editorconfig-checker.json`). These are the same
 rules CI enforces.
 
 Every command excludes Maven build output (`target/`), test fixtures
@@ -85,16 +85,38 @@ editorconfig-checker -exclude 'target/|/test/resources/|/\.(cursor|claude|agents
 ```
 
 editorconfig-checker reads the formatting rules from the root `.editorconfig`. With no
-`-config` flag it runs with default tool settings -- the repo has no
+`-config` flag it runs with default tool settings -- the repository has no
 `.editorconfig-checker.json` -- the same as CI. `-exclude` adds the build-output,
 test-fixture, and APM agent content filters on top of the tool's built-in excludes. If
 `editorconfig-checker` is not on `PATH`, print a one-line note and skip this step (do not
 fail).
 
-## 6. Fix every finding by hand
+## 6. textlint: `.md` and `.txt` files in the module
+
+```bash
+npx textlint -f unix --config .github/linters/.textlintrc \
+  "$ARGUMENTS/**/*.md" "$ARGUMENTS/**/*.txt"
+```
+
+textlint reuses `.github/linters/.textlintrc` (the `terminology` rule, e.g. `id` -> `ID`,
+`github` -> `GitHub`), the same config CI's super-linter uses. Prefer the repository's local
+CLI (`node_modules/.bin/textlint`) via `npx textlint`; if textlint is not installed, print a
+one-line note and skip this step (do not fail).
+
+If the module has no `.md` or `.txt` files, textlint exits non-zero with
+`Not found target files` -- treat that as "nothing to lint" and move on, it is not a
+failure.
+
+textlint does **not** support `!`-negation in CLI glob arguments; it reads exclusions from a
+`.textlintignore` file (pass one with `--ignore-path` if needed). If a finding lands in build
+output (`target/`), a test fixture (`*/test/resources/*`), or APM agent content
+(`skills`/`rules`/`commands` under `.claude`/`.cursor`/`.agents`), ignore it -- CI does not
+lint those paths.
+
+## 7. Fix every finding by hand
 
 Use `Read` and `Edit`, not auto-fixers (no `codespell --write-changes`, no
-`markdownlint --fix`). Fix the source, not the rules.
+`markdownlint --fix`, no `textlint --fix`). Fix the source, not the rules.
 
 - **codespell**: correct the flagged spelling in the source.
 - **markdownlint**: fix per the rule ID (line length, list indent, heading spacing, and
@@ -103,21 +125,24 @@ Use `Read` and `Edit`, not auto-fixers (no `codespell --write-changes`, no
   on).
 - **editorconfig-checker**: fix per the `.editorconfig` rule (charset, final newline,
   trailing whitespace, indent style, and so on).
+- **textlint**: correct the flagged term in the source per the suggested replacement (e.g.
+  `id` -> `ID`).
 
 **Never modify the linter configs** to silence a finding, leave `.codespellrc`,
-`.markdownlint.json`, `sun_checks.xml`, `suppressions.xml`, and `.editorconfig` untouched.
+`.markdownlint.json`, `sun_checks.xml`, `suppressions.xml`, `.textlintrc`, and `.editorconfig`
+untouched.
 
 If a finding looks legitimate or deliberate, such as a real domain term codespell flags,
 or a checkstyle violation that is an intentional exception, do not silence it in a config and
 do not force an unwanted source change. Leave it as is and report it to the user with the
 file, line, and why it appears intentional, so they can decide.
 
-## 7. Re-run and confirm clean
+## 8. Re-run and confirm clean
 
 Re-run each linter that reported issues. Repeat the fix/re-run loop until no findings
 remain, except for any you have deliberately left for the user to decide.
 
-## 8. Summarize
+## 9. Summarize
 
 Report, per linter:
 

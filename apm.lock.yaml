@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-06-26T13:01:14.524194+00:00'
+generated_at: '2026-06-26T14:38:17.570344+00:00'
 apm_version: 0.22.0
 dependencies:
 - repo_url: Netcracker/qubership-workflow-hub
@@ -102,11 +102,11 @@ dependencies:
   - .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
   - .github/prompts/lint.prompt.md
   deployed_file_hashes:
-    .claude/commands/lint.md: sha256:0d61c982cbb29151fcb0c58140cfb68f1edce7140b3821cb19e6b313ef7cafb7
-    .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:8c458e5d7b6f0bd9873483681992a35c284dba5ea506b928a44361574a9cf99d
-    .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:8c458e5d7b6f0bd9873483681992a35c284dba5ea506b928a44361574a9cf99d
-    .cursor/commands/lint.md: sha256:0d61c982cbb29151fcb0c58140cfb68f1edce7140b3821cb19e6b313ef7cafb7
-    .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:8c458e5d7b6f0bd9873483681992a35c284dba5ea506b928a44361574a9cf99d
+    .claude/commands/lint.md: sha256:2941d94239dff43a020d3829c042cbbc6a72fb2ebe3c0aea3059f7973a9e0549
+    .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
+    .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
+    .cursor/commands/lint.md: sha256:2941d94239dff43a020d3829c042cbbc6a72fb2ebe3c0aea3059f7973a9e0549
+    .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
     .github/prompts/lint.prompt.md: sha256:b0cc138a4f7ff91ece13883116ae9b3af49f5dc238c90858a59f8b9e6ab8dbd0
   source: local
   local_path: ./agent-packages/qubership-nifi-linters

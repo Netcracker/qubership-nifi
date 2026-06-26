@@ -1,4 +1,4 @@
 name: qubership-nifi-linters
 version: 1.1.0
-description: Lint qubership-nifi modules and changed files with codespell, checkstyle, markdownlint and editorconfig-checker, then fix the findings. Includes a PostToolUse hook that lints each file on write/edit.
+description: Lint qubership-nifi modules and changed files with codespell, checkstyle, markdownlint, editorconfig-checker and textlint, then fix the findings. Includes a PostToolUse hook that lints each file on write/edit.
 author: Qubership

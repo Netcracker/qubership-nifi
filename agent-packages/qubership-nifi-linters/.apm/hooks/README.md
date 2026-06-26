@@ -1,4 +1,4 @@
-# Linter hook (checkstyle + codespell + editorconfig-checker + markdownlint)
+# Linter hook (checkstyle + codespell + editorconfig-checker + markdownlint + textlint)
 
 A Claude Code [`PostToolUse`](https://docs.claude.com/en/docs/claude-code/hooks) hook that
 lints each file right after Claude writes or edits it, so lint problems are caught locally
@@ -9,11 +9,13 @@ instead of waiting for the CI `super-linter` workflow. It ships as part of the
 - **editorconfig-checker** runs on every changed file.
 - **checkstyle** runs on changed `.java` files.
 - **markdownlint** runs on changed `.md` files.
+- **textlint** runs on changed `.md` and `.txt` files.
 
-codespell, checkstyle, and markdownlint reuse the consumer repository's existing configs:
-`.github/linters/.codespellrc`, `.github/linters/sun_checks.xml`, and
-`.github/linters/.markdownlint.json` (the same rules CI, `maven-checkstyle-plugin`,
-and the super-linter use). editorconfig-checker reads the formatting rules from the root
+codespell, checkstyle, markdownlint, and textlint reuse the consumer repository's existing
+configs: `.github/linters/.codespellrc`, `.github/linters/sun_checks.xml`,
+`.github/linters/.markdownlint.json`, and `.github/linters/.textlintrc` (the same rules CI,
+`maven-checkstyle-plugin`, and the super-linter use). editorconfig-checker reads the
+formatting rules from the root
 `.editorconfig`; it has no tool config of its own (`.editorconfig-checker.json` / `.ecrc`)
 in the repository, so it runs with default settings, the same as CI.
 
@@ -70,12 +72,17 @@ discovers the repository root at runtime rather than from its own deployed path,
 | `java` (JDK)           | running checkstyle    | any JDK on `PATH`                                                       |
 | checkstyle jar         | checkstyle rules      | download manually, see below                                            |
 | `markdownlint` CLI     | linting `.md` files   | `npm i -g markdownlint-cli2` (preferred) or `npm i -g markdownlint-cli` |
+| `textlint`             | linting `.md`/`.txt`  | local `node_modules` devDependency (preferred) or `npm i -g textlint`   |
 
 If any tool is missing the hook prints a one-line note and skips that linter - it
 will not block editing. With nothing installed, the hook is effectively a no-op.
 
 The markdownlint step auto-detects the CLI, preferring `markdownlint-cli2` (what CI's
 super-linter uses) and falling back to `markdownlint` (markdownlint-cli). Both need Node.
+
+The textlint step prefers the repository's local `node_modules/.bin/textlint` (textlint is
+a project devDependency) and falls back to a globally-installed `textlint` on `PATH`. It
+needs Node and reuses `.github/linters/.textlintrc` (the `terminology` rule).
 
 ## Checkstyle jar (`CHECKSTYLE_JAR`)
 

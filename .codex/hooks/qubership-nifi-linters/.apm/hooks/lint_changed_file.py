@@ -2,17 +2,18 @@
 """Claude Code PostToolUse hook: lint the file that was just written/edited.
 
 Runs codespell and editorconfig-checker on every changed file, checkstyle on
-changed .java files, and markdownlint on changed .md files. codespell, checkstyle,
-and markdownlint reuse the project's existing configs under .github/linters/;
-editorconfig-checker reads the formatting rules from the root .editorconfig and runs with
-default settings (the repo has no .editorconfig-checker.json), the same as CI. Test
-fixtures and APM agent content (skills/rules/commands) are skipped, mirroring the
-FILTER_REGEX_EXCLUDE filter in .github/super-linter.env.
+changed .java files, and markdownlint plus textlint on changed .md files (textlint
+also runs on .txt files). codespell, checkstyle, markdownlint, and textlint reuse the
+project's existing configs under .github/linters/; editorconfig-checker reads the
+formatting rules from the root .editorconfig and runs with default settings (the repo has
+no .editorconfig-checker.json), the same as CI. Test fixtures and APM agent content
+(skills/rules/commands) are skipped, mirroring the FILTER_REGEX_EXCLUDE filter in
+.github/super-linter.env.
 
 On findings the hook prints a summary to stderr and exits 2 so Claude Code
 feeds the output back to Claude. Missing tools (codespell / editorconfig-checker /
-java / the checkstyle jar / a markdownlint CLI) are reported as a note and skipped
--- they never block edits.
+java / the checkstyle jar / a markdownlint CLI / textlint) are reported as a note and
+skipped -- they never block edits.
 
 This script ships inside the qubership-nifi-linters APM package and is deployed via
 `apm install` (its command is anchored to ${PLUGIN_ROOT}). Because the deployed location
@@ -23,7 +24,8 @@ The linter configs (.github/linters/*, root .editorconfig) are expected in the c
 
 The checkstyle jar is NOT downloaded automatically: set the CHECKSTYLE_JAR
 environment variable to a locally-downloaded checkstyle-*-all.jar. markdownlint
-requires Node plus markdownlint-cli2 (preferred) or markdownlint-cli. See README.md.
+requires Node plus markdownlint-cli2 (preferred) or markdownlint-cli. textlint requires
+Node plus textlint, preferably the local node_modules devDependency. See README.md.
 """
 
 from __future__ import annotations
@@ -67,6 +69,7 @@ REPO_ROOT = find_repo_root()
 CODESPELL_CONFIG = REPO_ROOT / ".github" / "linters" / ".codespellrc"
 CHECKSTYLE_CONFIG = REPO_ROOT / ".github" / "linters" / "sun_checks.xml"
 MARKDOWNLINT_CONFIG = REPO_ROOT / ".github" / "linters" / ".markdownlint.json"
+TEXTLINT_CONFIG = REPO_ROOT / ".github" / "linters" / ".textlintrc"
 
 # Mirrors FILTER_REGEX_EXCLUDE in .github/super-linter.env: skip test fixtures and
 # APM agent content (skills/rules/commands). Hooks are intentionally left in scope.
@@ -225,6 +228,42 @@ def run_markdownlint(file_path: Path) -> str | None:
     return "\n".join(lines) if lines else None
 
 
+def find_textlint() -> str | None:
+    """Locate the textlint CLI, preferring the repo's local devDependency.
+
+    textlint is a local node_modules devDependency in this repo, so check
+    <repo>/node_modules/.bin first (via shutil.which so Windows .cmd/.ps1 PATHEXT
+    resolves), then fall back to a globally-installed textlint on PATH.
+    """
+    local_bin = REPO_ROOT / "node_modules" / ".bin"
+    return shutil.which("textlint", path=str(local_bin)) or shutil.which("textlint")
+
+
+def run_textlint(file_path: Path) -> str | None:
+    """Return textlint violations if any, else None. Only for .md and .txt files.
+
+    Reuses the repository's .github/linters/.textlintrc (the same config CI's
+    super-linter uses) and the unix formatter (file:line:col: message [rule]).
+    """
+    cli = find_textlint()
+    if cli is None:
+        note("textlint skipped: install it (`npm i -g textlint` or add it to node_modules)")
+        return None
+    # Pass the file with forward slashes: textlint globs this argument, and on
+    # Windows a backslash path is read as glob escapes and matches nothing.
+    cmd = [cli, "--config", str(TEXTLINT_CONFIG), "-f", "unix", file_path.as_posix()]
+    try:
+        result = subprocess.run(
+            cmd, cwd=REPO_ROOT, capture_output=True, text=True, check=False
+        )
+    except OSError as exc:
+        note(f"textlint skipped: failed to run ({exc})")
+        return None
+    # textlint exits non-zero on findings and prints them to stdout.
+    output = ((result.stdout or "") + (result.stderr or "")).strip()
+    return output or None
+
+
 def main() -> int:
     file_path = read_file_path()
     if file_path is None or not file_path.is_file():
@@ -274,6 +313,15 @@ def main() -> int:
             note(f"markdownlint skipped: unexpected error ({exc})")
         if markdownlint_out:
             findings.append(f"markdownlint:\n{markdownlint_out}")
+
+    if file_path.suffix in (".md", ".txt"):
+        textlint_out = None
+        try:
+            textlint_out = run_textlint(file_path)
+        except Exception as exc:
+            note(f"textlint skipped: unexpected error ({exc})")
+        if textlint_out:
+            findings.append(f"textlint:\n{textlint_out}")
 
     if findings:
         rel = file_path.relative_to(REPO_ROOT)
