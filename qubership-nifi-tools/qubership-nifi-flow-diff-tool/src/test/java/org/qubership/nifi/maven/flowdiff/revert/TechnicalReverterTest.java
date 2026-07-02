@@ -114,6 +114,29 @@ class TechnicalReverterTest {
     }
 
     @Test
+    void leavesEndpointInstanceIdentifierWhenEndpointIdChanged() {
+        FlowExport committed = flow("""
+                {"flowContents":{"identifier":"root","name":"R","componentType":"PROCESS_GROUP",
+                 "connections":[{"identifier":"c1","name":"","componentType":"CONNECTION",
+                  "source":{"id":"p1","type":"PROCESSOR","name":"A","instanceIdentifier":"src-c"},
+                  "destination":{"id":"d1","type":"PROCESSOR","name":"B","instanceIdentifier":"dst-c"}}]}}""");
+        FlowExport working = flow("""
+                {"flowContents":{"identifier":"root","name":"R","componentType":"PROCESS_GROUP",
+                 "connections":[{"identifier":"c1","name":"","componentType":"CONNECTION",
+                  "source":{"id":"p2","type":"PROCESSOR","name":"C","instanceIdentifier":"src-w"},
+                  "destination":{"id":"d1","type":"PROCESSOR","name":"B","instanceIdentifier":"dst-w"}}]}}""");
+
+        RevertCounts counts = new TechnicalReverter().revert(committed, working);
+
+        JsonNode connection = working.getFlowContents().get("connections").get(0);
+        // The source id changed (p1 -> p2), so its instanceIdentifier is a significant change and is left in place.
+        assertEquals("src-w", connection.get("source").get("instanceIdentifier").asText());
+        // The destination id is unchanged (d1), so its instanceIdentifier is reverted.
+        assertEquals("dst-c", connection.get("destination").get("instanceIdentifier").asText());
+        assertEquals(1, counts.instanceIdentifier());
+    }
+
+    @Test
     void revertsRemotePortAndEndpointReferencingIt() {
         String template = """
                 {"flowContents":{"identifier":"root","name":"R","componentType":"PROCESS_GROUP",

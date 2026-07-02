@@ -12,9 +12,11 @@ import java.util.Map;
 /**
  * Restores the technical fields of a working flow to their committed values, mutating the working tree in place. Only
  * typed, known-technical locations are written - a component's own {@code instanceIdentifier}, a connection endpoint's
- * {@code instanceIdentifier}, the root {@code identifier}, every direct child's {@code groupIdentifier} back-reference,
- * and a connection endpoint's {@code groupId} when it is a root back-reference - never by global value replacement, so
- * a UUID-shaped value in a property or comment is left alone.
+ * {@code instanceIdentifier} when the endpoint {@code id} is unchanged, the root {@code identifier}, every direct
+ * child's {@code groupIdentifier} back-reference, and a connection endpoint's {@code groupId} when it is a root
+ * back-reference - never by global value replacement, so a UUID-shaped value in a property or comment is left alone. An
+ * endpoint whose {@code id} changed points to a different component, so its {@code instanceIdentifier} is a significant
+ * change and is left in place.
  */
 public final class TechnicalReverter {
 
@@ -56,10 +58,11 @@ public final class TechnicalReverter {
             if (connection.getType() != ComponentType.CONNECTION) {
                 continue;
             }
+            IndexedComponent committedConnection = committedById.get(connection.getIdentifier());
             JsonNode source = connection.getNode().get("source");
             JsonNode destination = connection.getNode().get("destination");
-            instance += revertEndpointInstance(source, committedById);
-            instance += revertEndpointInstance(destination, committedById);
+            instance += revertEndpointInstance(source, committedEndpoint(committedConnection, "source"));
+            instance += revertEndpointInstance(destination, committedEndpoint(committedConnection, "destination"));
             endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
             endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
         }
@@ -75,15 +78,20 @@ public final class TechnicalReverter {
         return new RevertCounts(instance, root, group, endpointGroupId);
     }
 
-    private int revertEndpointInstance(final JsonNode endpoint, final Map<String, IndexedComponent> committedById) {
-        if (endpoint == null || !endpoint.isObject()) {
+    private int revertEndpointInstance(final JsonNode workingEndpoint, final JsonNode committedEndpoint) {
+        if (workingEndpoint == null || !workingEndpoint.isObject()
+                || committedEndpoint == null || !committedEndpoint.isObject()) {
             return 0;
         }
-        IndexedComponent referenced = committedById.get(text(endpoint, ID));
-        if (referenced == null) {
+        String workingId = text(workingEndpoint, ID);
+        if (workingId == null || !workingId.equals(text(committedEndpoint, ID))) {
             return 0;
         }
-        return restore(endpoint, INSTANCE_IDENTIFIER, text(referenced.getNode(), INSTANCE_IDENTIFIER));
+        return restore(workingEndpoint, INSTANCE_IDENTIFIER, text(committedEndpoint, INSTANCE_IDENTIFIER));
+    }
+
+    private static JsonNode committedEndpoint(final IndexedComponent committedConnection, final String role) {
+        return committedConnection == null ? null : committedConnection.getNode().get(role);
     }
 
     private int revertEndpointGroupId(final JsonNode endpoint, final String workingRootId,

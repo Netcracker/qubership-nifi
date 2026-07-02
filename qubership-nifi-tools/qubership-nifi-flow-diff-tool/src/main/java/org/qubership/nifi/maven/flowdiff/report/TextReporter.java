@@ -2,6 +2,7 @@ package org.qubership.nifi.maven.flowdiff.report;
 
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
+import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
 import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
@@ -9,9 +10,11 @@ import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -146,8 +149,56 @@ public final class TextReporter {
             return;
         }
         sb.append("    ").append(prefix).append(head.getShortLabel()).append('\n');
+        Set<String> collapsedRoles = collapsedRoles(componentDiffs);
         componentDiffs.stream().sorted(Comparator.comparing(Difference::getFieldPath))
-                .forEach(difference -> renderField(difference, INDENT_COMPONENT_FIELD, sb));
+                .forEach(difference -> renderComponentField(difference, collapsedRoles, sb));
+    }
+
+    private void renderComponentField(final Difference difference, final Set<String> collapsedRoles,
+            final StringBuilder sb) {
+        EndpointChange endpointChange = difference.getEndpointChange();
+        if (endpointChange != null) {
+            renderEndpointChange(endpointChange, sb);
+            return;
+        }
+        if (isCollapsedEndpointField(difference, collapsedRoles)) {
+            return;
+        }
+        renderField(difference, INDENT_COMPONENT_FIELD, sb);
+    }
+
+    private void renderEndpointChange(final EndpointChange change, final StringBuilder sb) {
+        sb.append(" ".repeat(INDENT_COMPONENT_FIELD))
+                .append(change.role()).append(": ")
+                .append(endpoint(change.baseline())).append(" -> ").append(endpoint(change.target()))
+                .append('\n');
+    }
+
+    private static String endpoint(final EndpointChange.EndpointRef ref) {
+        return "[" + ref.typeCode() + "] " + ref.label() + " (" + ref.identifier() + ")";
+    }
+
+    private static Set<String> collapsedRoles(final List<Difference> componentDiffs) {
+        Set<String> roles = new HashSet<>();
+        for (Difference difference : componentDiffs) {
+            if (difference.getEndpointChange() != null) {
+                roles.add(difference.getEndpointChange().role());
+            }
+        }
+        return roles;
+    }
+
+    private static boolean isCollapsedEndpointField(final Difference difference, final Set<String> collapsedRoles) {
+        String fieldPath = difference.getFieldPath();
+        if (fieldPath == null) {
+            return false;
+        }
+        for (String role : collapsedRoles) {
+            if (fieldPath.startsWith(role + "/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void renderField(final Difference difference, final int indent, final StringBuilder sb) {

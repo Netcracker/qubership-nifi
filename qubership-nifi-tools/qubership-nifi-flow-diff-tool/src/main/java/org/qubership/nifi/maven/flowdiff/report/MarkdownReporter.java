@@ -2,14 +2,18 @@ package org.qubership.nifi.maven.flowdiff.report;
 
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
+import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
 import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Renders a {@link ReportModel} as Markdown: a heading and table per process group, with the full component type in a
@@ -85,16 +89,59 @@ public final class MarkdownReporter {
 
     private void renderGroup(final String heading, final List<Difference> diffs, final StringBuilder sb) {
         sb.append("### ").append(heading).append("\n\n").append(HEADER);
+        Map<String, Set<String>> collapsed = collapsedRolesByComponent(diffs);
         diffs.stream()
                 .sorted(Comparator.comparing((Difference d) -> d.getShortLabel() == null ? "" : d.getShortLabel())
                         .thenComparing(d -> d.getFieldPath() == null ? "" : d.getFieldPath()))
-                .forEach(difference -> sb.append(row(difference)));
+                .forEach(difference -> {
+                    if (difference.getEndpointChange() != null) {
+                        sb.append(endpointRow(difference));
+                    } else if (!isCollapsedEndpointField(difference, collapsed)) {
+                        sb.append(row(difference));
+                    }
+                });
         sb.append('\n');
     }
 
     private String row(final Difference difference) {
         return "| " + componentCell(difference) + " | " + typeCell(difference) + " | " + fieldCell(difference)
                 + " | " + baselineCell(difference) + " | " + targetCell(difference) + " |\n";
+    }
+
+    private String endpointRow(final Difference difference) {
+        EndpointChange change = difference.getEndpointChange();
+        return "| " + componentCell(difference) + " | " + typeCell(difference) + " | " + code(change.role())
+                + " | " + codeValue(endpoint(change.baseline())) + " | " + codeValue(endpoint(change.target()))
+                + " |\n";
+    }
+
+    private static String endpoint(final EndpointChange.EndpointRef ref) {
+        return "[" + ref.typeName() + "] " + ref.label() + " (" + ref.identifier() + ")";
+    }
+
+    private static Map<String, Set<String>> collapsedRolesByComponent(final List<Difference> diffs) {
+        Map<String, Set<String>> collapsed = new HashMap<>();
+        for (Difference difference : diffs) {
+            if (difference.getEndpointChange() != null) {
+                collapsed.computeIfAbsent(difference.getIdentifier(), k -> new HashSet<>())
+                        .add(difference.getEndpointChange().role());
+            }
+        }
+        return collapsed;
+    }
+
+    private static boolean isCollapsedEndpointField(final Difference difference,
+            final Map<String, Set<String>> collapsed) {
+        Set<String> roles = collapsed.get(difference.getIdentifier());
+        if (roles == null || difference.getFieldPath() == null) {
+            return false;
+        }
+        for (String role : roles) {
+            if (difference.getFieldPath().startsWith(role + "/")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String componentCell(final Difference difference) {

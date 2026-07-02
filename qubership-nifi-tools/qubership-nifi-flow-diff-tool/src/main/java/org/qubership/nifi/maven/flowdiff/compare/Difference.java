@@ -30,6 +30,7 @@ public final class Difference {
     private final JsonNode baselineValue;
     private final JsonNode targetValue;
     private final boolean otherAttributes;
+    private final EndpointChange endpointChange;
 
     private Difference(final Builder builder) {
         this.category = builder.category;
@@ -47,6 +48,7 @@ public final class Difference {
         this.baselineValue = builder.baselineValue;
         this.targetValue = builder.targetValue;
         this.otherAttributes = builder.otherAttributes;
+        this.endpointChange = builder.endpointChange;
     }
 
     /**
@@ -190,6 +192,17 @@ public final class Difference {
     }
 
     /**
+     * Returns the endpoint snapshot for a connection endpoint whose {@code id} changed, carried on the endpoint
+     * {@code id} difference so the text and Markdown renderers can collapse the endpoint into one line, or {@code null}
+     * for any other difference.
+     *
+     * @return the endpoint change or {@code null}
+     */
+    public EndpointChange getEndpointChange() {
+        return endpointChange;
+    }
+
+    /**
      * Creates a new builder.
      *
      * @return a fresh builder
@@ -218,6 +231,7 @@ public final class Difference {
         private JsonNode baselineValue;
         private JsonNode targetValue;
         private boolean otherAttributes;
+        private EndpointChange endpointChange;
 
         private Builder() {
         }
@@ -366,6 +380,17 @@ public final class Difference {
          */
         public Builder otherAttributes(final boolean value) {
             this.otherAttributes = value;
+            return this;
+        }
+
+        /**
+         * Sets the endpoint snapshot for a changed connection endpoint.
+         *
+         * @param value the endpoint change
+         * @return this builder
+         */
+        public Builder endpointChange(final EndpointChange value) {
+            this.endpointChange = value;
             return this;
         }
 

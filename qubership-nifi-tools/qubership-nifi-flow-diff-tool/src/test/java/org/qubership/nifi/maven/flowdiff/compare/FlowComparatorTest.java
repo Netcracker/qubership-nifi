@@ -281,4 +281,44 @@ class FlowComparatorTest {
         assertEquals("Old", diff.getNameBaseline());
         assertEquals("New", diff.getNameTarget());
     }
+
+    @Test
+    void connectionEndpointInstanceIdentifierWithUnchangedIdIsTechnical() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A","instanceIdentifier":"%s"},
+                   "destination":{"id":"p2","type":"PROCESSOR","name":"B"}}]}}""";
+        List<Difference> diffs = comparator.compare(flow(template.formatted("old")), flow(template.formatted("new")));
+        assertEquals(0, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(ChangeCategory.TECHNICAL, find(diffs, "source/instanceIdentifier").getCategory());
+    }
+
+    @Test
+    void connectionEndpointIdChangeMakesEndpointFieldsSignificantAndCarriesSnapshot() {
+        FlowExport baseline = flow("""
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"out","type":"OUTPUT_PORT","name":"out_success",
+                    "instanceIdentifier":"i-old"}}]}}""");
+        FlowExport target = flow("""
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"fn","type":"FUNNEL","name":"Funnel","instanceIdentifier":"i-new"}}]}}""");
+        List<Difference> diffs = comparator.compare(baseline, target);
+        assertEquals(0, count(diffs, ChangeCategory.TECHNICAL));
+        assertEquals(ChangeCategory.SIGNIFICANT, find(diffs, "destination/instanceIdentifier").getCategory());
+        EndpointChange change = find(diffs, "destination/id").getEndpointChange();
+        assertEquals("destination", change.role());
+        assertEquals("OP", change.baseline().typeCode());
+        assertEquals("OUTPUT_PORT", change.baseline().typeName());
+        assertEquals("out_success", change.baseline().label());
+        assertEquals("out", change.baseline().identifier());
+        assertEquals("FN", change.target().typeCode());
+        assertEquals("FUNNEL", change.target().typeName());
+        assertEquals("Funnel", change.target().label());
+        assertEquals("fn", change.target().identifier());
+    }
 }

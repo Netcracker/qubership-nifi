@@ -22,6 +22,9 @@ import java.util.Set;
 public final class FlowComparator {
 
     private static final String NAME = "name";
+    private static final String TYPE = "type";
+    private static final String ID = "id";
+    private static final Set<String> ENDPOINT_ROLES = Set.of("source", "destination");
     private static final Set<String> GROUP_COLLECTIONS = Set.of(
             "processors", "controllerServices", "inputPorts", "outputPorts", "funnels", "labels",
             "connections", "remoteProcessGroups", "processGroups");
@@ -64,15 +67,14 @@ public final class FlowComparator {
             final String baselineRootId, final String targetRootId, final List<Difference> out) {
         NodeDiffer differ = new NodeDiffer(excludedKeys(target.getType()));
         for (LeafDiff leaf : differ.diff(base.getNode(), target.getNode())) {
-            out.add(fieldDifference(target, leaf, baselineRootId, targetRootId));
+            out.add(fieldDifference(base.getNode(), target, leaf, baselineRootId, targetRootId));
         }
     }
 
-    private Difference fieldDifference(final IndexedComponent labelComponent, final LeafDiff leaf,
-            final String baselineRootId, final String targetRootId) {
-        JsonNode context = leaf.target() != null ? labelComponent.getNode() : leaf.baseline();
-        ChangeCategory category = ChangeCategorizer.categorize(labelComponent, leaf.relPath(), context,
-                leaf.baseline(), leaf.target(), baselineRootId, targetRootId);
+    private Difference fieldDifference(final JsonNode baselineNode, final IndexedComponent labelComponent,
+            final LeafDiff leaf, final String baselineRootId, final String targetRootId) {
+        ChangeCategory category = ChangeCategorizer.categorize(labelComponent, leaf.relPath(), baselineNode,
+                labelComponent.getNode(), baselineRootId, targetRootId);
         List<String> segments = CanonicalPath.withField(
                 CanonicalPath.componentSegments(labelComponent), leaf.relPath());
         boolean root = labelComponent.isRoot();
@@ -96,7 +98,45 @@ public final class FlowComparator {
         if (leaf.relPath().size() == 1 && NAME.equals(leaf.relPath().get(0))) {
             builder.renamed(asText(leaf.baseline()), asText(leaf.target()));
         }
+        if (labelComponent.getType() == ComponentType.CONNECTION) {
+            EndpointChange endpointChange = endpointChange(baselineNode, labelComponent.getNode(), leaf.relPath());
+            if (endpointChange != null) {
+                builder.endpointChange(endpointChange);
+            }
+        }
         return builder.build();
+    }
+
+    private static EndpointChange endpointChange(final JsonNode baselineNode, final JsonNode targetNode,
+            final List<String> relPath) {
+        if (relPath.size() != 2 || !ID.equals(relPath.get(1)) || !ENDPOINT_ROLES.contains(relPath.get(0))) {
+            return null;
+        }
+        String role = relPath.get(0);
+        EndpointChange.EndpointRef baseline = endpointRef(baselineNode.get(role));
+        EndpointChange.EndpointRef target = endpointRef(targetNode.get(role));
+        if (baseline == null || target == null) {
+            return null;
+        }
+        return new EndpointChange(role, baseline, target);
+    }
+
+    private static EndpointChange.EndpointRef endpointRef(final JsonNode endpoint) {
+        if (endpoint == null || !endpoint.isObject()) {
+            return null;
+        }
+        String type = text(endpoint, TYPE);
+        String id = text(endpoint, ID);
+        String name = text(endpoint, NAME);
+        String label = name == null || name.isEmpty() ? id : name;
+        String code = ComponentType.fromComponentType(type).map(ComponentType::getCode)
+                .filter(value -> !value.isEmpty()).orElse(type);
+        return new EndpointChange.EndpointRef(code, type, label, id);
+    }
+
+    private static String text(final JsonNode node, final String field) {
+        JsonNode value = node.get(field);
+        return value == null || value.isNull() ? null : value.asText();
     }
 
     private static List<GroupRef> ownGroupBreadcrumb(final IndexedComponent group) {

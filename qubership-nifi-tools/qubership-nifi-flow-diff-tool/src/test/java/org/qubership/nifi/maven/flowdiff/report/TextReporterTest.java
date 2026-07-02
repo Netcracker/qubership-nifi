@@ -89,4 +89,46 @@ class TextReporterTest {
         assertTrue(report.contains("removed flow: flows/Old.json"), report);
         assertTrue(report.contains("added flows 1, removed flows 1"), report);
     }
+
+    private ReportModel model(final List<Difference> changes) {
+        return new ReportModel(List.of(new FlowReport("flows/Loader.json", changes)), List.of(), List.of());
+    }
+
+    @Test
+    void endpointIdChangeRendersCompactLineInsteadOfPerFieldLines() {
+        FlowExport baseline = flow("""
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"s1","type":"PROCESSOR","name":"UpdateAttribute"},
+                   "destination":{"id":"d-old","type":"OUTPUT_PORT","name":"out_success",
+                    "instanceIdentifier":"i-old"}}]}}""");
+        FlowExport target = flow("""
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"s1","type":"PROCESSOR","name":"UpdateAttribute"},
+                   "destination":{"id":"d-new","type":"FUNNEL","name":"Funnel","instanceIdentifier":"i-new"}}]}}""");
+        List<Difference> changes = new FlowComparator().compare(baseline, target);
+        String report = new TextReporter(200, false).render(model(changes));
+        assertTrue(report.contains("destination: [OP] out_success (d-old) -> [FN] Funnel (d-new)"), report);
+        assertFalse(report.contains("destination/id"), report);
+        assertFalse(report.contains("destination/instanceIdentifier"), report);
+        assertFalse(report.contains("destination/name"), report);
+    }
+
+    @Test
+    void technicalEndpointFieldsWithUnchangedIdStillRenderedAsTechnical() {
+        String template = """
+                {"flowContents":{"identifier":"%1$s","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"%1$s",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A","groupId":"%1$s","instanceIdentifier":"%2$s"},
+                   "destination":{"id":"p2","type":"PROCESSOR","name":"B","groupId":"%1$s"}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("oldroot", "si-old")),
+                flow(template.formatted("newroot", "si-new")));
+        String report = new TextReporter(200, true).render(model(changes));
+        assertTrue(report.contains("[tech] source/instanceIdentifier: si-old -> si-new"), report);
+        assertTrue(report.contains("[tech] source/groupId: oldroot -> newroot"), report);
+        assertTrue(report.contains("[tech] destination/groupId: oldroot -> newroot"), report);
+        assertFalse(report.contains("source: ["), report);
+    }
 }

@@ -13,6 +13,9 @@ working copy so only significant changes remain in the diff.
 A connection endpoint `groupId` is technical only when it references the root group on both sides. When the endpoint is a
 port inside a sub-group, its `groupId` is that sub-group's stable identifier, so a real change there stays significant.
 
+A connection endpoint `instanceIdentifier` is technical only when the endpoint `id` is unchanged. When the `id` changes
+the connection points to a different component, so every endpoint field, `instanceIdentifier` included, is significant.
+
 - **technical** - a NiFi-generated identifier change with no functional meaning; counted, and the only category reverted.
 - **environmental** - export metadata or runtime packaging, such as bundle versions and `flowEncodingVersion`; reported,
   never reverted.
@@ -83,9 +86,11 @@ operating system.
 
 - **text** - a grouped tree per flow for the console: process groups as breadcrumb headers, each component once, field
   changes beneath. Component lines lead with a short type code (`[P]` processor, `[CS]` controller service, and so on),
-  and the report opens with a legend of the codes it uses. Technical changes appear only in the counts header.
-- **md** - a heading and table per process group, with the full component type in a `Type` column. Good for pasting into
-  a pull request.
+  and the report opens with a legend of the codes it uses. Technical changes appear only in the counts header. A
+  connection endpoint that now points to a different component collapses to one line,
+  `destination: [OP] out (<id>) -> [FN] Funnel (<id>)`, rather than a line per endpoint field.
+- **md** - a heading and table per process group, with the full component type in a `Type` column. A changed connection
+  endpoint collapses to one row, with the full type names in the value cells. Good for pasting into a pull request.
 - **json** - flat and machine-readable, for CI gating. Each change is a self-contained record with a canonical `path`
   and a `pathSegments` array. Technical changes are counted in `counts` and `totals` but not listed. The report carries
   a `schemaVersion` as its forward-compatibility contract.
