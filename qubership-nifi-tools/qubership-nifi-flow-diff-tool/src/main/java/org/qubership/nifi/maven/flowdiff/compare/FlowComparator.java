@@ -37,9 +37,11 @@ public final class FlowComparator {
     public List<Difference> compare(final FlowExport baseline, final FlowExport target) {
         ComponentIndex baselineIndex = ComponentIndex.build(baseline);
         ComponentIndex targetIndex = ComponentIndex.build(target);
+        String baselineRootId = baselineIndex.getRoot().getIdentifier();
+        String targetRootId = targetIndex.getRoot().getIdentifier();
         List<Difference> out = new ArrayList<>();
 
-        compareMatched(baselineIndex.getRoot(), targetIndex.getRoot(), out);
+        compareMatched(baselineIndex.getRoot(), targetIndex.getRoot(), baselineRootId, targetRootId, out);
 
         Map<String, IndexedComponent> baseById = baselineIndex.getByIdentifier();
         Map<String, IndexedComponent> targetById = targetIndex.getByIdentifier();
@@ -47,7 +49,7 @@ public final class FlowComparator {
             IndexedComponent base = baseById.get(id);
             IndexedComponent tgt = targetById.get(id);
             if (base != null && tgt != null) {
-                compareMatched(base, tgt, out);
+                compareMatched(base, tgt, baselineRootId, targetRootId, out);
             } else if (tgt != null) {
                 addWholeComponent(tgt, "added", targetById.keySet(), out);
             } else {
@@ -59,16 +61,18 @@ public final class FlowComparator {
     }
 
     private void compareMatched(final IndexedComponent base, final IndexedComponent target,
-            final List<Difference> out) {
+            final String baselineRootId, final String targetRootId, final List<Difference> out) {
         NodeDiffer differ = new NodeDiffer(excludedKeys(target.getType()));
         for (LeafDiff leaf : differ.diff(base.getNode(), target.getNode())) {
-            out.add(fieldDifference(target, leaf));
+            out.add(fieldDifference(target, leaf, baselineRootId, targetRootId));
         }
     }
 
-    private Difference fieldDifference(final IndexedComponent labelComponent, final LeafDiff leaf) {
+    private Difference fieldDifference(final IndexedComponent labelComponent, final LeafDiff leaf,
+            final String baselineRootId, final String targetRootId) {
         JsonNode context = leaf.target() != null ? labelComponent.getNode() : leaf.baseline();
-        ChangeCategory category = ChangeCategorizer.categorize(labelComponent, leaf.relPath(), context);
+        ChangeCategory category = ChangeCategorizer.categorize(labelComponent, leaf.relPath(), context,
+                leaf.baseline(), leaf.target(), baselineRootId, targetRootId);
         List<String> segments = CanonicalPath.withField(
                 CanonicalPath.componentSegments(labelComponent), leaf.relPath());
         boolean root = labelComponent.isRoot();

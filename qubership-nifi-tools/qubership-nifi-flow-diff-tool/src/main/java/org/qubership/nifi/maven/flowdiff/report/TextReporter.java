@@ -16,8 +16,9 @@ import java.util.TreeMap;
 
 /**
  * Renders a {@link ReportModel} as the human-readable text report: a legend of the type codes it uses, then per flow a
- * counts header followed by the changes as a grouped tree. Technical changes appear only in the counts header;
- * significant changes are unmarked and environmental changes are marked {@code [env]}.
+ * counts header followed by the changes as a grouped tree. Significant changes are unmarked and environmental changes
+ * are marked {@code [env]}. Technical changes appear only in the counts header unless {@code showTechnical} is set, in
+ * which case they are listed and marked {@code [tech]}.
  */
 public final class TextReporter {
 
@@ -26,14 +27,17 @@ public final class TextReporter {
     private static final int INDENT_COMPONENT_FIELD = 6;
 
     private final int maxValueLength;
+    private final boolean showTechnical;
 
     /**
      * Creates a text reporter.
      *
      * @param maxValueLengthValue the value truncation budget; {@code 0} disables truncation
+     * @param showTechnicalValue  whether to also list technical changes, marked {@code [tech]}
      */
-    public TextReporter(final int maxValueLengthValue) {
+    public TextReporter(final int maxValueLengthValue, final boolean showTechnicalValue) {
         this.maxValueLength = maxValueLengthValue;
+        this.showTechnical = showTechnicalValue;
     }
 
     private static Map<ComponentType, String> codeNames() {
@@ -150,6 +154,8 @@ public final class TextReporter {
         sb.append(" ".repeat(indent));
         if (difference.getCategory() == ChangeCategory.ENVIRONMENTAL) {
             sb.append("[env] ");
+        } else if (difference.getCategory() == ChangeCategory.TECHNICAL) {
+            sb.append("[tech] ");
         }
         sb.append(difference.getFieldPath()).append(": ")
                 .append(ValueFormatter.format(difference.getBaselineValue(), maxValueLength))
@@ -184,9 +190,10 @@ public final class TextReporter {
         return "[" + type.getCode() + "] ";
     }
 
-    private static boolean isListable(final Difference difference) {
+    private boolean isListable(final Difference difference) {
         ChangeCategory category = difference.getCategory();
-        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL;
+        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL
+                || (showTechnical && category == ChangeCategory.TECHNICAL);
     }
 
     private static String groupKey(final List<GroupRef> breadcrumb) {

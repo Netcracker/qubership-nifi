@@ -106,7 +106,8 @@ class GitRevertTechnicalMojoTest {
         assertEquals("root-committed", processor.get("groupIdentifier").asText());
         assertEquals("v2", processor.get("properties").get("k").asText());
         assertTrue(out.contains(
-                "flows/a.json: 3 reverted (instanceIdentifier=1, rootIdentifier=1, groupIdentifier=1)"), out);
+                "flows/a.json: 3 reverted (instanceIdentifier=1, rootIdentifier=1, groupIdentifier=1, "
+                        + "endpointGroupId=0)"), out);
         assertTrue(out.contains("Total: 1 files rewritten, 3 technical changes reverted."), out);
     }
 

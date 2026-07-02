@@ -130,7 +130,8 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
     private static String summaryLine(final String key, final RevertCounts counts) {
         return key + ": " + counts.total() + " reverted (instanceIdentifier=" + counts.instanceIdentifier()
                 + ", rootIdentifier=" + counts.rootIdentifier()
-                + ", groupIdentifier=" + counts.groupIdentifier() + ")";
+                + ", groupIdentifier=" + counts.groupIdentifier()
+                + ", endpointGroupId=" + counts.endpointGroupId() + ")";
     }
 
     private void printSummary(final List<String> summary, final int reverted) {

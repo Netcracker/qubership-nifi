@@ -7,8 +7,9 @@ package org.qubership.nifi.maven.flowdiff.revert;
  *                           endpoints
  * @param rootIdentifier     the number of root process-group {@code identifier} values restored (0 or 1)
  * @param groupIdentifier    the number of direct-child {@code groupIdentifier} back-references restored
+ * @param endpointGroupId    the number of connection-endpoint {@code groupId} root back-references restored
  */
-public record RevertCounts(int instanceIdentifier, int rootIdentifier, int groupIdentifier) {
+public record RevertCounts(int instanceIdentifier, int rootIdentifier, int groupIdentifier, int endpointGroupId) {
 
     /**
      * Returns the total number of reverted technical changes.
@@ -16,6 +17,6 @@ public record RevertCounts(int instanceIdentifier, int rootIdentifier, int group
      * @return the sum across all kinds
      */
     public int total() {
-        return instanceIdentifier + rootIdentifier + groupIdentifier;
+        return instanceIdentifier + rootIdentifier + groupIdentifier + endpointGroupId;
     }
 }

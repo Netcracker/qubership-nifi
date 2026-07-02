@@ -43,7 +43,7 @@ class TextReporterTest {
 
     @Test
     void headerCountsAndEnvMarkerAndTechnicalNotListed() {
-        String report = new TextReporter(200).render(modelWithMixedChanges());
+        String report = new TextReporter(200, false).render(modelWithMixedChanges());
         assertTrue(report.contains("(significant: 1, environmental: 1, technical: 1)"), report);
         assertTrue(report.contains("[env] bundle/version: 2.0.0 -> 2.1.0"), report);
         assertTrue(report.contains("properties/Batch Size: 1000 -> 5000"), report);
@@ -51,8 +51,15 @@ class TextReporterTest {
     }
 
     @Test
+    void technicalChangesListedWithMarkerWhenShowTechnical() {
+        String report = new TextReporter(200, true).render(modelWithMixedChanges());
+        assertTrue(report.contains("(significant: 1, environmental: 1, technical: 1)"), report);
+        assertTrue(report.contains("[tech] instanceIdentifier: old -> new"), report);
+    }
+
+    @Test
     void legendListsOnlyUsedCodes() {
-        String report = new TextReporter(200).render(modelWithMixedChanges());
+        String report = new TextReporter(200, false).render(modelWithMixedChanges());
         assertTrue(report.startsWith("Types: P = processor"), report);
         assertFalse(report.contains("CS = controller service"), report);
     }
@@ -67,7 +74,7 @@ class TextReporterTest {
                 flow(template.formatted("10")), flow(template.formatted("20")));
         ReportModel model = new ReportModel(
                 List.of(new FlowReport("flows/Loader.json", changes)), List.of(), List.of());
-        String report = new TextReporter(200).render(model);
+        String report = new TextReporter(200, false).render(model);
         assertTrue(report.contains("  other attributes"), report);
         assertTrue(report.contains("parameterContexts / Database / Max Connections"), report);
         assertTrue(report.contains("value: 10 -> 20"), report);
@@ -77,7 +84,7 @@ class TextReporterTest {
     void wholeAddedAndRemovedFlowsRenderWithTotals() {
         ReportModel model = new ReportModel(List.of(),
                 List.of("flows/New.json"), List.of("flows/Old.json"));
-        String report = new TextReporter(200).render(model);
+        String report = new TextReporter(200, false).render(model);
         assertTrue(report.contains("added flow: flows/New.json"), report);
         assertTrue(report.contains("removed flow: flows/Old.json"), report);
         assertTrue(report.contains("added flows 1, removed flows 1"), report);

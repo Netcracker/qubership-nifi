@@ -40,6 +40,11 @@ class FlowComparatorTest {
         return diffs.get(0);
     }
 
+    private Difference find(final List<Difference> diffs, final String fieldPath) {
+        return diffs.stream().filter(d -> fieldPath.equals(d.getFieldPath())).findFirst()
+                .orElseThrow(() -> new IllegalStateException("no difference at field path " + fieldPath));
+    }
+
     @Test
     void arrayReorderingProducesNoChanges() {
         FlowExport baseline = flow("""
@@ -90,6 +95,48 @@ class FlowComparatorTest {
         Difference diff = only(diffs);
         assertEquals(ChangeCategory.SIGNIFICANT, diff.getCategory());
         assertEquals("groupIdentifier", diff.getFieldPath());
+    }
+
+    @Test
+    void connectionEndpointGroupIdToRootIsTechnical() {
+        String template = """
+                {"flowContents":{"identifier":"%1$s","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"%1$s",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A","groupId":"%1$s"},
+                   "destination":{"id":"p2","type":"PROCESSOR","name":"B","groupId":"%1$s"}}]}}""";
+        List<Difference> diffs = comparator.compare(
+                flow(template.formatted("oldroot")), flow(template.formatted("newroot")));
+        assertEquals(0, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(ChangeCategory.TECHNICAL, find(diffs, "source/groupId").getCategory());
+        assertEquals(ChangeCategory.TECHNICAL, find(diffs, "destination/groupId").getCategory());
+    }
+
+    @Test
+    void connectionEndpointGroupIdToSubGroupIsSignificant() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A","groupId":"root"},
+                   "destination":{"id":"in","type":"INPUT_PORT","name":"in","groupId":"%s"}}]}}""";
+        Difference diff = only(comparator.compare(flow(template.formatted("g1")), flow(template.formatted("g2"))));
+        assertEquals(ChangeCategory.SIGNIFICANT, diff.getCategory());
+        assertEquals("destination/groupId", diff.getFieldPath());
+    }
+
+    @Test
+    void connectionEndpointGroupIdMixedRootAndSubGroupClassifiedIndependently() {
+        // A connection running from a root-level component into a child process group's input port: the source
+        // groupId is a root back-reference (technical) while the destination groupId is the child group id.
+        String template = """
+                {"flowContents":{"identifier":"%1$s","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"%1$s",
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A","groupId":"%1$s"},
+                   "destination":{"id":"in","type":"INPUT_PORT","name":"in","groupId":"%2$s"}}]}}""";
+        List<Difference> diffs = comparator.compare(
+                flow(template.formatted("oldroot", "child")),
+                flow(template.formatted("newroot", "child-changed")));
+        assertEquals(ChangeCategory.TECHNICAL, find(diffs, "source/groupId").getCategory());
+        assertEquals(ChangeCategory.SIGNIFICANT, find(diffs, "destination/groupId").getCategory());
     }
 
     @Test

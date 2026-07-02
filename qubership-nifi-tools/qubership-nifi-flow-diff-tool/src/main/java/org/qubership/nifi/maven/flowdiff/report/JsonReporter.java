@@ -13,21 +13,25 @@ import java.util.List;
 /**
  * Renders a {@link ReportModel} as the flat, machine-readable JSON report for CI gating. Each change is a
  * self-contained record with the full canonical {@code path} and a {@code pathSegments} array. Technical changes are
- * counted in {@code counts} and {@code totals} but not listed, keeping the report small.
+ * counted in {@code counts} and {@code totals} but not listed, keeping the report small, unless {@code showTechnical}
+ * is set, in which case they are listed with {@code category: "technical"}.
  */
 public final class JsonReporter {
 
     private static final int SCHEMA_VERSION = 1;
 
     private final ObjectMapper mapper;
+    private final boolean showTechnical;
 
     /**
      * Creates a JSON reporter.
      *
-     * @param mapperValue the mapper used to build and serialize the report
+     * @param mapperValue        the mapper used to build and serialize the report
+     * @param showTechnicalValue whether to also list technical changes
      */
-    public JsonReporter(final ObjectMapper mapperValue) {
+    public JsonReporter(final ObjectMapper mapperValue, final boolean showTechnicalValue) {
         this.mapper = mapperValue;
+        this.showTechnical = showTechnicalValue;
     }
 
     /**
@@ -111,8 +115,9 @@ public final class JsonReporter {
         return array;
     }
 
-    private static boolean isListed(final Difference difference) {
+    private boolean isListed(final Difference difference) {
         ChangeCategory category = difference.getCategory();
-        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL;
+        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL
+                || (showTechnical && category == ChangeCategory.TECHNICAL);
     }
 }

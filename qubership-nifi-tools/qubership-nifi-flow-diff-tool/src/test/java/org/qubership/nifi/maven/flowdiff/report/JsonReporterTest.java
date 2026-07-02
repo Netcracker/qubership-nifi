@@ -31,6 +31,10 @@ class JsonReporterTest {
     }
 
     private JsonNode render() {
+        return render(false);
+    }
+
+    private JsonNode render(final boolean showTechnical) {
         String template = """
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
                  "position":{"x":%s},"processors":[
@@ -44,7 +48,7 @@ class JsonReporterTest {
         ReportModel model = new ReportModel(
                 List.of(new FlowReport("flows/Loader.json", changes)), List.of("flows/New.json"), List.of());
         try {
-            return MAPPER.readTree(new JsonReporter(MAPPER).render(model));
+            return MAPPER.readTree(new JsonReporter(MAPPER, showTechnical).render(model));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -75,6 +79,21 @@ class JsonReporterTest {
         assertEquals("added", added.get("change").asText());
         assertEquals("PROCESSOR", added.get("componentType").asText());
         assertFalse(added.has("baselineValue"));
+    }
+
+    @Test
+    void listsTechnicalChangesWhenShowTechnical() {
+        JsonNode report = render(true);
+        JsonNode changes = report.get("flows").get(0).get("changes");
+        assertEquals(5, changes.size());
+        boolean hasTechnical = false;
+        for (JsonNode change : changes) {
+            if ("technical".equals(change.get("category").asText())) {
+                hasTechnical = true;
+                assertTrue(change.get("path").asText().contains("instanceIdentifier"), change.toString());
+            }
+        }
+        assertTrue(hasTechnical, changes.toString());
     }
 
     @Test

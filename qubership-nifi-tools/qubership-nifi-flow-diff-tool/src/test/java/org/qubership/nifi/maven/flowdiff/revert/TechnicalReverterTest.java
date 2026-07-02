@@ -8,9 +8,10 @@ import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Tests for {@link TechnicalReverter}: restoring {@code instanceIdentifier}, the root {@code identifier}, and direct
- * child {@code groupIdentifier} back-references and connection-endpoint identifiers to committed values, while leaving
- * a property value that merely equals an old identifier untouched.
+ * Tests for {@link TechnicalReverter}: restoring {@code instanceIdentifier}, the root {@code identifier}, direct
+ * child {@code groupIdentifier} back-references, connection-endpoint identifiers, and connection-endpoint
+ * {@code groupId} root back-references to committed values, while leaving a property value that merely equals an old
+ * identifier - and a sub-group endpoint {@code groupId} - untouched.
  */
 class TechnicalReverterTest {
 
@@ -90,6 +91,26 @@ class TechnicalReverterTest {
         assertEquals("inst-c", connection.get("source").get("instanceIdentifier").asText());
         assertEquals("inst-c", connection.get("destination").get("instanceIdentifier").asText());
         assertEquals(3, counts.instanceIdentifier());
+    }
+
+    @Test
+    void revertsEndpointGroupIdRootBackReferenceButLeavesSubGroupReference() {
+        String template = """
+                {"flowContents":{"identifier":"%1$s","name":"R","componentType":"PROCESS_GROUP","processGroups":[
+                  {"identifier":"g1","name":"Child","componentType":"PROCESS_GROUP","inputPorts":[
+                    {"identifier":"in","name":"in","componentType":"INPUT_PORT"}]}],
+                 "connections":[{"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"%1$s",
+                  "source":{"id":"p1","type":"PROCESSOR","name":"A","groupId":"%1$s"},
+                  "destination":{"id":"in","type":"INPUT_PORT","name":"in","groupId":"g1"}}]}}""";
+        FlowExport committed = flow(template.formatted("root-c"));
+        FlowExport working = flow(template.formatted("root-w"));
+
+        RevertCounts counts = new TechnicalReverter().revert(committed, working);
+
+        JsonNode connection = working.getFlowContents().get("connections").get(0);
+        assertEquals("root-c", connection.get("source").get("groupId").asText());
+        assertEquals("g1", connection.get("destination").get("groupId").asText());
+        assertEquals(1, counts.endpointGroupId());
     }
 
     @Test

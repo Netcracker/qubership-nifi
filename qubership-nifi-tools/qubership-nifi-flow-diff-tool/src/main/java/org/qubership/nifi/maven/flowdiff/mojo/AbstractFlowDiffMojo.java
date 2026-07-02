@@ -39,6 +39,10 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     @Parameter(property = "max-value-length", defaultValue = "200")
     private int maxValueLength;
 
+    /** Whether to list technical changes in the report as well, marked {@code [tech]}, for debugging classification. */
+    @Parameter(property = "show-technical", defaultValue = "false")
+    private boolean showTechnical;
+
     /** Whether to continue past a malformed candidate file instead of failing. */
     @Parameter(property = "skip-malformed", defaultValue = "false")
     private boolean skipMalformed;
@@ -101,9 +105,9 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     private String render(final ReportFormat reportFormat, final ReportModel model) throws MojoExecutionException {
         try {
             return switch (reportFormat) {
-                case TEXT -> new TextReporter(maxValueLength).render(model);
-                case MD -> new MarkdownReporter(maxValueLength).render(model);
-                case JSON -> new JsonReporter(new ObjectMapper()).render(model);
+                case TEXT -> new TextReporter(maxValueLength, showTechnical).render(model);
+                case MD -> new MarkdownReporter(maxValueLength, showTechnical).render(model);
+                case JSON -> new JsonReporter(new ObjectMapper(), showTechnical).render(model);
             };
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to render the "

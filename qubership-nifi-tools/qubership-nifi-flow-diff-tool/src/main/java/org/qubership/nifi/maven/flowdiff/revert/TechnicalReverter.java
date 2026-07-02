@@ -12,14 +12,16 @@ import java.util.Map;
 /**
  * Restores the technical fields of a working flow to their committed values, mutating the working tree in place. Only
  * typed, known-technical locations are written - a component's own {@code instanceIdentifier}, a connection endpoint's
- * {@code instanceIdentifier}, the root {@code identifier}, and every direct child's {@code groupIdentifier}
- * back-reference - never by global value replacement, so a UUID-shaped value in a property or comment is left alone.
+ * {@code instanceIdentifier}, the root {@code identifier}, every direct child's {@code groupIdentifier} back-reference,
+ * and a connection endpoint's {@code groupId} when it is a root back-reference - never by global value replacement, so
+ * a UUID-shaped value in a property or comment is left alone.
  */
 public final class TechnicalReverter {
 
     private static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
     private static final String IDENTIFIER = "identifier";
     private static final String GROUP_IDENTIFIER = "groupIdentifier";
+    private static final String GROUP_ID = "groupId";
     private static final String ID = "id";
 
     /**
@@ -35,6 +37,9 @@ public final class TechnicalReverter {
         Map<String, IndexedComponent> committedById = committedIndex.getByIdentifier();
         Map<String, IndexedComponent> workingById = workingIndex.getByIdentifier();
 
+        String committedRootId = committedIndex.getRoot().getIdentifier();
+        String workingRootId = workingIndex.getRoot().getIdentifier();
+
         int instance = 0;
         for (Map.Entry<String, IndexedComponent> entry : workingById.entrySet()) {
             IndexedComponent committedComponent = committedById.get(entry.getKey());
@@ -45,9 +50,20 @@ public final class TechnicalReverter {
         }
         instance += restore(workingIndex.getRoot().getNode(), INSTANCE_IDENTIFIER,
                 text(committedIndex.getRoot().getNode(), INSTANCE_IDENTIFIER));
-        instance += revertEndpoints(workingById, committedById);
 
-        String committedRootId = committedIndex.getRoot().getIdentifier();
+        int endpointGroupId = 0;
+        for (IndexedComponent connection : workingById.values()) {
+            if (connection.getType() != ComponentType.CONNECTION) {
+                continue;
+            }
+            JsonNode source = connection.getNode().get("source");
+            JsonNode destination = connection.getNode().get("destination");
+            instance += revertEndpointInstance(source, committedById);
+            instance += revertEndpointInstance(destination, committedById);
+            endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
+            endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
+        }
+
         int root = restore(workingIndex.getRoot().getNode(), IDENTIFIER, committedRootId);
 
         int group = 0;
@@ -56,23 +72,10 @@ public final class TechnicalReverter {
                 group += restore(workingComponent.getNode(), GROUP_IDENTIFIER, committedRootId);
             }
         }
-        return new RevertCounts(instance, root, group);
+        return new RevertCounts(instance, root, group, endpointGroupId);
     }
 
-    private int revertEndpoints(final Map<String, IndexedComponent> workingById,
-            final Map<String, IndexedComponent> committedById) {
-        int reverted = 0;
-        for (IndexedComponent working : workingById.values()) {
-            if (working.getType() != ComponentType.CONNECTION) {
-                continue;
-            }
-            reverted += revertEndpoint(working.getNode().get("source"), committedById);
-            reverted += revertEndpoint(working.getNode().get("destination"), committedById);
-        }
-        return reverted;
-    }
-
-    private int revertEndpoint(final JsonNode endpoint, final Map<String, IndexedComponent> committedById) {
+    private int revertEndpointInstance(final JsonNode endpoint, final Map<String, IndexedComponent> committedById) {
         if (endpoint == null || !endpoint.isObject()) {
             return 0;
         }
@@ -81,6 +84,14 @@ public final class TechnicalReverter {
             return 0;
         }
         return restore(endpoint, INSTANCE_IDENTIFIER, text(referenced.getNode(), INSTANCE_IDENTIFIER));
+    }
+
+    private int revertEndpointGroupId(final JsonNode endpoint, final String workingRootId,
+            final String committedRootId) {
+        if (endpoint == null || !endpoint.isObject() || !workingRootId.equals(text(endpoint, GROUP_ID))) {
+            return 0;
+        }
+        return restore(endpoint, GROUP_ID, committedRootId);
     }
 
     private static int restore(final JsonNode node, final String field, final String committedValue) {

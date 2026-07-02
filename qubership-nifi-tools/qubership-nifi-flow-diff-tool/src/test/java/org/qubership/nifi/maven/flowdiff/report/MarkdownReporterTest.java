@@ -38,7 +38,20 @@ class MarkdownReporterTest {
         List<Difference> changes = new FlowComparator().compare(baseline, target);
         ReportModel model = new ReportModel(
                 List.of(new FlowReport("flows/Loader.json", changes)), addedFlows, List.of());
-        return new MarkdownReporter(200).render(model);
+        return new MarkdownReporter(200, false).render(model);
+    }
+
+    @Test
+    void listsTechnicalRowWithMarkerWhenShowTechnical() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR","instanceIdentifier":"%s"}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("old")), flow(template.formatted("new")));
+        ReportModel model = new ReportModel(
+                List.of(new FlowReport("flows/Loader.json", changes)), List.of(), List.of());
+        String md = new MarkdownReporter(200, true).render(model);
+        assertTrue(md.contains("[tech] `instanceIdentifier`"), md);
     }
 
     @Test

@@ -14,7 +14,8 @@ import java.util.Map;
 /**
  * Renders a {@link ReportModel} as Markdown: a heading and table per process group, with the full component type in a
  * {@code Type} column. Values are wrapped as inline code with {@code |} and backticks escaped so a value cannot break a
- * table cell, and truncated to the value budget. Technical changes appear only in the counts line.
+ * table cell, and truncated to the value budget. Technical changes appear only in the counts line unless
+ * {@code showTechnical} is set, in which case they are listed and marked {@code [tech]}.
  */
 public final class MarkdownReporter {
 
@@ -23,14 +24,17 @@ public final class MarkdownReporter {
     private static final String GROUP = "_(group)_";
 
     private final int maxValueLength;
+    private final boolean showTechnical;
 
     /**
      * Creates a Markdown reporter.
      *
      * @param maxValueLengthValue the value truncation budget; {@code 0} disables truncation
+     * @param showTechnicalValue  whether to also list technical changes, marked {@code [tech]}
      */
-    public MarkdownReporter(final int maxValueLengthValue) {
+    public MarkdownReporter(final int maxValueLengthValue, final boolean showTechnicalValue) {
         this.maxValueLength = maxValueLengthValue;
+        this.showTechnical = showTechnicalValue;
     }
 
     /**
@@ -51,7 +55,10 @@ public final class MarkdownReporter {
         sb.append("Significant: ").append(flow.count(ChangeCategory.SIGNIFICANT))
                 .append(", Environmental: ").append(flow.count(ChangeCategory.ENVIRONMENTAL))
                 .append(", Technical: ").append(flow.count(ChangeCategory.TECHNICAL))
-                .append(" (`[env]` marks an environmental change; unmarked rows are significant)\n\n");
+                .append(showTechnical
+                        ? " (`[env]` marks an environmental change; `[tech]` a technical change; unmarked rows are "
+                                + "significant)\n\n"
+                        : " (`[env]` marks an environmental change; unmarked rows are significant)\n\n");
 
         Map<String, List<Difference>> byGroup = new LinkedHashMap<>();
         Map<String, List<GroupRef>> crumbs = new LinkedHashMap<>();
@@ -114,7 +121,7 @@ public final class MarkdownReporter {
         if ("removed".equals(difference.getChange())) {
             return "_(removed)_";
         }
-        String marker = difference.getCategory() == ChangeCategory.ENVIRONMENTAL ? "[env] " : "";
+        String marker = categoryMarker(difference.getCategory());
         if (difference.isOtherAttributes() && difference.getShortLabel() == null) {
             return marker.trim();
         }
@@ -168,9 +175,20 @@ public final class MarkdownReporter {
         return value.replace("`", "\\`").replace("|", "\\|");
     }
 
-    private static boolean isListable(final Difference difference) {
+    private static String categoryMarker(final ChangeCategory category) {
+        if (category == ChangeCategory.ENVIRONMENTAL) {
+            return "[env] ";
+        }
+        if (category == ChangeCategory.TECHNICAL) {
+            return "[tech] ";
+        }
+        return "";
+    }
+
+    private boolean isListable(final Difference difference) {
         ChangeCategory category = difference.getCategory();
-        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL;
+        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL
+                || (showTechnical && category == ChangeCategory.TECHNICAL);
     }
 
     private static String groupKey(final List<GroupRef> breadcrumb) {
