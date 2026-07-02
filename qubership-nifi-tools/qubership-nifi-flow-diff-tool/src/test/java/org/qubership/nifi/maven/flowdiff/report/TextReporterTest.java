@@ -116,6 +116,59 @@ class TextReporterTest {
     }
 
     @Test
+    void positionCollapsesToSingleLine() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "position":{"x":%s,"y":%s}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("464.0", "-96.0")),
+                flow(template.formatted("2336.0", "-784.0")));
+        String report = new TextReporter(200, false).render(model(changes));
+        assertTrue(report.contains("position: (464.0, -96.0) -> (2336.0, -784.0)"), report);
+        assertFalse(report.contains("position/x"), report);
+        assertFalse(report.contains("position/y"), report);
+    }
+
+    @Test
+    void positionShowsBothCoordinatesWhenOnlyOneChanged() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "position":{"x":%s,"y":64.0}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("464.0")), flow(template.formatted("500.0")));
+        String report = new TextReporter(200, false).render(model(changes));
+        assertTrue(report.contains("position: (464.0, 64.0) -> (500.0, 64.0)"), report);
+    }
+
+    @Test
+    void bendsRenderAsCoordinateList() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"s1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"d1","type":"PROCESSOR","name":"B"},"bends":%s}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("[{\"x\":976.0,\"y\":64.0}]")),
+                flow(template.formatted("[{\"x\":976.0,\"y\":64.0},{\"x\":975.0,\"y\":63.0}]")));
+        String report = new TextReporter(200, false).render(model(changes));
+        assertTrue(report.contains("bends: [(976.0, 64.0)] -> [(976.0, 64.0), (975.0, 63.0)]"), report);
+    }
+
+    @Test
+    void emptyStringValueRendersAsEmptyMarker() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"%s"}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("HTTP_1_1")), flow(template.formatted("")));
+        String report = new TextReporter(200, false).render(model(changes));
+        assertTrue(report.contains("properties/HTTP Protocols: HTTP_1_1 -> (empty)"), report);
+    }
+
+    @Test
     void technicalEndpointFieldsWithUnchangedIdStillRenderedAsTechnical() {
         String template = """
                 {"flowContents":{"identifier":"%1$s","name":"Root","componentType":"PROCESS_GROUP","connections":[

@@ -1,5 +1,6 @@
 package org.qubership.nifi.maven.flowdiff.report;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
@@ -26,6 +27,7 @@ public final class MarkdownReporter {
     private static final String HEADER = "| Component | Type | Field | Baseline | Target |\n"
             + "| --- | --- | --- | --- | --- |\n";
     private static final String GROUP = "_(group)_";
+    private static final String BENDS = "bends";
 
     private final int maxValueLength;
     private final boolean showTechnical;
@@ -90,17 +92,41 @@ public final class MarkdownReporter {
     private void renderGroup(final String heading, final List<Difference> diffs, final StringBuilder sb) {
         sb.append("### ").append(heading).append("\n\n").append(HEADER);
         Map<String, Set<String>> collapsed = collapsedRolesByComponent(diffs);
+        Map<String, String> positionTriggers = positionTriggersByComponent(diffs);
         diffs.stream()
                 .sorted(Comparator.comparing((Difference d) -> d.getShortLabel() == null ? "" : d.getShortLabel())
                         .thenComparing(d -> d.getFieldPath() == null ? "" : d.getFieldPath()))
                 .forEach(difference -> {
                     if (difference.getEndpointChange() != null) {
                         sb.append(endpointRow(difference));
+                    } else if (difference.getPositionChange() != null) {
+                        if (difference.getFieldPath().equals(positionTriggers.get(difference.getIdentifier()))) {
+                            sb.append(positionRow(difference));
+                        }
                     } else if (!isCollapsedEndpointField(difference, collapsed)) {
                         sb.append(row(difference));
                     }
                 });
         sb.append('\n');
+    }
+
+    private String positionRow(final Difference difference) {
+        String field = categoryMarker(difference.getCategory()) + code("position");
+        return "| " + componentCell(difference) + " | " + typeCell(difference) + " | " + field
+                + " | " + codeValue(CoordinateFormat.pair(difference.getPositionChange().baseline()))
+                + " | " + codeValue(CoordinateFormat.pair(difference.getPositionChange().target())) + " |\n";
+    }
+
+    private static Map<String, String> positionTriggersByComponent(final List<Difference> diffs) {
+        Map<String, String> triggers = new HashMap<>();
+        for (Difference difference : diffs) {
+            if (difference.getPositionChange() == null || difference.getFieldPath() == null) {
+                continue;
+            }
+            triggers.merge(difference.getIdentifier(), difference.getFieldPath(),
+                    (existing, candidate) -> existing.compareTo(candidate) <= 0 ? existing : candidate);
+        }
+        return triggers;
     }
 
     private String row(final Difference difference) {
@@ -182,7 +208,7 @@ public final class MarkdownReporter {
         if ("removed".equals(difference.getChange())) {
             return "_(present)_";
         }
-        return codeValue(ValueFormatter.format(difference.getBaselineValue(), maxValueLength));
+        return valueCell(difference, difference.getBaselineValue());
     }
 
     private String targetCell(final Difference difference) {
@@ -192,7 +218,15 @@ public final class MarkdownReporter {
         if ("removed".equals(difference.getChange())) {
             return "_(absent)_";
         }
-        return codeValue(ValueFormatter.format(difference.getTargetValue(), maxValueLength));
+        return valueCell(difference, difference.getTargetValue());
+    }
+
+    private String valueCell(final Difference difference, final JsonNode value) {
+        if (BENDS.equals(difference.getFieldPath())) {
+            return codeValue(CoordinateFormat.bends(value));
+        }
+        String formatted = ValueFormatter.format(value, maxValueLength);
+        return formatted.isEmpty() ? "" : codeValue(formatted);
     }
 
     private void renderWholeFlows(final ReportModel model, final StringBuilder sb) {

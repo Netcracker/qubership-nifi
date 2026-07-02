@@ -31,6 +31,7 @@ public final class Difference {
     private final JsonNode targetValue;
     private final boolean otherAttributes;
     private final EndpointChange endpointChange;
+    private final PositionChange positionChange;
 
     private Difference(final Builder builder) {
         this.category = builder.category;
@@ -49,6 +50,7 @@ public final class Difference {
         this.targetValue = builder.targetValue;
         this.otherAttributes = builder.otherAttributes;
         this.endpointChange = builder.endpointChange;
+        this.positionChange = builder.positionChange;
     }
 
     /**
@@ -203,6 +205,17 @@ public final class Difference {
     }
 
     /**
+     * Returns the {@code position} snapshot for a {@code position/x} or {@code position/y} difference, carrying both
+     * coordinates on both sides so the text and Markdown renderers can collapse a move into a single line, or
+     * {@code null} for any other difference.
+     *
+     * @return the position change or {@code null}
+     */
+    public PositionChange getPositionChange() {
+        return positionChange;
+    }
+
+    /**
      * Creates a new builder.
      *
      * @return a fresh builder
@@ -232,6 +245,7 @@ public final class Difference {
         private JsonNode targetValue;
         private boolean otherAttributes;
         private EndpointChange endpointChange;
+        private PositionChange positionChange;
 
         private Builder() {
         }
@@ -391,6 +405,17 @@ public final class Difference {
          */
         public Builder endpointChange(final EndpointChange value) {
             this.endpointChange = value;
+            return this;
+        }
+
+        /**
+         * Sets the position snapshot for a changed coordinate.
+         *
+         * @param value the position change
+         * @return this builder
+         */
+        public Builder positionChange(final PositionChange value) {
+            this.positionChange = value;
             return this;
         }
 

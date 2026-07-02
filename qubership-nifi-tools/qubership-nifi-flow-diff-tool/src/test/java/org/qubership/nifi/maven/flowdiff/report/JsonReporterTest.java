@@ -103,6 +103,33 @@ class JsonReporterTest {
         assertEquals(1, totals.get("addedFlows").asInt());
     }
 
+    @Test
+    void keepsPositionCoordinatesSeparateWithPerCoordinateCounts() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR","position":{"x":%s,"y":%s}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("464.0", "-96.0")),
+                flow(template.formatted("2336.0", "-784.0")));
+        ReportModel model = new ReportModel(
+                List.of(new FlowReport("flows/Loader.json", changes)), List.of(), List.of());
+        JsonNode flow;
+        try {
+            flow = MAPPER.readTree(new JsonReporter(MAPPER, false).render(model)).get("flows").get(0);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        assertEquals(2, flow.get("counts").get("significant").asInt());
+        JsonNode reported = flow.get("changes");
+        boolean hasX = false;
+        boolean hasY = false;
+        for (JsonNode change : reported) {
+            hasX = hasX || change.get("path").asText().endsWith("position/x");
+            hasY = hasY || change.get("path").asText().endsWith("position/y");
+        }
+        assertTrue(hasX && hasY, reported.toString());
+    }
+
     private JsonNode find(final JsonNode changes, final String path) {
         for (JsonNode change : changes) {
             if (path.equals(change.get("path").asText())) {

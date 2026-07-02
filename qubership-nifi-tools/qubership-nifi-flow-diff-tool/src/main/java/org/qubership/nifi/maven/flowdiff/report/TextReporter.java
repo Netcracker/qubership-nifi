@@ -1,5 +1,6 @@
 package org.qubership.nifi.maven.flowdiff.report;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
@@ -28,6 +29,8 @@ public final class TextReporter {
     private static final Map<ComponentType, String> CODE_NAMES = codeNames();
     private static final int INDENT_COMPONENT = 4;
     private static final int INDENT_COMPONENT_FIELD = 6;
+    private static final String BENDS = "bends";
+    private static final String EMPTY_MARKER = "(empty)";
 
     private final int maxValueLength;
     private final boolean showTechnical;
@@ -126,9 +129,15 @@ public final class TextReporter {
 
     private void renderGroup(final String crumb, final List<Difference> diffs, final StringBuilder sb) {
         sb.append("  ").append(crumb).append('\n');
-        diffs.stream().filter(difference -> difference.getShortLabel() == null)
+        List<Difference> ownFields = diffs.stream().filter(difference -> difference.getShortLabel() == null)
                 .sorted(Comparator.comparing(Difference::getFieldPath))
-                .forEach(difference -> renderField(difference, INDENT_COMPONENT, sb));
+                .toList();
+        String ownPositionTrigger = positionTrigger(ownFields);
+        ownFields.forEach(difference -> {
+            if (!renderPositionCollapsed(difference, INDENT_COMPONENT, ownPositionTrigger, sb)) {
+                renderField(difference, INDENT_COMPONENT, sb);
+            }
+        });
 
         Map<String, List<Difference>> components = new TreeMap<>();
         for (Difference difference : diffs) {
@@ -150,12 +159,13 @@ public final class TextReporter {
         }
         sb.append("    ").append(prefix).append(head.getShortLabel()).append('\n');
         Set<String> collapsedRoles = collapsedRoles(componentDiffs);
+        String positionTrigger = positionTrigger(componentDiffs);
         componentDiffs.stream().sorted(Comparator.comparing(Difference::getFieldPath))
-                .forEach(difference -> renderComponentField(difference, collapsedRoles, sb));
+                .forEach(difference -> renderComponentField(difference, collapsedRoles, positionTrigger, sb));
     }
 
     private void renderComponentField(final Difference difference, final Set<String> collapsedRoles,
-            final StringBuilder sb) {
+            final String positionTrigger, final StringBuilder sb) {
         EndpointChange endpointChange = difference.getEndpointChange();
         if (endpointChange != null) {
             renderEndpointChange(endpointChange, sb);
@@ -164,7 +174,35 @@ public final class TextReporter {
         if (isCollapsedEndpointField(difference, collapsedRoles)) {
             return;
         }
+        if (renderPositionCollapsed(difference, INDENT_COMPONENT_FIELD, positionTrigger, sb)) {
+            return;
+        }
         renderField(difference, INDENT_COMPONENT_FIELD, sb);
+    }
+
+    private boolean renderPositionCollapsed(final Difference difference, final int indent,
+            final String positionTrigger, final StringBuilder sb) {
+        if (difference.getPositionChange() == null) {
+            return false;
+        }
+        if (difference.getFieldPath().equals(positionTrigger)) {
+            sb.append(" ".repeat(indent));
+            appendMarker(difference, sb);
+            sb.append("position: ")
+                    .append(CoordinateFormat.pair(difference.getPositionChange().baseline()))
+                    .append(" -> ")
+                    .append(CoordinateFormat.pair(difference.getPositionChange().target()))
+                    .append('\n');
+        }
+        return true;
+    }
+
+    private static String positionTrigger(final List<Difference> diffs) {
+        return diffs.stream()
+                .filter(difference -> difference.getPositionChange() != null && difference.getFieldPath() != null)
+                .map(Difference::getFieldPath)
+                .min(String::compareTo)
+                .orElse(null);
     }
 
     private void renderEndpointChange(final EndpointChange change, final StringBuilder sb) {
@@ -203,16 +241,28 @@ public final class TextReporter {
 
     private void renderField(final Difference difference, final int indent, final StringBuilder sb) {
         sb.append(" ".repeat(indent));
+        appendMarker(difference, sb);
+        sb.append(difference.getFieldPath()).append(": ")
+                .append(fieldValue(difference, difference.getBaselineValue()))
+                .append(" -> ")
+                .append(fieldValue(difference, difference.getTargetValue()))
+                .append('\n');
+    }
+
+    private static void appendMarker(final Difference difference, final StringBuilder sb) {
         if (difference.getCategory() == ChangeCategory.ENVIRONMENTAL) {
             sb.append("[env] ");
         } else if (difference.getCategory() == ChangeCategory.TECHNICAL) {
             sb.append("[tech] ");
         }
-        sb.append(difference.getFieldPath()).append(": ")
-                .append(ValueFormatter.format(difference.getBaselineValue(), maxValueLength))
-                .append(" -> ")
-                .append(ValueFormatter.format(difference.getTargetValue(), maxValueLength))
-                .append('\n');
+    }
+
+    private String fieldValue(final Difference difference, final JsonNode value) {
+        if (BENDS.equals(difference.getFieldPath())) {
+            return CoordinateFormat.bends(value);
+        }
+        String formatted = ValueFormatter.format(value, maxValueLength);
+        return formatted.isEmpty() ? EMPTY_MARKER : formatted;
     }
 
     private void renderWholeFlows(final ReportModel model, final StringBuilder sb) {

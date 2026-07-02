@@ -108,6 +108,47 @@ class MarkdownReporterTest {
     }
 
     @Test
+    void positionCollapsesToSingleRow() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "position":{"x":%s,"y":%s}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("464.0", "-96.0")),
+                flow(template.formatted("2336.0", "-784.0")));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("| `Load` | PROCESSOR | `position` | `(464.0, -96.0)` | `(2336.0, -784.0)` |"), md);
+        assertFalse(md.contains("position/x"), md);
+        assertFalse(md.contains("position/y"), md);
+    }
+
+    @Test
+    void bendsRenderAsCoordinateListCell() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "source":{"id":"s1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"d1","type":"PROCESSOR","name":"B"},"bends":%s}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("[{\"x\":976.0,\"y\":64.0}]")),
+                flow(template.formatted("[{\"x\":976.0,\"y\":64.0},{\"x\":975.0,\"y\":63.0}]")));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("`[(976.0, 64.0)]` | `[(976.0, 64.0), (975.0, 63.0)]`"), md);
+    }
+
+    @Test
+    void emptyStringValueRendersAsBlankCell() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"%s"}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(template.formatted("HTTP_1_1")), flow(template.formatted("")));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("`properties/HTTP Protocols` | `HTTP_1_1` |  |"), md);
+    }
+
+    @Test
     void technicalEndpointFieldsWithUnchangedIdStillRenderedAsTechnical() {
         String template = """
                 {"flowContents":{"identifier":"%1$s","name":"Root","componentType":"PROCESS_GROUP","connections":[

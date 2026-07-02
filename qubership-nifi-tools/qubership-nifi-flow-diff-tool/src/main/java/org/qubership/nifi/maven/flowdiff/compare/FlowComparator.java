@@ -24,6 +24,7 @@ public final class FlowComparator {
     private static final String NAME = "name";
     private static final String TYPE = "type";
     private static final String ID = "id";
+    private static final String POSITION = "position";
     private static final Set<String> ENDPOINT_ROLES = Set.of("source", "destination");
     private static final Set<String> GROUP_COLLECTIONS = Set.of(
             "processors", "controllerServices", "inputPorts", "outputPorts", "funnels", "labels",
@@ -104,7 +105,15 @@ public final class FlowComparator {
                 builder.endpointChange(endpointChange);
             }
         }
+        if (isPositionCoordinate(leaf.relPath())) {
+            builder.positionChange(new PositionChange(
+                    baselineNode.get(POSITION), labelComponent.getNode().get(POSITION)));
+        }
         return builder.build();
+    }
+
+    private static boolean isPositionCoordinate(final List<String> relPath) {
+        return relPath.size() == 2 && POSITION.equals(relPath.get(0));
     }
 
     private static EndpointChange endpointChange(final JsonNode baselineNode, final JsonNode targetNode,

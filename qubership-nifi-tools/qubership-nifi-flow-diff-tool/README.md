@@ -99,9 +99,17 @@ By default technical changes are only counted, not listed. Set `show-technical` 
 each one `[tech]`, and `json` includes it as a change with `category` `technical`. Use it to see exactly which fields the
 tool reverts.
 
+Component coordinates read as pairs in the `text` and `md` formats: a `position` renders as a single
+`position: (x, y) -> (x, y)` line, and connection `bends` render as `bends: [(x, y), ...] -> [...]`, dropping the always
+implied `x`/`y` keys. A `position` change is still counted per coordinate, so a move that shifts both `x` and `y` counts
+as two changes even though it prints as one line. The `json` report is unchanged: it keeps `position/x` and `position/y`
+as separate entries and `bends` as its raw array.
+
 A whole added or removed flow is counted in `totals.addedFlows` and `totals.removedFlows`, not folded into
 `significant`. A consumer gating on any reportable flow change checks
 `significant > 0 || addedFlows > 0 || removedFlows > 0`.
 
 Long or multiline property values are escaped to a single line (`\n`, `\r`, `\t`) and truncated to `max-value-length`
-in the `text` and `md` formats; the `json` report keeps the full raw value.
+in the `text` and `md` formats; the `json` report keeps the full raw value. An empty-string value renders as `(empty)`
+in `text` and as a blank cell in `md`, so it is not mistaken for a truncated line; a missing value renders as `(absent)`
+in `text`.
