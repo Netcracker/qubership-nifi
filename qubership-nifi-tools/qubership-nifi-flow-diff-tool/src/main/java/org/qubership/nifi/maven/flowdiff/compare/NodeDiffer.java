@@ -3,19 +3,28 @@ package org.qubership.nifi.maven.flowdiff.compare;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 /**
  * Computes the leaf differences between two component nodes. Objects are compared key by key; a differing array is
- * reported as a single leaf difference rather than by unstable index, matching the tool's decision to ignore array
- * reordering. Child-component collections and {@code propertyDescriptors} are excluded because they are compared
- * through component matching, not as raw fields.
+ * reported as a single leaf difference rather than by unstable index. Most arrays are compared by value, so element
+ * order is significant; the relationship arrays in {@link #UNORDERED_ARRAY_FIELDS} are an exception and are compared
+ * ignoring order, because NiFi treats their values as an unordered set. Child-component collections and
+ * {@code propertyDescriptors} are excluded because they are compared through component matching, not as raw fields.
  */
 public final class NodeDiffer {
 
     private static final String PROPERTY_DESCRIPTORS = "propertyDescriptors";
+
+    /**
+     * String-array fields whose value order carries no meaning in NiFi and can be shuffled by reformatting or
+     * reconfiguration. They are compared ignoring order so a pure reorder is not reported as a difference.
+     */
+    private static final Set<String> UNORDERED_ARRAY_FIELDS = Set.of(
+            "selectedRelationships", "autoTerminatedRelationships", "retriedRelationships");
 
     private final Set<String> excludedTopLevel;
 
@@ -54,9 +63,16 @@ public final class NodeDiffer {
             }
             return;
         }
-        if (!nodeEquals(baseline, target)) {
+        if (!leafEquals(baseline, target, relPath)) {
             out.add(new LeafDiff(List.copyOf(relPath), baseline, target));
         }
+    }
+
+    private static boolean leafEquals(final JsonNode baseline, final JsonNode target, final List<String> relPath) {
+        if (!relPath.isEmpty() && UNORDERED_ARRAY_FIELDS.contains(relPath.get(relPath.size() - 1))) {
+            return arraysEqualIgnoringOrder(baseline, target);
+        }
+        return nodeEquals(baseline, target);
     }
 
     private boolean isExcluded(final List<String> relPath, final String key) {
@@ -83,5 +99,21 @@ public final class NodeDiffer {
             return false;
         }
         return baseline.equals(target);
+    }
+
+    private static boolean arraysEqualIgnoringOrder(final JsonNode baseline, final JsonNode target) {
+        if (baseline == null || target == null || !baseline.isArray() || !target.isArray()) {
+            return nodeEquals(baseline, target);
+        }
+        if (baseline.size() != target.size()) {
+            return false;
+        }
+        List<String> baselineElements = new ArrayList<>();
+        List<String> targetElements = new ArrayList<>();
+        baseline.forEach(element -> baselineElements.add(element.toString()));
+        target.forEach(element -> targetElements.add(element.toString()));
+        Collections.sort(baselineElements);
+        Collections.sort(targetElements);
+        return baselineElements.equals(targetElements);
     }
 }

@@ -59,6 +59,46 @@ class FlowComparatorTest {
     }
 
     @Test
+    void selectedRelationshipsReorderingProducesNoChanges() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "selectedRelationships":%s,
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"p2","type":"PROCESSOR","name":"B"}}]}}""";
+        FlowExport baseline = flow(template.formatted("[\"success\",\"success2\",\"success3\"]"));
+        FlowExport target = flow(template.formatted("[\"success2\",\"success\",\"success3\"]"));
+        assertTrue(comparator.compare(baseline, target).isEmpty());
+    }
+
+    @Test
+    void autoTerminatedAndRetriedRelationshipsReorderingProducesNoChanges() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"A","componentType":"PROCESSOR",
+                   "autoTerminatedRelationships":%1$s,"retriedRelationships":%1$s}]}}""";
+        FlowExport baseline = flow(template.formatted("[\"success\",\"failure\"]"));
+        FlowExport target = flow(template.formatted("[\"failure\",\"success\"]"));
+        assertTrue(comparator.compare(baseline, target).isEmpty());
+    }
+
+    @Test
+    void relationshipValueChangeStillSignificant() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","connections":[
+                  {"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"root",
+                   "selectedRelationships":%s,
+                   "source":{"id":"p1","type":"PROCESSOR","name":"A"},
+                   "destination":{"id":"p2","type":"PROCESSOR","name":"B"}}]}}""";
+        FlowExport baseline = flow(template.formatted("[\"success\",\"failure\"]"));
+        FlowExport target = flow(template.formatted("[\"success\"]"));
+        List<Difference> diffs = comparator.compare(baseline, target);
+        assertEquals(1, diffs.size());
+        assertEquals(ChangeCategory.SIGNIFICANT, only(diffs).getCategory());
+        assertEquals("selectedRelationships", only(diffs).getFieldPath());
+    }
+
+    @Test
     void instanceIdentifierClassifiedTechnical() {
         FlowExport baseline = flow("""
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
