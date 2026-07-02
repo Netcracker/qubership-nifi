@@ -1,0 +1,95 @@
+package org.qubership.nifi.maven.flowdiff.report;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.qubership.nifi.maven.flowdiff.compare.Difference;
+import org.qubership.nifi.maven.flowdiff.compare.FlowComparator;
+import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Tests for {@link JsonReporter}: the schema version, per-flow counts, that technical changes are counted but not
+ * listed, that every listed record carries {@code pathSegments}, that a root-owned record omits the identifier, and
+ * that totals exclude whole added flows from the significant count.
+ */
+class JsonReporterTest {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private FlowExport flow(final String json) {
+        try {
+            return FlowExport.of("flows/Loader.json", MAPPER.readTree(json));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private JsonNode render() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                 "position":{"x":%s},"processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR","instanceIdentifier":"%s",
+                   "properties":{"Batch Size":"%s"},"bundle":{"group":"g","artifact":"a","version":"%s"}}
+                  %s]}}""";
+        FlowExport baseline = flow(template.formatted("1", "old", "1000", "2.0.0", ""));
+        FlowExport target = flow(template.formatted("2", "new", "5000", "2.1.0",
+                ",{\"identifier\":\"p9\",\"name\":\"New\",\"componentType\":\"PROCESSOR\"}"));
+        List<Difference> changes = new FlowComparator().compare(baseline, target);
+        ReportModel model = new ReportModel(
+                List.of(new FlowReport("flows/Loader.json", changes)), List.of("flows/New.json"), List.of());
+        try {
+            return MAPPER.readTree(new JsonReporter(MAPPER).render(model));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Test
+    void carriesSchemaCountsAndExcludesTechnicalFromChanges() {
+        JsonNode report = render();
+        assertEquals(1, report.get("schemaVersion").asInt());
+        JsonNode counts = report.get("flows").get(0).get("counts");
+        assertEquals(1, counts.get("technical").asInt());
+        assertEquals(1, counts.get("environmental").asInt());
+        assertEquals(3, counts.get("significant").asInt());
+        JsonNode changes = report.get("flows").get(0).get("changes");
+        assertEquals(4, changes.size());
+        for (JsonNode change : changes) {
+            assertTrue(change.get("pathSegments").isArray());
+            assertFalse(change.get("path").asText().contains("instanceIdentifier"));
+        }
+    }
+
+    @Test
+    void rootOwnedRecordOmitsIdentifierAndAddedRecordHasNoValues() {
+        JsonNode changes = render().get("flows").get(0).get("changes");
+        JsonNode rootPosition = find(changes, "Root/position/x");
+        assertFalse(rootPosition.has("identifier"));
+        JsonNode added = find(changes, "Root/New");
+        assertEquals("added", added.get("change").asText());
+        assertEquals("PROCESSOR", added.get("componentType").asText());
+        assertFalse(added.has("baselineValue"));
+    }
+
+    @Test
+    void totalsExcludeWholeAddedFlowsFromSignificant() {
+        JsonNode totals = render().get("totals");
+        assertEquals(3, totals.get("significant").asInt());
+        assertEquals(1, totals.get("addedFlows").asInt());
+    }
+
+    private JsonNode find(final JsonNode changes, final String path) {
+        for (JsonNode change : changes) {
+            if (path.equals(change.get("path").asText())) {
+                return change;
+            }
+        }
+        throw new IllegalStateException("no change at " + path);
+    }
+}

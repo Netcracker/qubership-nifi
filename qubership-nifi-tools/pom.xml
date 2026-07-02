@@ -75,6 +75,7 @@
         <module>qubership-nifi-tools-common</module>
         <module>qubership-nifi-tools-common-test-tool</module>
         <module>qubership-nifi-export-transform-tool</module>
+        <module>qubership-nifi-flow-diff-tool</module>
     </modules>
 
     <profiles>
