@@ -2,11 +2,20 @@ package org.qubership.nifi.maven.flowdiff.compare;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
+import org.qubership.nifi.maven.flowdiff.flow.FlowFields;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 import org.qubership.nifi.maven.flowdiff.flow.IndexedComponent;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.isEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.textOrEmpty;
 
 /**
  * Builds the stable logical path of a component and of a field within a component. Segments are unescaped and never use
@@ -17,11 +26,7 @@ import java.util.List;
 public final class CanonicalPath {
 
     /** Token used for the root segment when the root process-group name is empty. */
-    public static final String ROOT_FALLBACK = "flowContents";
-
-    private static final String NAME = "name";
-    private static final String TYPE = "type";
-    private static final String ID = "id";
+    public static final String ROOT_FALLBACK = FlowFields.FLOW_CONTENTS;
 
     private CanonicalPath() {
     }
@@ -95,8 +100,8 @@ public final class CanonicalPath {
 
     private static String connectionSegment(final IndexedComponent connection) {
         JsonNode node = connection.getNode();
-        String source = endpoint(node.get("source"));
-        String destination = endpoint(node.get("destination"));
+        String source = endpoint(node.get(SOURCE));
+        String destination = endpoint(node.get(DESTINATION));
         return source + "->" + destination + '(' + connection.getIdentifier() + ')';
     }
 
@@ -104,18 +109,9 @@ public final class CanonicalPath {
         if (endpoint == null) {
             return "?";
         }
-        String id = text(endpoint, ID);
-        String name = text(endpoint, NAME);
+        String id = textOrEmpty(endpoint, ID);
+        String name = textOrEmpty(endpoint, NAME);
         String label = isEmpty(name) ? id : name;
-        return label + '(' + text(endpoint, TYPE) + ':' + id + ')';
-    }
-
-    private static String text(final JsonNode node, final String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? "" : value.asText();
-    }
-
-    private static boolean isEmpty(final String value) {
-        return value == null || value.isEmpty();
+        return label + '(' + textOrEmpty(endpoint, TYPE) + ':' + id + ')';
     }
 }

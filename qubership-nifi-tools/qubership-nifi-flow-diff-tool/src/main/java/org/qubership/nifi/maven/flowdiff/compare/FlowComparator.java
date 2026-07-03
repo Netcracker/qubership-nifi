@@ -13,6 +13,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONNECTIONS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONTENTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONTROLLER_SERVICES;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FUNNELS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.INPUT_PORTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.LABELS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.OUTPUT_PORTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.POSITION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESSORS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESS_GROUPS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.REMOTE_PROCESS_GROUPS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.asText;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
+
 /**
  * Compares two flow exports and produces the ordered list of {@link Difference} records for the {@code flowContents}
  * tree. Components are matched by identity, so array reordering never registers; the root process group is matched by
@@ -21,15 +40,11 @@ import java.util.Set;
  */
 public final class FlowComparator {
 
-    private static final String NAME = "name";
-    private static final String TYPE = "type";
-    private static final String ID = "id";
-    private static final String POSITION = "position";
-    private static final Set<String> ENDPOINT_ROLES = Set.of("source", "destination");
+    private static final Set<String> ENDPOINT_ROLES = Set.of(SOURCE, DESTINATION);
     private static final Set<String> GROUP_COLLECTIONS = Set.of(
-            "processors", "controllerServices", "inputPorts", "outputPorts", "funnels", "labels",
-            "connections", "remoteProcessGroups", "processGroups");
-    private static final Set<String> REMOTE_GROUP_COLLECTIONS = Set.of("inputPorts", "outputPorts", "contents");
+            PROCESSORS, CONTROLLER_SERVICES, INPUT_PORTS, OUTPUT_PORTS, FUNNELS, LABELS,
+            CONNECTIONS, REMOTE_PROCESS_GROUPS, PROCESS_GROUPS);
+    private static final Set<String> REMOTE_GROUP_COLLECTIONS = Set.of(INPUT_PORTS, OUTPUT_PORTS, CONTENTS);
 
     /**
      * Compares a baseline export against a target export.
@@ -143,11 +158,6 @@ public final class FlowComparator {
         return new EndpointChange.EndpointRef(code, type, label, id);
     }
 
-    private static String text(final JsonNode node, final String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? null : value.asText();
-    }
-
     private static List<GroupRef> ownGroupBreadcrumb(final IndexedComponent group) {
         if (group.isRoot()) {
             return List.of(new GroupRef(group.getName(), group.getIdentifier(), true, false));
@@ -206,9 +216,5 @@ public final class FlowComparator {
         Set<String> all = new LinkedHashSet<>(a);
         all.addAll(b);
         return all;
-    }
-
-    private static String asText(final JsonNode node) {
-        return node == null || node.isNull() ? null : node.asText();
     }
 }

@@ -7,9 +7,9 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.maven.flowdiff.io.Candidate;
 import org.qubership.nifi.maven.flowdiff.io.FlowClassifier;
 import org.qubership.nifi.maven.flowdiff.io.GitSource;
-import org.qubership.nifi.maven.flowdiff.io.SideEntry;
 import org.qubership.nifi.maven.flowdiff.report.DiffModelBuilder;
 import org.qubership.nifi.maven.flowdiff.report.ReportModel;
 
@@ -41,8 +41,8 @@ public final class GitDiffMojo extends AbstractFlowDiffMojo {
         ObjectMapper mapper = newMapper();
         FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), mapper, getLog());
         try (GitSource git = new GitSource(getBasedir(), new File(path), classifier)) {
-            Map<String, SideEntry> committed = git.readCommitted(branch);
-            Map<String, SideEntry> working = git.readWorking();
+            Map<String, Candidate> committed = git.discoverCommitted(branch);
+            Map<String, Candidate> working = git.discoverWorking();
             ReportModel model = new DiffModelBuilder(getLog()).build(committed, working, true);
             emit(model);
         } catch (FlowParseException e) {

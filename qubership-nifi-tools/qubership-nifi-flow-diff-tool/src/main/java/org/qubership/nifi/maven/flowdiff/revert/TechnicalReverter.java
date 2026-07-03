@@ -9,6 +9,15 @@ import org.qubership.nifi.maven.flowdiff.flow.IndexedComponent;
 
 import java.util.Map;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP_ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP_IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.INSTANCE_IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
+
 /**
  * Restores the technical fields of a working flow to their committed values, mutating the working tree in place. Only
  * typed, known-technical locations are written - a component's own {@code instanceIdentifier}, a connection endpoint's
@@ -19,12 +28,6 @@ import java.util.Map;
  * change and is left in place.
  */
 public final class TechnicalReverter {
-
-    private static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
-    private static final String IDENTIFIER = "identifier";
-    private static final String GROUP_IDENTIFIER = "groupIdentifier";
-    private static final String GROUP_ID = "groupId";
-    private static final String ID = "id";
 
     /**
      * Reverts the technical fields of a working flow to their committed values.
@@ -59,10 +62,10 @@ public final class TechnicalReverter {
                 continue;
             }
             IndexedComponent committedConnection = committedById.get(connection.getIdentifier());
-            JsonNode source = connection.getNode().get("source");
-            JsonNode destination = connection.getNode().get("destination");
-            instance += revertEndpointInstance(source, committedEndpoint(committedConnection, "source"));
-            instance += revertEndpointInstance(destination, committedEndpoint(committedConnection, "destination"));
+            JsonNode source = connection.getNode().get(SOURCE);
+            JsonNode destination = connection.getNode().get(DESTINATION);
+            instance += revertEndpointInstance(source, committedEndpoint(committedConnection, SOURCE));
+            instance += revertEndpointInstance(destination, committedEndpoint(committedConnection, DESTINATION));
             endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
             endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
         }
@@ -115,10 +118,5 @@ public final class TechnicalReverter {
 
     private static boolean isDirectChildOfRoot(final IndexedComponent component) {
         return component.getAncestors().size() == 1 && component.getAncestors().get(0).root();
-    }
-
-    private static String text(final JsonNode node, final String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? null : value.asText();
     }
 }

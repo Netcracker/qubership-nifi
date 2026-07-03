@@ -3,8 +3,10 @@ package org.qubership.nifi.maven.flowdiff.report;
 import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 import org.qubership.nifi.maven.flowdiff.compare.FlowComparator;
+import org.qubership.nifi.maven.flowdiff.io.Candidate;
 import org.qubership.nifi.maven.flowdiff.io.SideEntry;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,29 +34,35 @@ public final class DiffModelBuilder {
     }
 
     /**
-     * Builds the diff model from the two sides.
+     * Builds the diff model from the two sides, loading each candidate on demand as it is paired so only the flow (or
+     * pair of flows) currently being compared is held in memory.
      *
-     * @param baseline        the baseline entries keyed by relative path or file name
-     * @param target          the target entries keyed by relative path or file name
+     * @param baseline        the baseline candidates keyed by relative path or file name
+     * @param target          the target candidates keyed by relative path or file name
      * @param bothDirectories whether both inputs are directories (union pairing) rather than single files
      * @return the assembled report model
+     * @throws IOException when a candidate cannot be read
      */
-    public ReportModel build(final Map<String, SideEntry> baseline, final Map<String, SideEntry> target,
-            final boolean bothDirectories) {
+    public ReportModel build(final Map<String, Candidate> baseline, final Map<String, Candidate> target,
+            final boolean bothDirectories) throws IOException {
         List<FlowReport> flows = new ArrayList<>();
         List<String> addedFlows = new ArrayList<>();
         List<String> removedFlows = new ArrayList<>();
         if (bothDirectories) {
             for (String key : union(baseline.keySet(), target.keySet())) {
-                pair(baseline.get(key), target.get(key), flows, addedFlows, removedFlows);
+                pair(load(baseline.get(key)), load(target.get(key)), flows, addedFlows, removedFlows);
             }
         } else {
-            pair(single(baseline), single(target), flows, addedFlows, removedFlows);
+            pair(load(single(baseline)), load(single(target)), flows, addedFlows, removedFlows);
         }
         flows.sort((a, b) -> a.getPath().compareTo(b.getPath()));
         addedFlows.sort(String::compareTo);
         removedFlows.sort(String::compareTo);
         return new ReportModel(flows, addedFlows, removedFlows);
+    }
+
+    private static SideEntry load(final Candidate candidate) throws IOException {
+        return candidate == null ? null : candidate.load();
     }
 
     private void pair(final SideEntry base, final SideEntry target, final List<FlowReport> flows,
@@ -84,8 +92,8 @@ public final class DiffModelBuilder {
         }
     }
 
-    private static SideEntry single(final Map<String, SideEntry> entries) {
-        return entries.values().stream().findFirst().orElse(null);
+    private static Candidate single(final Map<String, Candidate> candidates) {
+        return candidates.values().stream().findFirst().orElse(null);
     }
 
     private static Set<String> union(final Set<String> a, final Set<String> b) {

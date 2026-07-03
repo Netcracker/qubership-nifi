@@ -5,6 +5,13 @@ import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 import org.qubership.nifi.maven.flowdiff.flow.IndexedComponent;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.isEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.textOrEmpty;
+
 /**
  * Builds the shortened labels the text and Markdown renderers use. Identifiers are shortened to their first eight
  * characters and shown only when a same-kind (or, for a group, a sibling-group) name collision requires it. This is the
@@ -52,15 +59,15 @@ public final class ShortLabel {
     }
 
     private static String connection(final JsonNode node) {
-        return endpoint(node.get("source")) + " -> " + endpoint(node.get("destination"));
+        return endpoint(node.get(SOURCE)) + " -> " + endpoint(node.get(DESTINATION));
     }
 
     private static String endpoint(final JsonNode endpoint) {
         if (endpoint == null) {
             return "?";
         }
-        String name = text(endpoint, "name");
-        return isEmpty(name) ? text(endpoint, "id") : name;
+        String name = textOrEmpty(endpoint, NAME);
+        return isEmpty(name) ? textOrEmpty(endpoint, ID) : name;
     }
 
     private static String withOptionalId(final String base, final String identifier, final boolean collides) {
@@ -76,14 +83,5 @@ public final class ShortLabel {
             return "";
         }
         return identifier.length() <= SHORT_ID_LENGTH ? identifier : identifier.substring(0, SHORT_ID_LENGTH);
-    }
-
-    private static String text(final JsonNode node, final String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? "" : value.asText();
-    }
-
-    private static boolean isEmpty(final String value) {
-        return value == null || value.isEmpty();
     }
 }

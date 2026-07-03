@@ -57,11 +57,11 @@ class GitSourceTest {
     void readsCommittedAndWorkingKeyedByWorktreePath() throws Exception {
         try (GitSource git = new GitSource(dir.toFile(), new File("flows"), classifier())) {
             assertEquals("flows", git.getWorktreeRelative());
-            Map<String, SideEntry> committed = git.readCommitted("HEAD");
-            Map<String, SideEntry> working = git.readWorking();
-            assertTrue(committed.get("flows/a.json").isFlow());
-            assertEquals(CandidateKind.NON_FLOW, committed.get("flows/params.json").getKind());
-            assertTrue(working.get("flows/a.json").isFlow());
+            Map<String, Candidate> committed = git.discoverCommitted("HEAD");
+            Map<String, Candidate> working = git.discoverWorking();
+            assertTrue(committed.get("flows/a.json").load().isFlow());
+            assertEquals(CandidateKind.NON_FLOW, committed.get("flows/params.json").load().getKind());
+            assertTrue(working.get("flows/a.json").load().isFlow());
         }
     }
 
@@ -83,7 +83,8 @@ class GitSourceTest {
     @Test
     void missingBranchRejected() throws Exception {
         try (GitSource git = new GitSource(dir.toFile(), new File("flows"), classifier())) {
-            FlowParseException ex = assertThrows(FlowParseException.class, () -> git.readCommitted("no-such-branch"));
+            FlowParseException ex = assertThrows(FlowParseException.class,
+                    () -> git.discoverCommitted("no-such-branch"));
             assertTrue(ex.getMessage().contains("no-such-branch"), ex.getMessage());
         }
     }

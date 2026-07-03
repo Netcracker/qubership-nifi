@@ -5,6 +5,18 @@ import org.qubership.nifi.maven.flowdiff.flow.IndexedComponent;
 
 import java.util.List;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ARTIFACT;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.BUNDLE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP_ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP_IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.INSTANCE_IDENTIFIER;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.VERSION;
+
 /**
  * Classifies a single leaf difference within a matched component into a {@link ChangeCategory}. Classification is by
  * JSON path and surrounding structure, never by bare field name, so an unrelated {@code version} inside a user property
@@ -15,16 +27,6 @@ import java.util.List;
  * endpoint points to a different component, so every endpoint field is a significant change.
  */
 public final class ChangeCategorizer {
-
-    private static final String INSTANCE_IDENTIFIER = "instanceIdentifier";
-    private static final String IDENTIFIER = "identifier";
-    private static final String GROUP_IDENTIFIER = "groupIdentifier";
-    private static final String BUNDLE = "bundle";
-    private static final String VERSION = "version";
-    private static final String SOURCE = "source";
-    private static final String DESTINATION = "destination";
-    private static final String GROUP_ID = "groupId";
-    private static final String ID = "id";
 
     private ChangeCategorizer() {
     }
@@ -128,6 +130,6 @@ public final class ChangeCategorizer {
 
     private static boolean isNifiBundle(final JsonNode bundle) {
         return bundle != null && bundle.isObject()
-                && bundle.has("group") && bundle.has("artifact") && bundle.has(VERSION);
+                && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
     }
 }

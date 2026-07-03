@@ -5,6 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Iterator;
 import java.util.Set;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.EXTERNAL_CONTROLLER_SERVICES;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_CONTENTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_ENCODING_VERSION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_PROVIDERS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SNAPSHOT_METADATA;
+
 /**
  * A parsed NiFi versioned flow export: the {@code flowContents} process-group tree plus the closed set of sibling
  * sections. The set of supported top-level siblings is fixed; an unknown sibling fails the flow so no reported path is
@@ -12,17 +19,14 @@ import java.util.Set;
  */
 public final class FlowExport {
 
-    /** The top-level {@code flowContents} field name, marking a JSON object as a flow export. */
-    public static final String FLOW_CONTENTS = "flowContents";
-
     /** The closed set of supported top-level sibling section names, {@code flowContents} included. */
     public static final Set<String> KNOWN_TOP_LEVEL_SIBLINGS = Set.of(
             FLOW_CONTENTS,
-            "flowEncodingVersion",
-            "parameterContexts",
-            "parameterProviders",
-            "externalControllerServices",
-            "snapshotMetadata");
+            FLOW_ENCODING_VERSION,
+            PARAMETER_CONTEXTS,
+            PARAMETER_PROVIDERS,
+            EXTERNAL_CONTROLLER_SERVICES,
+            SNAPSHOT_METADATA);
 
     private final String displayPath;
     private final JsonNode root;

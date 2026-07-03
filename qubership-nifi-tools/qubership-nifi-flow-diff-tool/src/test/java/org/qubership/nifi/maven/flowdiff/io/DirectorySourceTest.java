@@ -16,13 +16,15 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 /**
  * Tests for {@link DirectorySource}: flow detection, non-flow classification, malformed-JSON handling with and without
- * {@code skip-malformed}, and the unknown-top-level-sibling failure.
+ * {@code skip-malformed}, and the unknown-top-level-sibling failure. Discovery enumerates candidates without reading
+ * them, so classification (and any failure) surfaces when a candidate is loaded.
  */
 @ExtendWith(MockitoExtension.class)
 class DirectorySourceTest {
@@ -48,27 +50,28 @@ class DirectorySourceTest {
     void detectsFlowAndSkipsNonFlow() throws IOException {
         write("flow.json", FLOW);
         write("params.json", "{\"some\":\"value\"}");
-        Map<String, SideEntry> entries = source(false).read();
-        assertEquals(2, entries.size());
-        assertTrue(entries.get("flow.json").isFlow());
-        assertEquals(CandidateKind.NON_FLOW, entries.get("params.json").getKind());
+        Map<String, Candidate> candidates = source(false).discover();
+        assertEquals(2, candidates.size());
+        assertTrue(candidates.get("flow.json").load().isFlow());
+        assertEquals(CandidateKind.NON_FLOW, candidates.get("params.json").load().getKind());
     }
 
     @Test
     void malformedJsonFailsWithoutSkip() throws IOException {
         write("broken.json", "{ not valid json ");
-        DirectorySource source = source(false);
-        FlowParseException ex = assertThrows(FlowParseException.class, source::read);
+        Candidate broken = source(false).discover().get("broken.json");
+        FlowParseException ex = assertThrows(FlowParseException.class, broken::load);
         assertTrue(ex.getMessage().contains("broken.json"));
     }
 
     @Test
-    void malformedJsonWarnsAndContinuesWithSkip() throws IOException {
+    void malformedJsonWarnsAndSkipsWithSkip() throws IOException {
         write("broken.json", "{ not valid json ");
         write("flow.json", FLOW);
-        Map<String, SideEntry> entries = source(true).read();
-        assertEquals(1, entries.size());
-        assertTrue(entries.containsKey("flow.json"));
+        Map<String, Candidate> candidates = source(true).discover();
+        assertEquals(2, candidates.size());
+        assertTrue(candidates.get("flow.json").load().isFlow());
+        assertNull(candidates.get("broken.json").load());
         verify(log).warn(org.mockito.ArgumentMatchers.contains("broken.json"));
     }
 
@@ -77,8 +80,8 @@ class DirectorySourceTest {
         write("flow.json", """
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP"},
                  "unexpectedSection":{}}""");
-        DirectorySource source = source(false);
-        FlowParseException ex = assertThrows(FlowParseException.class, source::read);
+        Candidate flow = source(false).discover().get("flow.json");
+        FlowParseException ex = assertThrows(FlowParseException.class, flow::load);
         assertTrue(ex.getMessage().contains("unexpectedSection"));
     }
 }

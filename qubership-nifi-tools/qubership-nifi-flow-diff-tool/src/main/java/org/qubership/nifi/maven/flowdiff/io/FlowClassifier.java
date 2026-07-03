@@ -7,6 +7,11 @@ import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
 import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_CONTENTS;
+
+import java.io.File;
+import java.io.IOException;
+
 /**
  * Parses and classifies a single candidate's content as a flow export or a non-flow JSON. A parse failure fails the
  * goal naming the file, unless {@code skip-malformed} downgrades it to a warning. Shared by the file-system and Git
@@ -32,16 +37,34 @@ public final class FlowClassifier {
     }
 
     /**
-     * Classifies one candidate.
+     * Classifies one candidate read from a file, letting Jackson stream the file rather than buffering it as a
+     * {@code String} first.
      *
-     * @param content the raw JSON content
+     * @param file    the candidate file
      * @param display the normalized display path used in messages and reports
      * @return the classified entry, or {@code null} when a malformed file is skipped
+     * @throws IOException when the file cannot be read
      */
-    public SideEntry classify(final String content, final String display) {
+    public SideEntry classify(final File file, final String display) throws IOException {
+        return classify(() -> mapper.readTree(file), display);
+    }
+
+    /**
+     * Classifies one candidate from its raw bytes, avoiding an intermediate {@code String}.
+     *
+     * @param content the raw JSON bytes
+     * @param display the normalized display path used in messages and reports
+     * @return the classified entry, or {@code null} when a malformed file is skipped
+     * @throws IOException when the content cannot be read
+     */
+    public SideEntry classify(final byte[] content, final String display) throws IOException {
+        return classify(() -> mapper.readTree(content), display);
+    }
+
+    private SideEntry classify(final NodeParser parser, final String display) throws IOException {
         JsonNode root;
         try {
-            root = mapper.readTree(content);
+            root = parser.read();
         } catch (JsonProcessingException ex) {
             if (skipMalformed) {
                 log.warn("Skipping malformed JSON file: " + display);
@@ -49,10 +72,20 @@ public final class FlowClassifier {
             }
             throw new FlowParseException("Malformed JSON file: " + display, ex);
         }
-        if (root != null && root.isObject() && root.has(FlowExport.FLOW_CONTENTS)) {
+        if (root != null && root.isObject() && root.has(FLOW_CONTENTS)) {
             return SideEntry.flow(display, FlowExport.of(display, root));
         }
-        log.debug("Skipping non-flow JSON file: " + display);
+        if (log.isDebugEnabled()) {
+            log.debug("Skipping non-flow JSON file: " + display);
+        }
         return SideEntry.nonFlow(display);
+    }
+
+    /**
+     * Reads a JSON tree from a source, deferring the choice of source (file or bytes) to the caller.
+     */
+    @FunctionalInterface
+    private interface NodeParser {
+        JsonNode read() throws IOException;
     }
 }

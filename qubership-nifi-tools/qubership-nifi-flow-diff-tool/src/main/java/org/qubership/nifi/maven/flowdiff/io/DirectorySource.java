@@ -2,23 +2,18 @@ package org.qubership.nifi.maven.flowdiff.io;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 
 /**
  * Reads one side of a diff from the file system: a directory is walked recursively for {@code *.json} files, and a
- * single file is read directly. Each candidate is classified through a {@link FlowClassifier} as a flow export or a
- * non-flow JSON.
+ * single file is read directly. Discovery enumerates the candidates keyed by relative path (directory input) or file
+ * name (single-file input) without reading their content; each is loaded and classified through a
+ * {@link FlowClassifier} as a flow export or a non-flow JSON only when the pair loop asks for it.
  */
 public final class DirectorySource {
-
-    private static final String JSON_SUFFIX = ".json";
 
     private final Path input;
     private final FlowClassifier classifier;
@@ -44,48 +39,23 @@ public final class DirectorySource {
     }
 
     /**
-     * Discovers and classifies the candidates on this side, keyed by relative path (directory input) or file name
-     * (single-file input).
+     * Discovers the candidates on this side without reading their content, keyed by relative path (directory input) or
+     * file name (single-file input). Each candidate reads, classifies, and parses its file only when loaded.
      *
-     * @return the discovered entries in deterministic order
-     * @throws IOException when a file cannot be read
+     * @return the discovered candidates in deterministic order
+     * @throws IOException when the directory tree cannot be walked
      */
-    public Map<String, SideEntry> read() throws IOException {
-        Map<String, SideEntry> entries = new LinkedHashMap<>();
+    public Map<String, Candidate> discover() throws IOException {
+        Map<String, Candidate> candidates = new LinkedHashMap<>();
         if (isDirectory()) {
-            for (Path file : jsonFiles()) {
-                String relative = toPosix(input.relativize(file));
-                SideEntry entry = classify(file, relative);
-                if (entry != null) {
-                    entries.put(relative, entry);
-                }
+            for (Path file : JsonFiles.under(input)) {
+                String relative = JsonFiles.toPosix(input.relativize(file));
+                candidates.put(relative, () -> classifier.classify(file.toFile(), relative));
             }
         } else {
             String display = input.getFileName().toString();
-            SideEntry entry = classify(input, display);
-            if (entry != null) {
-                entries.put(display, entry);
-            }
+            candidates.put(display, () -> classifier.classify(input.toFile(), display));
         }
-        return entries;
-    }
-
-    private List<Path> jsonFiles() throws IOException {
-        try (Stream<Path> walk = Files.walk(input)) {
-            List<Path> files = new ArrayList<>(walk
-                    .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(JSON_SUFFIX))
-                    .toList());
-            files.sort(Path::compareTo);
-            return files;
-        }
-    }
-
-    private SideEntry classify(final Path file, final String display) throws IOException {
-        return classifier.classify(Files.readString(file, StandardCharsets.UTF_8), display);
-    }
-
-    private static String toPosix(final Path path) {
-        return path.toString().replace('\\', '/');
+        return candidates;
     }
 }

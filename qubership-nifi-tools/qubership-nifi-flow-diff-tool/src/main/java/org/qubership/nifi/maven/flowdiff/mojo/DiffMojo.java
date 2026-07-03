@@ -7,9 +7,9 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.maven.flowdiff.io.Candidate;
 import org.qubership.nifi.maven.flowdiff.io.DirectorySource;
 import org.qubership.nifi.maven.flowdiff.io.FlowClassifier;
-import org.qubership.nifi.maven.flowdiff.io.SideEntry;
 import org.qubership.nifi.maven.flowdiff.report.DiffModelBuilder;
 import org.qubership.nifi.maven.flowdiff.report.ReportModel;
 
@@ -52,10 +52,10 @@ public final class DiffMojo extends AbstractFlowDiffMojo {
                     + base + " vs " + tgt);
         }
         try {
-            Map<String, SideEntry> baseEntries = baseSource.read();
-            Map<String, SideEntry> targetEntries = targetSource.read();
+            Map<String, Candidate> baseCandidates = baseSource.discover();
+            Map<String, Candidate> targetCandidates = targetSource.discover();
             ReportModel model = new DiffModelBuilder(getLog())
-                    .build(baseEntries, targetEntries, baseSource.isDirectory());
+                    .build(baseCandidates, targetCandidates, baseSource.isDirectory());
             emit(model);
         } catch (FlowParseException e) {
             throw new MojoFailureException(e.getMessage(), e);

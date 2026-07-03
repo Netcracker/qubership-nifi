@@ -8,6 +8,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
 import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.maven.flowdiff.io.Candidate;
 import org.qubership.nifi.maven.flowdiff.io.FlowClassifier;
 import org.qubership.nifi.maven.flowdiff.io.GitSource;
 import org.qubership.nifi.maven.flowdiff.io.SideEntry;
@@ -56,13 +57,20 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
         int reverted = 0;
 
         try (GitSource git = new GitSource(getBasedir(), new File(path), classifier)) {
-            Map<String, SideEntry> committed = git.readCommitted("HEAD");
-            Map<String, SideEntry> working = git.readWorking();
+            Map<String, Candidate> committed = git.discoverCommitted("HEAD");
+            Map<String, Candidate> working = git.discoverWorking();
             if (!git.isPathPresent()) {
                 getLog().warn("Path is absent from the working tree; nothing to revert: " + path);
             }
-            for (String key : matchedFlowKeys(committed, working)) {
-                RevertCounts counts = rewrite(git.workingFile(key), committed.get(key).getFlow(), reverter,
+            Set<String> allKeys = new TreeSet<>(committed.keySet());
+            allKeys.addAll(working.keySet());
+            for (String key : allKeys) {
+                SideEntry committedEntry = load(committed.get(key));
+                SideEntry workingEntry = load(working.get(key));
+                if (!bothFlows(committedEntry, workingEntry)) {
+                    continue;
+                }
+                RevertCounts counts = rewrite(git.workingFile(key), committedEntry.getFlow(), reverter,
                         reformatter, mapper, key);
                 if (counts != null && counts.total() > 0) {
                     reverted += counts.total();
@@ -104,27 +112,24 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
         }
     }
 
-    private List<String> matchedFlowKeys(final Map<String, SideEntry> committed,
-            final Map<String, SideEntry> working) {
-        List<String> keys = new ArrayList<>();
-        Set<String> allKeys = new TreeSet<>(committed.keySet());
-        allKeys.addAll(working.keySet());
-        for (String key : allKeys) {
-            SideEntry committedEntry = committed.get(key);
-            SideEntry workingEntry = working.get(key);
-            boolean committedFlow = committedEntry != null && committedEntry.isFlow();
-            boolean workingFlow = workingEntry != null && workingEntry.isFlow();
-            if (committedFlow && workingFlow) {
-                keys.add(key);
-            } else if (committedFlow && workingEntry != null) {
-                getLog().warn("Flow present as baseline but a non-flow JSON on the target side: "
-                        + committedEntry.getDisplayPath() + " vs " + workingEntry.getDisplayPath());
-            } else if (workingFlow && committedEntry != null) {
-                getLog().warn("Flow present as target but a non-flow JSON on the baseline side: "
-                        + workingEntry.getDisplayPath() + " vs " + committedEntry.getDisplayPath());
-            }
+    private static SideEntry load(final Candidate candidate) throws IOException {
+        return candidate == null ? null : candidate.load();
+    }
+
+    private boolean bothFlows(final SideEntry committedEntry, final SideEntry workingEntry) {
+        boolean committedFlow = committedEntry != null && committedEntry.isFlow();
+        boolean workingFlow = workingEntry != null && workingEntry.isFlow();
+        if (committedFlow && workingFlow) {
+            return true;
         }
-        return keys;
+        if (committedFlow && workingEntry != null) {
+            getLog().warn("Flow present as baseline but a non-flow JSON on the target side: "
+                    + committedEntry.getDisplayPath() + " vs " + workingEntry.getDisplayPath());
+        } else if (workingFlow && committedEntry != null) {
+            getLog().warn("Flow present as target but a non-flow JSON on the baseline side: "
+                    + workingEntry.getDisplayPath() + " vs " + committedEntry.getDisplayPath());
+        }
+        return false;
     }
 
     private static String summaryLine(final String key, final RevertCounts counts) {

@@ -9,6 +9,19 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ARTIFACT;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.BUNDLE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.EXTERNAL_CONTROLLER_SERVICES;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_ENCODING_VERSION;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETERS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_PROVIDERS;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.VERSION;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.asText;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.textOrEmpty;
+
 /**
  * Compares the non-{@code flowContents} sibling sections of two exports: {@code flowEncodingVersion} (environmental),
  * {@code parameterContexts} and their {@code parameters} (matched by name), {@code parameterProviders} and
@@ -17,13 +30,6 @@ import java.util.Set;
  */
 public final class SiblingComparator {
 
-    private static final String PARAMETER_CONTEXTS = "parameterContexts";
-    private static final String PARAMETER_PROVIDERS = "parameterProviders";
-    private static final String EXTERNAL_CONTROLLER_SERVICES = "externalControllerServices";
-    private static final String FLOW_ENCODING_VERSION = "flowEncodingVersion";
-    private static final String PARAMETERS = "parameters";
-    private static final String NAME = "name";
-    private static final String IDENTIFIER = "identifier";
     private static final String SEPARATOR = " / ";
 
     /**
@@ -104,7 +110,7 @@ public final class SiblingComparator {
         for (String id : union(baseline, target)) {
             JsonNode base = baseline.get(id);
             JsonNode tgt = target.get(id);
-            String name = text(tgt != null ? tgt : base, NAME);
+            String name = textOrEmpty(tgt != null ? tgt : base, NAME);
             String entrySegment = name + '(' + id + ')';
             String label = section + SEPARATOR + name;
             if (base != null && tgt != null) {
@@ -141,12 +147,12 @@ public final class SiblingComparator {
     }
 
     private static boolean isBundleVersion(final List<String> relPath, final JsonNode context) {
-        if (relPath.size() != 2 || !"bundle".equals(relPath.get(0)) || !"version".equals(relPath.get(1))) {
+        if (relPath.size() != 2 || !BUNDLE.equals(relPath.get(0)) || !VERSION.equals(relPath.get(1))) {
             return false;
         }
-        JsonNode bundle = context.get("bundle");
+        JsonNode bundle = context.get(BUNDLE);
         return bundle != null && bundle.isObject()
-                && bundle.has("group") && bundle.has("artifact") && bundle.has("version");
+                && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
     }
 
     private static JsonNode map(final JsonNode root, final String field) {
@@ -160,7 +166,7 @@ public final class SiblingComparator {
                 com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
         if (array != null && array.isArray()) {
             for (JsonNode param : array) {
-                byName.set(text(param, NAME), param);
+                byName.set(textOrEmpty(param, NAME), param);
             }
         }
         return byName;
@@ -191,12 +197,4 @@ public final class SiblingComparator {
         return baseline.equals(target);
     }
 
-    private static String text(final JsonNode node, final String field) {
-        JsonNode value = node.get(field);
-        return value == null || value.isNull() ? "" : value.asText();
-    }
-
-    private static String asText(final JsonNode node) {
-        return node == null || node.isNull() ? null : node.asText();
-    }
 }
