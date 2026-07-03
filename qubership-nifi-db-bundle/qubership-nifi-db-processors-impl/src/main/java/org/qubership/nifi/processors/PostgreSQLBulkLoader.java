@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -39,13 +38,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
-@Restricted(
-        restrictions = {
-                @Restriction(
-                        requiredPermission = RequiredPermission.READ_FILESYSTEM,
-                        explanation = "Provides the operator with the ability to work with the file system")
-        }
-)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"DBCP", "SQL", "COPY", "POSTGRESQL"})
 @CapabilityDescription("The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.\n" +

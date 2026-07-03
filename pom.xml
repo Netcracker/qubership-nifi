@@ -54,8 +54,8 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <failsafe-plugin.version>3.5.4</failsafe-plugin.version>
         <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
-        <nifi.version>2.9.0</nifi.version>
-        <nifi-api.version>2.8.0</nifi-api.version>
+        <nifi.version>2.10.0</nifi.version>
+        <nifi-api.version>2.9.0</nifi-api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
         <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
@@ -85,8 +85,8 @@
         <slf4j.version>2.0.17</slf4j.version>
 
         <!-- Version for provided artifact -->
-        <jedis.version>7.4.1</jedis.version>
-        <spring.data.redis.version>4.0.4</spring.data.redis.version>
+        <jedis.version>7.5.2</jedis.version>
+        <spring.data.redis.version>4.1.0</spring.data.redis.version>
         <!--skipUnitTests default value-->
         <skipUnitTests>false</skipUnitTests>
     </properties>

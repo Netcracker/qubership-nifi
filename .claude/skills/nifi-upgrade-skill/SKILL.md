@@ -124,6 +124,15 @@ displayNameMapping:
       Old_Display_Name: New_Display_Name
 ```
 
+Additionally, check properties marked as `deleted`. If a property is `sensitive`, ask the user whether it should be added to `dictionary.yaml` under the `propertiesAllowedToDelete` section:
+
+```yaml
+propertiesAllowedToDelete:
+  - ComponentName:
+      - Old_Display_Name 1
+      - Old_Display_Name 2
+```
+
 Put `dictionary.yaml` into `qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>`,
 where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replaced with `_`.
 Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml`.

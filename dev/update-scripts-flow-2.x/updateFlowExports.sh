@@ -366,7 +366,7 @@ update_properties() {
     fi
 
     #Ordered upgrade steps, by target minor version:
-    local steps=(5 6 7 9)
+    local steps=(5 6 7 9 10)
 
     echo "Start property names update process"
     for file in "${exportFlow[@]}"; do
