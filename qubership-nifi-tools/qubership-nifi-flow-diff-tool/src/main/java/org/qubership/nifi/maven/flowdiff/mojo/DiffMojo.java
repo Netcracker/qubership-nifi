@@ -43,8 +43,7 @@ public final class DiffMojo extends AbstractFlowDiffMojo {
         if (!tgt.exists()) {
             throw new MojoFailureException("Target path does not exist: " + tgt);
         }
-        ObjectMapper mapper = newMapper();
-        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), mapper, getLog());
+        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
         DirectorySource baseSource = new DirectorySource(base, classifier);
         DirectorySource targetSource = new DirectorySource(tgt, classifier);
         if (baseSource.isDirectory() != targetSource.isDirectory()) {

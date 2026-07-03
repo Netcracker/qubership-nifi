@@ -49,10 +49,9 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        ObjectMapper mapper = newMapper();
-        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), mapper, getLog());
+        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
         TechnicalReverter reverter = new TechnicalReverter();
-        JsonFormatReformatter reformatter = new JsonFormatReformatter();
+        JsonFormatReformatter reformatter = new JsonFormatReformatter(MAPPER);
         List<String> summary = new ArrayList<>();
         int reverted = 0;
 
@@ -71,7 +70,7 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
                     continue;
                 }
                 RevertCounts counts = rewrite(git.workingFile(key), committedEntry.getFlow(), reverter,
-                        reformatter, mapper, key);
+                        reformatter, key);
                 if (counts != null && counts.total() > 0) {
                     reverted += counts.total();
                     summary.add(summaryLine(key, counts));
@@ -86,10 +85,10 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
     }
 
     private RevertCounts rewrite(final Path file, final FlowExport committedFlow, final TechnicalReverter reverter,
-            final JsonFormatReformatter reformatter, final ObjectMapper mapper, final String key) throws IOException {
+            final JsonFormatReformatter reformatter, final String key) throws IOException {
         byte[] raw = Files.readAllBytes(file);
         String content = new String(raw, StandardCharsets.UTF_8);
-        FlowExport workingFresh = FlowExport.of(key, mapper.readTree(content));
+        FlowExport workingFresh = FlowExport.of(key, MAPPER.readTree(content));
         RevertCounts counts = reverter.revert(committedFlow, workingFresh);
         if (counts.total() == 0) {
             return counts;

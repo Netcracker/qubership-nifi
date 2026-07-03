@@ -50,6 +50,11 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     private boolean skipMalformed;
 
     /**
+     * Jackson ObjectMapper for reuse within plugin.
+     */
+    public static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
      * Returns the project base directory.
      *
      * @return the base directory
@@ -65,15 +70,6 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
      */
     protected final boolean isSkipMalformed() {
         return skipMalformed;
-    }
-
-    /**
-     * Creates the JSON mapper used to parse flow exports.
-     *
-     * @return a new object mapper
-     */
-    protected final ObjectMapper newMapper() {
-        return new ObjectMapper();
     }
 
     /**
@@ -128,7 +124,7 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
             switch (reportFormat) {
                 case TEXT -> new TextReporter(maxValueLength, showTechnical).render(model, out);
                 case MD -> new MarkdownReporter(maxValueLength, showTechnical).render(model, out);
-                case JSON -> new JsonReporter(new ObjectMapper(), showTechnical).render(model, out);
+                case JSON -> new JsonReporter(MAPPER, showTechnical).render(model, out);
                 default -> throw new MojoExecutionException("Unsupported format: " + reportFormat);
             }
         } catch (IOException e) {

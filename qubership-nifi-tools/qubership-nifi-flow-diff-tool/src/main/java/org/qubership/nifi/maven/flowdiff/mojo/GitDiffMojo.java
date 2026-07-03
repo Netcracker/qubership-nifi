@@ -38,8 +38,7 @@ public final class GitDiffMojo extends AbstractFlowDiffMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        ObjectMapper mapper = newMapper();
-        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), mapper, getLog());
+        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
         try (GitSource git = new GitSource(getBasedir(), new File(path), classifier)) {
             Map<String, Candidate> committed = git.discoverCommitted(branch);
             Map<String, Candidate> working = git.discoverWorking();
