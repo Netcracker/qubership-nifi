@@ -64,6 +64,9 @@ public final class ChangeCategorizer {
         if (isBundleVersion(relPath, targetNode != null ? targetNode : baselineNode)) {
             return ChangeCategory.ENVIRONMENTAL;
         }
+        if (isField(relPath, "controllerServiceApis")) {
+            return ChangeCategory.ENVIRONMENTAL;
+        }
         return ChangeCategory.SIGNIFICANT;
     }
 

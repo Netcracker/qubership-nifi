@@ -63,7 +63,7 @@ public final class ShortLabel {
 
     private static String connection(final JsonNode node, final String name,
                                      final String identifier, final boolean collides) {
-        return withOptionalId(name, identifier, collides) + ": "
+        return (isEmpty(name) ? "" : name + " ") + "(" + shortId(identifier) + "): "
                 + endpoint(node.get(SOURCE), collides) + " -> " + endpoint(node.get(DESTINATION), collides);
     }
 

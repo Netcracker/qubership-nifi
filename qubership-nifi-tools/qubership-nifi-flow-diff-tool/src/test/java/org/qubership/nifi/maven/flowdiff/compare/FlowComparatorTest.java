@@ -361,4 +361,79 @@ class FlowComparatorTest {
         assertEquals("Funnel", change.target().label());
         assertEquals("fn", change.target().identifier());
     }
+
+    @Test
+    void bundleVersionChangeForControllerService() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                  "controllerServices":[
+                    {"identifier":"cs1",
+                        "bundle":{"artifact":"nifi-services-nar",
+                                  "group":"org.apache.nifi",
+                                  "version":"%1$s"},
+                        "name":"CS","componentType":"CONTROLLER_SERVICE",
+                        "properties": {"prop1": null},
+                        "propertyDescriptors":{"prop1":{"displayName":"prop1",
+                            "identifiesControllerService":false,"name":"prop1","sensitive":false}}
+                    }
+                  ]
+                }}
+                """;
+        List<Difference> diffs = comparator.compare(flow(template.formatted("1.26.0")),
+                flow(template.formatted("1.28.1")));
+        assertEquals(0, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(1, count(diffs, ChangeCategory.ENVIRONMENTAL));
+        assertEquals(ChangeCategory.ENVIRONMENTAL, find(diffs, "bundle/version").getCategory());
+    }
+
+    @Test
+    void controllerServiceApiBundleVersionChangeForControllerService() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                  "controllerServices":[
+                    {"identifier":"cs1",
+                        "bundle":{"artifact":"nifi-services-nar",
+                                  "group":"org.apache.nifi",
+                                  "version":"1.28.1"},
+                        "controllerServiceApis":[{"bundle":{"artifact":"nifi-services-api-nar",
+                                "group":"org.apache.nifi","version":"%1$s"},
+                                "type":"org.apache.nifi.Service"}],
+                        "name":"CS","componentType":"CONTROLLER_SERVICE",
+                        "properties": {"prop1": null},
+                        "propertyDescriptors":{"prop1":{"displayName":"prop1",
+                            "identifiesControllerService":false,"name":"prop1","sensitive":false}}
+                    }
+                  ]
+                }}
+                """;
+        List<Difference> diffs = comparator.compare(flow(template.formatted("1.26.0")),
+                flow(template.formatted("1.28.1")));
+        assertEquals(0, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(1, count(diffs, ChangeCategory.ENVIRONMENTAL));
+        assertEquals(ChangeCategory.ENVIRONMENTAL, find(diffs, "controllerServiceApis").getCategory());
+    }
+
+    @Test
+    void rootGroupRenameChange() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"%1$s","componentType":"PROCESS_GROUP",
+                  "controllerServices":[
+                    {"identifier":"cs1",
+                        "bundle":{"artifact":"nifi-services-nar",
+                                  "group":"org.apache.nifi",
+                                  "version":"1.28.1"},
+                        "name":"CS","componentType":"CONTROLLER_SERVICE",
+                        "properties": {"prop1": null},
+                        "propertyDescriptors":{"prop1":{"displayName":"prop1",
+                            "identifiesControllerService":false,"name":"prop1","sensitive":false}}
+                    }
+                  ]
+                }}
+                """;
+        List<Difference> diffs = comparator.compare(flow(template.formatted("old-root-name")),
+                flow(template.formatted("new-root-name")));
+        assertEquals(1, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(0, count(diffs, ChangeCategory.ENVIRONMENTAL));
+        assertEquals(ChangeCategory.SIGNIFICANT, find(diffs, "name").getCategory());
+    }
 }

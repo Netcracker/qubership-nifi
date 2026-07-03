@@ -28,6 +28,10 @@ class MarkdownReporterTest {
     }
 
     private String render(final List<String> addedFlows) {
+        return render(addedFlows, List.of());
+    }
+
+    private String render(final List<String> addedFlows, final List<String> removedFlows) {
         String template = """
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
                   {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
@@ -38,7 +42,7 @@ class MarkdownReporterTest {
                 ",{\"identifier\":\"p9\",\"name\":\"New\",\"componentType\":\"PROCESSOR\"}"));
         List<Difference> changes = new FlowComparator().compare(baseline, target);
         ReportModel model = new ReportModel(
-                List.of(new FlowReport("flows/Loader.json", changes)), addedFlows, List.of());
+                List.of(new FlowReport("flows/Loader.json", changes)), addedFlows, removedFlows);
         return new MarkdownReporter(200, false).render(model);
     }
 
@@ -80,6 +84,12 @@ class MarkdownReporterTest {
     void listsWholeAddedFlows() {
         String md = render(List.of("flows/New.json"));
         assertTrue(md.contains("Added flows: `flows/New.json`"), md);
+    }
+
+    @Test
+    void listsWholeRemovedFlows() {
+        String md = render(List.of(), List.of("flows/Removed.json"));
+        assertTrue(md.contains("Removed flows: `flows/Removed.json`"), md);
     }
 
     private ReportModel model(final List<Difference> changes) {
@@ -162,5 +172,204 @@ class MarkdownReporterTest {
         assertTrue(md.contains("[tech] `source/instanceIdentifier`"), md);
         assertTrue(md.contains("[tech] `source/groupId`"), md);
         assertTrue(md.contains("[tech] `destination/groupId`"), md);
+    }
+
+    @Test
+    void removedFieldRendersAsAbsent() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"HTTP_1_1"}}]}}""";
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                   "properties":{}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("`properties/HTTP Protocols` | `HTTP_1_1` | `(absent)` |"), md);
+    }
+
+    @Test
+    void removedComponentRendersAsAbsent() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load1","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"HTTP_1_1"}}]}}""";
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p2","name":"Load2","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"HTTP_1_1"}}]}}""";
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("`Load1` | PROCESSOR | _(removed)_ | _(present)_ | _(absent)_ |"), md);
+        assertTrue(md.contains("`Load2` | PROCESSOR | _(added)_ | _(absent)_ | _(present)_ |"), md);
+    }
+
+    @Test
+    void parameterContextChangeTest() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load2","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"HTTP_1_1"}}]},
+                   "parameterContexts":{"reporting-params":{"componentType":"PARAMETER_CONTEXT",
+                        "inheritedParameterContexts":[],
+                        "name":"reporting-params",
+                        "parameters":[
+                            {"description":"","name":"param1","provided":false,"sensitive":true},
+                            {"description":"param description2","name":"param2",
+                                    "provided":false,"sensitive":false,"value":"value-old"},
+                            {"description":"param description3","name":"param3",
+                                    "provided":false,"sensitive":false,"value":"value31"}
+                        ]}
+                    }
+                }
+            """;
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
+                  {"identifier":"p1","name":"Load2","componentType":"PROCESSOR",
+                   "properties":{"HTTP Protocols":"HTTP_1_1"}}]},
+                   "parameterContexts":{"reporting-params":{"componentType":"PARAMETER_CONTEXT",
+                        "inheritedParameterContexts":[],
+                        "name":"reporting-params",
+                        "parameters":[
+                            {"description":"param description2","name":"param2",
+                                    "provided":false,"sensitive":false,"value":"value-new"},
+                            {"description":"param description3","name":"param3",
+                                    "provided":false,"sensitive":false,"value":"value31"},
+                            {"description":"param description3","name":"param4",
+                                    "provided":false,"sensitive":false,"value":"value4"}
+                        ]}
+                    }
+                }
+            """;
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("`parameterContexts / reporting-params / param1` |"
+                + " _(parameter)_ | _(removed)_ | _(present)_ | _(absent)_ |"), md);
+        assertTrue(md.contains("`parameterContexts / reporting-params / param2` |"
+                + " _(parameter)_ | `value` | `value-old` | `value-new` |"), md);
+        assertTrue(md.contains("`parameterContexts / reporting-params / param4` |"
+                + " _(parameter)_ | _(added)_ | _(absent)_ | _(present)_ |"), md);
+    }
+
+    @Test
+    void childProcessGroupPath() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg1","name":"pg1",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{"HTTP Protocols":"HTTP_1_1"}}]
+                   }]
+                   }
+                }
+            """;
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg1","name":"pg1",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{}}]
+                   }]
+                   }
+                }
+            """;
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("### Root / pg1"), md);
+        assertTrue(md.contains("`Load` | PROCESSOR | `properties/HTTP Protocols` | `HTTP_1_1` | `(absent)` |"), md);
+    }
+
+    @Test
+    void childProcessGroupPathWithDuplicateName() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[
+                        {"identifier":"pg1","name":"pg1",
+                            "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                                "properties":{"HTTP Protocols":"HTTP_1_1"}}]},
+                        {"identifier":"pg2","name":"pg1",
+                            "processors":[{"identifier":"p2","name":"Load","componentType":"PROCESSOR",
+                                "properties":{"HTTP Protocols":"HTTP_1_1"}}]}
+                   ]
+                   }
+                }
+            """;
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[
+                        {"identifier":"pg1","name":"pg1",
+                            "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                                "properties":{"HTTP Protocols":"HTTP_1_2"}}]},
+                        {"identifier":"pg2","name":"pg1",
+                            "processors":[{"identifier":"p2","name":"Load","componentType":"PROCESSOR",
+                                "properties":{"HTTP Protocols":"HTTP_1_2"}}]}
+                   ]
+                   }
+                }
+            """;
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("### Root / pg1(pg1)"), md);
+        assertTrue(md.contains("### Root / pg1(pg2)"), md);
+        assertTrue(md.contains("`Load` | PROCESSOR | `properties/HTTP Protocols` | `HTTP_1_1` | `HTTP_1_2` |"), md);
+    }
+
+    @Test
+    void childProcessGroupRename() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg1","name":"pg1",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{"HTTP Protocols":"HTTP_1_1"}}]
+                   }]
+                   }
+                }
+            """;
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg1","name":"pg2",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{}}]
+                   }]
+                   }
+                }
+            """;
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("### Root / pg2"), md);
+        assertTrue(md.contains("_(group)_ | PROCESS_GROUP | `name` | `pg1` | `pg2` |"), md);
+    }
+
+    @Test
+    void childProcessGroupAdded() {
+        String oldFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg1","name":"pg1",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{"HTTP Protocols":"HTTP_1_1"}}]
+                   }]
+                   }
+                }
+            """;
+        String newFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
+                   "processGroups":[{"identifier":"pg2","name":"pg1",
+                        "processors":[{"identifier":"p1","name":"Load","componentType":"PROCESSOR",
+                            "properties":{"HTTP Protocols":"HTTP_1_1"}}]
+                   }]
+                   }
+                }
+            """;
+        List<Difference> changes = new FlowComparator().compare(
+                flow(oldFlow), flow(newFlow));
+        String md = new MarkdownReporter(200, false).render(model(changes));
+        assertTrue(md.contains("### Root"), md);
+        assertTrue(md.contains("`pg1` | PROCESS_GROUP | _(removed)_ | _(present)_ | _(absent)_ |"), md);
+        assertTrue(md.contains("`pg1` | PROCESS_GROUP | _(added)_ | _(absent)_ | _(present)_ |"), md);
     }
 }
