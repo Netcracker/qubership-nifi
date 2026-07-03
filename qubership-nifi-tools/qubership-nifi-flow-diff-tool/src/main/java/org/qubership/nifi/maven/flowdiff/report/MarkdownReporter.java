@@ -26,15 +26,13 @@ import java.util.Set;
  * table cell, and truncated to the value budget. Technical changes appear only in the counts line unless
  * {@code showTechnical} is set, in which case they are listed and marked {@code [tech]}.
  */
-public final class MarkdownReporter {
+public final class MarkdownReporter
+        extends AbstractReporter {
 
     private static final String HEADER = "| Component | Type | Field | Baseline | Target |\n"
             + "| --- | --- | --- | --- | --- |\n";
     private static final String GROUP = "_(group)_";
     private static final String BENDS = "bends";
-
-    private final int maxValueLength;
-    private final boolean showTechnical;
 
     /**
      * Creates a Markdown reporter.
@@ -43,8 +41,7 @@ public final class MarkdownReporter {
      * @param showTechnicalValue  whether to also list technical changes, marked {@code [tech]}
      */
     public MarkdownReporter(final int maxValueLengthValue, final boolean showTechnicalValue) {
-        this.maxValueLength = maxValueLengthValue;
-        this.showTechnical = showTechnicalValue;
+        super(maxValueLengthValue, showTechnicalValue);
     }
 
     /**
@@ -164,12 +161,9 @@ public final class MarkdownReporter {
     private String endpointRow(final Difference difference) {
         EndpointChange change = difference.getEndpointChange();
         return "| " + componentCell(difference) + " | " + typeCell(difference) + " | " + code(change.role())
-                + " | " + codeValue(endpoint(change.baseline())) + " | " + codeValue(endpoint(change.target()))
+                + " | " + codeValue(endpoint(change.baseline(), true))
+                + " | " + codeValue(endpoint(change.target(), true))
                 + " |\n";
-    }
-
-    private static String endpoint(final EndpointChange.EndpointRef ref) {
-        return "[" + ref.typeName() + "] " + ref.label() + " (" + ref.identifier() + ")";
     }
 
     private static Map<String, Set<String>> collapsedRolesByComponent(final List<Difference> diffs) {
@@ -281,33 +275,5 @@ public final class MarkdownReporter {
 
     private static String escapeCode(final String value) {
         return value.replace("`", "\\`").replace("|", "\\|");
-    }
-
-    private static String categoryMarker(final ChangeCategory category) {
-        if (category == ChangeCategory.ENVIRONMENTAL) {
-            return "[env] ";
-        }
-        if (category == ChangeCategory.TECHNICAL) {
-            return "[tech] ";
-        }
-        return "";
-    }
-
-    private boolean isListable(final Difference difference) {
-        ChangeCategory category = difference.getCategory();
-        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL
-                || (showTechnical && category == ChangeCategory.TECHNICAL);
-    }
-
-    private static String groupKey(final List<GroupRef> breadcrumb) {
-        List<String> ids = new ArrayList<>();
-        breadcrumb.forEach(group -> ids.add(group.identifier()));
-        return String.join("/", ids);
-    }
-
-    private static String crumbDisplay(final List<GroupRef> breadcrumb) {
-        List<String> labels = new ArrayList<>();
-        breadcrumb.forEach(group -> labels.add(ShortLabel.group(group)));
-        return String.join(" / ", labels);
     }
 }

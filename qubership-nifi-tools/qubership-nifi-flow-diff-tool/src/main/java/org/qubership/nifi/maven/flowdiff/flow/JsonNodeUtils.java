@@ -2,13 +2,18 @@ package org.qubership.nifi.maven.flowdiff.flow;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Small null-safe helpers for reading text out of Jackson {@link JsonNode} trees. Shared by the comparison and revert
  * code so a missing field and an explicit JSON {@code null} are treated identically everywhere.
  */
-public final class JsonNodes {
+public final class JsonNodeUtils {
 
-    private JsonNodes() {
+    private JsonNodeUtils() {
     }
 
     /**
@@ -54,5 +59,20 @@ public final class JsonNodes {
      */
     public static boolean isEmpty(final String value) {
         return value == null || value.isEmpty();
+    }
+
+    /**
+     * Gets unique field names from two supplied objects and sorts it alphabetically.
+     * @param baseline baseline object to process
+     * @param target target object to process
+     * @return sorted list of unique field names from input
+     */
+    public static List<String> getUniqueSortedFieldNames(final JsonNode baseline, final JsonNode target) {
+        Set<String> keys = new HashSet<>();
+        baseline.fieldNames().forEachRemaining(keys::add);
+        target.fieldNames().forEachRemaining(keys::add);
+        List<String> sorted = new ArrayList<>(keys);
+        sorted.sort(String::compareTo);
+        return sorted;
     }
 }

@@ -1,10 +1,10 @@
 package org.qubership.nifi.maven.flowdiff.compare;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -53,7 +53,7 @@ public final class NodeDiffer {
     private void walk(final JsonNode baseline, final JsonNode target, final List<String> relPath,
             final List<LeafDiff> out) {
         if (baseline != null && target != null && baseline.isObject() && target.isObject()) {
-            for (String key : sortedKeys(baseline, target)) {
+            for (String key : JsonNodeUtils.getUniqueSortedFieldNames(baseline, target)) {
                 if (isExcluded(relPath, key)) {
                     continue;
                 }
@@ -80,15 +80,6 @@ public final class NodeDiffer {
             return true;
         }
         return relPath.isEmpty() && excludedTopLevel.contains(key);
-    }
-
-    private static List<String> sortedKeys(final JsonNode baseline, final JsonNode target) {
-        Set<String> keys = new HashSet<>();
-        baseline.fieldNames().forEachRemaining(keys::add);
-        target.fieldNames().forEachRemaining(keys::add);
-        List<String> sorted = new ArrayList<>(keys);
-        sorted.sort(String::compareTo);
-        return sorted;
     }
 
     private static boolean nodeEquals(final JsonNode baseline, final JsonNode target) {

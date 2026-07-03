@@ -14,8 +14,8 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.isEmpty;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.textOrEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.isEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.textOrEmpty;
 
 /**
  * Builds the stable logical path of a component and of a field within a component. Segments are unescaped and never use

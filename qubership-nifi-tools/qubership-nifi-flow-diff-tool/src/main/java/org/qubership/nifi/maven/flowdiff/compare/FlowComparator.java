@@ -28,8 +28,8 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESS_GROUPS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.REMOTE_PROCESS_GROUPS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ENDPOINT_ROLES;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.asText;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.asText;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.text;
 
 /**
  * Compares two flow exports and produces the ordered list of {@link Difference} records for the {@code flowContents}
@@ -167,9 +167,6 @@ public final class FlowComparator {
 
     private void addWholeComponent(final IndexedComponent component, final String change,
             final Set<String> ownSideIds, final List<Difference> out) {
-        if (coveredByAncestor(component, ownSideIds)) {
-            return;
-        }
         List<String> segments = CanonicalPath.componentSegments(component);
         out.add(Difference.builder()
                 .category(ChangeCategory.SIGNIFICANT)
@@ -182,15 +179,6 @@ public final class FlowComparator {
                 .identifier(component.getIdentifier())
                 .name(component.getName())
                 .build());
-    }
-
-    private static boolean coveredByAncestor(final IndexedComponent component, final Set<String> ownSideIds) {
-        for (GroupRef ancestor : component.getAncestors()) {
-            if (!ancestor.root() && ownSideIds.contains(ancestor.identifier())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static List<GroupRef> breadcrumb(final IndexedComponent component) {

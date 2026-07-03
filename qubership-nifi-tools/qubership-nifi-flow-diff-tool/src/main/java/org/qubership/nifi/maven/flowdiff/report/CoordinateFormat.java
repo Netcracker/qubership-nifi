@@ -2,6 +2,8 @@ package org.qubership.nifi.maven.flowdiff.report;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.textOrEmpty;
+
 /**
  * Formats NiFi coordinate structures for the human reports. A component {@code position} is a fixed {@code {x, y}}
  * object and connection {@code bends} are an array of such objects; the {@code x}/{@code y} keys are always implied, so
@@ -27,7 +29,7 @@ public final class CoordinateFormat {
         if (position == null || position.isNull() || !position.isObject()) {
             return ABSENT;
         }
-        return "(" + coordinate(position.get(X)) + ", " + coordinate(position.get(Y)) + ")";
+        return "(" + textOrEmpty(position, X) + ", " + textOrEmpty(position, Y) + ")";
     }
 
     /**
@@ -48,9 +50,5 @@ public final class CoordinateFormat {
             sb.append(pair(bends.get(i)));
         }
         return sb.append("]").toString();
-    }
-
-    private static String coordinate(final JsonNode value) {
-        return value == null || value.isNull() ? "" : value.asText();
     }
 }

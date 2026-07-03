@@ -75,7 +75,7 @@ public final class GitSource implements Closeable {
                     .relativize(resolved.getAbsoluteFile().toPath().normalize());
             candidate = parentCanonical.resolve(remainder);
         }
-        return JsonFiles.toPosix(worktreeRoot.relativize(candidate));
+        return JsonFileUtils.toPosix(worktreeRoot.relativize(candidate));
     }
 
     private void requireInside(final Path candidate, final File pathInput) {
@@ -128,8 +128,8 @@ public final class GitSource implements Closeable {
             return candidates;
         }
         if (target.isDirectory()) {
-            for (Path file : JsonFiles.under(target.toPath())) {
-                String key = JsonFiles.toPosix(worktreeRoot.relativize(file));
+            for (Path file : JsonFileUtils.under(target.toPath())) {
+                String key = JsonFileUtils.toPosix(worktreeRoot.relativize(file));
                 candidates.put(key, () -> classifier.classify(file.toFile(), key));
             }
         } else {
@@ -164,7 +164,7 @@ public final class GitSource implements Closeable {
                 }
                 while (treeWalk.next()) {
                     String path = treeWalk.getPathString();
-                    if (!path.endsWith(JsonFiles.JSON_SUFFIX)) {
+                    if (!path.endsWith(JsonFileUtils.JSON_SUFFIX)) {
                         continue;
                     }
                     ObjectId blobId = treeWalk.getObjectId(0);

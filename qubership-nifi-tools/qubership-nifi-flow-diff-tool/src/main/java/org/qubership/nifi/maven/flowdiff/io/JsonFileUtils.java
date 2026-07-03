@@ -11,12 +11,12 @@ import java.util.stream.Stream;
  * File-system helpers shared by {@link DirectorySource} and {@link GitSource}: recursive discovery of {@code *.json}
  * files in deterministic order, and conversion of a path to {@code /}-separated form for stable report keys.
  */
-final class JsonFiles {
+final class JsonFileUtils {
 
     /** The suffix that marks a candidate flow-export file. */
     static final String JSON_SUFFIX = ".json";
 
-    private JsonFiles() {
+    private JsonFileUtils() {
     }
 
     /**

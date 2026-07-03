@@ -69,7 +69,7 @@ class DiffModelBuilderTest {
     }
 
     @Test
-    void singleFilesPairDirectlyRegardlessOfName() throws IOException {
+    void singleFilesBuildDiffForPairDirectlyRegardlessOfName() throws IOException {
         ReportModel model = new DiffModelBuilder(log).build(
                 map("old.json", flowEntry("old.json", "1")),
                 map("new.json", flowEntry("new.json", "2")),

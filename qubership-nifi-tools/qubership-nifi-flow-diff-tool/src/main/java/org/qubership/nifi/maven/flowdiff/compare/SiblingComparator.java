@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -19,8 +18,9 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETERS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_PROVIDERS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.VERSION;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.asText;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.textOrEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.asText;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.textOrEmpty;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.getUniqueSortedFieldNames;
 
 /**
  * Compares the non-{@code flowContents} sibling sections of two exports: {@code flowEncodingVersion} (environmental),
@@ -64,7 +64,7 @@ public final class SiblingComparator {
 
     private void compareParameterContexts(final JsonNode baseline, final JsonNode target,
             final List<Difference> diffs) {
-        for (String name : sortedUnion(baseline, target)) {
+        for (String name : getUniqueSortedFieldNames(baseline, target)) {
             JsonNode base = baseline.get(name);
             JsonNode tgt = target.get(name);
             if (base != null && tgt != null) {
@@ -88,7 +88,7 @@ public final class SiblingComparator {
 
     private void compareParameters(final String context, final JsonNode baseline, final JsonNode target,
             final List<Difference> diffs) {
-        for (String name : sortedUnion(baseline, target)) {
+        for (String name : getUniqueSortedFieldNames(baseline, target)) {
             JsonNode base = baseline.get(name);
             JsonNode tgt = target.get(name);
             String label = PARAMETER_CONTEXTS + SEPARATOR + context + SEPARATOR + name;
@@ -107,7 +107,7 @@ public final class SiblingComparator {
 
     private void compareIdentifiedEntries(final JsonNode baseline, final JsonNode target, final String section,
             final ComponentType type, final List<Difference> diffs) {
-        for (String id : sortedUnion(baseline, target)) {
+        for (String id : getUniqueSortedFieldNames(baseline, target)) {
             JsonNode base = baseline.get(id);
             JsonNode tgt = target.get(id);
             String name = textOrEmpty(tgt != null ? tgt : base, NAME);
@@ -170,15 +170,6 @@ public final class SiblingComparator {
             }
         }
         return byName;
-    }
-
-    private static List<String> sortedUnion(final JsonNode baseline, final JsonNode target) {
-        Set<String> keys = new HashSet<>();
-        baseline.fieldNames().forEachRemaining(keys::add);
-        target.fieldNames().forEachRemaining(keys::add);
-        List<String> sorted = new ArrayList<>(keys);
-        sorted.sort(String::compareTo);
-        return sorted;
     }
 
     private static List<String> concat(final List<String> prefix, final List<String> suffix) {

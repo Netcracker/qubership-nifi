@@ -48,8 +48,8 @@ public final class DirectorySource {
     public Map<String, Candidate> discover() throws IOException {
         Map<String, Candidate> candidates = new LinkedHashMap<>();
         if (isDirectory()) {
-            for (Path file : JsonFiles.under(input)) {
-                String relative = JsonFiles.toPosix(input.relativize(file));
+            for (Path file : JsonFileUtils.under(input)) {
+                String relative = JsonFileUtils.toPosix(input.relativize(file));
                 candidates.put(relative, () -> classifier.classify(file.toFile(), relative));
             }
         } else {

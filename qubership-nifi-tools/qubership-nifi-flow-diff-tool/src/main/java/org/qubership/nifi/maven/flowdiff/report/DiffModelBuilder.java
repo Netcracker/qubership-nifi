@@ -50,10 +50,10 @@ public final class DiffModelBuilder {
         List<String> removedFlows = new ArrayList<>();
         if (bothDirectories) {
             for (String key : sortedUnion(baseline.keySet(), target.keySet())) {
-                pair(load(baseline.get(key)), load(target.get(key)), flows, addedFlows, removedFlows);
+                buildDiffForPair(load(baseline.get(key)), load(target.get(key)), flows, addedFlows, removedFlows);
             }
         } else {
-            pair(load(single(baseline)), load(single(target)), flows, addedFlows, removedFlows);
+            buildDiffForPair(load(single(baseline)), load(single(target)), flows, addedFlows, removedFlows);
         }
         flows.sort((a, b) -> a.getPath().compareTo(b.getPath()));
         addedFlows.sort(String::compareTo);
@@ -65,8 +65,8 @@ public final class DiffModelBuilder {
         return candidate == null ? null : candidate.load();
     }
 
-    private void pair(final SideEntry base, final SideEntry target, final List<FlowReport> flows,
-            final List<String> addedFlows, final List<String> removedFlows) {
+    private void buildDiffForPair(final SideEntry base, final SideEntry target, final List<FlowReport> flows,
+                                  final List<String> addedFlows, final List<String> removedFlows) {
         boolean baseFlow = base != null && base.isFlow();
         boolean targetFlow = target != null && target.isFlow();
         if (baseFlow && targetFlow) {

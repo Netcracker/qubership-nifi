@@ -16,7 +16,7 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.IDENTIFIER;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.INSTANCE_IDENTIFIER;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.text;
 
 /**
  * Restores the technical fields of a working flow to their committed values, mutating the working tree in place. Only

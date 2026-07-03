@@ -20,7 +20,7 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.OUTPUT_PORTS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESSORS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESS_GROUPS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.REMOTE_PROCESS_GROUPS;
-import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.text;
 
 /**
  * The identity map of a flow export. The root process group is identified by location; every other child component is

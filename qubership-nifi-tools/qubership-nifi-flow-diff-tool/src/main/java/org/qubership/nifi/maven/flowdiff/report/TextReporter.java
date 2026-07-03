@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
-import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 
@@ -28,7 +27,7 @@ import java.util.TreeMap;
  * are marked {@code [env]}. Technical changes appear only in the counts header unless {@code showTechnical} is set, in
  * which case they are listed and marked {@code [tech]}.
  */
-public final class TextReporter {
+public final class TextReporter extends AbstractReporter {
 
     private static final Map<ComponentType, String> CODE_NAMES = codeNames();
     private static final int INDENT_COMPONENT = 4;
@@ -36,8 +35,6 @@ public final class TextReporter {
     private static final String BENDS = "bends";
     private static final String EMPTY_MARKER = "(empty)";
 
-    private final int maxValueLength;
-    private final boolean showTechnical;
 
     /**
      * Creates a text reporter.
@@ -46,8 +43,7 @@ public final class TextReporter {
      * @param showTechnicalValue  whether to also list technical changes, marked {@code [tech]}
      */
     public TextReporter(final int maxValueLengthValue, final boolean showTechnicalValue) {
-        this.maxValueLength = maxValueLengthValue;
-        this.showTechnical = showTechnicalValue;
+        super(maxValueLengthValue, showTechnicalValue);
     }
 
     private static Map<ComponentType, String> codeNames() {
@@ -238,10 +234,6 @@ public final class TextReporter {
                 .append('\n');
     }
 
-    private static String endpoint(final EndpointChange.EndpointRef ref) {
-        return "[" + ref.typeCode() + "] " + ref.label() + " (" + ref.identifier() + ")";
-    }
-
     private static Set<String> collapsedRoles(final List<Difference> componentDiffs) {
         Set<String> roles = new HashSet<>();
         for (Difference difference : componentDiffs) {
@@ -273,14 +265,6 @@ public final class TextReporter {
                 .append(" -> ")
                 .append(fieldValue(difference, difference.getTargetValue()))
                 .append('\n');
-    }
-
-    private static void appendMarker(final Difference difference, final StringBuilder sb) {
-        if (difference.getCategory() == ChangeCategory.ENVIRONMENTAL) {
-            sb.append("[env] ");
-        } else if (difference.getCategory() == ChangeCategory.TECHNICAL) {
-            sb.append("[tech] ");
-        }
     }
 
     private String fieldValue(final Difference difference, final JsonNode value) {
@@ -315,27 +299,5 @@ public final class TextReporter {
             return "";
         }
         return "[" + type.getCode() + "] ";
-    }
-
-    private boolean isListable(final Difference difference) {
-        ChangeCategory category = difference.getCategory();
-        return category == ChangeCategory.SIGNIFICANT || category == ChangeCategory.ENVIRONMENTAL
-                || (showTechnical && category == ChangeCategory.TECHNICAL);
-    }
-
-    private static String groupKey(final List<GroupRef> breadcrumb) {
-        List<String> ids = new ArrayList<>();
-        breadcrumb.forEach(group -> ids.add(group.identifier()));
-        return String.join("/", ids);
-    }
-
-    private static String crumbDisplay(final List<GroupRef> breadcrumb) {
-        List<String> labels = new ArrayList<>();
-        breadcrumb.forEach(group -> labels.add(ShortLabel.group(group)));
-        return String.join(" / ", labels);
-    }
-
-    private static String componentKey(final Difference difference) {
-        return difference.getShortLabel() + ' ' + difference.getIdentifier();
     }
 }
