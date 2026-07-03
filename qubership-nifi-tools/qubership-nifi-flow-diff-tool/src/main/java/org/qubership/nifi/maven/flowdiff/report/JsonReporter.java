@@ -1,5 +1,6 @@
 package org.qubership.nifi.maven.flowdiff.report;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -8,6 +9,8 @@ import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 
 import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.List;
 
 /**
@@ -35,13 +38,26 @@ public final class JsonReporter {
     }
 
     /**
-     * Renders the model to the JSON report.
+     * Renders the model to the JSON report and returns it as a string.
      *
      * @param model the diff model
      * @return the JSON report text
      * @throws IOException when serialization fails
      */
     public String render(final ReportModel model) throws IOException {
+        StringWriter out = new StringWriter();
+        render(model, out);
+        return out.toString();
+    }
+
+    /**
+     * Renders the model to the JSON report, writing it directly to the given writer.
+     *
+     * @param model the diff model
+     * @param out   the writer the report is streamed to
+     * @throws IOException when serialization fails
+     */
+    public void render(final ReportModel model, final Writer out) throws IOException {
         JsonNodeFactory factory = mapper.getNodeFactory();
         ObjectNode root = factory.objectNode();
         root.put("schemaVersion", SCHEMA_VERSION);
@@ -50,7 +66,11 @@ public final class JsonReporter {
         root.set("addedFlows", stringArray(model.getAddedFlows(), factory));
         root.set("removedFlows", stringArray(model.getRemovedFlows(), factory));
         root.set("totals", totalsNode(model, factory));
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(root) + "\n";
+        // Keep the writer open so the caller controls its lifecycle and the trailing newline can be appended.
+        mapper.writerWithDefaultPrettyPrinter()
+                .without(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+                .writeValue(out, root);
+        out.write("\n");
     }
 
     private ObjectNode flowNode(final FlowReport flow, final JsonNodeFactory factory) {

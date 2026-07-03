@@ -46,38 +46,35 @@ public final class TechnicalReverter {
         String workingRootId = workingIndex.getRoot().getIdentifier();
 
         int instance = 0;
+        int endpointGroupId = 0;
+        int group = 0;
+        // The three technical fields below live in disjoint locations, so a single pass over the working components
+        // suffices. The map is keyed by identifier, so one committed lookup per entry serves both the component's own
+        // instanceIdentifier and, for a connection, its endpoint handling.
         for (Map.Entry<String, IndexedComponent> entry : workingById.entrySet()) {
+            IndexedComponent workingComponent = entry.getValue();
             IndexedComponent committedComponent = committedById.get(entry.getKey());
             if (committedComponent != null) {
-                instance += restore(entry.getValue().getNode(), INSTANCE_IDENTIFIER,
+                instance += restore(workingComponent.getNode(), INSTANCE_IDENTIFIER,
                         text(committedComponent.getNode(), INSTANCE_IDENTIFIER));
+            }
+            if (workingComponent.getType() == ComponentType.CONNECTION) {
+                JsonNode source = workingComponent.getNode().get(SOURCE);
+                JsonNode destination = workingComponent.getNode().get(DESTINATION);
+                instance += revertEndpointInstance(source, committedEndpoint(committedComponent, SOURCE));
+                instance += revertEndpointInstance(destination, committedEndpoint(committedComponent, DESTINATION));
+                endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
+                endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
+            }
+            if (isDirectChildOfRoot(workingComponent)) {
+                group += restore(workingComponent.getNode(), GROUP_IDENTIFIER, committedRootId);
             }
         }
         instance += restore(workingIndex.getRoot().getNode(), INSTANCE_IDENTIFIER,
                 text(committedIndex.getRoot().getNode(), INSTANCE_IDENTIFIER));
 
-        int endpointGroupId = 0;
-        for (IndexedComponent connection : workingById.values()) {
-            if (connection.getType() != ComponentType.CONNECTION) {
-                continue;
-            }
-            IndexedComponent committedConnection = committedById.get(connection.getIdentifier());
-            JsonNode source = connection.getNode().get(SOURCE);
-            JsonNode destination = connection.getNode().get(DESTINATION);
-            instance += revertEndpointInstance(source, committedEndpoint(committedConnection, SOURCE));
-            instance += revertEndpointInstance(destination, committedEndpoint(committedConnection, DESTINATION));
-            endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
-            endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
-        }
-
         int root = restore(workingIndex.getRoot().getNode(), IDENTIFIER, committedRootId);
 
-        int group = 0;
-        for (IndexedComponent workingComponent : workingById.values()) {
-            if (isDirectChildOfRoot(workingComponent)) {
-                group += restore(workingComponent.getNode(), GROUP_IDENTIFIER, committedRootId);
-            }
-        }
         return new RevertCounts(instance, root, group, endpointGroupId);
     }
 

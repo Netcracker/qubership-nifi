@@ -7,6 +7,10 @@ import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
 import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,16 +48,39 @@ public final class MarkdownReporter {
     }
 
     /**
-     * Renders the model to the Markdown report.
+     * Renders the model to the Markdown report and returns it as a string.
      *
      * @param model the diff model
      * @return the Markdown report text
      */
     public String render(final ReportModel model) {
-        StringBuilder sb = new StringBuilder();
-        model.getFlows().forEach(flow -> renderFlow(flow, sb));
-        renderWholeFlows(model, sb);
-        return sb.toString();
+        StringWriter out = new StringWriter();
+        try {
+            render(model, out);
+        } catch (IOException e) {
+            // A StringWriter never throws, so this cannot happen.
+            throw new UncheckedIOException(e);
+        }
+        return out.toString();
+    }
+
+    /**
+     * Renders the model to the Markdown report, writing each flow to the given writer as it is built so the whole
+     * report is never held in memory at once.
+     *
+     * @param model the diff model
+     * @param out   the writer the report is streamed to
+     * @throws IOException when writing to the writer fails
+     */
+    public void render(final ReportModel model, final Writer out) throws IOException {
+        for (FlowReport flow : model.getFlows()) {
+            StringBuilder sb = new StringBuilder();
+            renderFlow(flow, sb);
+            out.write(sb.toString());
+        }
+        StringBuilder tail = new StringBuilder();
+        renderWholeFlows(model, tail);
+        out.write(tail.toString());
     }
 
     private void renderFlow(final FlowReport flow, final StringBuilder sb) {

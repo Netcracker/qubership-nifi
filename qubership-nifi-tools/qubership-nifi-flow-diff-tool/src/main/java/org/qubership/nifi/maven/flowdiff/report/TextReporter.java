@@ -8,6 +8,10 @@ import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -62,23 +66,45 @@ public final class TextReporter {
     }
 
     /**
-     * Renders the model to the text report.
+     * Renders the model to the text report and returns it as a string.
      *
      * @param model the diff model
      * @return the text report
      */
     public String render(final ReportModel model) {
-        StringBuilder sb = new StringBuilder();
+        StringWriter out = new StringWriter();
+        try {
+            render(model, out);
+        } catch (IOException e) {
+            // A StringWriter never throws, so this cannot happen.
+            throw new UncheckedIOException(e);
+        }
+        return out.toString();
+    }
+
+    /**
+     * Renders the model to the text report, writing each flow to the given writer as it is built so the whole
+     * report is never held in memory at once.
+     *
+     * @param model the diff model
+     * @param out   the writer the report is streamed to
+     * @throws IOException when writing to the writer fails
+     */
+    public void render(final ReportModel model, final Writer out) throws IOException {
         String legend = legend(model);
         if (!legend.isEmpty()) {
-            sb.append(legend).append('\n');
+            out.write(legend);
+            out.write("\n");
         }
         for (FlowReport flow : model.getFlows()) {
+            StringBuilder sb = new StringBuilder();
             renderFlow(flow, sb);
+            out.write(sb.toString());
         }
-        renderWholeFlows(model, sb);
-        renderTotals(model, sb);
-        return sb.toString();
+        StringBuilder tail = new StringBuilder();
+        renderWholeFlows(model, tail);
+        renderTotals(model, tail);
+        out.write(tail.toString());
     }
 
     private String legend(final ReportModel model) {

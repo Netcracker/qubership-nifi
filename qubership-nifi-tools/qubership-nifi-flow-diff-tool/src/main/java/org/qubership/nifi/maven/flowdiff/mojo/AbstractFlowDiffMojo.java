@@ -12,6 +12,8 @@ import org.qubership.nifi.maven.flowdiff.report.TextReporter;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Locale;
@@ -98,36 +100,40 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     protected final void emit(final ReportModel model) throws MojoExecutionException {
         ReportFormat reportFormat = ReportFormat.parse(format).orElseThrow(() -> new MojoExecutionException(
                 "Unknown format '" + format + "'. Use text, json, or md."));
-        String rendered = render(reportFormat, model);
-        write(reportFormat, rendered);
-    }
-
-    private String render(final ReportFormat reportFormat, final ReportModel model) throws MojoExecutionException {
-        try {
-            return switch (reportFormat) {
-                case TEXT -> new TextReporter(maxValueLength, showTechnical).render(model);
-                case MD -> new MarkdownReporter(maxValueLength, showTechnical).render(model);
-                case JSON -> new JsonReporter(new ObjectMapper(), showTechnical).render(model);
-            };
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to render the "
-                    + reportFormat.name().toLowerCase(Locale.ROOT) + " report", e);
-        }
-    }
-
-    private void write(final ReportFormat reportFormat, final String rendered) throws MojoExecutionException {
         if (reportFormat == ReportFormat.TEXT && output == null) {
-            System.out.print(rendered);
+            // Wrap standard output without closing it, so subsequent Maven output is unaffected.
+            Writer out = new OutputStreamWriter(System.out, StandardCharsets.UTF_8);
+            render(reportFormat, model, out);
+            try {
+                out.flush();
+            } catch (IOException e) {
+                throw new MojoExecutionException("Failed to write the report to standard output", e);
+            }
             return;
         }
         if (output == null) {
             throw new MojoExecutionException("Report format '" + reportFormat.name().toLowerCase(Locale.ROOT)
                     + "' requires -Doutput=<file>.");
         }
-        try {
-            Files.writeString(output.toPath(), rendered, StandardCharsets.UTF_8);
+        try (Writer out = Files.newBufferedWriter(output.toPath(), StandardCharsets.UTF_8)) {
+            render(reportFormat, model, out);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to write report to " + output, e);
+        }
+    }
+
+    private void render(final ReportFormat reportFormat, final ReportModel model, final Writer out)
+            throws MojoExecutionException {
+        try {
+            switch (reportFormat) {
+                case TEXT -> new TextReporter(maxValueLength, showTechnical).render(model, out);
+                case MD -> new MarkdownReporter(maxValueLength, showTechnical).render(model, out);
+                case JSON -> new JsonReporter(new ObjectMapper(), showTechnical).render(model, out);
+                default -> throw new MojoExecutionException("Unsupported format: " + reportFormat);
+            }
+        } catch (IOException e) {
+            throw new MojoExecutionException("Failed to render the "
+                    + reportFormat.name().toLowerCase(Locale.ROOT) + " report", e);
         }
     }
 }
