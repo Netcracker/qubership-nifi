@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -64,7 +64,7 @@ public final class SiblingComparator {
 
     private void compareParameterContexts(final JsonNode baseline, final JsonNode target,
             final List<Difference> diffs) {
-        for (String name : union(baseline, target)) {
+        for (String name : sortedUnion(baseline, target)) {
             JsonNode base = baseline.get(name);
             JsonNode tgt = target.get(name);
             if (base != null && tgt != null) {
@@ -88,7 +88,7 @@ public final class SiblingComparator {
 
     private void compareParameters(final String context, final JsonNode baseline, final JsonNode target,
             final List<Difference> diffs) {
-        for (String name : union(baseline, target)) {
+        for (String name : sortedUnion(baseline, target)) {
             JsonNode base = baseline.get(name);
             JsonNode tgt = target.get(name);
             String label = PARAMETER_CONTEXTS + SEPARATOR + context + SEPARATOR + name;
@@ -107,7 +107,7 @@ public final class SiblingComparator {
 
     private void compareIdentifiedEntries(final JsonNode baseline, final JsonNode target, final String section,
             final ComponentType type, final List<Difference> diffs) {
-        for (String id : union(baseline, target)) {
+        for (String id : sortedUnion(baseline, target)) {
             JsonNode base = baseline.get(id);
             JsonNode tgt = target.get(id);
             String name = textOrEmpty(tgt != null ? tgt : base, NAME);
@@ -172,13 +172,13 @@ public final class SiblingComparator {
         return byName;
     }
 
-    private static Set<String> union(final JsonNode baseline, final JsonNode target) {
-        Set<String> keys = new LinkedHashSet<>();
+    private static List<String> sortedUnion(final JsonNode baseline, final JsonNode target) {
+        Set<String> keys = new HashSet<>();
         baseline.fieldNames().forEachRemaining(keys::add);
         target.fieldNames().forEachRemaining(keys::add);
         List<String> sorted = new ArrayList<>(keys);
         sorted.sort(String::compareTo);
-        return new LinkedHashSet<>(sorted);
+        return sorted;
     }
 
     private static List<String> concat(final List<String> prefix, final List<String> suffix) {

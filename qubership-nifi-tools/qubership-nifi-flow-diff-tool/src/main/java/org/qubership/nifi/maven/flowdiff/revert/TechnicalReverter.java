@@ -66,7 +66,7 @@ public final class TechnicalReverter {
                 endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
                 endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
             }
-            if (isDirectChildOfRoot(workingComponent)) {
+            if (workingComponent.isDirectChildOfRoot()) {
                 group += restore(workingComponent.getNode(), GROUP_IDENTIFIER, committedRootId);
             }
         }
@@ -111,9 +111,5 @@ public final class TechnicalReverter {
         }
         object.put(field, committedValue);
         return 1;
-    }
-
-    private static boolean isDirectChildOfRoot(final IndexedComponent component) {
-        return component.getAncestors().size() == 1 && component.getAncestors().get(0).root();
     }
 }

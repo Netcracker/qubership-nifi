@@ -8,7 +8,7 @@ import org.qubership.nifi.maven.flowdiff.io.SideEntry;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +49,7 @@ public final class DiffModelBuilder {
         List<String> addedFlows = new ArrayList<>();
         List<String> removedFlows = new ArrayList<>();
         if (bothDirectories) {
-            for (String key : union(baseline.keySet(), target.keySet())) {
+            for (String key : sortedUnion(baseline.keySet(), target.keySet())) {
                 pair(load(baseline.get(key)), load(target.get(key)), flows, addedFlows, removedFlows);
             }
         } else {
@@ -96,11 +96,11 @@ public final class DiffModelBuilder {
         return candidates.values().stream().findFirst().orElse(null);
     }
 
-    private static Set<String> union(final Set<String> a, final Set<String> b) {
-        Set<String> all = new LinkedHashSet<>(a);
+    private static List<String> sortedUnion(final Set<String> a, final Set<String> b) {
+        Set<String> all = new HashSet<>(a);
         all.addAll(b);
         List<String> sorted = new ArrayList<>(all);
         sorted.sort(String::compareTo);
-        return new LinkedHashSet<>(sorted);
+        return sorted;
     }
 }

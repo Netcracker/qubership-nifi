@@ -54,7 +54,7 @@ public final class ChangeCategorizer {
         if (owner.isRoot() && isField(relPath, IDENTIFIER)) {
             return ChangeCategory.TECHNICAL;
         }
-        if (isDirectChildOfRoot(owner) && isField(relPath, GROUP_IDENTIFIER)) {
+        if (owner.isDirectChildOfRoot() && isField(relPath, GROUP_IDENTIFIER)) {
             return ChangeCategory.TECHNICAL;
         }
         if (isEndpointGroupId(relPath) && refersToRoot(valueAt(baselineNode, relPath), baselineRootId)
@@ -112,10 +112,6 @@ public final class ChangeCategorizer {
         return value != null && !value.isNull() && rootId != null && rootId.equals(value.asText());
     }
 
-    private static boolean isDirectChildOfRoot(final IndexedComponent owner) {
-        return owner.getAncestors().size() == 1 && owner.getAncestors().get(0).root();
-    }
-
     private static boolean isBundleVersion(final List<String> relPath, final JsonNode context) {
         int size = relPath.size();
         if (size < 2 || !VERSION.equals(relPath.get(size - 1)) || !BUNDLE.equals(relPath.get(size - 2))) {
@@ -125,11 +121,7 @@ public final class ChangeCategorizer {
         for (int i = 0; i < size - 1 && bundle != null; i++) {
             bundle = bundle.get(relPath.get(i));
         }
-        return isNifiBundle(bundle);
-    }
-
-    private static boolean isNifiBundle(final JsonNode bundle) {
         return bundle != null && bundle.isObject()
-                && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
+            && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
     }
 }

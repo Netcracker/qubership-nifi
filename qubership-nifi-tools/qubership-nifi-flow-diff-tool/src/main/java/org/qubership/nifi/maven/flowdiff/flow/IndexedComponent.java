@@ -106,4 +106,12 @@ public final class IndexedComponent {
     public boolean isNameCollides() {
         return nameCollides;
     }
+
+    /**
+     * Determines, if this component is child of root process group.
+     * @return true, if this component is child of root process group
+     */
+    public boolean isDirectChildOfRoot() {
+        return this.getAncestors().size() == 1 && this.getAncestors().get(0).root();
+    }
 }
