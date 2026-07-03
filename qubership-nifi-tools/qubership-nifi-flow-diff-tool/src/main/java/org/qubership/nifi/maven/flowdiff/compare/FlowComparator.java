@@ -16,7 +16,6 @@ import java.util.Set;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONNECTIONS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONTENTS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.CONTROLLER_SERVICES;
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.DESTINATION;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FUNNELS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ID;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.INPUT_PORTS;
@@ -27,8 +26,8 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.POSITION;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESSORS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PROCESS_GROUPS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.REMOTE_PROCESS_GROUPS;
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SOURCE;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ENDPOINT_ROLES;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.asText;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
 
@@ -40,7 +39,6 @@ import static org.qubership.nifi.maven.flowdiff.flow.JsonNodes.text;
  */
 public final class FlowComparator {
 
-    private static final Set<String> ENDPOINT_ROLES = Set.of(SOURCE, DESTINATION);
     private static final Set<String> GROUP_COLLECTIONS = Set.of(
             PROCESSORS, CONTROLLER_SERVICES, INPUT_PORTS, OUTPUT_PORTS, FUNNELS, LABELS,
             CONNECTIONS, REMOTE_PROCESS_GROUPS, PROCESS_GROUPS);

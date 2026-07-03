@@ -29,7 +29,7 @@ public final class NodeDiffer {
     private final Set<String> excludedTopLevel;
 
     /**
-     * Creates a differ that excludes the given top-level keys of the compared component nodes.
+     * Creates the NodeDiffer that excludes the given top-level keys of the compared component nodes.
      *
      * @param excludedTopLevelKeys the top-level field names to skip (child collections for a group)
      */

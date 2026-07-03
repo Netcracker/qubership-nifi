@@ -1,5 +1,7 @@
 package org.qubership.nifi.maven.flowdiff.flow;
 
+import java.util.Set;
+
 /**
  * The NiFi versioned-flow JSON field and section names shared across the tool. Centralizing them here keeps the
  * comparison, revert, and indexing code reading and writing the exact same keys, and gives every reference a single
@@ -28,6 +30,8 @@ public final class FlowFields {
     public static final String SOURCE = "source";
     /** The {@code destination} connection endpoint role. */
     public static final String DESTINATION = "destination";
+    /** The endpoint roles set. */
+    public static final Set<String> ENDPOINT_ROLES = Set.of(SOURCE, DESTINATION);
 
     /** The {@code bundle} field: a component's NiFi bundle coordinates. */
     public static final String BUNDLE = "bundle";
