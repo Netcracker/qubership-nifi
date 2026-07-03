@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
 import org.qubership.nifi.maven.flowdiff.compare.Difference;
 import org.qubership.nifi.maven.flowdiff.compare.EndpointChange;
-import org.qubership.nifi.maven.flowdiff.compare.ShortLabel;
 import org.qubership.nifi.maven.flowdiff.flow.GroupRef;
 
 import java.io.IOException;

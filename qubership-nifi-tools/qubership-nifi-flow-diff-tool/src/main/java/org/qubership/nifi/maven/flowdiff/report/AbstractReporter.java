@@ -77,6 +77,7 @@ public class AbstractReporter {
     }
 
     protected static String endpoint(final EndpointChange.EndpointRef ref, final boolean useTypeName) {
-        return "[" + (useTypeName ? ref.typeName() : ref.typeCode()) + "] " + ref.label() + " (" + ref.identifier() + ")";
+        return "[" + (useTypeName ? ref.typeName() : ref.typeCode()) + "] "
+                + ref.label() + " (" + ref.identifier() + ")";
     }
 }
