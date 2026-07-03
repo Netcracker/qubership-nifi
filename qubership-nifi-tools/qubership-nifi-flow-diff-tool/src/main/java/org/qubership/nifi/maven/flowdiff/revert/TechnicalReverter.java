@@ -63,8 +63,11 @@ public final class TechnicalReverter {
                 JsonNode destination = workingComponent.getNode().get(DESTINATION);
                 instance += revertEndpointInstance(source, committedEndpoint(committedComponent, SOURCE));
                 instance += revertEndpointInstance(destination, committedEndpoint(committedComponent, DESTINATION));
-                endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
-                endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
+                if (workingComponent.isDirectChildOfRoot()) {
+                    //groupId in endpoints should be reverted only for connections under root PG
+                    endpointGroupId += revertEndpointGroupId(source, workingRootId, committedRootId);
+                    endpointGroupId += revertEndpointGroupId(destination, workingRootId, committedRootId);
+                }
             }
             if (workingComponent.isDirectChildOfRoot()) {
                 group += restore(workingComponent.getNode(), GROUP_IDENTIFIER, committedRootId);

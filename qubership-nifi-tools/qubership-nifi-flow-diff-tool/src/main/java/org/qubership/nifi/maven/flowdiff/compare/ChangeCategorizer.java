@@ -57,8 +57,9 @@ public final class ChangeCategorizer {
         if (owner.isDirectChildOfRoot() && isField(relPath, GROUP_IDENTIFIER)) {
             return ChangeCategory.TECHNICAL;
         }
-        if (isEndpointGroupId(relPath) && refersToRoot(valueAt(baselineNode, relPath), baselineRootId)
-                && refersToRoot(valueAt(targetNode, relPath), targetRootId)) {
+        if (isEndpointGroupId(relPath)
+                && refersToRoot(endpointField(baselineNode, relPath.get(0), GROUP_ID), baselineRootId)
+                && refersToRoot(endpointField(targetNode, relPath.get(0), GROUP_ID), targetRootId)) {
             return ChangeCategory.TECHNICAL;
         }
         if (isBundleVersion(relPath, targetNode != null ? targetNode : baselineNode)) {
@@ -69,25 +70,17 @@ public final class ChangeCategorizer {
 
     private static boolean endpointIdUnchanged(final List<String> relPath, final JsonNode baselineNode,
             final JsonNode targetNode) {
-        JsonNode baselineId = endpointId(baselineNode, relPath.get(0));
-        JsonNode targetId = endpointId(targetNode, relPath.get(0));
+        JsonNode baselineId = endpointField(baselineNode, relPath.get(0), ID);
+        JsonNode targetId = endpointField(targetNode, relPath.get(0), ID);
         return baselineId != null && targetId != null && baselineId.equals(targetId);
     }
 
-    private static JsonNode endpointId(final JsonNode ownerNode, final String role) {
+    private static JsonNode endpointField(final JsonNode ownerNode, final String role, final String field) {
         if (ownerNode == null) {
             return null;
         }
         JsonNode endpoint = ownerNode.get(role);
-        return endpoint == null ? null : endpoint.get(ID);
-    }
-
-    private static JsonNode valueAt(final JsonNode ownerNode, final List<String> relPath) {
-        JsonNode value = ownerNode;
-        for (int i = 0; i < relPath.size() && value != null; i++) {
-            value = value.get(relPath.get(i));
-        }
-        return value;
+        return endpoint == null ? null : endpoint.get(field);
     }
 
     private static boolean isField(final List<String> relPath, final String field) {
