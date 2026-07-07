@@ -3,9 +3,15 @@ package org.qubership.nifi.maven.flowdiff.revert;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.maven.flowdiff.compare.ChangeCategory;
+import org.qubership.nifi.maven.flowdiff.compare.Difference;
+import org.qubership.nifi.maven.flowdiff.compare.FlowComparator;
 import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link TechnicalReverter}: restoring {@code instanceIdentifier}, the root {@code identifier}, direct
@@ -157,5 +163,60 @@ class TechnicalReverterTest {
         assertEquals("port-c", connection.get("source").get("instanceIdentifier").asText());
         assertEquals("port-c", connection.get("destination").get("instanceIdentifier").asText());
         assertEquals(3, counts.instanceIdentifier());
+    }
+
+    /**
+     * Flow shape covering every reverted technical location - root {@code identifier} and
+     * {@code instanceIdentifier}, a child processor's {@code instanceIdentifier} and {@code groupIdentifier}
+     * back-reference, a direct-root-child connection's {@code groupIdentifier}, and both endpoints'
+     * {@code instanceIdentifier} and root-referencing {@code groupId}. The three placeholders are the only technical
+     * values, so formatting it with different arguments yields two flows that differ solely by technical churn.
+     */
+    private static final String CHURN_TEMPLATE = """
+            {"flowContents":{"identifier":"%1$s","name":"R","componentType":"PROCESS_GROUP","instanceIdentifier":"%2$s",
+             "processors":[
+              {"identifier":"p1","name":"A","componentType":"PROCESSOR","instanceIdentifier":"%3$s",
+               "groupIdentifier":"%1$s"}],
+             "connections":[{"identifier":"c1","name":"","componentType":"CONNECTION","groupIdentifier":"%1$s",
+              "source":{"id":"p1","type":"PROCESSOR","name":"A","instanceIdentifier":"%3$s","groupId":"%1$s"},
+              "destination":{"id":"p1","type":"PROCESSOR","name":"A","instanceIdentifier":"%3$s",
+               "groupId":"%1$s"}}]}}""";
+
+    @Test
+    void roundTripRestoresWorkingToCommitted() {
+        FlowExport committed = flow(CHURN_TEMPLATE.formatted("root-c", "root-inst-c", "p1-inst-c"));
+        FlowExport working = flow(CHURN_TEMPLATE.formatted("root-w", "root-inst-w", "p1-inst-w"));
+
+        RevertCounts counts = new TechnicalReverter().revert(committed, working);
+
+        assertTrue(counts.total() > 0, "expected the churn fixture to exercise the revert");
+        // Round-trip: a pure-technical-churn revert diffs to nothing against the committed flow.
+        assertTrue(new FlowComparator().compare(committed, working).isEmpty(),
+                () -> "expected no differences after reverting pure technical churn");
+        // Whole file: the working tree is now structurally identical to committed, so nothing else moved.
+        assertEquals(committed.getRoot(), working.getRoot());
+    }
+
+    @Test
+    void revertChangesOnlyTechnicalFields() {
+        String template = """
+                {"flowContents":{"identifier":"%1$s","name":"R","componentType":"PROCESS_GROUP",
+                 "instanceIdentifier":"%2$s","processors":[
+                  {"identifier":"p1","name":"A","componentType":"PROCESSOR","instanceIdentifier":"%3$s",
+                   "groupIdentifier":"%1$s","properties":{"Batch Size":"%4$s"}}]}}""";
+        FlowExport committed = flow(template.formatted("root-c", "root-inst-c", "p1-inst-c", "1000"));
+        FlowExport working = flow(template.formatted("root-w", "root-inst-w", "p1-inst-w", "5000"));
+        // committed plus only the significant change: what the working flow must look like after the revert.
+        FlowExport expected = flow(template.formatted("root-c", "root-inst-c", "p1-inst-c", "5000"));
+
+        new TechnicalReverter().revert(committed, working);
+
+        // Whole file: every technical field reverted, the significant property value kept, nothing else touched.
+        assertEquals(expected.getRoot(), working.getRoot());
+        // Cross-check: the only surviving difference against committed is the significant property change.
+        List<Difference> diffs = new FlowComparator().compare(committed, working);
+        assertEquals(1, diffs.size(), () -> "expected a single surviving difference but got " + diffs);
+        assertEquals(ChangeCategory.SIGNIFICANT, diffs.get(0).getCategory());
+        assertEquals("properties/Batch Size", diffs.get(0).getFieldPath());
     }
 }

@@ -3,9 +3,11 @@ package org.qubership.nifi.maven.flowdiff.compare;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
@@ -52,6 +54,19 @@ class SiblingComparatorTest {
                 root("{\"flowEncodingVersion\":\"1.0\"}"), root("{\"flowEncodingVersion\":\"1.1\"}")));
         assertEquals(ChangeCategory.ENVIRONMENTAL, diff.getCategory());
         assertEquals(List.of("flowEncodingVersion"), diff.getPathSegments());
+    }
+
+    @Test
+    void latestSiblingIsAcceptedAndIgnored() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"R","componentType":"PROCESS_GROUP"},"latest":%s}""";
+        JsonNode baseline = root(template.formatted("true"));
+        JsonNode target = root(template.formatted("false"));
+        // A direct NiFi flow export carries a top-level 'latest' flag; the closed sibling set must keep accepting it.
+        assertDoesNotThrow(() -> FlowExport.of("baseline.json", baseline));
+        assertDoesNotThrow(() -> FlowExport.of("target.json", target));
+        // 'latest' is ignored rather than reported, so a difference there produces no diff.
+        assertTrue(comparator.compare(baseline, target).isEmpty());
     }
 
     @Test

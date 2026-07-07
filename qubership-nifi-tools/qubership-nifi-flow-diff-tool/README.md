@@ -8,7 +8,7 @@ NiFi rewrites `instanceIdentifier`, the root process group `identifier`, the mat
 back-references, and the `source`/`destination` `groupId` back-references on connections whose endpoints sit directly
 under the root, every time a flow is copied or recreated, even when nothing functional changed. Committed exports then
 produce diffs dominated by that technical changes, which buries the significant ones in code review. The plugin
-matches components by identity, sorts every difference into one of three categories, and can rewrite the working copy so
+matches components by identity, sorts every difference into one of four categories, and can rewrite the working copy so
 only significant changes remain in the diff.
 
 ## Prerequisites
