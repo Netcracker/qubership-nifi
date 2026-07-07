@@ -39,9 +39,15 @@ Table below describes categories used when comparing two flow versions.
   such as bundle versions, `controllerServiceApis` and `flowEncodingVersion`; reported, never reverted.
 - **Significant** - a real flow-content change; the catch-all category.
 
-A connection endpoint `groupId` is technical only when it references the root group on both sides.
-When the endpoint is a port inside a process group, its `groupId` is that group's stable identifier,
-so a real change there stays significant.
+A connection endpoint `groupId` change is technical only when the connection sits directly under the
+root group and the `groupId` references the root group in both versions. If it does not reference the
+root group in either version, the change is significant: it mirrors change of parent group for the referenced
+component.
+
+When reverting technical changes, the tool rewrites a `groupId` whenever the working-side value
+references the root group, restoring it alongside the root process group `identifier`. It is deliberately broader
+than the classifier, because it needs to eliminate technical changes created by copy or recreate operations, which
+may be present along with significant changes.
 
 A connection endpoint `instanceIdentifier` is technical only when the endpoint `id` is unchanged. When the `id` changes
 the connection points to a different component, so every endpoint field, `instanceIdentifier` included, is significant.
