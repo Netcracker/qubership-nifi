@@ -12,8 +12,10 @@ import java.util.Set;
  * Computes the leaf differences between two component nodes. Objects are compared key by key; a differing array is
  * reported as a single leaf difference rather than by unstable index. Most arrays are compared by value, so element
  * order is significant; the relationship arrays in {@link #UNORDERED_ARRAY_FIELDS} are an exception and are compared
- * ignoring order, because NiFi treats their values as an unordered set. Child-component collections and
- * {@code propertyDescriptors} are excluded because they are compared through component matching, not as raw fields.
+ * ignoring order, because NiFi treats their values as an unordered set. Child-component collections are excluded
+ * because they are compared through component matching, not as raw fields. {@code propertyDescriptors} are excluded
+ * because they are defined by NiFi version, not by flow logic.
+ * Dynamic properties definitions are not compared and out of scope.
  */
 public final class NodeDiffer {
 
