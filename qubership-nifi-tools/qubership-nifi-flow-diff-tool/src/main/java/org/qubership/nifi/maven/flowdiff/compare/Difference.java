@@ -14,6 +14,10 @@ import java.util.List;
  * without re-deriving it. Instances are built through {@link Builder}.
  */
 public final class Difference {
+    /** Added change. */
+    public static final String ADDED = "added";
+    /** Removed change. */
+    public static final String REMOVED = "removed";
 
     private final ChangeCategory category;
     private final String change;

@@ -12,6 +12,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.REMOVED;
 
 /**
  * Tests for {@link FlowComparator}: identity-based matching, category classification, added and removed components,
@@ -188,7 +190,7 @@ class FlowComparatorTest {
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
                   {"identifier":"p9","name":"New","componentType":"PROCESSOR"}]}}""");
         Difference diff = only(comparator.compare(baseline, target));
-        assertEquals("added", diff.getChange());
+        assertEquals(ADDED, diff.getChange());
         assertEquals(ChangeCategory.SIGNIFICANT, diff.getCategory());
         assertEquals("Root/New", diff.getPath());
         assertEquals(ComponentType.PROCESSOR, diff.getComponentType());
@@ -203,7 +205,7 @@ class FlowComparatorTest {
                 {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP",
                   "processors":[]}}""");
         Difference diff = only(comparator.compare(baseline, target));
-        assertEquals("removed", diff.getChange());
+        assertEquals(REMOVED, diff.getChange());
         assertEquals("Gone", diff.getName());
     }
 

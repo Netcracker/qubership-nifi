@@ -75,4 +75,20 @@ public final class JsonNodeUtils {
         sorted.sort(String::compareTo);
         return sorted;
     }
+
+    /**
+     * Compares baseline and target JsonNode. Handles null values for both arguments.
+     * @param baseline baseline object to process
+     * @param target target object to process
+     * @return true, if two nodes are either equal or both null.
+     */
+    public static boolean nodeEquals(final JsonNode baseline, final JsonNode target) {
+        if (baseline == null && target == null) {
+            return true;
+        }
+        if (baseline == null || target == null) {
+            return false;
+        }
+        return baseline.equals(target);
+    }
 }

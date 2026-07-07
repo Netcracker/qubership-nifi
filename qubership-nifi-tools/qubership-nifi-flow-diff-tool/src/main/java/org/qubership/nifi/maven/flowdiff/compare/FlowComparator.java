@@ -30,6 +30,8 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.TYPE;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ENDPOINT_ROLES;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.asText;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.text;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.REMOVED;
 
 /**
  * Compares two flow exports and produces the ordered list of {@link Difference} records for the {@code flowContents}
@@ -68,9 +70,9 @@ public final class FlowComparator {
             if (base != null && tgt != null) {
                 compareMatched(base, tgt, baselineRootId, targetRootId, out);
             } else if (tgt != null) {
-                addWholeComponent(tgt, "added", targetById.keySet(), out);
+                addWholeComponent(tgt, ADDED, targetById.keySet(), out);
             } else {
-                addWholeComponent(base, "removed", baseById.keySet(), out);
+                addWholeComponent(base, REMOVED, baseById.keySet(), out);
             }
         }
         out.addAll(new SiblingComparator().compare(baseline.getRoot(), target.getRoot()));

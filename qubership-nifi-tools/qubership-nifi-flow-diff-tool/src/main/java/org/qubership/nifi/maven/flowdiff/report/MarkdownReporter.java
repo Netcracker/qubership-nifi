@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.REMOVED;
+
 /**
  * Renders a {@link ReportModel} as Markdown: a heading and table per process group, with the full component type in a
  * {@code Type} column. Values are wrapped as inline code with {@code |} and backticks escaped so a value cannot break a
@@ -208,10 +211,10 @@ public final class MarkdownReporter
     }
 
     private String fieldCell(final Difference difference) {
-        if ("added".equals(difference.getChange())) {
+        if (ADDED.equals(difference.getChange())) {
             return "_(added)_";
         }
-        if ("removed".equals(difference.getChange())) {
+        if (REMOVED.equals(difference.getChange())) {
             return "_(removed)_";
         }
         String marker = categoryMarker(difference.getCategory());
@@ -222,20 +225,20 @@ public final class MarkdownReporter
     }
 
     private String baselineCell(final Difference difference) {
-        if ("added".equals(difference.getChange())) {
+        if (ADDED.equals(difference.getChange())) {
             return "_(absent)_";
         }
-        if ("removed".equals(difference.getChange())) {
+        if (REMOVED.equals(difference.getChange())) {
             return "_(present)_";
         }
         return valueCell(difference, difference.getBaselineValue());
     }
 
     private String targetCell(final Difference difference) {
-        if ("added".equals(difference.getChange())) {
+        if (ADDED.equals(difference.getChange())) {
             return "_(present)_";
         }
-        if ("removed".equals(difference.getChange())) {
+        if (REMOVED.equals(difference.getChange())) {
             return "_(absent)_";
         }
         return valueCell(difference, difference.getTargetValue());

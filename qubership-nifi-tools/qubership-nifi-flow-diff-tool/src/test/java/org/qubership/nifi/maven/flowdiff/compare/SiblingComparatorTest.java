@@ -8,6 +8,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.REMOVED;
 
 /**
  * Tests for {@link SiblingComparator}: parameter-context and parameter comparison by name, parameter-provider and
@@ -84,8 +86,8 @@ class SiblingComparatorTest {
                 {"parameterProviders":{"id-b":{"identifier":"id-b","name":"P","type":"T"}}}""");
         List<Difference> diffs = comparator.compare(baseline, target);
         assertEquals(2, diffs.size());
-        assertTrue(diffs.stream().anyMatch(d -> "added".equals(d.getChange())));
-        assertTrue(diffs.stream().anyMatch(d -> "removed".equals(d.getChange())));
+        assertTrue(diffs.stream().anyMatch(d -> ADDED.equals(d.getChange())));
+        assertTrue(diffs.stream().anyMatch(d -> REMOVED.equals(d.getChange())));
     }
 
     @Test
@@ -93,7 +95,7 @@ class SiblingComparatorTest {
         Difference diff = only(comparator.compare(
                 root("{\"parameterContexts\":{}}"),
                 root("{\"parameterContexts\":{\"New\":{\"name\":\"New\",\"parameters\":[]}}}")));
-        assertEquals("added", diff.getChange());
+        assertEquals(ADDED, diff.getChange());
         assertEquals("parameterContexts/New", diff.getPath());
     }
 
@@ -103,7 +105,7 @@ class SiblingComparatorTest {
         JsonNode target = root("""
                 {"parameterContexts":{"C":{"name":"C","parameters":[{"name":"P","value":"v"}]}}}""");
         Difference diff = only(comparator.compare(baseline, target));
-        assertEquals("added", diff.getChange());
+        assertEquals(ADDED, diff.getChange());
         assertEquals("parameterContexts/C/parameters/P", diff.getPath());
     }
 

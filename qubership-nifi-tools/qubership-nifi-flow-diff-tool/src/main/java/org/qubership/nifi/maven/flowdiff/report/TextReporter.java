@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+
 /**
  * Renders a {@link ReportModel} as the human-readable text report: a legend of the type codes it uses, then per flow a
  * counts header followed by the changes as a grouped tree. Significant changes are unmarked and environmental changes
@@ -174,9 +176,9 @@ public final class TextReporter extends AbstractReporter {
         Difference head = componentDiffs.get(0);
         String prefix = head.isOtherAttributes() ? "" : codePrefix(head.getComponentType());
         if (head.getChange() != null) {
-            sb.append("    ").append("added".equals(head.getChange()) ? "+ " : "- ")
+            sb.append("    ").append(ADDED.equals(head.getChange()) ? "+ " : "- ")
                     .append(prefix).append(head.getShortLabel())
-                    .append("added".equals(head.getChange()) ? " (added)" : " (removed)").append('\n');
+                    .append(ADDED.equals(head.getChange()) ? " (added)" : " (removed)").append('\n');
             return;
         }
         sb.append("    ").append(prefix).append(head.getShortLabel()).append('\n');

@@ -8,19 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.ARTIFACT;
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.BUNDLE;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.EXTERNAL_CONTROLLER_SERVICES;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_ENCODING_VERSION;
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.GROUP;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.NAME;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETERS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_PROVIDERS;
-import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.VERSION;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.asText;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.textOrEmpty;
 import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.getUniqueSortedFieldNames;
+import static org.qubership.nifi.maven.flowdiff.flow.JsonNodeUtils.nodeEquals;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.ADDED;
+import static org.qubership.nifi.maven.flowdiff.compare.Difference.REMOVED;
 
 /**
  * Compares the non-{@code flowContents} sibling sections of two exports: {@code flowEncodingVersion} (environmental),
@@ -71,7 +70,7 @@ public final class SiblingComparator {
                 compareContextFields(name, base, tgt, diffs);
                 compareParameters(name, params(base), params(tgt), diffs);
             } else {
-                diffs.add(wholeEntry(base == null ? "added" : "removed",
+                diffs.add(wholeEntry(base == null ? ADDED : REMOVED,
                         List.of(PARAMETER_CONTEXTS, name), PARAMETER_CONTEXTS + SEPARATOR + name, null, null, null));
             }
         }
@@ -99,7 +98,7 @@ public final class SiblingComparator {
                     diffs.add(fieldDiff(ChangeCategory.SIGNIFICANT, segments, label, null, null, null, leaf));
                 }
             } else {
-                diffs.add(wholeEntry(base == null ? "added" : "removed",
+                diffs.add(wholeEntry(base == null ? ADDED : REMOVED,
                         List.of(PARAMETER_CONTEXTS, context, PARAMETERS, name), label, null, null, null));
             }
         }
@@ -115,13 +114,13 @@ public final class SiblingComparator {
             String label = section + SEPARATOR + name;
             if (base != null && tgt != null) {
                 for (LeafDiff leaf : new NodeDiffer(Set.of()).diff(base, tgt)) {
-                    ChangeCategory category = isBundleVersion(leaf.relPath(), tgt)
+                    ChangeCategory category = ChangeCategorizer.isBundleVersion(leaf.relPath(), tgt)
                             ? ChangeCategory.ENVIRONMENTAL : ChangeCategory.SIGNIFICANT;
                     List<String> segments = concat(List.of(section, entrySegment), leaf.relPath());
                     diffs.add(fieldDiff(category, segments, label, type, id, name, leaf));
                 }
             } else {
-                diffs.add(wholeEntry(base == null ? "added" : "removed",
+                diffs.add(wholeEntry(base == null ? ADDED : REMOVED,
                         List.of(section, entrySegment), label, type, id, name));
             }
         }
@@ -146,15 +145,6 @@ public final class SiblingComparator {
                 .componentType(type).identifier(identifier).name(name).build();
     }
 
-    private static boolean isBundleVersion(final List<String> relPath, final JsonNode context) {
-        if (relPath.size() != 2 || !BUNDLE.equals(relPath.get(0)) || !VERSION.equals(relPath.get(1))) {
-            return false;
-        }
-        JsonNode bundle = context.get(BUNDLE);
-        return bundle != null && bundle.isObject()
-                && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
-    }
-
     private static JsonNode map(final JsonNode root, final String field) {
         JsonNode node = root.get(field);
         return node != null && node.isObject() ? node : MissingNode.getInstance();
@@ -177,15 +167,4 @@ public final class SiblingComparator {
         all.addAll(suffix);
         return all;
     }
-
-    private static boolean nodeEquals(final JsonNode baseline, final JsonNode target) {
-        if (baseline == null && target == null) {
-            return true;
-        }
-        if (baseline == null || target == null) {
-            return false;
-        }
-        return baseline.equals(target);
-    }
-
 }

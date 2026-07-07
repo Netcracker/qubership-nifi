@@ -102,16 +102,18 @@ public final class ChangeCategorizer {
         return value != null && !value.isNull() && rootId != null && rootId.equals(value.asText());
     }
 
-    private static boolean isBundleVersion(final List<String> relPath, final JsonNode context) {
-        int size = relPath.size();
-        if (size < 2 || !VERSION.equals(relPath.get(size - 1)) || !BUNDLE.equals(relPath.get(size - 2))) {
+    /**
+     * Determines, if relative path and context represent "bundle.version".
+     * @param relPath relative path array
+     * @param context context Json Node
+     * @return true, if relative path and context represent "bundle.version"
+     */
+    public static boolean isBundleVersion(final List<String> relPath, final JsonNode context) {
+        if (relPath.size() != 2 || !BUNDLE.equals(relPath.get(0)) || !VERSION.equals(relPath.get(1))) {
             return false;
         }
-        JsonNode bundle = context;
-        for (int i = 0; i < size - 1 && bundle != null; i++) {
-            bundle = bundle.get(relPath.get(i));
-        }
+        JsonNode bundle = context.get(BUNDLE);
         return bundle != null && bundle.isObject()
-            && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
+                && bundle.has(GROUP) && bundle.has(ARTIFACT) && bundle.has(VERSION);
     }
 }

@@ -74,7 +74,7 @@ public final class NodeDiffer {
         if (!relPath.isEmpty() && UNORDERED_ARRAY_FIELDS.contains(relPath.get(relPath.size() - 1))) {
             return arraysEqualIgnoringOrder(baseline, target);
         }
-        return nodeEquals(baseline, target);
+        return JsonNodeUtils.nodeEquals(baseline, target);
     }
 
     private boolean isExcluded(final List<String> relPath, final String key) {
@@ -84,19 +84,9 @@ public final class NodeDiffer {
         return relPath.isEmpty() && excludedTopLevel.contains(key);
     }
 
-    private static boolean nodeEquals(final JsonNode baseline, final JsonNode target) {
-        if (baseline == null && target == null) {
-            return true;
-        }
-        if (baseline == null || target == null) {
-            return false;
-        }
-        return baseline.equals(target);
-    }
-
     private static boolean arraysEqualIgnoringOrder(final JsonNode baseline, final JsonNode target) {
         if (baseline == null || target == null || !baseline.isArray() || !target.isArray()) {
-            return nodeEquals(baseline, target);
+            return JsonNodeUtils.nodeEquals(baseline, target);
         }
         if (baseline.size() != target.size()) {
             return false;

@@ -76,7 +76,7 @@ class JsonReporterTest {
         JsonNode rootPosition = find(changes, "Root/position/x");
         assertFalse(rootPosition.has("identifier"));
         JsonNode added = find(changes, "Root/New");
-        assertEquals("added", added.get("change").asText());
+        assertEquals(Difference.ADDED, added.get("change").asText());
         assertEquals("PROCESSOR", added.get("componentType").asText());
         assertFalse(added.has("baselineValue"));
     }
