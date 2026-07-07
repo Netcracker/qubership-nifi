@@ -77,6 +77,8 @@ public final class FlowFields {
     public static final String SNAPSHOT_METADATA = "snapshotMetadata";
     /** The {@code parameters} array of a parameter context. */
     public static final String PARAMETERS = "parameters";
+    /** The top-level {@code latest} field in NiFi downloaded flows. */
+    public static final String LATEST = "latest";
 
     private FlowFields() {
     }

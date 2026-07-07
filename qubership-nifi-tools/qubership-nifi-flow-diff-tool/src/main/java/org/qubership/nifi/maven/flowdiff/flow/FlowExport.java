@@ -11,6 +11,7 @@ import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.FLOW_ENCODING_VE
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.PARAMETER_PROVIDERS;
 import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.SNAPSHOT_METADATA;
+import static org.qubership.nifi.maven.flowdiff.flow.FlowFields.LATEST;
 
 /**
  * A parsed NiFi versioned flow export: the {@code flowContents} process-group tree plus the closed set of sibling
@@ -26,7 +27,8 @@ public final class FlowExport {
             PARAMETER_CONTEXTS,
             PARAMETER_PROVIDERS,
             EXTERNAL_CONTROLLER_SERVICES,
-            SNAPSHOT_METADATA);
+            SNAPSHOT_METADATA,
+            LATEST);
 
     private final String displayPath;
     private final JsonNode root;
