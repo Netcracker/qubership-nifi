@@ -1,8 +1,9 @@
 # qubership-nifi-flow-diff-tool
 
-`qubership-nifi-flow-diff-tool` is a Maven plugin that classifies the differences between two Apache NiFi Registry
-versioned flow or two Apache NiFi flow exports and can restore the technical identifiers NiFi rewrites when a flow is
-copied or recreated.
+`qubership-nifi-flow-diff-tool` is a Maven plugin that classifies the differences between two NiFi Registry
+versioned flow or two NiFi flow exports (exported via `Download flow definition` or via
+`/process-groups/{id}/download` API) and can restore the technical identifiers NiFi rewrites
+when a flow is copied or recreated.
 
 NiFi rewrites `instanceIdentifier`, the root process group `identifier`, the matching child `groupIdentifier`
 back-references, and the `source`/`destination` `groupId` back-references on connections whose endpoints sit directly
