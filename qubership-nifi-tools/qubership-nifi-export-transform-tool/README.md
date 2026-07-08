@@ -100,7 +100,7 @@ This is useful when flow JSON files need to be restored automatically before pac
 <build>
     <plugins>
         <plugin>
-            <groupId>org.qubership.nifi</groupId>
+            <groupId>org.qubership.nifi.plugins</groupId>
             <artifactId>qubership-nifi-export-transform-tool</artifactId>
             <version>${export-transform-tool.version}</version>
             <executions>
