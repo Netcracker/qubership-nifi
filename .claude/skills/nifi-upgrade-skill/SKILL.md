@@ -124,7 +124,7 @@ displayNameMapping:
       Old_Display_Name: New_Display_Name
 ```
 
-Additionally, check properties marked as `deleted`. If a property is `sensitive`, ask the user whether it should be added to `dictionary.yaml` under the `propertiesAllowedToDelete` section:
+Additionally, ask the user to review all properties marked as `deleted` before continuing. The properties selected by the user should be added to the `propertiesAllowedToDelete` section of `dictionary.yaml`:
 
 ```yaml
 propertiesAllowedToDelete:

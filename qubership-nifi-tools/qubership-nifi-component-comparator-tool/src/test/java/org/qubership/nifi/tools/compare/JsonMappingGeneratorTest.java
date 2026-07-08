@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,17 +27,16 @@ class JsonMappingGeneratorTest {
     @Test
     void getOutputPathContainsFileName() {
         JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
-        assertTrue(gen.getOutputPath().endsWith("NiFiTypeMapping.json"));
+        assertTrue(gen.getOutputPath().endsWith("csPropConfig.json"));
     }
 
     @Test
-    void generateEmptyMapsProducesEmptyJsonObject() throws IOException {
+    void generateEmptyMapsSkipsFileCreation() throws IOException {
         JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
         gen.generate(Map.of(), Map.of());
 
-        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
-        assertTrue(root.isObject());
-        assertEquals(0, root.size());
+        assertFalse(Files.exists(Path.of(gen.getOutputPath())),
+                "File should not be created when there are no changes");
     }
 
     @Test
@@ -76,8 +76,12 @@ class JsonMappingGeneratorTest {
 
         Map<String, Map<String, String>> renames = new HashMap<>();
         renames.put("org.example.MyProc", Map.of("old-api", "new-api"));
+        renames.put("org.example.MyService", Map.of("s-old", "s-new"));
 
-        Map<String, String> folderMap = Map.of("org.example.MyProc", "processors");
+        Map<String, String> folderMap = Map.of(
+                "org.example.MyProc", "processors",
+                "org.example.MyService", "controllerService"
+        );
 
         gen.generate(renames, folderMap);
 
@@ -152,14 +156,14 @@ class JsonMappingGeneratorTest {
     @Test
     void processorGeneratorOutputPathContainsProcessorFileName() {
         JsonMappingGenerator gen = new JsonMappingGenerator(
-                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
-        assertTrue(gen.getOutputPath().endsWith("NiFiProcessorTypeMapping.json"));
+                tempDir, "procPropConfig.json", Set.of("processors"));
+        assertTrue(gen.getOutputPath().endsWith("procPropConfig.json"));
     }
 
     @Test
     void processorGeneratorIncludesProcessorRenamesAndDeletions() throws IOException {
         JsonMappingGenerator gen = new JsonMappingGenerator(
-                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+                tempDir, "procPropConfig.json", Set.of("processors"));
 
         Map<String, String> changes = new HashMap<>();
         changes.put("old-api", "new-api");
@@ -179,7 +183,7 @@ class JsonMappingGeneratorTest {
     @Test
     void processorGeneratorExcludesControllerServiceAndReportingTask() throws IOException {
         JsonMappingGenerator gen = new JsonMappingGenerator(
-                tempDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+                tempDir, "procPropConfig.json", Set.of("processors"));
 
         Map<String, Map<String, String>> renames = new HashMap<>();
         renames.put("org.example.MyProc", Map.of("p-old", "p-new"));

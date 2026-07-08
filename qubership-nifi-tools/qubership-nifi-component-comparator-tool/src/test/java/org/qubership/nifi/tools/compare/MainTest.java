@@ -82,11 +82,11 @@ class MainTest {
     }
 
     private Path jsonPath() {
-        return outputDir.resolve("NiFiTypeMapping.json");
+        return outputDir.resolve("csPropConfig.json");
     }
 
     private Path processorJsonPath() {
-        return outputDir.resolve("NiFiProcessorTypeMapping.json");
+        return outputDir.resolve("procPropConfig.json");
     }
 
     private Path mdPath() {
@@ -102,7 +102,7 @@ class MainTest {
 
         assertTrue(Files.exists(outputDir));
         assertTrue(Files.exists(csvPath()));
-        assertTrue(Files.exists(jsonPath()));
+        assertFalse(Files.exists(jsonPath()));
         assertTrue(Files.exists(mdPath()));
     }
 
@@ -160,12 +160,11 @@ class MainTest {
         assertTrue(csv.contains("rename"));
         assertTrue(csv.contains("processors"));
 
-        // NiFiTypeMapping.json should NOT contain processors
-        JsonNode json = MAPPER.readTree(jsonPath().toFile());
-        assertFalse(json.has("org.example.Proc"),
-                "Processors must be excluded from NiFiTypeMapping.json");
+        // csPropConfig.json should NOT be created - only processor changes exist
+        assertFalse(Files.exists(jsonPath()),
+                "csPropConfig.json must not be created when only processor changes exist");
 
-        // NiFiProcessorTypeMapping.json SHOULD contain the processor rename
+        // procPropConfig.json SHOULD contain the processor rename
         JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
         assertTrue(procJson.has("org.example.Proc"));
         assertEquals("new-api", procJson.get("org.example.Proc").get("old-api").asText());
@@ -192,12 +191,10 @@ class MainTest {
     }
 
     @Test
-    void mainEmptyDirectoriesProducesEmptyProcessorJson() throws IOException {
+    void mainEmptyDirectoriesSkipsProcessorJsonFileCreation() throws IOException {
         runMain();
 
-        assertTrue(Files.exists(processorJsonPath()));
-        JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
-        assertEquals(0, procJson.size());
+        assertFalse(Files.exists(processorJsonPath()));
     }
 
     @Test
@@ -262,11 +259,10 @@ class MainTest {
     }
 
     @Test
-    void mainEmptyDirectoriesProducesEmptyJson() throws IOException {
+    void mainEmptyDirectoriesSkipsJsonFileCreation() throws IOException {
         runMain();
 
-        JsonNode json = MAPPER.readTree(jsonPath().toFile());
-        assertEquals(0, json.size());
+        assertFalse(Files.exists(jsonPath()));
     }
 
     @Test
@@ -330,6 +326,31 @@ class MainTest {
         // CSV: CS type recorded in the new column
         String csv = Files.readString(csvPath());
         assertTrue(csv.contains(csType));
+    }
+
+    @Test
+    void mainWithVersionAppendsSuffixToOutputFiles() throws IOException {
+        writeJson(sourceDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("old-api", "Display"));
+        writeJson(targetDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("new-api", "Display"));
+
+        runMain("--version", "2.10.0");
+
+        assertTrue(Files.exists(outputDir.resolve("csPropConfig_2_10.json")));
+        assertFalse(Files.exists(jsonPath()), "unsuffixed file must not be created when version is given");
+    }
+
+    @Test
+    void mainWithoutVersionKeepsDefaultFileNames() throws IOException {
+        writeJson(sourceDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("old-api", "Display"));
+        writeJson(targetDir, "controllerService", "Svc.json",
+                "org.example.Svc", prop("new-api", "Display"));
+
+        runMain();
+
+        assertTrue(Files.exists(jsonPath()));
     }
 
 }

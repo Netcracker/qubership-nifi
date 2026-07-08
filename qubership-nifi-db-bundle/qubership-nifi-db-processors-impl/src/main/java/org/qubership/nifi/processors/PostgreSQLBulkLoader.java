@@ -16,7 +16,9 @@
 
 package org.qubership.nifi.processors;
 
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -26,44 +28,86 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"DBCP", "SQL", "COPY", "POSTGRESQL"})
-@CapabilityDescription("The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.\n" +
-        "It is also possible to copy from DB to FlowFile content.")
+@CapabilityDescription("The processor supports copying from stdin using the incoming content of the Flow File or "
+        + "a file accessible by path.\n"
+        + "It is also possible to copy from DB to FlowFile content.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "bulk.load.error", description = "If execution resulted in error, this attribute is populated with error message")
+        @WritesAttribute(attribute = "bulk.load.error", description = "If execution resulted in error, this attribute"
+                + " is populated with error message")
 })
 public class PostgreSQLBulkLoader extends AbstractProcessor {
+    /**
+     * Error message FlowFile attribute name.
+     */
     protected static final String ERROR_MSG_ATTR = "bulk.load.error";
+
+    /**
+     * Default buffer size.
+     */
     protected static final int DEFAULT_BUFFER_SIZE = 65536;
 
+    /**
+     * Content.
+     */
     public static final AllowableValue CONTENT = new AllowableValue("content", "Content", "FlowFile content");
+    /**
+     * File system.
+     */
     public static final AllowableValue FILE_SYSTEM = new AllowableValue("file-system", "File System", "File system");
+    /**
+     * From.
+     */
     public static final AllowableValue FROM = new AllowableValue("from", "From", "Copy from stdin");
+    /**
+     * To.
+     */
     public static final AllowableValue TO = new AllowableValue("to", "To", "Copy to stdout");
 
+    /**
+     * Success relationship.
+     */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Successfully processed FlowFile.")
             .build();
 
+    /**
+     * Failure relationship.
+     */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("A FlowFile is routed to this relationship, if DB query failed with non-recoverable error.")
             .build();
 
+    /**
+     * DBCP Service descriptor.
+     */
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
             .name("dbcp-service")
             .displayName("Database Connection Pooling Service")
@@ -73,6 +117,9 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             .identifiesControllerService(DBCPService.class)
             .build();
 
+    /**
+     * Sql Query property descriptor.
+     */
     public static final PropertyDescriptor SQL_QUERY = new PropertyDescriptor.Builder()
             .name("sql-query")
             .displayName("SQL Query")
@@ -82,6 +129,9 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * File Path property descriptor.
+     */
     public static final PropertyDescriptor FILE_PATH = new PropertyDescriptor.Builder()
             .name("file-path")
             .displayName("File Path")
@@ -91,6 +141,9 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    /**
+     * Read From property descriptor.
+     */
     public static final PropertyDescriptor READ_FROM = new PropertyDescriptor.Builder()
             .name("read-from")
             .displayName("Read From")
@@ -100,6 +153,9 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             .allowableValues(FILE_SYSTEM, CONTENT)
             .build();
 
+    /**
+     * Copy Mode property descriptor.
+     */
     public static final PropertyDescriptor COPY_MODE = new PropertyDescriptor.Builder()
             .name("copy-mode")
             .displayName("Copy Mode")
@@ -109,6 +165,9 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             .allowableValues(TO, FROM)
             .build();
 
+    /**
+     * Buffer Size property descriptor.
+     */
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("buffer-size")
             .displayName("Buffer Size")
@@ -121,9 +180,23 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
     private int bufferSize;
     private boolean isFromFS;
     private String copyMode;
+    /**
+     * List of all supported property descriptors.
+     */
     protected List<PropertyDescriptor> descriptors;
+    /**
+     * Set of all supported relationships.
+     */
     protected Set<Relationship> relationships;
 
+    /**
+     * Initializes the processor by setting up shared resources and configuration needed for creating
+     * sessions during data processing. This method is called once by the framework when the processor
+     * is first instantiated or loaded, and is responsible for performing one-time initialization tasks.
+     *
+     * @param context the initialization context providing access to controller services, configuration
+     *  properties, and utility methods
+     */
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptorsList = new ArrayList<>();
@@ -142,24 +215,55 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
         this.relationships = Collections.unmodifiableSet(relationshipList);
     }
 
+    /**
+     * Returns:
+     * Set of all relationships this processor expects to transfer a flow file to.
+     * An empty set indicates this processor does not have any destination relationships.
+     * Guaranteed non-null.
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return this.relationships;
     }
 
+    /**
+     * Returns a List of all PropertyDescriptors that this component supports.
+     * Returns:
+     * PropertyDescriptor objects this component currently supports
+     *
+     */
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
 
+    /**
+     * This method will be called before any onTrigger calls and will be called once each time the Processor
+     * is scheduled to run. This happens in one of two ways: either the user clicks to schedule the component to run,
+     * or NiFi restarts with the "auto-resume state" configuration set to true (the default) and the component
+     * is already running.
+     *
+     * @param context
+     */
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         this.dbcp = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        this.bufferSize = context.getProperty(BUFFER_SIZE).isSet() ? context.getProperty(BUFFER_SIZE).asInteger() : DEFAULT_BUFFER_SIZE;
+        this.bufferSize = context.getProperty(BUFFER_SIZE).isSet()
+                ? context.getProperty(BUFFER_SIZE).asInteger() : DEFAULT_BUFFER_SIZE;
         this.isFromFS = FILE_SYSTEM.getValue().equals(context.getProperty(READ_FROM).getValue());
         this.copyMode = context.getProperty(COPY_MODE).getValue();
     }
 
+    /**
+     * The method called when this processor is triggered to operate by the controller.
+     * When this method is called depends on how this processor is configured within a controller
+     * to be triggered (timing or event based).
+     * Params:
+     * context – provides access to convenience methods for obtaining property values, delaying the scheduling of the
+     *           processor, provides access to Controller Services, etc.
+     * session – provides access to a ProcessSession, which can be used for accessing FlowFiles, etc.
+     */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
 
@@ -177,7 +281,8 @@ public class PostgreSQLBulkLoader extends AbstractProcessor {
             CopyManager copyManager = new CopyManager((BaseConnection) con.unwrap(PGConnection.class));
 
             if (FROM.getValue().equals(copyMode)) {
-                try (InputStream inputStream = isFromFS ? new BufferedInputStream(new FileInputStream(filePath)) : session.read(ff)) {
+                try (InputStream inputStream = isFromFS
+                        ? new BufferedInputStream(new FileInputStream(filePath)) : session.read(ff)) {
                     copyManager.copyIn(sqlQuery, inputStream, bufferSize);
                 } catch (IOException e) {
                     withoutErrors = false;

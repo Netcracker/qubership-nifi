@@ -18,7 +18,7 @@ public class JsonMappingGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingGenerator.class);
 
-    private static final String DEFAULT_OUTPUT_FILE = "NiFiTypeMapping.json";
+    private static final String DEFAULT_OUTPUT_FILE = "csPropConfig.json";
 
     private static final Set<String> DEFAULT_INCLUDED_FOLDERS = Set.of(
             "controllerService", "reportingTask"
@@ -89,6 +89,11 @@ public class JsonMappingGenerator {
             });
             rootNode.set(type, typeNode);
         });
+
+        if (rootNode.isEmpty()) {
+            LOGGER.info("No changes found, skipping JSON mapping file generation: {}", getOutputPath());
+            return;
+        }
 
         try (FileWriter writer = new FileWriter(getOutputPath())) {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
