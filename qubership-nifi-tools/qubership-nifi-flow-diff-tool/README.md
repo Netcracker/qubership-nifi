@@ -61,13 +61,38 @@ The plugin exposes three goals. `diff` and `git-diff` are read-only and emit a r
 the working copy in place. Exit code is `0` whenever a goal runs - finding changes is never a failure. A non-zero code
 signals an execution error, such as malformed input, an unresolvable branch, or a duplicate identifier.
 
+To use plugin prefix instead of full name, add pluginGroup `org.qubership.nifi.plugins` in `settings.xml`:
+
+```xml
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!--...-->
+    <pluginGroups>
+        <pluginGroup>org.qubership.nifi.plugins</pluginGroup>
+    </pluginGroups>
+    <!--...-->
+</settings>
+```
+
+See Maven
+[documentation](https://maven.apache.org/guides/introduction/introduction-to-plugin-prefix-mapping.html#configuring-maven-to-search-for-plugins)
+for more details.
+
 ### diff
 
 Compares two inputs and reports the differences. Each input is a directory tree or a single flow file, given as a
 relative path (resolved against the Maven `basedir`) or an absolute path. Both sides must be the same kind.
 
 ```shell
-mvn -q org.qubership.nifi:qubership-nifi-flow-diff-tool:<version>:diff \
+mvn -q org.qubership.nifi.plugins:qubership-nifi-flow-diff-tool:<version>:diff \
+  -Dbaseline=<baselineDirOrFile> \
+  -Dtarget=<targetDirOrFile> \
+  -Dformat=md \
+  -Doutput=diff.md
+```
+
+```shell
+mvn -q nifi-flow-diff:<version>:diff \
   -Dbaseline=<baselineDirOrFile> \
   -Dtarget=<targetDirOrFile> \
   -Dformat=md \
@@ -81,7 +106,11 @@ that branch rather than `HEAD`. The tip is deliberate: NiFi flows are replaced, 
 replacement would introduce.
 
 ```shell
-mvn -q org.qubership.nifi:qubership-nifi-flow-diff-tool:<version>:git-diff -Dpath=<dirOrFile> -Dbranch=main
+mvn -q org.qubership.nifi.plugins:qubership-nifi-flow-diff-tool:<version>:git-diff -Dpath=<dirOrFile> -Dbranch=main
+```
+
+```shell
+mvn -q nifi-flow-diff:<version>:git-diff -Dpath=<dirOrFile> -Dbranch=main
 ```
 
 ### git-revert-technical
@@ -91,7 +120,11 @@ It prints a per-file summary of the reverted counts. Writes are atomic and are s
 read and write, so a concurrent edit is never clobbered.
 
 ```shell
-mvn -q org.qubership.nifi:qubership-nifi-flow-diff-tool:<version>:git-revert-technical -Dpath=<dirOrFile>
+mvn -q org.qubership.nifi.plugins:qubership-nifi-flow-diff-tool:<version>:git-revert-technical -Dpath=<dirOrFile>
+```
+
+```shell
+mvn -q nifi-flow-diff:<version>:git-revert-technical -Dpath=<dirOrFile>
 ```
 
 The table below describes the plugin parameters:
