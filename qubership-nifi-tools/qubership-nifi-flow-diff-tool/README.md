@@ -129,17 +129,17 @@ mvn -q nifi-flow-diff:<version>:git-revert-technical -Dpath=<dirOrFile>
 
 The table below describes the plugin parameters:
 
-| Parameter          | Goal                           | Default | Description                                                                    |
-|--------------------|--------------------------------|---------|--------------------------------------------------------------------------------|
-| `baseline`         | diff                           | -       | Required. Baseline directory or single flow file.                              |
-| `target`           | diff                           | -       | Required. Target directory or single flow file.                                |
-| `path`             | git-diff, git-revert-technical | -       | Required. Directory or single flow file, relative to the Maven `basedir`.      |
-| `branch`           | git-diff                       | `HEAD`  | Branch whose tip is the baseline.                                              |
-| `format`           | diff, git-diff                 | `text`  | Report format: `text`, `json`, or `md`.                                        |
-| `output`           | diff, git-diff                 | -       | Report file. Required for `json` and `md`; `text` defaults to standard output. |
-| `max-value-length` | diff, git-diff                 | `200`   | Value truncation budget for `text` and `md`; `0` disables truncation.          |
-| `show-technical`   | diff, git-diff                 | `false` | Also list technical changes in the report, marked `[tech]`, for debugging.     |
-| `skip-malformed`   | all                            | `false` | Continue past a malformed candidate file instead of failing.                   |
+| Parameter        | CLI property       | Goal                           | Default | Description                                                                    |
+|------------------|--------------------|--------------------------------|---------|--------------------------------------------------------------------------------|
+| `baseline`       | `baseline`         | diff                           | -       | Required. Baseline directory or single flow file.                              |
+| `target`         | `target`           | diff                           | -       | Required. Target directory or single flow file.                                |
+| `path`           | `path`             | git-diff, git-revert-technical | -       | Required. Directory or single flow file, relative to the Maven `basedir`.      |
+| `branch`         | `branch`           | git-diff                       | `HEAD`  | Branch whose tip is the baseline.                                              |
+| `format`         | `format`           | diff, git-diff                 | `text`  | Report format: `text`, `json`, or `md`.                                        |
+| `output`         | `output`           | diff, git-diff                 | -       | Report file. Required for `json` and `md`; `text` defaults to standard output. |
+| `maxValueLength` | `max-value-length` | diff, git-diff                 | `200`   | Value truncation budget for `text` and `md`; `0` disables truncation.          |
+| `showTechnical`  | `show-technical`   | diff, git-diff                 | `false` | Also list technical changes in the report, marked `[tech]`, for debugging.     |
+| `skipMalformed`  | `skip-malformed`   | all                            | `false` | Continue past a malformed candidate file instead of failing.                   |
 
 ## Output formats
 
