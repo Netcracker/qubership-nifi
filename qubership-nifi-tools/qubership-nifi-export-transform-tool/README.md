@@ -18,12 +18,35 @@ as separate files in version control instead of embedding them inside the flow J
 
 ## Usage
 
+To use plugin prefix instead of full name, add pluginGroup `org.qubership.nifi.plugins` in `settings.xml`:
+
+```xml
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <!--...-->
+    <pluginGroups>
+        <pluginGroup>org.qubership.nifi.plugins</pluginGroup>
+    </pluginGroups>
+    <!--...-->
+</settings>
+```
+
+See Maven
+[documentation](https://maven.apache.org/guides/introduction/introduction-to-plugin-prefix-mapping.html#configuring-maven-to-search-for-plugins)
+for more details.
+
 ### Extract
 
 Extracts processor property values from flow JSON files into separate files:
 
 ```shell
-mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:extract \
+mvn org.qubership.nifi.plugins:qubership-nifi-export-transform-tool:<version>:extract \
+  -Dconfig=<configFile> \
+  -Dexport-dir=<exportDir>
+```
+
+```shell
+mvn nifi-transform:<version>:extract \
   -Dconfig=<configFile> \
   -Dexport-dir=<exportDir>
 ```
@@ -33,7 +56,13 @@ mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:extract \
 Restores processor property values from separate files back into the flow JSON:
 
 ```shell
-mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:build \
+mvn org.qubership.nifi.plugins:qubership-nifi-export-transform-tool:<version>:build \
+  -Dconfig=<configFile> \
+  -Dexport-dir=<exportDir>
+```
+
+```shell
+mvn nifi-transform:<version>:build \
   -Dconfig=<configFile> \
   -Dexport-dir=<exportDir>
 ```
@@ -41,7 +70,14 @@ mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:build \
 To additionally delete the extracted files after a successful Build:
 
 ```shell
-mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:build \
+mvn org.qubership.nifi.plugins:qubership-nifi-export-transform-tool:<version>:build \
+  -Dconfig=<configFile> \
+  -Dexport-dir=<exportDir> \
+  -Ddelete=true
+```
+
+```shell
+mvn nifi-transform:<version>:build \
   -Dconfig=<configFile> \
   -Dexport-dir=<exportDir> \
   -Ddelete=true
@@ -49,11 +85,11 @@ mvn org.qubership.nifi:qubership-nifi-export-transform-tool:<version>:build \
 
 The table below describes the plugin parameters:
 
-| Parameter    | Goal             | Default | Description                                                                                     |
-|--------------|------------------|---------|-------------------------------------------------------------------------------------------------|
-| `config`     | extract, build   | -       | Required. Path to the YAML configuration file specifying which processor types to process.      |
-| `export-dir` | extract, build   | `nifi`  | Path to the directory containing exported NiFi flow JSON files.                                 |
-| `delete`     | build            | `false` | When `true`, deletes extracted files and their directories after a successful Build.            |
+| Parameter    | CLI property | Goal             | Default | Description                                                                                     |
+|--------------|--------------|------------------|---------|-------------------------------------------------------------------------------------------------|
+| `configFile` | `config`     | extract, build   | -       | Required. Path to the YAML configuration file specifying which processor types to process.      |
+| `exportDir`  | `export-dir` | extract, build   | `nifi`  | Path to the directory containing exported NiFi flow JSON files.                                 |
+| `delete`     | `delete`     | build            | `false` | When `true`, deletes extracted files and their directories after a successful Build.            |
 
 ### pom.xml configuration
 

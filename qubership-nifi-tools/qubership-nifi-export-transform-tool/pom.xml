@@ -8,6 +8,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <groupId>org.qubership.nifi.plugins</groupId>
     <artifactId>qubership-nifi-export-transform-tool</artifactId>
     <packaging>maven-plugin</packaging>
     <name>${project.groupId}:${project.artifactId}</name>
@@ -41,6 +42,12 @@
             <artifactId>qubership-nifi-tools-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>${snakeyaml.version}</version>
+            <scope>compile</scope>
+        </dependency>
 
         <!-- test -->
         <dependency>
@@ -55,21 +62,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>${snakeyaml.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jgit</groupId>
-            <artifactId>org.eclipse.jgit</artifactId>
-            <version>${jgit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
