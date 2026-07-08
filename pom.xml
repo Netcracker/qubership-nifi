@@ -81,7 +81,7 @@
         <micrometer.version>1.12.13</micrometer.version>
         <!--jackson and slf4j versions for direct dependencies-->
         <!--NiFi NARs use imported dependencies from NiFi BOMs-->
-        <jackson.databind.version>2.20.1</jackson.databind.version>
+        <jackson.databind.version>2.21.4</jackson.databind.version>
         <slf4j.version>2.0.17</slf4j.version>
 
         <!-- Version for provided artifact -->
