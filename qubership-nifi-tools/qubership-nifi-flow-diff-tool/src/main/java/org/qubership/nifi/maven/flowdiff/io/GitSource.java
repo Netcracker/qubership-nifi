@@ -50,15 +50,13 @@ public final class GitSource implements Closeable {
         this.repository = new FileRepositoryBuilder().readEnvironment().findGitDir(basedir).build();
         try {
             if (repository.getWorkTree() == null || repository.getDirectory() == null) {
-                //close the repository before throwing an error:
-                this.repository.close();
                 throw new FlowParseException("No Git worktree encloses: " + basedir);
             }
             this.worktreeRoot = repository.getWorkTree().getCanonicalFile().toPath();
             File resolved = new File(basedir, pathInput.getPath());
             this.pathExists = resolved.exists();
             this.worktreeRelative = worktreeRelative(resolved, pathInput);
-        } catch (IOException | NoWorkTreeException e) {
+        } catch (IOException | NoWorkTreeException | FlowParseException e) {
             //close the repository before throwing an error:
             this.repository.close();
             throw e;
