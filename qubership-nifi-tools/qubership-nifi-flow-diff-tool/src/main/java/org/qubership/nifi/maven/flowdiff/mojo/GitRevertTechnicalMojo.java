@@ -51,8 +51,8 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
         FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
         TechnicalReverter reverter = new TechnicalReverter();
         JsonFormatReformatter reformatter = new JsonFormatReformatter(MAPPER);
-        List<String> summary = new ArrayList<>();
         int reverted = 0;
+        int filesWritten = 0;
 
         try (GitSource git = new GitSource(getBasedir(), new File(path), classifier)) {
             Map<String, Candidate> committed = git.discoverCommitted("HEAD");
@@ -72,7 +72,8 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
                         reformatter, key);
                 if (counts != null && counts.total() > 0) {
                     reverted += counts.total();
-                    summary.add(summaryLine(key, counts));
+                    filesWritten++;
+                    System.out.println(summaryLine(key, counts));
                 }
             }
         } catch (FlowParseException e) {
@@ -80,7 +81,7 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("I/O error during revert", e);
         }
-        printSummary(summary, reverted);
+        printFinalSummary(filesWritten, reverted);
     }
 
     private RevertCounts rewrite(final Path file, final FlowExport committedFlow, final TechnicalReverter reverter,
@@ -137,13 +138,12 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
                 + ", endpointGroupId=" + counts.endpointGroupId() + ")";
     }
 
-    private void printSummary(final List<String> summary, final int reverted) {
+    private void printFinalSummary(final int filesWritten, final int reverted) {
         StringBuilder sb = new StringBuilder();
-        summary.forEach(line -> sb.append(line).append('\n'));
-        if (summary.isEmpty()) {
+        if (filesWritten == 0) {
             sb.append("Total: 0 files rewritten");
         } else {
-            sb.append("Total: ").append(summary.size()).append(" files rewritten, ")
+            sb.append("Total: ").append(filesWritten).append(" files rewritten, ")
                     .append(reverted).append(" technical changes reverted.");
         }
         System.out.println(sb);

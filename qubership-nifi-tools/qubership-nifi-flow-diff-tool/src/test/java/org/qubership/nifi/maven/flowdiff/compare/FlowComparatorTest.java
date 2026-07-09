@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.maven.flowdiff.flow.ComponentType;
 import org.qubership.nifi.maven.flowdiff.flow.FlowExport;
+import org.qubership.nifi.maven.flowdiff.flow.FlowFields;
 import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
 
 import java.util.List;
@@ -437,5 +438,24 @@ class FlowComparatorTest {
         assertEquals(1, count(diffs, ChangeCategory.SIGNIFICANT));
         assertEquals(0, count(diffs, ChangeCategory.ENVIRONMENTAL));
         assertEquals(ChangeCategory.SIGNIFICANT, find(diffs, "name").getCategory());
+    }
+
+    @Test
+    void componentMoveToRootIsSignificant() {
+        String baselineFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processGroups":[
+                  {"identifier":"g1","name":"Nested","componentType":"PROCESS_GROUP","processors":[
+                    {"identifier":"p1","name":"A","componentType":"PROCESSOR","groupIdentifier":"g1"}]}]}}
+                """;
+        String targetFlow = """
+                {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processGroups":[
+                  {"identifier":"g1","name":"Nested","componentType":"PROCESS_GROUP"}],"processors":[
+                    {"identifier":"p1","name":"A","componentType":"PROCESSOR","groupIdentifier":"root"}]}}
+                """;
+        List<Difference> diffs = comparator.compare(
+                flow(baselineFlow), flow(targetFlow));
+        assertEquals(1, count(diffs, ChangeCategory.SIGNIFICANT));
+        assertEquals(0, count(diffs, ChangeCategory.TECHNICAL));
+        assertEquals(ChangeCategory.SIGNIFICANT, find(diffs, FlowFields.GROUP_IDENTIFIER).getCategory());
     }
 }

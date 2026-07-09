@@ -54,6 +54,10 @@ public final class FlowExport {
         if (!rootValue.has(FLOW_CONTENTS)) {
             throw new FlowParseException("Flow export has no '" + FLOW_CONTENTS + "': " + displayPathValue);
         }
+        if (!rootValue.path(FLOW_CONTENTS).isObject()) {
+            throw new FlowParseException("Flow export has '" + FLOW_CONTENTS + "', but it's not an object: "
+                    + displayPathValue);
+        }
         Iterator<String> fields = rootValue.fieldNames();
         while (fields.hasNext()) {
             String field = fields.next();

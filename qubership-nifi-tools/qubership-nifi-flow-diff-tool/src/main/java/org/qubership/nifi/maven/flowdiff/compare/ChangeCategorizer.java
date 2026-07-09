@@ -53,9 +53,13 @@ public final class ChangeCategorizer {
         if (owner.isRoot() && isField(relPath, IDENTIFIER)) {
             return ChangeCategory.TECHNICAL;
         }
-        if (owner.isDirectChildOfRoot() && isField(relPath, GROUP_IDENTIFIER)) {
+        // groupIdentifier change is technical, only if it's referring to root in both baseline and target version
+        if (owner.isDirectChildOfRoot() && isField(relPath, GROUP_IDENTIFIER)
+                && refersToRoot(baselineNode.get(GROUP_IDENTIFIER), baselineRootId)
+                && refersToRoot(targetNode.get(GROUP_IDENTIFIER), targetRootId)) {
             return ChangeCategory.TECHNICAL;
         }
+        // groupId change for endpoint is technical, only if it's referring to root in both baseline and target version
         if (isEndpointField(relPath, GROUP_ID)
                 && refersToRoot(endpointField(baselineNode, relPath.get(0), GROUP_ID), baselineRootId)
                 && refersToRoot(endpointField(targetNode, relPath.get(0), GROUP_ID), targetRootId)) {

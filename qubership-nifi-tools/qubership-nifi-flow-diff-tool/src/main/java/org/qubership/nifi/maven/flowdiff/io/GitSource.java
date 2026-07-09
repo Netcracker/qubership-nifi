@@ -1,5 +1,6 @@
 package org.qubership.nifi.maven.flowdiff.io;
 
+import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -47,13 +48,21 @@ public final class GitSource implements Closeable {
         }
         this.classifier = classifierValue;
         this.repository = new FileRepositoryBuilder().readEnvironment().findGitDir(basedir).build();
-        if (repository.getWorkTree() == null || repository.getDirectory() == null) {
-            throw new FlowParseException("No Git worktree encloses: " + basedir);
+        try {
+            if (repository.getWorkTree() == null || repository.getDirectory() == null) {
+                //close the repository before throwing an error:
+                this.repository.close();
+                throw new FlowParseException("No Git worktree encloses: " + basedir);
+            }
+            this.worktreeRoot = repository.getWorkTree().getCanonicalFile().toPath();
+            File resolved = new File(basedir, pathInput.getPath());
+            this.pathExists = resolved.exists();
+            this.worktreeRelative = worktreeRelative(resolved, pathInput);
+        } catch (IOException | NoWorkTreeException e) {
+            //close the repository before throwing an error:
+            this.repository.close();
+            throw e;
         }
-        this.worktreeRoot = repository.getWorkTree().getCanonicalFile().toPath();
-        File resolved = new File(basedir, pathInput.getPath());
-        this.pathExists = resolved.exists();
-        this.worktreeRelative = worktreeRelative(resolved, pathInput);
     }
 
     private String worktreeRelative(final File resolved, final File pathInput) throws IOException {
