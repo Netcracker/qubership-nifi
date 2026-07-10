@@ -1,0 +1,10 @@
+displayNameMapping:
+  - TransformXml:
+      XSLT File Name: XSLT Document
+propertiesAllowedToDelete:
+  - JsonPathReader:
+    - Allow Comments
+  - JsonTreeReader:
+    - Allow Comments
+  - YamlTreeReader:
+    - Allow Comments

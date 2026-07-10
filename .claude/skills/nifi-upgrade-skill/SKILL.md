@@ -110,7 +110,8 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
                --targetDir ./upgrade-temp-data/nifi-property-exports/<TARGET> \
-               --outputPath ./upgrade-temp-data/nifi-property-comparison"
+               --outputPath ./upgrade-temp-data/nifi-property-comparison \
+               --version <TARGET>"
 ```
 
 ## 12. Resolve display-name renames

@@ -1,0 +1,5 @@
+{
+  "org.apache.nifi.processors.standard.TransformXml" : {
+    "XSLT File Name" : "XSLT Document"
+  }
+}
