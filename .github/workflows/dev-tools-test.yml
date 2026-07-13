@@ -39,7 +39,9 @@ jobs:
           - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false }
           # Apache NiFi 2.7.2
           - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.5.4', build-local: false }
-          # Apache NiFi 2.9.0 (current), add more versions to this after upgrades
+          # Apache NiFi 2.9.0
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.6.3', build-local: false }
+          # Apache NiFi 2.10.0 (current), add more versions to this after upgrades
           - { image: 'local-nifi', tag: 'test', build-local: true }
     runs-on: ubuntu-latest
     steps:
