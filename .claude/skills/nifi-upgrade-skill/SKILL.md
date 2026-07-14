@@ -110,8 +110,7 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
                --targetDir ./upgrade-temp-data/nifi-property-exports/<TARGET> \
-               --outputPath ./upgrade-temp-data/nifi-property-comparison \
-               --version <TARGET>"
+               --outputPath ./upgrade-temp-data/nifi-property-comparison"
 ```
 
 ## 12. Resolve display-name renames
@@ -136,7 +135,7 @@ propertiesAllowedToDelete:
 
 Put `dictionary.yaml` into `qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>`,
 where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replaced with `_`.
-Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml`.
+Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml and --version <TARGET>`.
 
 ## 13. Update OpenAPI specification
 
