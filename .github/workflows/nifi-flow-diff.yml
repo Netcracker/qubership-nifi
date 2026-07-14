@@ -4,8 +4,10 @@ name: nifi-flow-diff
 run-name: NiFi flow diff for PR #${{ github.event.pull_request.number }}
 
 # Runs the published qubership-nifi-flow-diff-tool against the NiFi flow fixtures a PR touches and
-# posts a human-readable, significant-changes-only diff as a single sticky PR comment (replaced on
-# each push). Workflow uses the tool's JSON output to decide, if comment is needed.
+# uploads a human-readable, significant-changes-only diff as an artifact. The sibling
+# nifi-flow-diff-publish workflow (workflow_run) posts it as a single sticky PR comment, replaced on
+# each push. This workflow is read-only and holds no write token. It uses the tool's JSON output to
+# decide whether a comment is needed.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -31,11 +33,10 @@ env:
 jobs:
   compute:
     name: Compute flow diff
-    # Only same-repository, non-Dependabot PRs, non-fork PRs. Fork PRs have a read-only token (cannot comment) and
-    # Dependabot runs get a restricted token. 49699333 is Dependabot's stable id.
+    # Only same-repository (non-fork), non-Dependabot PRs. Fork and Dependabot runs get a restricted
+    # token and are skipped. 49699333 is Dependabot's stable id.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]' &&
       github.actor_id != '49699333'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -148,62 +149,3 @@ jobs:
           name: flow-diff-report
           path: flow-diff-out
           retention-days: 5
-
-  publish:
-    name: Publish sticky comment
-    needs: [compute]
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.actor != 'dependabot[bot]' &&
-      github.actor_id != '49699333'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      # No checkout: this job holds a write token and must never execute PR-head code.
-      - name: Download flow diff report
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
-        with:
-          name: flow-diff-report
-          path: flow-diff-out
-
-      - name: Upsert sticky comment
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
-        with:
-          script: |
-            const fs = require('fs');
-            const marker = '<!-- nifi-flow-diff -->';
-            // github-actions[bot] stable numeric user id; identity is checked by id, not login.
-            const BOT_ID = 41898282;
-
-            const body = fs.readFileSync('flow-diff-out/comment.md', 'utf8');
-            const reportable = fs.readFileSync('flow-diff-out/reportable', 'utf8').trim() === 'true';
-
-            const { owner, repo } = context.repo;
-            const issue_number = context.issue.number;
-
-            // Paginate: a single default page (30) can miss an older marker and cause a duplicate.
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner, repo, issue_number, per_page: 100,
-            });
-            const mine = comments.filter(
-              (c) => c.user && c.user.id === BOT_ID && c.body && c.body.includes(marker)
-            );
-
-            if (mine.length > 0) {
-              // Update the canonical (oldest) comment; retire any duplicate markers.
-              await github.rest.issues.updateComment({ owner, repo, comment_id: mine[0].id, body });
-              for (const dup of mine.slice(1)) {
-                await github.rest.issues.deleteComment({ owner, repo, comment_id: dup.id });
-              }
-              core.info(`Updated sticky comment ${mine[0].id}; retired ${mine.length - 1} duplicate(s).`);
-            } else if (reportable) {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body });
-              core.info('Created sticky comment.');
-            } else {
-              // Nothing significant and no prior comment: post the no-change note only as a
-              // replacement, so a workflow-only or first-push technical-only PR stays silent.
-              core.info('No reportable changes and no existing comment; nothing to post.');
-            }
