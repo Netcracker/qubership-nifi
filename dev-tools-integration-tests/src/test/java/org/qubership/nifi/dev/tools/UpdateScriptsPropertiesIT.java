@@ -93,7 +93,6 @@ class UpdateScriptsPropertiesIT {
         JsonNode snapshot = HARNESS.readFlow("flows/flow-with-renamed-properties.json");
 
         HARNESS.importAndValidate(snapshot.path("flowContents"),
-                List.of(new NifiFlowApiClient.IgnoredDifference(
-                        "InFlowJsonRecordSetWriter", "Property 'Allow Scientific Notation' was added")));
+                List.of());
     }
 }
