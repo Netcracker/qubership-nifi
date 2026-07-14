@@ -5,7 +5,7 @@ run-name: NiFi flow diff for PR #${{ github.event.pull_request.number }}
 
 # Runs the published qubership-nifi-flow-diff-tool against the NiFi flow fixtures a PR touches and
 # posts a human-readable, significant-changes-only diff as a single sticky PR comment (replaced on
-# each push, never appended). Workflow uses the tool's JSON output to decide, if comment is needed, not the Markdown.
+# each push). Workflow uses the tool's JSON output to decide, if comment is needed.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -14,8 +14,8 @@ on:
       - 'dev-tools-integration-tests/src/test/resources/test-flows/flows/**'
       - 'qubership-nifi-tools/qubership-nifi-export-transform-tool/src/test/resources/nifi/**'
       - '.github/workflows/nifi-flow-diff.yml'
+      - '.github/maven/flow-diff-maven-settings.xml'
 
-# Deny by default; each job grants its own minimal set.
 permissions: {}
 
 # Latest push wins: cancel any in-flight run for the same PR so a slower older run cannot overwrite
@@ -31,10 +31,11 @@ env:
 jobs:
   compute:
     name: Compute flow diff
-    # Only same-repository, non-Dependabot PRs. Fork PRs have a read-only token (cannot comment) and
-    # Dependabot runs get a restricted token; both are skipped. 49699333 is Dependabot's stable id.
+    # Only same-repository, non-Dependabot PRs, non-fork PRs. Fork PRs have a read-only token (cannot comment) and
+    # Dependabot runs get a restricted token. 49699333 is Dependabot's stable id.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
       github.actor_id != '49699333'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -153,6 +154,7 @@ jobs:
     needs: [compute]
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
       github.actor_id != '49699333'
     runs-on: ubuntu-latest
     timeout-minutes: 5

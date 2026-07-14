@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Maven settings for resolving the qubership-nifi-flow-diff-tool plugin from GitHub Packages.
+  Maven settings for resolving the qubership-nifi-flow-diff-tool plugin from GitHub Packages in nifi-flow-diff workflow.
 
-  The root pom declares GitHub Packages only under <repositories> (dependency resolution). A plugin
-  invoked by coordinates resolves from <pluginRepositories>, which the root pom does not declare, so
-  this file adds GitHub Packages as both a <repository> (for the plugin's parent POM chain
-  qubership-nifi-tools -> qubership-nifi) and a <pluginRepository> (for the plugin artifact itself),
-  authenticated with the "github" server. Transitive runtime dependencies (JGit, Jackson) come from
-  Maven Central. Passed to Maven with the settings flag in the nifi-flow-diff workflow.
+  The root pom declares GitHub only under <repositories>, but not under <pluginRepositories>.
+  This file adds GitHub as both a <repository> and a <pluginRepository>, authenticated with workflow's actor/token.
+  Transitive runtime dependencies (JGit, Jackson) come from Maven Central.
 -->
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
