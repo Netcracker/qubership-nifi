@@ -87,6 +87,16 @@ class CleanupServiceTest {
     }
 
     @Test
+    void cleanupDeletesFlowConfDirectoryNestedBeyondDepthOne() throws IOException {
+        Path nestedParent = Files.createDirectories(tempDir.resolve("env1/group1"));
+        Path flowConfDir = Files.createDirectory(nestedParent.resolve("flowConf_myflow"));
+
+        service.cleanup(tempDir);
+
+        verify(fileSystem).deleteRecursively(flowConfDir);
+    }
+
+    @Test
     void cleanupLogsWarningWhenDeleteFails() throws IOException {
         Files.createDirectory(tempDir.resolve("flowConf_myflow"));
         doThrow(new IOException("disk error")).when(fileSystem).deleteRecursively(any());
