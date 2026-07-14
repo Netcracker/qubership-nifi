@@ -13,6 +13,9 @@ on:  # zizmor: ignore[dangerous-triggers] safe: no PR-head checkout, artifact tr
     types: [completed]
 
 permissions: {}
+concurrency:
+  group: nifi-flow-diff-publish-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
 
 jobs:
   publish:
