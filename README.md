@@ -44,6 +44,28 @@ qubership-nifi can be started in single node (non-cluster) or cluster configurat
 In clustered configuration each cluster node has its own persistent volumes and secrets holding TLS certificates.
 qubership-nifi-registry is not clustered and all cluster nodes must connect to the same service.
 
+## Tools
+
+qubership-nifi ships a set of tools that automate NiFi-related activities. Each tool is a
+child module of [`qubership-nifi-tools`](qubership-nifi-tools/README.md), which has full
+usage details. The main tools are:
+
+- **qubership-nifi-docs-generator** - Maven plugin that generates Markdown documentation
+  for custom NiFi components.
+- **qubership-nifi-api-export-tool** - extracts component API descriptors from a NiFi
+  instance.
+- **qubership-nifi-component-comparator-tool** - compares component properties across two
+  NiFi versions.
+- **qubership-nifi-openapi-enricher** - enriches the NiFi OpenAPI specification to pass
+  API Hub validation.
+- **qubership-nifi-export-transform-tool** - extracts large processor property values
+  from flow JSON and restores them on demand.
+- **qubership-nifi-flow-diff-tool** - classifies differences between flow exports and
+  reverts NiFi-generated technical identifiers.
+
+See [`qubership-nifi-tools`](qubership-nifi-tools/README.md) for the complete list,
+including shared libraries and integration-test modules.
+
 ## Build
 
 ### Prerequisites
