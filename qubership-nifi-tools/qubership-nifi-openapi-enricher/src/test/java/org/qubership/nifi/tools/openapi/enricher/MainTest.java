@@ -44,7 +44,7 @@ class MainTest {
         assertNotNull(result);
 
         assertEquals("/nifi-api", result.path("servers").get(0).path("url").asText());
-        assertEquals(28, result.path("tags").size());
+        assertEquals(29, result.path("tags").size());
 
         JsonNode get = result.path("paths").path("/nifi-api/resources").path("get");
         assertEquals("Gets the resources", get.path("description").asText());

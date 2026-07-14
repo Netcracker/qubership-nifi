@@ -34482,5 +34482,8 @@
   }, {
     "name" : "Versions",
     "description" : "Endpoint for managing version control for a flow"
+  }, {
+    "name" : "Connectors",
+    "description" : "Endpoint for managing a Connector."
   } ]
 }
