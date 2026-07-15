@@ -1,21 +1,19 @@
 ---
 name: nifi-flow-diff-publish
 
-run-name: nifi-flow-diff-publish
+run-name: 'nifi-flow-diff-publish PR #${{ github.event.workflow_run.pull_requests[0].number }}'
 
 # Publishes the flow diff computed by the nifi-flow-diff workflow as a single sticky PR comment.
 # Triggered by workflow_run, so it always runs from the default branch's copy of this file and never
 # executes PR-head code. It is the only holder of the pull-requests write token. The compute run's
 # artifact is treated strictly as data: downloaded, validated, and posted, never executed.
+# Fork PRs and dependabot PRs are excluded from scope of this workflow.
 on:  # zizmor: ignore[dangerous-triggers] safe: no PR-head checkout, artifact treated as data
   workflow_run:
     workflows: [nifi-flow-diff]  # must match the name of the compute workflow
     types: [completed]
 
 permissions: {}
-concurrency:
-  group: nifi-flow-diff-publish-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: false
 
 jobs:
   publish:
@@ -28,6 +26,10 @@ jobs:
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.actor.id != 49699333
+    concurrency:
+      # Use either workflow_run.pull_requests[0].number, if available, or workflow_run.id to group runs:
+      group: nifi-flow-diff-publish-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -74,11 +76,15 @@ jobs:
               return;
             }
             const issue_number = pr.number;
+            const { owner, repo } = context.repo;
+            const { data: livePr } = await github.rest.pulls.get({ owner, repo, pull_number: issue_number });
+              if (livePr.head.sha !== run.head_sha) {
+              core.info(`Compute run head ${run.head_sha} is stale; live head is ${livePr.head.sha}. Skipping.`);
+              return;
+            }
 
             const body = fs.readFileSync('flow-diff-out/comment.md', 'utf8');
             const reportable = fs.readFileSync('flow-diff-out/reportable', 'utf8').trim() === 'true';
-
-            const { owner, repo } = context.repo;
 
             // Paginate: a single default page (30) can miss an older marker and cause a duplicate.
             const comments = await github.paginate(github.rest.issues.listComments, {

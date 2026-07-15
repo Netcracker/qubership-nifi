@@ -1,13 +1,14 @@
 ---
 name: nifi-flow-diff
 
-run-name: NiFi flow diff for PR #${{ github.event.pull_request.number }}
+run-name: 'NiFi flow diff for PR #${{ github.event.pull_request.number }}'
 
-# Runs the published qubership-nifi-flow-diff-tool against the NiFi flow fixtures a PR touches and
-# uploads a human-readable, significant-changes-only diff as an artifact. The sibling
-# nifi-flow-diff-publish workflow (workflow_run) posts it as a single sticky PR comment, replaced on
-# each push. This workflow is read-only and holds no write token. It uses the tool's JSON output to
-# decide whether a comment is needed.
+# Runs qubership-nifi-flow-diff-tool against the NiFi flow exports modified in the PR and
+# uploads a human-readable, significant-changes-only diff as an artifact.
+# Fork PRs and dependabot PRs are excluded from scope of this workflow.
+# The sibling nifi-flow-diff-publish workflow (workflow_run) posts it as a single sticky PR comment,
+# replaced on each push. If all flow export changes are reverted, the comment on the PR will remain.
+# This workflow is read-only and holds no write token.
 on:
   pull_request:
     types: [opened, reopened, synchronize]
