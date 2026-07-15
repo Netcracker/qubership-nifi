@@ -75,6 +75,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This run owns the artifact; the sticky comment is posted by the sibling publisher run.
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
 
@@ -107,8 +109,17 @@ jobs:
               -Dpath="${dir}" -Dbranch="${BASE_SHA}" -Dformat=json -Doutput="${out}/${label}.json"
 
             # Reportable = significant + environmental + whole added/removed flows. Technical excluded.
-            sum="$(jq '.totals | (.significant + .environmental + .addedFlows + .removedFlows)' "${out}/${label}.json")"
-            if [ "${sum:-0}" -gt 0 ]; then
+            # jq -e fails when any total is missing or non-numeric, so a tool schema change reports
+            # itself here rather than surfacing as an obscure shell error on the comparison below.
+            if ! sum="$(jq -e '
+                  [.totals.significant, .totals.environmental, .totals.addedFlows, .totals.removedFlows]
+                  | if any(type != "number") then null else add end
+                ' "${out}/${label}.json")"; then
+              echo "Unexpected flow-diff JSON for '${label}': .totals must hold numeric significant," \
+                   "environmental, addedFlows and removedFlows." >&2
+              exit 1
+            fi
+            if [ "${sum}" -gt 0 ]; then
               reportable=true
               printf '\n' >> "${out}/body.md"
               cat "${out}/${label}.md" >> "${out}/body.md"
@@ -133,10 +144,15 @@ jobs:
           limit=60000
           if [ "$(wc -c < "${out}/comment.full.md")" -gt "${limit}" ]; then
             head -c "${limit}" "${out}/comment.full.md" | sed '$ d' > "${out}/comment.md"
+            # Cutting inside a fenced block would render the note below as code: close an odd fence.
+            fences="$(grep -c '^```' "${out}/comment.md" || true)"
+            if [ $((fences % 2)) -ne 0 ]; then
+              printf '```\n' >> "${out}/comment.md"
+            fi
             {
               echo
               echo '---'
-              echo "_Report truncated to fit GitHub's comment size limit. See the full \`flow-diff-report\` artifact on this workflow run._"
+              echo "_Report truncated to fit GitHub's comment size limit. See the full \`flow-diff-report\` artifact on [the compute run](${RUN_URL})._"
             } >> "${out}/comment.md"
           else
             cp "${out}/comment.full.md" "${out}/comment.md"
