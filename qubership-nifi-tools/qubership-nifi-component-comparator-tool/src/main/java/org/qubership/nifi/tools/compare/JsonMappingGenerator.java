@@ -90,11 +90,6 @@ public class JsonMappingGenerator {
             rootNode.set(type, typeNode);
         });
 
-        if (rootNode.isEmpty()) {
-            LOGGER.info("No changes found, skipping JSON mapping file generation: {}", getOutputPath());
-            return;
-        }
-
         try (FileWriter writer = new FileWriter(getOutputPath())) {
             writer.write(OBJECT_MAPPER.writerWithDefaultPrettyPrinter()
                     .writeValueAsString(rootNode));
