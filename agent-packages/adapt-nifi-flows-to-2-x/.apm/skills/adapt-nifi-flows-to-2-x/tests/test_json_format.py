@@ -38,6 +38,10 @@ def test_detect_four_space_expanded():
     assert detect_format('{\n    "a": 1\n}').indent == "    "
 
 
+def test_detect_zero_space_expanded():
+    assert detect_format('{\n"a": 1,\n"b": 2\n}').indent == ""
+
+
 def test_detect_tab_indent():
     assert detect_format('{\n\t"a": 1\n}').indent == "\t"
 
@@ -137,6 +141,18 @@ def test_jackson_default_warns_twice_and_stays_expanded():
     assert dumps({"a": [1, 2]}, fmt) == '{\n  "a": [\n    1,\n    2\n  ]\n}'
 
 
+def test_fixed_space_only_warns_and_preserves_comma_spacing():
+    content = '{ "a" : [ 1, 2 ], "b" : { "c" : 3 } }'
+    fmt = detect_format(content)
+
+    assert fmt.indent is None
+    assert fmt.item_separator == ", "
+    assert set(fmt.warnings) == {WARN_FIXED_SPACE, WARN_COLON}
+    assert dumps({"a": [1, 2], "b": {"c": 3}}, fmt) == (
+        '{"a": [1, 2], "b": {"c": 3}}'
+    )
+
+
 # ---------------------------------------------------------------------------
 # dumps
 # ---------------------------------------------------------------------------
@@ -175,6 +191,7 @@ def test_default_indent_matches_the_default_format():
 # ---------------------------------------------------------------------------
 
 _STABLE_SAMPLES = [
+    ("zero space expanded", '{\n"a": 1,\n"b": 2\n}'),
     ("two space expanded", '{\n  "a": 1,\n  "b": 2\n}'),
     ("four space expanded", '{\n    "a": 1,\n    "b": 2\n}'),
     ("tab expanded", '{\n\t"a": 1,\n\t"b": 2\n}'),

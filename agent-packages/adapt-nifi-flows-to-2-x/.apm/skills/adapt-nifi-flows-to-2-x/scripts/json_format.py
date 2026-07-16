@@ -53,7 +53,8 @@ _AFTER = "after"
 _BOTH = "both"
 
 WARN_FIXED_SPACE = (
-    'fixed-space containers ("[ 1, 2 ]") cannot be reproduced - writing the expanded form'
+    'fixed-space containers ("[ 1, 2 ]") cannot be reproduced - '
+    "writing the closest reproducible form"
 )
 WARN_COLON = 'a space before ":" ("a" : 1) cannot be reproduced - writing "a": 1'
 WARN_EMPTY = 'spaced empty containers ("{ }") cannot be reproduced - writing "{}"'
@@ -132,9 +133,10 @@ def _sample_indent(content: str, line_start: int, depth: int, tallies: _Tallies)
         return          # blank line, no opinion
     if c in "}]":
         return          # a closing bracket sits one level out
-    if depth >= 1 and length > 0 and length % depth == 0:
+    if depth >= 1 and length % depth == 0:
         _inc(tallies.indent_width, length // depth)
-        _inc(tallies.indent_char, first)
+        if length > 0:
+            _inc(tallies.indent_char, first)
 
 
 def _colon_spacing(content: str, index: int) -> str:
@@ -184,8 +186,8 @@ def _handle_container_start(content: str, index: int, opener: str, tallies: _Tal
 
 
 def _handle_comma(content: str, index: int, frame, tallies: _Tallies) -> None:
-    """Tally comma spacing, which is only meaningful inside an inline container."""
-    if frame is None or frame[1] != _INLINE:
+    """Tally reproducible comma spacing inside non-expanded containers."""
+    if frame is None or frame[1] == _EXPANDED:
         return
     n = len(content)
     q = index + 1
@@ -249,7 +251,9 @@ def _build(tallies: _Tallies, content: str) -> JsonFormat:
     # default expanded layout applies.
     if not observed or _EXPANDED in observed:
         indent_char = _dominant(tallies.indent_char) or " "
-        indent_width = _dominant(tallies.indent_width) or len(DEFAULT_INDENT)
+        indent_width = _dominant(tallies.indent_width)
+        if indent_width is None:
+            indent_width = len(DEFAULT_INDENT)
         indent = indent_char * indent_width
         # A space here would trail every line, just before its newline.
         item_separator = ","

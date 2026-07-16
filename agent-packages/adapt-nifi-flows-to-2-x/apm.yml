@@ -1,4 +1,4 @@
 name: adapt-nifi-flows-to-2-x
-version: 1.0.0
+version: 1.1.0
 description: Apply NiFi 1.x to 2.x upgrade advisor recommendations to exported flow JSON files.
 author: Qubership
