@@ -31,12 +31,14 @@ class JsonMappingGeneratorTest {
     }
 
     @Test
-    void generateEmptyMapsSkipsFileCreation() throws IOException {
+    void generateEmptyMapsCreatesEmptyJsonFile() throws IOException {
         JsonMappingGenerator gen = new JsonMappingGenerator(tempDir);
         gen.generate(Map.of(), Map.of());
 
-        assertFalse(Files.exists(Path.of(gen.getOutputPath())),
-                "File should not be created when there are no changes");
+        assertTrue(Files.exists(Path.of(gen.getOutputPath())),
+                "File should be created even when there are no changes");
+        JsonNode root = MAPPER.readTree(Path.of(gen.getOutputPath()).toFile());
+        assertEquals(0, root.size(), "JSON should be empty object when there are no changes");
     }
 
     @Test
