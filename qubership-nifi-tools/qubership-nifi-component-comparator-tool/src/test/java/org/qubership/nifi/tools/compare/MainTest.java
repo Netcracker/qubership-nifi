@@ -102,7 +102,9 @@ class MainTest {
 
         assertTrue(Files.exists(outputDir));
         assertTrue(Files.exists(csvPath()));
-        assertFalse(Files.exists(jsonPath()));
+        assertTrue(Files.exists(jsonPath()));
+        JsonNode json = MAPPER.readTree(jsonPath().toFile());
+        assertEquals(0, json.size(), "No controllerService/reportingTask changes, JSON should be empty");
         assertTrue(Files.exists(mdPath()));
     }
 
@@ -160,9 +162,11 @@ class MainTest {
         assertTrue(csv.contains("rename"));
         assertTrue(csv.contains("processors"));
 
-        // csPropConfig.json should NOT be created - only processor changes exist
-        assertFalse(Files.exists(jsonPath()),
-                "csPropConfig.json must not be created when only processor changes exist");
+        // csPropConfig.json is created but empty - only processor changes exist
+        assertTrue(Files.exists(jsonPath()));
+        JsonNode json = MAPPER.readTree(jsonPath().toFile());
+        assertEquals(0, json.size(),
+                "csPropConfig.json must be empty when only processor changes exist");
 
         // procPropConfig.json SHOULD contain the processor rename
         JsonNode procJson = MAPPER.readTree(processorJsonPath().toFile());
@@ -191,10 +195,12 @@ class MainTest {
     }
 
     @Test
-    void mainEmptyDirectoriesSkipsProcessorJsonFileCreation() throws IOException {
+    void mainEmptyDirectoriesCreatesEmptyProcessorJsonFile() throws IOException {
         runMain();
 
-        assertFalse(Files.exists(processorJsonPath()));
+        assertTrue(Files.exists(processorJsonPath()));
+        JsonNode json = MAPPER.readTree(processorJsonPath().toFile());
+        assertEquals(0, json.size());
     }
 
     @Test
@@ -259,10 +265,12 @@ class MainTest {
     }
 
     @Test
-    void mainEmptyDirectoriesSkipsJsonFileCreation() throws IOException {
+    void mainEmptyDirectoriesCreatesEmptyJsonFile() throws IOException {
         runMain();
 
-        assertFalse(Files.exists(jsonPath()));
+        assertTrue(Files.exists(jsonPath()));
+        JsonNode json = MAPPER.readTree(jsonPath().toFile());
+        assertEquals(0, json.size());
     }
 
     @Test
