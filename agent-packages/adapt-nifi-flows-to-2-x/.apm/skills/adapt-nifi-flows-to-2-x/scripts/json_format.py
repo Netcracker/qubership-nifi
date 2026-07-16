@@ -37,8 +37,7 @@ from dataclasses import dataclass, field
 # Format description
 # ---------------------------------------------------------------------------
 
-# Deliberately 4 spaces, unlike the Java JsonFormat.DEFAULT_INDENT of 2: every
-# real NiFi export in this repository is indented with 4 spaces.
+# Deliberately 4 spaces, unlike the Java JsonFormat.DEFAULT_INDENT of 2
 DEFAULT_INDENT = "    "
 
 # Container layout, as observed between an opening bracket and its first member.
