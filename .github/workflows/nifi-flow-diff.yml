@@ -1,0 +1,168 @@
+---
+name: nifi-flow-diff
+
+run-name: 'NiFi flow diff for PR #${{ github.event.pull_request.number }}'
+
+# Runs qubership-nifi-flow-diff-tool against the NiFi flow exports modified in the PR and
+# uploads a human-readable, significant-changes-only diff as an artifact.
+# Fork PRs and dependabot PRs are excluded from scope of this workflow.
+# The sibling nifi-flow-diff-publish workflow (workflow_run) posts it as a single sticky PR comment,
+# replaced on each push. If all flow export changes are reverted, the comment on the PR will remain.
+# This workflow is read-only and holds no write token.
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - '.github/collections/nifi-resources/pg/**'
+      - 'dev-tools-integration-tests/src/test/resources/test-flows/flows/**'
+      - 'qubership-nifi-tools/qubership-nifi-export-transform-tool/src/test/resources/nifi/**'
+      - '.github/workflows/nifi-flow-diff.yml'
+      - '.github/maven/flow-diff-maven-settings.xml'
+
+permissions: {}
+
+# Latest push wins: cancel any in-flight run for the same PR so a slower older run cannot overwrite
+# the sticky comment with stale output.
+concurrency:
+  group: nifi-flow-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # Single place to bump once a newer flow-diff-tool release is published.
+  FLOW_DIFF_TOOL_VERSION: '2.6.3'
+
+jobs:
+  compute:
+    name: Compute flow diff
+    # Only same-repository (non-fork), non-Dependabot PRs. Fork and Dependabot runs get a restricted
+    # token and are skipped. 49699333 is Dependabot's stable id.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor_id != '49699333'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          # Full history so the immutable base commit is available to JGit; no persisted credentials
+          # so they cannot leak into the uploaded artifact.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure base commit is present
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "${BASE_SHA}"
+          fi
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165  # v5.0.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run flow-diff tool and assemble comment
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # This run owns the artifact; the sticky comment is posted by the sibling publisher run.
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- nifi-flow-diff -->'
+          out='flow-diff-out'
+          mkdir -p "${out}"
+
+          # label|directory pairs. The label names the per-directory report files.
+          entries=(
+            "pg|.github/collections/nifi-resources/pg"
+            "test-flows|dev-tools-integration-tests/src/test/resources/test-flows/flows"
+            "export-transform|qubership-nifi-tools/qubership-nifi-export-transform-tool/src/test/resources/nifi"
+          )
+
+          plugin="org.qubership.nifi.plugins:qubership-nifi-flow-diff-tool:${FLOW_DIFF_TOOL_VERSION}:git-diff"
+          settings='.github/maven/flow-diff-maven-settings.xml'
+
+          reportable=false
+          : > "${out}/body.md"
+
+          for entry in "${entries[@]}"; do
+            label="${entry%%|*}"
+            dir="${entry#*|}"
+
+            # Markdown for display, JSON to decide, if this should be reported. No -Dskip-malformed: a
+            # malformed flow must fail the job rather than be silently downgraded.
+            mvn -B -q -N --no-transfer-progress --settings "${settings}" "${plugin}" \
+              -Dpath="${dir}" -Dbranch="${BASE_SHA}" -Dformat=md -Doutput="${out}/${label}.md"
+            mvn -B -q -N --no-transfer-progress --settings "${settings}" "${plugin}" \
+              -Dpath="${dir}" -Dbranch="${BASE_SHA}" -Dformat=json -Doutput="${out}/${label}.json"
+
+            # Reportable = significant + environmental + whole added/removed flows. Technical excluded.
+            # jq -e fails when any total is missing or non-numeric, so a tool schema change reports
+            # itself here rather than surfacing as an obscure shell error on the comparison below.
+            if ! sum="$(jq -e '
+                  [.totals.significant, .totals.environmental, .totals.addedFlows, .totals.removedFlows]
+                  | if any(type != "number") then null else add end
+                ' "${out}/${label}.json")"; then
+              echo "Unexpected flow-diff JSON for '${label}': .totals must hold numeric significant," \
+                   "environmental, addedFlows and removedFlows." >&2
+              exit 1
+            fi
+            if [ "${sum}" -gt 0 ]; then
+              reportable=true
+              printf '\n' >> "${out}/body.md"
+              cat "${out}/${label}.md" >> "${out}/body.md"
+            fi
+          done
+
+          # Build the full comment body: marker, heading, then either the diff or the no-change note.
+          {
+            echo "${marker}"
+            echo '## NiFi flow diff'
+            echo
+            if [ "${reportable}" = true ]; then
+              echo 'Significant and environmental changes to the NiFi flows modified in this PR:'
+              cat "${out}/body.md"
+            else
+              echo 'No significant NiFi flow changes detected.'
+            fi
+          } > "${out}/comment.full.md"
+
+          # Keep the comment under GitHub's 65536-character limit; on overflow, truncate at a line
+          # boundary and point to the full report artifact.
+          limit=60000
+          if [ "$(wc -c < "${out}/comment.full.md")" -gt "${limit}" ]; then
+            head -c "${limit}" "${out}/comment.full.md" | sed '$ d' > "${out}/comment.md"
+            # Cutting inside a fenced block would render the note below as code: close an odd fence.
+            fences="$(grep -c '^```' "${out}/comment.md" || true)"
+            if [ $((fences % 2)) -ne 0 ]; then
+              printf '```\n' >> "${out}/comment.md"
+            fi
+            {
+              echo
+              echo '---'
+              echo "_Report truncated to fit GitHub's comment size limit. See the full \`flow-diff-report\` artifact on [the compute run](${RUN_URL})._"
+            } >> "${out}/comment.md"
+          else
+            cp "${out}/comment.full.md" "${out}/comment.md"
+          fi
+
+          echo "${reportable}" > "${out}/reportable"
+
+      - name: Upload flow diff report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: flow-diff-report
+          path: flow-diff-out
+          retention-days: 5

@@ -1,0 +1,115 @@
+---
+name: nifi-flow-diff-publish
+
+run-name: 'nifi-flow-diff-publish PR #${{ github.event.workflow_run.pull_requests[0].number }}'
+
+# Publishes the flow diff computed by the nifi-flow-diff workflow as a single sticky PR comment.
+# Triggered by workflow_run, so it always runs from the default branch's copy of this file and never
+# executes PR-head code. It is the only holder of the pull-requests write token. The compute run's
+# artifact is treated strictly as data: downloaded, validated, and posted, never executed.
+# Fork PRs and dependabot PRs are excluded from scope of this workflow.
+# Concurrency serializes publisher runs per PR, but GitHub does not guarantee their ordering. Two
+# pushes in quick succession can therefore leave the comment describing the older of the two. The
+# next push to a watched path corrects it.
+on:  # zizmor: ignore[dangerous-triggers] safe: no PR-head checkout, artifact treated as data
+  workflow_run:
+    workflows: [nifi-flow-diff]  # must match the name of the compute workflow
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish sticky comment
+    # Only same-repository (non-fork), non-Dependabot pull_request runs that succeeded. Mirrors the
+    # compute guards so a skipped, fork, or Dependabot run never reaches the write token.
+    # 49699333 is Dependabot's stable id.
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.actor.id != 49699333
+    concurrency:
+      # Use either workflow_run.pull_requests[0].number, if available, or workflow_run.id to group runs:
+      group: nifi-flow-diff-publish-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.id }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      # No contents: read - this job never checks out the repo. Posting a PR comment needs
+      # pull-requests: write (PR conversation comments use the issues-comment endpoints, gated by
+      # the pull-requests scope); downloading an artifact from another run needs actions: read.
+      pull-requests: write
+      actions: read
+    steps:
+      # No checkout. The only inputs are the artifact (data) and the workflow_run payload.
+      - name: Download flow diff report
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: flow-diff-report
+          path: flow-diff-out
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate artifact
+        run: |
+          set -euo pipefail
+          # Treat every file as untrusted data. Fail closed on anything unexpected.
+          test -f flow-diff-out/comment.md
+          test -f flow-diff-out/reportable
+          grep -Eqx 'true|false' flow-diff-out/reportable
+          test "$(wc -c < flow-diff-out/comment.md)" -le 65536
+          iconv -f UTF-8 -t UTF-8 flow-diff-out/comment.md > /dev/null
+          # Enforce the sticky envelope the upsert step relies on: the marker must be the first line
+          # and must occur exactly once, followed by the fixed heading. A body that lost its marker
+          # would break comment deduplication and let every later run append a new bot comment.
+          head -n 1 flow-diff-out/comment.md | grep -Fqx '<!-- nifi-flow-diff -->'
+          test "$(grep -Fc '<!-- nifi-flow-diff -->' flow-diff-out/comment.md)" -eq 1
+          head -n 2 flow-diff-out/comment.md | tail -n 1 | grep -Fqx '## NiFi flow diff'
+
+      - name: Upsert sticky comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- nifi-flow-diff -->';
+            // github-actions[bot] stable numeric user id; identity is checked by id, not login.
+            const BOT_ID = 41898282;
+
+            // Same-repository PRs populate workflow_run.pull_requests; fork runs are already
+            // excluded by the job condition, so an empty array here is unexpected. Fail safe.
+            const run = context.payload.workflow_run;
+            const pr = run.pull_requests && run.pull_requests[0];
+            if (!pr) {
+              core.info('No pull request associated with the compute run; nothing to post.');
+              return;
+            }
+            const issue_number = pr.number;
+            const { owner, repo } = context.repo;
+
+            const body = fs.readFileSync('flow-diff-out/comment.md', 'utf8');
+            const reportable = fs.readFileSync('flow-diff-out/reportable', 'utf8').trim() === 'true';
+
+            // Paginate: a single default page (30) can miss an older marker and cause a duplicate.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
+            });
+            const mine = comments.filter(
+              (c) => c.user && c.user.id === BOT_ID && c.body && c.body.includes(marker)
+            );
+
+            if (mine.length > 0) {
+              // Update the canonical (oldest) comment; retire any duplicate markers.
+              await github.rest.issues.updateComment({ owner, repo, comment_id: mine[0].id, body });
+              for (const dup of mine.slice(1)) {
+                await github.rest.issues.deleteComment({ owner, repo, comment_id: dup.id });
+              }
+              core.info(`Updated sticky comment ${mine[0].id}; retired ${mine.length - 1} duplicate(s).`);
+            } else if (reportable) {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              core.info('Created sticky comment.');
+            } else {
+              // Nothing significant and no prior comment: post the no-change note only as a
+              // replacement, so a workflow-only or first-push technical-only PR stays silent.
+              core.info('No reportable changes and no existing comment; nothing to post.');
+            }
