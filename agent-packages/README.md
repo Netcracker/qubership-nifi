@@ -23,7 +23,7 @@ Pin the dependency to a Git tag, branch, or commit SHA that contains the package
         - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<git-ref>
     ```
 
-3. Install the declared dependencies and compile their instructions for the configured agent targets:
+3. Install the declared dependencies for the configured agent targets:
 
     ```bash
     apm install
