@@ -345,7 +345,8 @@ Summarise:
 ## Notes
 
 - The library never overwrites a file unless it was actually modified.
-- JSON files are written with `indent=4`, key order preserved.
+- JSON files preserve detected indentation, separator spacing, trailing newline, and key order.
+  Files without a detected format use four-space indentation.
 - If a processor UUID from the CSV is not found in the flow JSON, a `[WARN]` is logged and
   the row is skipped (does not abort the run).
 - `apply_variable_contexts` replaces `${varName}` with `#{varName}` **only** for variable names
