@@ -1,9 +1,9 @@
 # Batch processing
 
-Batch-write pattern for qubership-nifi components that push multiple items
-from a single FlowFile to an external system (JDBC, bulk HTTP API, message
-queue). Applies whenever a component sends more than one item per
-`onTrigger` call to something outside the JVM.
+Batch-write pattern for NiFi components that push multiple items from a
+single FlowFile to an external system (JDBC, bulk HTTP API, message queue).
+Applies whenever a component sends more than one item per `onTrigger` call
+to something outside the JVM.
 
 ## Batch size configuration
 

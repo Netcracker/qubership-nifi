@@ -1,7 +1,7 @@
 # Mock Testing NiFi Components
 
-How to test qubership-nifi components depending on what they are and what
-they depend on: a plain Processor, a Processor with a Controller Service
+How to test NiFi components depending on what they are and what they
+depend on: a plain Processor, a Processor with a Controller Service
 dependency, a Controller Service itself, or a ReportingTask.
 
 ## Processor with no external dependencies

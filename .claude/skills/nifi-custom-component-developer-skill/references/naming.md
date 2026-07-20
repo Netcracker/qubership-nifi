@@ -1,7 +1,7 @@
 # Naming Conventions
 
-Naming rules for `PropertyDescriptor` and `Relationship` in qubership-nifi
-custom components. 
+Naming rules for `PropertyDescriptor` and `Relationship` in custom Apache
+NiFi components. 
 
 ## PropertyDescriptor
 
@@ -30,8 +30,8 @@ One accepted exception: when a property mirrors a standard Apache NiFi
 property (e.g. `DBCPService`), keep the exact upstream `.name(...)` value
 (`"Database Connection Pooling Service"`) instead of inventing a kebab-case
 one. This preserves configuration compatibility when swapping between
-standard and qubership processors. Do not use this exception as a license to
-name new, qubership-specific properties with spaces.
+standard and custom processors. Do not use this exception as a license to
+name new, component-specific properties with spaces.
 
 ## Relationship
 
@@ -61,4 +61,4 @@ with the `PropertyDescriptor` `.name(...)` convention.
 - `PropertyDescriptor.displayName(...)`: Title Case, words separated by spaces.
 - `Relationship.name(...)`: a single lower-case word; use `kebab-case` only if a multi-word name is unavoidable - never spaces or camelCase.
 - Java constants (`PropertyDescriptor`/`Relationship` fields) are `UPPER_SNAKE_CASE`; relationship constants follow `REL_<NAME>`.
-- Reuse a standard Apache NiFi property's exact `.name(...)` only when wrapping/mirroring that same standard property (e.g. `DBCPService`) - never for new qubership-specific properties.
+- Reuse a standard Apache NiFi property's exact `.name(...)` only when wrapping/mirroring that same standard property (e.g. `DBCPService`) - never for new component-specific properties.

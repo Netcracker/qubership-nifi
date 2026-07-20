@@ -1,15 +1,15 @@
 ---
 name: nifi-custom-component-developer-skill
-description: Conventions and correctness rules for writing or reviewing custom Apache NiFi components (Processors, Controller Services, ReportingTasks) in the qubership-nifi repository - class-level annotations, PropertyDescriptor/Relationship naming, FlowFile null-checks, batch writes to external systems, where to initialize instance fields, and how to unit-test these components. Use this skill whenever the user asks to create, write, implement, extend, or review a NiFi processor/controller service/reporting task in this repo, even if they don't mention "conventions" or "best practices" by name - e.g. "write a processor that inserts records into X", "add a new property to this processor", "why is my onTrigger NPEing", "how should I name this relationship", or "write a test for this controller service".
+description: Conventions and correctness rules for writing or reviewing custom Apache NiFi components (Processors, Controller Services, ReportingTasks) - class-level annotations, PropertyDescriptor/Relationship naming, FlowFile null-checks, batch writes to external systems, where to initialize instance fields, and how to unit-test these components. Use this skill whenever the user asks to create, write, implement, extend, or review a NiFi processor/controller service/reporting task, even if they don't mention "conventions" or "best practices" by name - e.g. "write a processor that inserts records into X", "add a new property to this processor", "why is my onTrigger NPEing", "how should I name this relationship", or "write a test for this controller service".
 ---
 
 # NiFi Custom Component Developer
 
-Rules extracted from the existing qubership-nifi component implementations
-(`qubership-bundle`, `qubership-nifi-db-bundle`, `qubership-services`) so
-new components stay consistent with the rest of the codebase. Each rule
-below was derived from real code, not invented - when a reference file
-gives an example, that shape is what reviewers will expect to see.
+Rules distilled from real Apache NiFi component implementations, so new
+components stay consistent with the conventions already established in
+whatever codebase you're working in. Each rule below was derived from real
+code, not invented - when a reference file gives an example, that shape is
+what reviewers will expect to see.
 
 ## When writing a new component
 
@@ -44,11 +44,3 @@ Common review triggers and where to look:
 | `executeBatch()`/bulk API call with no trailing-batch flush, or a single `retry`/`failure` relationship for both transient and permanent errors | `batch.md` |
 | Missing or misordered `@InputRequirement`/`@Tags`/`@CapabilityDescription`, or `@WritesAttributes` listing attributes the component doesn't itself set | `annotations.md` |
 | A test that mocks `ProcessSession`/`ProcessContext` by hand, or mocks a plain status DTO | `mock-testing.md` |
-
-## Source of truth
-
-These rules are extracted from real qubership-nifi code, not the NiFi API
-docs in the abstract. If a rule here seems to conflict with newer code in
-the repo, re-derive it from the current code rather than trusting this
-file blindly - these references were written at a point in time and the
-codebase moves.
