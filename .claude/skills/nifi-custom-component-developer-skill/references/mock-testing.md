@@ -2,7 +2,7 @@
 
 How to test NiFi components depending on what they are and what they
 depend on: a plain Processor, a Processor with a Controller Service
-dependency, a Controller Service itself, or a ReportingTask.
+dependency, a Controller Service itself, or a Reporting Task.
 
 ## Processor with no external dependencies
 
@@ -27,8 +27,8 @@ public void testX() {
 
 ## Processor depending on a Controller Service
 
-Write a minimal fake implementing the service interface (do not reach for
-Mockito here) and register it on the same `TestRunner`:
+Write a minimal test implementation for the controller service interface
+and register it on the same `TestRunner`:
 
 ```java
 private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
@@ -82,11 +82,10 @@ public void setup() throws Exception {
 }
 ```
 
-## ReportingTask
+## Reporting Task
 
-`ReportingTask` is not hosted by `TestRunner`. Mock the framework contracts
-with Mockito, but reuse NiFi's own `Mock*` utilities instead of
-hand-writing them:
+`ReportingTask` is not hosted by `TestRunner`. Mock the framework contracts,
+but reuse NiFi's own `Mock*` utilities instead of hand-writing them:
 
 ```java
 ReportingContext reportingContext = mock(ReportingContext.class);
@@ -105,32 +104,10 @@ Populate plain status DTOs (`ProcessGroupStatus`, `ProcessorStatus`,
 `ConnectionStatus`) directly - they are data holders, not framework
 contracts, so mocking them adds no value.
 
-## Environment-dependent values
-
-For values pulled from the runtime environment (hostname, namespace,
-dynamically bound ports) that cannot be injected via a property, create a
-test-only subclass overriding just the protected getter, instead of trying
-to mock a static/environment call:
-
-```java
-public class MockComponentPrometheusReportingTask extends ComponentPrometheusReportingTask {
-    @Override
-    protected String getHostname() {
-        return "test-hostname";
-    }
-
-    @Override
-    protected String getNamespace() {
-        return "test-namespace";
-    }
-}
-```
-
 ## Rules
 
 - Processor with no dependencies: `TestRunners.newTestRunner(new X())` + `MockFlowFile`, no mocking.
 - Processor depending on a Controller Service: write a small hand-rolled fake implementing the service interface, register/enable it via `addControllerService`/`enableControllerService` on the same `TestRunner` - do not mock `ProcessSession`/`ProcessContext` by hand.
 - Controller Service tested standalone: host it on a minimal no-op processor whose only job is a `PropertyDescriptor` with `.identifiesControllerService(...)`, then drive lifecycle through that `TestRunner`.
-- ReportingTask: mock framework contracts (`ReportingContext`, `EventAccess`) with Mockito; reuse NiFi's own `Mock*` classes (`MockComponentLog`, `MockConfigurationContext`, `MockReportingInitializationContext`, `MockBulletinRepository`) instead of writing new fakes for them.
+- Reporting Task: mock framework contracts (`ReportingContext`, `EventAccess`); reuse NiFi's own `Mock*` classes (`MockComponentLog`, `MockConfigurationContext`, `MockReportingInitializationContext`, `MockBulletinRepository`) instead of writing new fakes for them.
 - Never mock plain data/status objects (`ProcessGroupStatus`, `ProcessorStatus`, `ConnectionStatus`) - construct and populate them directly.
-- For environment-dependent values with no property to override, subclass the component under test and override only the specific protected getter.

@@ -5,12 +5,6 @@ description: Conventions and correctness rules for writing or reviewing custom A
 
 # NiFi Custom Component Developer
 
-Rules distilled from real Apache NiFi component implementations, so new
-components stay consistent with the conventions already established in
-whatever codebase you're working in. Each rule below was derived from real
-code, not invented - when a reference file gives an example, that shape is
-what reviewers will expect to see.
-
 ## When writing a new component
 
 Work through these in order; each links to the reference file with the
@@ -22,7 +16,7 @@ applying its rule - don't guess from the one-line summary here.
 3. **FlowFile presence check** - the right null-check shape for `INPUT_REQUIRED` vs `INPUT_ALLOWED` components. -> `references/check-flowfile.md`
 4. **Instance field initialization scope** - `@OnScheduled` vs `onTrigger`, driven by whether a value can depend on the FlowFile being processed. -> `references/variable-initialization.md`
 5. **Batch writes to an external system** - if the component sends more than one item per FlowFile to a DB/API/queue: accumulate/flush/commit/rollback shape, retry vs failure routing. -> `references/batch.md`
-6. **Unit tests** - which testing pattern applies (plain processor, processor + Controller Service, Controller Service standalone, ReportingTask, environment-dependent values). -> `references/mock-testing.md`
+6. **Unit tests** - which testing pattern applies (plain processor, processor + Controller Service, Controller Service standalone, Reporting Task). -> `references/mock-testing.md`
 
 Not every component needs all six - a stateless transform processor with
 no Controller Service dependency and no external I/O only needs #1-4.
