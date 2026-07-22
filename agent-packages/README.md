@@ -39,3 +39,8 @@ the [APM documentation](https://microsoft.github.io/apm/#install-apm) for instal
   checkstyle, markdownlint and editorconfig-checker against a module, reusing the repo's configs
   under `.github/linters/`. It also installs a PostToolUse hook that lints each file as it is
   written or edited.
+- **nifi-development-kit**: This package provides the `nifi-custom-component-developer-skill`
+  skill - conventions and correctness rules for writing or reviewing custom Apache NiFi
+  components (Processors, Controller Services, Reporting Tasks): class-level annotations,
+  PropertyDescriptor/Relationship naming, FlowFile null-checks, batch writes to external
+  systems, instance field initialization scope, and unit testing.

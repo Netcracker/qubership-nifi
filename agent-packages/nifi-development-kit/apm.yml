@@ -1,0 +1,4 @@
+name: nifi-development-kit
+version: 1.0.0
+description: Conventions and correctness rules for writing or reviewing custom Apache NiFi components (Processors, Controller Services, Reporting Tasks) - annotations, PropertyDescriptor/Relationship naming, FlowFile null-checks, batch writes to external systems, instance field initialization scope, and unit testing.
+author: Qubership
