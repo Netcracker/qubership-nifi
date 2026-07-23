@@ -227,22 +227,14 @@ validate_jvm_arg(){
     fi
 }
 
-if [ -n "${NIFI_JVM_HEAP_INIT}" ]; then
-    validate_jvm_arg "NIFI_JVM_HEAP_INIT" "-Xms${NIFI_JVM_HEAP_INIT}"
-fi
-
-if [ -n "${NIFI_JVM_HEAP_MAX}" ]; then
-    validate_jvm_arg "NIFI_JVM_HEAP_MAX" "-Xmx${NIFI_JVM_HEAP_MAX}"
-fi
-
 if [ -n "${NIFI_ADDITIONAL_JVM_ARGS}" ]; then
     # shellcheck disable=SC2086
     validate_jvm_arg "NIFI_ADDITIONAL_JVM_ARGS" $NIFI_ADDITIONAL_JVM_ARGS
 fi
 
-if [ -n "${X_JAVA_ARGS}" ]; then
+if [ -n "${NIFI_ADDITIONAL_JVM_ARGS}" ] || [ -n "${X_JAVA_ARGS}" ]; then
     # shellcheck disable=SC2086
-    validate_jvm_arg "X_JAVA_ARGS" $X_JAVA_ARGS
+    validate_jvm_arg "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS
 fi
 
 # Setup NiFi to use Python
