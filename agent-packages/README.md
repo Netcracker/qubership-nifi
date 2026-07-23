@@ -1,46 +1,92 @@
-# Agent Packages
+# Agent packages
 
-This directory contains packages in APM format that can be used by AI agents.
+This directory contains [Agent Package Manager (APM)](https://microsoft.github.io/apm/)
+packages for working with Qubership NiFi repositories. Each package deploys agent
+primitives, such as instructions, skills, prompts, or hooks, to the agent targets
+configured in the consuming repository.
 
 ## Prerequisites
 
-To use these packages, you need to install APM (Agent Package Manager). Refer to
-the [APM documentation](https://microsoft.github.io/apm/#install-apm) for installation instructions.
+1. Install [APM](https://microsoft.github.io/apm/#install-apm), then initialize APM in
+    the consuming repository if it does not already contain an `apm.yml` file:
 
-## Usage
+    ```bash
+    apm init
+    ```
 
-1. If `apm.yml` is not present in your repository, create it by running the following command:
+2. Add the required package to `dependencies.apm` in `apm.yml`.
+Pin the dependency to a Git tag, branch, or commit SHA that contains the package:
 
-   ```bash
-   apm init
-   ```
+    ```yaml
+    dependencies:
+      apm:
+        - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<git-ref>
+    ```
 
-2. Add the desired packages to your `apm.yml` file as dependencies, like in example below:
+3. Install the declared dependencies for the configured agent targets:
 
-   ```yaml
-   dependencies:
-     apm:
-       - Netcracker/qubership-nifi/agent-packages/adapt-nifi-flows-to-2-x#<tag|branch|commit SHA>
-   ```
-
-3. Install the packages by running:
-
-   ```bash
+    ```bash
     apm install
-   ```
+    ```
 
-4. Once installed, you can import and use the packages in your AI agent code as needed.
+`apm install` deploys skills, prompts, and hooks and writes the resolved dependency graph to `apm.lock.yaml`.
+Do not edit deployed or compiled files directly; update package version in `apm.yml` and run install command again.
 
-## Available Packages
+## Available packages
 
-- **adapt-nifi-flows-to-2-x**: This package provides skill to help adapt Apache NiFi flows to version 2.x. It includes
-  scripts and templates to facilitate the migration process.
-- **qubership-nifi-linters**: This package provides the `/lint` command that runs codespell,
-  checkstyle, markdownlint and editorconfig-checker against a module, reusing the repo's configs
-  under `.github/linters/`. It also installs a PostToolUse hook that lints each file as it is
-  written or edited.
-- **nifi-development-kit**: This package provides the `nifi-custom-component-developer-skill`
-  skill - conventions and correctness rules for writing or reviewing custom Apache NiFi
-  components (Processors, Controller Services, Reporting Tasks): class-level annotations,
-  PropertyDescriptor/Relationship naming, FlowFile null-checks, batch writes to external
-  systems, instance field initialization scope, and unit testing.
+### `adapt-nifi-flows-to-2-x`
+
+Applies recommendations from a NiFi Upgrade Advisor report to exported NiFi 1.x flow JSON files.
+
+The skill combines deterministic Python transformations with agent-assisted decisions
+for parameter contexts, cross-file controller services, and script translation. It
+preserves each JSON file's detected indentation, separator spacing, trailing newline,
+and key order.
+
+Requirements and inputs:
+
+- Python 3.10 or later.
+- The `upgradeAdvisorReport.csv` produced by the Upgrade Advisor script.
+- The directory containing the exported flow JSON files.
+
+See the
+[`adapt-nifi-flows-to-2-x` workflow](adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/SKILL.md)
+for the complete migration procedure and the manual review points.
+
+### `qubership-nifi-linters`
+
+Provides two linter integrations:
+
+- The `/lint <module-path>` prompt runs codespell, checkstyle, markdownlint,
+  editorconfig-checker, and textlint against a module, then guides the agent through
+  fixing the findings.
+- A non-blocking `PostToolUse` hook checks each file after an agent writes or edits it
+  and returns any findings to the agent.
+
+Both integrations reuse the consumer repository's linter configuration and exclude
+build output, test data, and deployed APM agent content. A missing linter is reported
+and skipped, so install only the tools required for the checks you want to run.
+
+See the [linter hook documentation](qubership-nifi-linters/.apm/hooks/README.md) for
+tool prerequisites, configuration lookup, and a manual dry-run example.
+
+### `nifi-development-kit`
+
+Provides the `nifi-custom-component-developer-skill` skill: conventions and correctness
+rules for writing or reviewing custom Apache NiFi components (Processors, Controller
+Services, Reporting Tasks), extracted from the existing qubership-nifi codebase rather
+than the generic NiFi API docs.
+
+The skill applies whenever an agent creates, extends, or reviews a component, covering:
+
+- Class-level annotation choice and ordering.
+- `PropertyDescriptor` and `Relationship` naming conventions.
+- FlowFile presence checks for `INPUT_REQUIRED` vs `INPUT_ALLOWED` components.
+- Instance field initialization scope (`@OnScheduled` vs `onTrigger`).
+- Batch writes to external systems (accumulate/flush/commit/rollback, retry vs failure
+  routing).
+- Unit testing patterns for processors, controller services, and reporting tasks.
+
+See the
+[`nifi-custom-component-developer-skill` skill](nifi-development-kit/.apm/skills/nifi-custom-component-developer-skill/SKILL.md)
+for the full rule set and its bundled reference files.
