@@ -8,6 +8,7 @@ from fixes import (
     fix_s3_credentials,
     fix_convert_json_to_sql,
     fix_type_rename,
+    fix_event_driven_scheduling,
     upgrade_azure_credentials_service,
     upgrade_prometheus_record_sink,
     rename_standalone_controller_services,
@@ -520,6 +521,63 @@ def test_fix_type_rename_property_descriptors_updated():
 
 
 # ---------------------------------------------------------------------------
+# fix_event_driven_scheduling
+# ---------------------------------------------------------------------------
+
+def _event_driven_proc(task_count=1) -> dict:
+    proc = _proc("p1", {}, proc_type="org.apache.nifi.processors.attributes.UpdateAttribute")
+    proc["schedulingStrategy"] = "EVENT_DRIVEN"
+    proc["schedulingPeriod"] = "0 sec"
+    if task_count is not None:
+        proc["concurrentlySchedulableTaskCount"] = task_count
+    return proc
+
+
+def test_fix_event_driven_scheduling_keeps_positive_task_count():
+    proc = _event_driven_proc(task_count=1)
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingStrategy"] == "TIMER_DRIVEN"
+    assert proc["concurrentlySchedulableTaskCount"] == 1
+    assert len(applied) == 1
+    assert manual == []
+
+
+def test_fix_event_driven_scheduling_zero_task_count_bumped_and_flagged():
+    proc = _event_driven_proc(task_count=0)
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingStrategy"] == "TIMER_DRIVEN"
+    assert proc["concurrentlySchedulableTaskCount"] == 4
+    assert any("concurrentlySchedulableTaskCount: 0 -> 4" in m for m in applied)
+    assert len(manual) == 1
+    assert "Concurrent Tasks" in manual[0]
+
+
+def test_fix_event_driven_scheduling_task_count_absent():
+    proc = _event_driven_proc(task_count=None)
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingStrategy"] == "TIMER_DRIVEN"
+    assert "concurrentlySchedulableTaskCount" not in proc
+    assert applied
+    assert manual == []
+
+
+def test_fix_event_driven_scheduling_keeps_scheduling_period():
+    proc = _event_driven_proc(task_count=2)
+    fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingPeriod"] == "0 sec"
+
+
+def test_fix_event_driven_scheduling_already_timer_driven():
+    proc = _event_driven_proc(task_count=0)
+    proc["schedulingStrategy"] = "TIMER_DRIVEN"
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert applied == []
+    assert manual == []
+    # A TIMER_DRIVEN processor is left untouched even when its task count is 0.
+    assert proc["concurrentlySchedulableTaskCount"] == 0
+
+
+# ---------------------------------------------------------------------------
 # upgrade_azure_credentials_service
 # ---------------------------------------------------------------------------
 
@@ -679,6 +737,11 @@ def test_classify_row_script_engine_python():
     assert _classify_row(_row("Script engine = python is not supported")) == "fix_script_engine"
 
 
+def test_classify_row_event_driven():
+    issue = "The processor has Scheduling strategy = Event driven that is not supported in Apache NiFi 2.x."
+    assert _classify_row(_row(issue)) == "fix_event_driven_scheduling"
+
+
 # ---------------------------------------------------------------------------
 # apply_csv_transforms  (orchestration path)
 # ---------------------------------------------------------------------------
@@ -740,6 +803,29 @@ def test_apply_csv_transforms_manual_row_no_mutation(tmp_path, capsys):
     result = load_json(tmp_path / "flow.json")
     assert result["flowContents"]["processors"][0]["type"] == proc["type"]
     out = capsys.readouterr().out
+    assert "[MANUAL]" in out
+
+
+def test_apply_csv_transforms_event_driven(tmp_path, capsys):
+    proc = _event_driven_proc(task_count=0)
+    proc["identifier"] = PROC_UUID
+    proc["instanceIdentifier"] = PROC_UUID
+    proc["name"] = "Event Driven Update Attribute"
+    flow = _flow("root", processors=[proc])
+    _write_flow(tmp_path, "flow.json", flow)
+    csv_path = _write_csv(tmp_path, [
+        _csv_row(
+            "flow.json",
+            "The processor has Scheduling strategy = Event driven that is not supported in Apache NiFi 2.x.",
+            proc=f"Event Driven Update Attribute ({PROC_UUID})",
+        )
+    ])
+    apply_csv_transforms(csv_path, str(tmp_path))
+    result = load_json(tmp_path / "flow.json")["flowContents"]["processors"][0]
+    assert result["schedulingStrategy"] == "TIMER_DRIVEN"
+    assert result["concurrentlySchedulableTaskCount"] == 4
+    out = capsys.readouterr().out
+    assert "[FIXED]" in out
     assert "[MANUAL]" in out
 
 

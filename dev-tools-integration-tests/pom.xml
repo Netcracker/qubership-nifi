@@ -28,11 +28,13 @@
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Integration tests for dev/update-scripts-2.0 — verifies script transformation and NiFi flow import</description>
+    <description>Integration tests that verify the update scripts against a live NiFi and the upgrade advisor against its exports</description>
 
     <properties>
         <!-- Skip ITs by default; enable with -DskipITs=false -->
         <skipITs>true</skipITs>
+        <!-- Which IT family to run; narrowed by the profiles below, activated with -P <id> -->
+        <it.include.pattern>**/*IT.java</it.include.pattern>
         <!-- Defaults; override with -Dnifi.url=... or -Dscripts.docker.network=... -->
         <nifi.url>https://localhost:8080</nifi.url>
         <nifi.registry.url>https://localhost:18080</nifi.registry.url>
@@ -87,6 +89,9 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${failsafe-plugin.version}</version>
                 <configuration>
+                    <includes>
+                        <include>${it.include.pattern}</include>
+                    </includes>
                     <environmentVariables>
                         <TESTCONTAINERS_RYUK_DISABLED>true</TESTCONTAINERS_RYUK_DISABLED>
                         <NIFI_CLIENT_PASSWORD>${env.NIFI_CLIENT_PASSWORD}</NIFI_CLIENT_PASSWORD>
@@ -111,4 +116,25 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+            The two IT families have incompatible prerequisites: the update-script tests need a live
+            NiFi, a Registry and mTLS certificates, while the upgrade advisor tests need only bash,
+            jq and a purpose-built image. Each workflow activates exactly one profile so it never
+            runs the other family.
+        -->
+        <profile>
+            <id>update-scripts-tests</id>
+            <properties>
+                <it.include.pattern>**/UpdateScripts*IT.java</it.include.pattern>
+            </properties>
+        </profile>
+        <profile>
+            <id>upgrade-advisor-tests</id>
+            <properties>
+                <it.include.pattern>**/UpgradeAdvisor*IT.java</it.include.pattern>
+            </properties>
+        </profile>
+    </profiles>
 </project>

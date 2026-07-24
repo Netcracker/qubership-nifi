@@ -1,0 +1,60 @@
+---
+name: upgrade-advisor-test
+
+on:
+  push:
+    paths:
+      - 'dev/upgrade-advisor/**'
+      - 'dev/upgrade-advisor-autotest/**'
+      - 'dev-tools-integration-tests/**'
+      - '.github/workflows/upgrade-advisor-test.yml'
+  pull_request:
+    paths:
+      - 'dev/upgrade-advisor/**'
+      - 'dev/upgrade-advisor-autotest/**'
+      - 'dev-tools-integration-tests/**'
+      - '.github/workflows/upgrade-advisor-test.yml'
+  workflow_dispatch: null
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade-advisor-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # The bash test case runs the advisor straight on the runner, so both tools must be present.
+      # They ship with ubuntu-latest; fail here rather than letting the tests skip themselves.
+      - name: Check advisor prerequisites
+        run: |
+          bash --version | head -1
+          jq --version
+
+      - name: Build upgrade advisor Docker image
+        run: docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile
+
+      - name: Run upgrade advisor tests
+        run: |
+          mvn --batch-mode verify -pl dev-tools-integration-tests -P upgrade-advisor-tests \
+            -DskipITs=false -DskipUnitTests=true -Dgpg.skip=true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: upgrade-advisor-test-results
+          path: dev-tools-integration-tests/target/failsafe-reports/
+          retention-days: 2
