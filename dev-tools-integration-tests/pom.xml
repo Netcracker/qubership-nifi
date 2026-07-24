@@ -28,7 +28,7 @@
     <packaging>jar</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Integration tests for the dev/ scripts — verifies the update scripts against a live NiFi and the upgrade advisor against its exports</description>
+    <description>Integration tests that verify the update scripts against a live NiFi and the upgrade advisor against its exports</description>
 
     <properties>
         <!-- Skip ITs by default; enable with -DskipITs=false -->

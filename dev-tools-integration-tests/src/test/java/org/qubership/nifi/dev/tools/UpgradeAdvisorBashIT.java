@@ -33,9 +33,10 @@ import java.util.List;
  * Runs {@code upgradeAdvisor.sh} the way {@code dev/upgrade-advisor/README.md} documents for local
  * use: bash on the host, with {@code jq} on the {@code PATH}.
  *
- * <p>Both binaries are looked up on the {@code PATH} by default. Set {@code UPGRADE_ADVISOR_BASH} or
- * {@code UPGRADE_ADVISOR_JQ} to point at a specific build. When either is missing the whole class is
- * skipped rather than failing - nothing is downloaded on the fly.
+ * <p>Both binaries are looked up on the {@code PATH} by default. Set {@code UPGRADE_ADVISOR_BASH}
+ * to point at a specific bash build. The {@code jq} executable must remain on the {@code PATH}.
+ * When either binary is missing, the whole class is skipped rather than failing - nothing is
+ * downloaded on the fly.
  */
 final class UpgradeAdvisorBashIT extends AbstractUpgradeAdvisorTest {
 
@@ -50,9 +51,8 @@ final class UpgradeAdvisorBashIT extends AbstractUpgradeAdvisorTest {
     @BeforeAll
     static void resolveScriptAndTools() {
         bash = System.getenv().getOrDefault("UPGRADE_ADVISOR_BASH", "bash");
-        String jq = System.getenv().getOrDefault("UPGRADE_ADVISOR_JQ", "jq");
         Assumptions.assumeTrue(isAvailable(bash), "'" + bash + "' is not available on this machine");
-        Assumptions.assumeTrue(isAvailable(jq), "'" + jq + "' is not available on this machine");
+        Assumptions.assumeTrue(isAvailable("jq"), "'jq' is not available on this machine");
 
         script = locateScript();
         Assumptions.assumeTrue(script != null,
