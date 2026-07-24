@@ -23,14 +23,16 @@ public final class Main {
     /**
      * Application entry point.
      *
-     * @param args command-line arguments (--sourceDir, --targetDir, --dictionaryPath, --outputPath);
-     *             each flag must be followed by its value
+     * @param args command-line arguments (--sourceDir, --targetDir, --dictionaryPath, --outputPath,
+     *             --version); each flag must be followed by its value. --version is optional; when
+     *             given, its major.minor part (dot-separated) is appended to output file names
      */
     public static void main(String[] args) {
         String sourceDir = "";
         String targetDir = "";
         String dictionaryPath = "";
         String outputPath = DEFAULT_OUTPUT_DIR;
+        String version = null;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -46,17 +48,23 @@ public final class Main {
                 case "--outputPath":
                     outputPath = args[++i];
                     break;
+                case "--version":
+                    version = args[++i];
+                    break;
                 default:
                     // ignore unknown flags
                     break;
             }
         }
 
+        String versionSuffix = buildVersionSuffix(version);
+
         LOGGER.info("Starting NiFi Component Comparison...");
         LOGGER.info("Source Directory: {}", sourceDir);
         LOGGER.info("Target Directory: {}", targetDir);
         LOGGER.info("Dictionary File:  {}", (dictionaryPath != null) ? dictionaryPath : "None");
         LOGGER.info("Output Path: {}", outputPath);
+        LOGGER.info("Version: {}", (version != null) ? version : "None");
 
         try {
             Path outputDir = resolveOutputDir(outputPath);
@@ -68,26 +76,28 @@ public final class Main {
             CsvReportGenerator csvGenerator = new CsvReportGenerator(outputDir);
             csvGenerator.generate(comparator.getCsvRecords());
 
-            JsonMappingGenerator jsonGenerator = new JsonMappingGenerator(outputDir);
+            JsonMappingGenerator jsonGenerator = new JsonMappingGenerator(
+                    outputDir, "csPropConfig" + versionSuffix + ".json",
+                    Set.of("controllerService", "reportingTask"));
             jsonGenerator.generate(
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
             JsonMappingGenerator processorJsonGenerator = new JsonMappingGenerator(
-                    outputDir, "NiFiProcessorTypeMapping.json", Set.of("processors"));
+                    outputDir, "procPropConfig" + versionSuffix + ".json", Set.of("processors"));
             processorJsonGenerator.generate(
                     comparator.getTypeToChangedProperties(),
                     comparator.getTypeToFolderMap());
 
             JsonMappingGenerator removeWhenEmptyJsonGenerator = new JsonMappingGenerator(
-                    outputDir, "NiFiTypeMappingRemoveWhenEmpty.json",
+                    outputDir, "csRemoveWhenEmptyConfig" + versionSuffix + ".json",
                     Set.of("controllerService", "reportingTask"));
             removeWhenEmptyJsonGenerator.generate(
                     comparator.getTypeToDescriptorsToRemoveWhenEmpty(),
                     comparator.getTypeToFolderMap());
 
             JsonMappingGenerator processorRemoveWhenEmptyJsonGenerator = new JsonMappingGenerator(
-                    outputDir, "NiFiProcessorTypeMappingRemoveWhenEmpty.json", Set.of("processors"));
+                    outputDir, "procRemoveWhenEmptyConfig" + versionSuffix + ".json", Set.of("processors"));
             processorRemoveWhenEmptyJsonGenerator.generate(
                     comparator.getTypeToDescriptorsToRemoveWhenEmpty(),
                     comparator.getTypeToFolderMap());
@@ -112,6 +122,26 @@ public final class Main {
             LOGGER.error("State error: {}", e.getMessage(), e);
             System.exit(1);
         }
+    }
+
+    /**
+     * Builds a file-name suffix from a dot-separated version string, using only
+     * the major and minor components (patch, if present, is dropped).
+     *
+     * @param version raw version string, e.g. "2.10.0"; may be null or blank
+     * @return suffix such as "_2_10", or an empty string when version is not provided
+     */
+    private static String buildVersionSuffix(String version) {
+        if (version == null || version.isBlank()) {
+            return "";
+        }
+        String[] parts = version.split("\\.");
+        int count = Math.min(parts.length, 2);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append('_').append(parts[i]);
+        }
+        return sb.toString();
     }
 
     private static Path resolveOutputDir(String outputPath) throws IOException {

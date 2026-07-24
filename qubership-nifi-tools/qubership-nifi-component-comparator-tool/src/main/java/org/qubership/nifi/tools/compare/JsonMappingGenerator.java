@@ -18,7 +18,7 @@ public class JsonMappingGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMappingGenerator.class);
 
-    private static final String DEFAULT_OUTPUT_FILE = "NiFiTypeMapping.json";
+    private static final String DEFAULT_OUTPUT_FILE = "csPropConfig.json";
 
     private static final Set<String> DEFAULT_INCLUDED_FOLDERS = Set.of(
             "controllerService", "reportingTask"

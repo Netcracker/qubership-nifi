@@ -124,9 +124,33 @@ displayNameMapping:
       Old_Display_Name: New_Display_Name
 ```
 
+Additionally, ask the user to review all properties marked as `deleted` before continuing. For each
+deleted property, ask the user whether it can be removed unconditionally, or whether it is a sensitive
+property with complex migration logic that Apache NiFi only handles when the property has a value (if
+left empty, its value is absent from the export but its descriptor remains, and the orphaned sensitive
+descriptor breaks import).
+
+- Properties that can be removed unconditionally go under `propertiesAllowedToDelete`.
+- Sensitive properties that must be removed only when their value is empty go under
+  `propertiesToRemoveWhenEmpty`.
+
+A property must be listed in exactly one of the two sections, never both.
+
+```yaml
+propertiesAllowedToDelete:
+  - ComponentName:
+      - Old_Display_Name 1
+      - Old_Display_Name 2
+
+propertiesToRemoveWhenEmpty:
+  - ComponentName:
+      - Old_Display_Name 3
+```
+
 Put `dictionary.yaml` into `qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>`,
 where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replaced with `_`.
-Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml`.
+Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml \
+--version <TARGET>`.
 
 ## 13. Update OpenAPI specification
 
