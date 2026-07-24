@@ -1,0 +1,62 @@
+{
+    "flowContents": {
+        "identifier": "20000000-0000-0000-0000-000000000001",
+        "name": "Deprecated PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {},
+        "processGroups": [],
+        "controllerServices": [
+            {
+                "identifier": "20000000-0000-0000-0000-000000000201",
+                "groupIdentifier": "20000000-0000-0000-0000-000000000001",
+                "name": "Alert Handler",
+                "componentType": "CONTROLLER_SERVICE",
+                "type": "org.apache.nifi.rules.handlers.AlertHandler",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-rules-action-handler-nar",
+                    "version": "1.28.1"
+                },
+                "properties": {}
+            }
+        ],
+        "processors": [
+            {
+                "identifier": "20000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "20000000-0000-0000-0000-000000000001",
+                "name": "Base64 Encode",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.standard.Base64EncodeContent",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-standard-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Mode": "Encode"
+                }
+            },
+            {
+                "identifier": "20000000-0000-0000-0000-000000000102",
+                "groupIdentifier": "20000000-0000-0000-0000-000000000001",
+                "name": "Put Big Query",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.gcp.bigquery.PutBigQueryBatch",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-gcp-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {}
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}

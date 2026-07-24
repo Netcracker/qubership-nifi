@@ -1,0 +1,32 @@
+{
+    "flowContents": {
+        "identifier": "71000000-0000-0000-0000-000000000001",
+        "name": "Timer Driven PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {},
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "71000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "71000000-0000-0000-0000-000000000001",
+                "name": "Timer Driven Update Attribute",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-update-attribute-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "concurrentlySchedulableTaskCount": 1,
+                "properties": {}
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}

@@ -1,0 +1,23 @@
+{
+    "component": {
+        "id": "80000000-0000-0000-0000-000000000101",
+        "name": "StandardGangliaReporter",
+        "type": "org.apache.nifi.reporting.ganglia.StandardGangliaReporter",
+        "comments": "",
+        "state": "STOPPED",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "schedulingPeriod": "5 mins",
+        "properties": {
+            "Hostname": "ganglia.example.com",
+            "Port": "8649"
+        },
+        "bundle": {
+            "group": "org.apache.nifi",
+            "artifact": "nifi-ganglia-nar",
+            "version": "1.28.1"
+        }
+    },
+    "revision": {
+        "version": 0
+    }
+}

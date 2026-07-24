@@ -1,0 +1,34 @@
+{
+    "flowContents": {
+        "identifier": "41000000-0000-0000-0000-000000000001",
+        "name": "Plain HTTP PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {},
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "41000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "41000000-0000-0000-0000-000000000001",
+                "name": "Invoke Without Proxy",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-standard-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "HTTP Method": "GET",
+                    "HTTP URL": "https://example.com"
+                }
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}

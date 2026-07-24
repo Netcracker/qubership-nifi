@@ -107,7 +107,7 @@ jobs:
           NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
           export NIFI_CLIENT_PASSWORD
           WORKDIR=$(pwd)
-          mvn verify -pl dev-tools-integration-tests \
+          mvn verify -pl dev-tools-integration-tests -P update-scripts-tests \
             -DskipUnitTests=true -Dgpg.skip=true -DskipITs=false \
             "-Dnifi.cert.dir=$WORKDIR/temp-vol/tls-cert/nifi" \
             "-Dscripts.docker.network=$NETWORK_NAME"

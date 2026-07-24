@@ -1,0 +1,34 @@
+{
+    "flowContents": {
+        "identifier": "31000000-0000-0000-0000-000000000001",
+        "name": "Groovy Script PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {},
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "31000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "31000000-0000-0000-0000-000000000001",
+                "name": "Execute Groovy Script",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.script.ExecuteScript",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-scripting-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Script Engine": "groovy",
+                    "Script Body": "session.transfer(session.get(), REL_SUCCESS)"
+                }
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}
