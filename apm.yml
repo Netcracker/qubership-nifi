@@ -8,3 +8,4 @@ dependencies:
   apm:
     - Netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage#20aa408fa385ba72417bd4345e2c9c5b4d7049d9 #main
     - ./agent-packages/qubership-nifi-linters
+    - ./agent-packages/nifi-development-kit

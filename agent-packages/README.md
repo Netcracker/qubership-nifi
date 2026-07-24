@@ -69,3 +69,24 @@ and skipped, so install only the tools required for the checks you want to run.
 
 See the [linter hook documentation](qubership-nifi-linters/.apm/hooks/README.md) for
 tool prerequisites, configuration lookup, and a manual dry-run example.
+
+### `nifi-development-kit`
+
+Provides the `nifi-custom-component-developer-skill` skill: conventions and correctness
+rules for writing or reviewing custom Apache NiFi components (Processors, Controller
+Services, Reporting Tasks), extracted from the existing qubership-nifi codebase rather
+than the generic NiFi API docs.
+
+The skill applies whenever an agent creates, extends, or reviews a component, covering:
+
+- Class-level annotation choice and ordering.
+- `PropertyDescriptor` and `Relationship` naming conventions.
+- FlowFile presence checks for `INPUT_REQUIRED` vs `INPUT_ALLOWED` components.
+- Instance field initialization scope (`@OnScheduled` vs `onTrigger`).
+- Batch writes to external systems (accumulate/flush/commit/rollback, retry vs failure
+  routing).
+- Unit testing patterns for processors, controller services, and reporting tasks.
+
+See the
+[`nifi-custom-component-developer-skill` skill](nifi-development-kit/.apm/skills/nifi-custom-component-developer-skill/SKILL.md)
+for the full rule set and its bundled reference files.
