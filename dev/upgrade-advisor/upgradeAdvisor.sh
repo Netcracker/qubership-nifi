@@ -900,6 +900,23 @@ for flowName in "${exportFlow[@]}"; do
     "\"" + "\"" + $csvSeparator +
     "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
     "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for Access Key ID and Secret Access Key in S3 processors - $flowName"
+
+    echo "Checking for Event Driven strategy in processors - $flowName"
+        jq -r --arg flowName "${shortFlowName}" --arg csvSeparator "${csvSeparator}" '
+        walk(
+            if type == "object" and has("componentType") and .componentType == "PROCESS_GROUP" then
+            .name as $groupName | .processors |= map(. + {groupName: $groupName})
+            elif type == "object" and has("componentType") and .componentType == "PROCESSOR" and has("schedulingStrategy") and .schedulingStrategy == "EVENT_DRIVEN" then
+                .checkLevel = "Warning" |
+                .checkIssue = "The processor has Scheduling strategy = Event driven, not supported in Apache NiFi 2.x." |
+                .checkSolution = "Update the processor configuration to use Scheduling strategy = Timer driven. Concurrent Tasks parameter may need to be updated as well."
+            else .
+        end)| .. | objects | select(has("checkIssue")) |
+        $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
+        "\"" + .checkSolution + "\"" + $csvSeparator +
+        "\"" + "\"" + $csvSeparator +
+        "\"" + .name + " (" + .identifier + ")" + "\"" + $csvSeparator +
+        "\"" + .groupName + " (" + .groupIdentifier + ")" + "\"" ' "$flowName" >>"$reportFileName" || handle_error "Error while checking for schedulingStrategy = EVENT_DRIVEN in processors - $flowName"
 done
 
 echo "Checking the use of deprecated Reporting Task"
