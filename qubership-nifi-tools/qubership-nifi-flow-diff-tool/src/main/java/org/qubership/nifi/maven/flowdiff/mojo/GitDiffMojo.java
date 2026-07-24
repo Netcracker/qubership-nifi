@@ -18,8 +18,9 @@ import java.util.Map;
 
 /**
  * The {@code nifi-flow-diff:git-diff} goal: compares the working tree against a committed baseline read through JGit.
- * The baseline is the tip of {@code HEAD} or of {@code branch}; the target is the working copy. Comparing against the
- * branch tip (not the merge-base) answers what a replace would introduce, matching how NiFi flows are integrated.
+ * The baseline is the commit that {@code branch} resolves to (defaulting to {@code HEAD}); the target is the working
+ * copy. For a branch, the baseline is its tip, not the merge-base, which answers what a replace would introduce,
+ * matching how NiFi flows are integrated.
  */
 @Mojo(name = "git-diff", defaultPhase = LifecyclePhase.NONE, requiresProject = false, threadSafe = true)
 public final class GitDiffMojo extends AbstractFlowDiffMojo {
@@ -31,7 +32,10 @@ public final class GitDiffMojo extends AbstractFlowDiffMojo {
     @Parameter(property = "path", required = true)
     private String path;
 
-    /** The branch whose tip is the baseline; defaults to {@code HEAD}. */
+    /**
+     * The baseline revision, resolved by JGit: {@code HEAD}, a complete or abbreviated SHA-1, a complete reference
+     * name ({@code refs/...}), or a short branch, tag, or remote name. Defaults to {@code HEAD}.
+     */
     @Parameter(property = "branch", defaultValue = "HEAD")
     private String branch;
 
