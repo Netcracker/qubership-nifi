@@ -102,7 +102,7 @@ The `upgrade-advisor-tests` profile selects these tests and leaves out the updat
 
 Each class skips itself when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Check the failsafe report to confirm that both classes ran rather than skipped.
 
-On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a bash that shares a filesystem with the repository:
+On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a `bash` that shares a filesystem with the repository:
 
 ```bash
 export UPGRADE_ADVISOR_BASH="C:/Program Files/Git/bin/bash.exe"
