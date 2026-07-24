@@ -146,12 +146,13 @@ public final class GitSource implements Closeable {
     }
 
     /**
-     * Discovers the committed flow candidates at the tip of a branch (or {@code HEAD}) under the input path, recording
+     * Discovers the committed flow candidates at the resolved baseline commit under the input path, recording
      * each blob's {@code ObjectId} without reading it, keyed by worktree-relative path. Each candidate opens and
      * classifies its blob only when loaded, so the repository must stay open (this source not yet closed) until the
      * candidates are loaded.
      *
-     * @param branch the branch name or {@code HEAD} whose tip is the baseline
+     * @param branch the baseline revision, resolved by JGit: {@code HEAD}, a complete or abbreviated SHA-1, a
+     *               complete reference name ({@code refs/...}), or a short branch, tag, or remote name
      * @return the committed candidates keyed by worktree-relative path
      * @throws IOException when a tree cannot be walked
      */

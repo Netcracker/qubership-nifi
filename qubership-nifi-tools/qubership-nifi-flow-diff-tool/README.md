@@ -102,8 +102,10 @@ mvn -q nifi-flow-diff:<version>:diff \
 
 ### git-diff
 
-Compares the working tree against a committed baseline read through JGit. With `branch` set, the baseline is the tip of
-that branch rather than `HEAD`. The tip is deliberate: NiFi flows are replaced, not merged, so the report answers what a
+Compares the working tree against a committed baseline read through JGit. The `branch` parameter names the baseline
+revision and defaults to `HEAD`. JGit resolves it, so it accepts any of: `HEAD`, a complete or abbreviated SHA-1, a
+complete reference name (`refs/...`), or a short name under `refs/heads`, `refs/tags`, or `refs/remotes`. For a branch,
+the baseline is its tip, not the merge-base: NiFi flows are replaced, not merged, so the report answers what a
 replacement would introduce.
 
 ```shell
@@ -135,7 +137,7 @@ The table below describes the plugin parameters:
 | `baseline`       | `baseline`         | diff                           | -       | Required. Baseline directory or single flow file.                              |
 | `target`         | `target`           | diff                           | -       | Required. Target directory or single flow file.                                |
 | `path`           | `path`             | git-diff, git-revert-technical | -       | Required. Directory or single flow file, relative to the Maven `basedir`.      |
-| `branch`         | `branch`           | git-diff                       | `HEAD`  | Branch whose tip is the baseline.                                              |
+| `branch`         | `branch`           | git-diff                       | `HEAD`  | Baseline revision resolved by JGit (see the git-diff section for forms).       |
 | `format`         | `format`           | diff, git-diff                 | `text`  | Report format: `text`, `json`, or `md`.                                        |
 | `output`         | `output`           | diff, git-diff                 | -       | Report file. Required for `json` and `md`; `text` defaults to standard output. |
 | `maxValueLength` | `max-value-length` | diff, git-diff                 | `200`   | Value truncation budget for `text` and `md`; `0` disables truncation.          |
