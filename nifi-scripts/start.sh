@@ -215,7 +215,7 @@ if [ -n "${X_JAVA_ARGS}" ]; then
     done
 fi
 
-validate_jvm_arg(){
+validate_jvm_args(){
     local paramName="$1"
     shift
     local javaArgsCheckOutput
@@ -227,14 +227,18 @@ validate_jvm_arg(){
     fi
 }
 
-if [ -n "${NIFI_ADDITIONAL_JVM_ARGS}" ]; then
-    # shellcheck disable=SC2086
-    validate_jvm_arg "NIFI_ADDITIONAL_JVM_ARGS" $NIFI_ADDITIONAL_JVM_ARGS
-fi
+jvmArgsToValidate=()
+# shellcheck disable=SC2086
+for jvmArg in $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS; do
+    case "$jvmArg" in
+        -XX:+Use*GC|-XX:-Use*GC)
+            jvmArgsToValidate+=("$jvmArg")
+            ;;
+    esac
+done
 
-if [ -n "${NIFI_ADDITIONAL_JVM_ARGS}" ] || [ -n "${X_JAVA_ARGS}" ]; then
-    # shellcheck disable=SC2086
-    validate_jvm_arg "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS
+if [ "${#jvmArgsToValidate[@]}" -gt 0 ]; then
+    validate_jvm_args "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" "${jvmArgsToValidate[@]}"
 fi
 
 # Setup NiFi to use Python
