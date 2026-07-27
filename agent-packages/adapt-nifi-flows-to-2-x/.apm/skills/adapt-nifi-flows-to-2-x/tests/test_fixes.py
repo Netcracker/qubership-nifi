@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from fixes import (
     fix_invokehttp_proxy,
     fix_s3_credentials,
@@ -524,10 +526,11 @@ def test_fix_type_rename_property_descriptors_updated():
 # fix_event_driven_scheduling
 # ---------------------------------------------------------------------------
 
-def _event_driven_proc(task_count=1) -> dict:
+def _event_driven_proc(task_count=1, period="0 sec") -> dict:
     proc = _proc("p1", {}, proc_type="org.apache.nifi.processors.attributes.UpdateAttribute")
     proc["schedulingStrategy"] = "EVENT_DRIVEN"
-    proc["schedulingPeriod"] = "0 sec"
+    if period is not None:
+        proc["schedulingPeriod"] = period
     if task_count is not None:
         proc["concurrentlySchedulableTaskCount"] = task_count
     return proc
@@ -561,10 +564,49 @@ def test_fix_event_driven_scheduling_task_count_absent():
     assert manual == []
 
 
-def test_fix_event_driven_scheduling_keeps_scheduling_period():
+def test_fix_event_driven_scheduling_keeps_zero_scheduling_period():
     proc = _event_driven_proc(task_count=2)
-    fix_event_driven_scheduling(proc, _pg(), {})
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
     assert proc["schedulingPeriod"] == "0 sec"
+    assert "schedulingPeriod" not in applied[0]
+    assert manual == []
+
+
+@pytest.mark.parametrize("period", ["0 secs", "0 s", "00 millis", "0", " 0 sec "])
+def test_fix_event_driven_scheduling_treats_zero_variants_as_zero(period):
+    proc = _event_driven_proc(task_count=2, period=period)
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingPeriod"] == period
+    assert "schedulingPeriod" not in applied[0]
+    assert manual == []
+
+
+def test_fix_event_driven_scheduling_non_zero_period_reset_and_flagged():
+    # EVENT_DRIVEN ignored schedulingPeriod, so a leftover value must not start throttling the
+    # processor once TIMER_DRIVEN starts honoring it.
+    proc = _event_driven_proc(task_count=2, period="30 sec")
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingPeriod"] == "0 sec"
+    assert any("schedulingPeriod: 30 sec -> 0 sec" in m for m in applied)
+    assert len(manual) == 1
+    assert "Run Schedule" in manual[0]
+
+
+def test_fix_event_driven_scheduling_period_absent():
+    proc = _event_driven_proc(task_count=2, period=None)
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert "schedulingPeriod" not in proc
+    assert applied
+    assert manual == []
+
+
+def test_fix_event_driven_scheduling_flags_period_and_task_count_separately():
+    proc = _event_driven_proc(task_count=0, period="1 min")
+    applied, manual = fix_event_driven_scheduling(proc, _pg(), {})
+    assert proc["schedulingPeriod"] == "0 sec"
+    assert proc["concurrentlySchedulableTaskCount"] == 4
+    assert len(applied) == 1
+    assert len(manual) == 2
 
 
 def test_fix_event_driven_scheduling_already_timer_driven():

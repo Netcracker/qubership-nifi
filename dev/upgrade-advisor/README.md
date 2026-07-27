@@ -100,7 +100,11 @@ mvn verify -pl dev-tools-integration-tests -P upgrade-advisor-tests -DskipITs=fa
 
 The `upgrade-advisor-tests` profile selects these tests and leaves out the update-script tests, which need a running NiFi.
 
-Each class skips itself when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Check the failsafe report to confirm that both classes ran rather than skipped.
+Each class fails when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Neither skips itself - a skipped suite leaves the build green with nothing asserted, which looks exactly like a passing run.
+
+If your machine cannot satisfy the prerequisites, leave the ITs out by not passing `-DskipITs=false`, rather than running them and reading past the skips.
+
+For the same reason the `upgrade-advisor-test` workflow checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
 
 On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a `bash` that shares a filesystem with the repository:
 

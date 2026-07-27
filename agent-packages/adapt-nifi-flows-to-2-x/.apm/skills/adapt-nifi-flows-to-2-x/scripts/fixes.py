@@ -851,10 +851,18 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
 # Event Driven scheduling strategy
 # ---------------------------------------------------------------------------
 
-# Apache NiFi 2.x removed EVENT_DRIVEN. TIMER_DRIVEN is the closest equivalent:
-# schedulingPeriod is left untouched, so "0 sec" keeps the run-as-fast-as-possible
-# behavior the processor had before.
+# Apache NiFi 2.x removed EVENT_DRIVEN. TIMER_DRIVEN is the closest equivalent, as long as
+# schedulingPeriod is zero: the processor then runs whenever work is available, which is the
+# nearest match to being triggered by every incoming FlowFile.
 EVENT_DRIVEN_REPLACEMENT_STRATEGY = "TIMER_DRIVEN"
+
+# EVENT_DRIVEN ignored schedulingPeriod, so a flow can carry any leftover value from before the
+# strategy was switched. TIMER_DRIVEN honors it, and a stale "30 sec" would silently throttle the
+# processor, so a non-zero period is reset to this and flagged for the user to review.
+EVENT_DRIVEN_REPLACEMENT_PERIOD = "0 sec"
+
+# Period values NiFi treats as zero: "0 sec", "0 secs", "0 s", "00 millis", a bare "0".
+ZERO_PERIOD_RE = re.compile(r"^\s*0+\s*[a-z]*\s*$", re.IGNORECASE)
 
 # An EVENT_DRIVEN processor may have concurrentlySchedulableTaskCount = 0 or any value
 # above 0. TIMER_DRIVEN does not support 0, so only a 0 is replaced with this value and
@@ -879,6 +887,19 @@ def fix_event_driven_scheduling(proc: dict, pg: dict, row: dict) -> tuple[list[s
         f"[FIXED] {proc_label}  -- schedulingStrategy: EVENT_DRIVEN -> "
         f"{EVENT_DRIVEN_REPLACEMENT_STRATEGY}"
     )
+
+    period = proc.get("schedulingPeriod")
+    if period is not None and not ZERO_PERIOD_RE.match(str(period)):
+        proc["schedulingPeriod"] = EVENT_DRIVEN_REPLACEMENT_PERIOD
+        message += (
+            f"; schedulingPeriod: {period} -> {EVENT_DRIVEN_REPLACEMENT_PERIOD}"
+        )
+        manual.append(
+            f"[MANUAL] {proc_label}  -- Run Schedule was '{period}', a value Event driven "
+            f"scheduling ignored, and is now set to '{EVENT_DRIVEN_REPLACEMENT_PERIOD}' so the "
+            f"processor keeps running as work arrives. Review it in the NiFi UI if the flow "
+            f"needs the processor to run on a fixed interval instead."
+        )
 
     if proc.get("concurrentlySchedulableTaskCount") == 0:
         proc["concurrentlySchedulableTaskCount"] = EVENT_DRIVEN_DEFAULT_TASK_COUNT

@@ -51,6 +51,30 @@ jobs:
           mvn --batch-mode verify -pl dev-tools-integration-tests -P upgrade-advisor-tests \
             -DskipITs=false -DskipUnitTests=true -Dgpg.skip=true
 
+      # The suite fails on a missing prerequisite rather than skipping, but that cannot catch a
+      # class that was never selected - a renamed class or a broken include pattern still leaves
+      # the build green. Check the reports instead of trusting them.
+      - name: Verify both advisor test classes ran
+        run: |
+          reports=dev-tools-integration-tests/target/failsafe-reports
+          status=0
+          for class in UpgradeAdvisorBashIT UpgradeAdvisorDockerIT; do
+            report="$reports/TEST-org.qubership.nifi.dev.tools.$class.xml"
+            if [ ! -f "$report" ]; then
+              echo "::error::$class produced no failsafe report - the class did not run"
+              status=1
+              continue
+            fi
+            tests=$(grep -o 'tests="[0-9]*"' "$report" | head -1 | grep -o '[0-9]*')
+            skipped=$(grep -o 'skipped="[0-9]*"' "$report" | head -1 | grep -o '[0-9]*')
+            echo "$class: ${tests:-?} tests, ${skipped:-?} skipped"
+            if [ "${tests:-0}" -eq 0 ] || [ "${skipped:-0}" -ne 0 ]; then
+              echo "::error::$class ran ${tests:-0} tests and skipped ${skipped:-0}"
+              status=1
+            fi
+          done
+          exit $status
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
