@@ -1,0 +1,104 @@
+{
+    "flowContents": {
+        "identifier": "91000000-0000-0000-0000-000000000001",
+        "name": "Combined Issues PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {
+            "dbHost": "localhost"
+        },
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "91000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "91000000-0000-0000-0000-000000000001",
+                "name": "Base64 Encode",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.standard.Base64EncodeContent",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-standard-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Mode": "Encode"
+                }
+            },
+            {
+                "identifier": "91000000-0000-0000-0000-000000000102",
+                "groupIdentifier": "91000000-0000-0000-0000-000000000001",
+                "name": "Execute Python Script",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.script.ExecuteScript",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-scripting-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Script Engine": "python",
+                    "Script Body": "pass"
+                }
+            },
+            {
+                "identifier": "91000000-0000-0000-0000-000000000103",
+                "groupIdentifier": "91000000-0000-0000-0000-000000000001",
+                "name": "Invoke With Proxy",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.standard.InvokeHTTP",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-standard-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "HTTP Method": "GET",
+                    "Proxy Host": "proxy.example.com"
+                }
+            },
+            {
+                "identifier": "91000000-0000-0000-0000-000000000104",
+                "groupIdentifier": "91000000-0000-0000-0000-000000000001",
+                "name": "Put To S3",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.aws.s3.PutS3Object",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-aws-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Bucket": "test-bucket"
+                }
+            },
+            {
+                "identifier": "91000000-0000-0000-0000-000000000105",
+                "groupIdentifier": "91000000-0000-0000-0000-000000000001",
+                "name": "Event Driven Update Attribute",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.attributes.UpdateAttribute",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-update-attribute-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "EVENT_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "concurrentlySchedulableTaskCount": 1,
+                "properties": {}
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}

@@ -1,0 +1,36 @@
+{
+    "flowContents": {
+        "identifier": "50000000-0000-0000-0000-000000000001",
+        "name": "Variables PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {
+            "dbHost": "localhost",
+            "dbPort": "5432"
+        },
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "50000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "50000000-0000-0000-0000-000000000001",
+                "name": "Log Attribute",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.standard.LogAttribute",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-standard-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Log Level": "info"
+                }
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}

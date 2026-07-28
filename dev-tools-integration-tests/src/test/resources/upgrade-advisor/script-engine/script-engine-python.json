@@ -1,0 +1,34 @@
+{
+    "flowContents": {
+        "identifier": "30000000-0000-0000-0000-000000000001",
+        "name": "Script Engine PG",
+        "componentType": "PROCESS_GROUP",
+        "variables": {},
+        "processGroups": [],
+        "controllerServices": [],
+        "processors": [
+            {
+                "identifier": "30000000-0000-0000-0000-000000000101",
+                "groupIdentifier": "30000000-0000-0000-0000-000000000001",
+                "name": "Execute Python Script",
+                "componentType": "PROCESSOR",
+                "type": "org.apache.nifi.processors.script.ExecuteScript",
+                "bundle": {
+                    "group": "org.apache.nifi",
+                    "artifact": "nifi-scripting-nar",
+                    "version": "1.28.1"
+                },
+                "schedulingStrategy": "TIMER_DRIVEN",
+                "schedulingPeriod": "0 sec",
+                "properties": {
+                    "Script Engine": "python",
+                    "Script Body": "pass"
+                }
+            }
+        ]
+    },
+    "flowEncodingVersion": "1.0",
+    "externalControllerServices": {},
+    "parameterContexts": {},
+    "parameterProviders": {}
+}
