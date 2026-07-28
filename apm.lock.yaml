@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-07-28T13:41:29.623559+00:00'
+generated_at: '2026-07-28T13:59:47.046379+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
@@ -55,12 +55,12 @@ dependencies:
   - .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
   deployed_file_hashes:
     .claude/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
-    .claude/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+    .claude/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
     .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
-    .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+    .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
     .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
     .cursor/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
-    .cursor/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+    .cursor/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
     .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
   source: local
   local_path: ./agent-packages/qubership-nifi-linters
@@ -172,7 +172,7 @@ deployments:
   owners:
   - ./agent-packages/qubership-nifi-linters
   active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
 - kind: project-relative
   target: claude
   value: .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
@@ -703,7 +703,7 @@ deployments:
   owners:
   - ./agent-packages/qubership-nifi-linters
   active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
 - kind: project-relative
   target: codex
   value: .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
@@ -730,7 +730,7 @@ deployments:
   owners:
   - ./agent-packages/qubership-nifi-linters
   active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:52a09d069a7d06004a3c49bc4c1f8d5c39f384721c7afe0223f8ebc7359ff643
+  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
 - kind: project-relative
   target: cursor
   value: .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py

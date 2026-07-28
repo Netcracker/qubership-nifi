@@ -54,7 +54,7 @@ than Codex and Cursor:
   ```
 
   Claude Code hooks run with `cwd` set to wherever the session's working directory happens to
-  be when the hook fires, which drifts away from the repo root whenever the agent `cd`s into a
+  be when the hook fires, which drifts away from the repository root whenever the agent `cd`s into a
   subdirectory (e.g. to run `mvn test -pl <module>`). A bare `${PLUGIN_ROOT}`-relative command
   then fails outright (`python: can't open file ...`) because the shell can't resolve the
   script path before Python even starts - `${CLAUDE_PROJECT_DIR}` anchors it regardless of
