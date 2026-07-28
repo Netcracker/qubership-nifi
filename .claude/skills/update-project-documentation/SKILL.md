@@ -62,7 +62,7 @@ The table uses four columns: `Parameter | Required | Default | Description`.
 - Wrap literal values and enumerations in backticks, matching the existing
   rows.
 
-## 4. README consistency
+## 4. `README.md` consistency
 
 Root `README.md` lists each `qubership-nifi-tools` child module as a bullet
 under "Tools", linking to `qubership-nifi-tools/README.md`. When adding a new
