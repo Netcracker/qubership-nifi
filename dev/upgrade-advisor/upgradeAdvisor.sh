@@ -909,7 +909,7 @@ for flowName in "${exportFlow[@]}"; do
             elif type == "object" and has("componentType") and .componentType == "PROCESSOR" and has("schedulingStrategy") and .schedulingStrategy == "EVENT_DRIVEN" then
                 .checkLevel = "Warning" |
                 .checkIssue = "The processor has Scheduling strategy = Event driven that is not supported in Apache NiFi 2.x." |
-                .checkSolution = "Update the processor configuration to use Scheduling strategy = Timer driven. Concurrent Tasks parameter may need to be updated as well."
+                .checkSolution = "Update the processor configuration to use Scheduling strategy = Timer driven. Check and update Concurrent Tasks and Run Schedule on the processor as well."
             else .
         end)| .. | objects | select(has("checkIssue")) |
         $flowName + $csvSeparator + .checkLevel + $csvSeparator + .checkIssue + $csvSeparator +
