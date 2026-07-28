@@ -1,0 +1,13 @@
+{
+  "PostToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "python \"${CLAUDE_PROJECT_DIR}/${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py\""
+        }
+      ]
+    }
+  ]
+}
