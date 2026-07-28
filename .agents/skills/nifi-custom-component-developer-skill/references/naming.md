@@ -1,7 +1,7 @@
 # Naming Conventions
 
 Naming rules for `PropertyDescriptor` and `Relationship` in custom Apache
-NiFi components. 
+NiFi components.
 
 ## PropertyDescriptor
 

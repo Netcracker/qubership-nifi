@@ -6,6 +6,6 @@ targets:
   - codex
 dependencies:
   apm:
-    - Netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage#20aa408fa385ba72417bd4345e2c9c5b4d7049d9 #main
+    - Netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage#8c6dbeb901920bae9f40d7d7b646d8d9127e1ce7 #2.4.0
     - ./agent-packages/qubership-nifi-linters
     - ./agent-packages/nifi-development-kit
