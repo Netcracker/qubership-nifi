@@ -228,27 +228,14 @@ validate_jvm_args(){
 }
 
 jvmArgsToValidate=()
-unlockArg=""
-hasEpsilonGC=false
 # shellcheck disable=SC2086
 for jvmArg in $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS; do
     case "$jvmArg" in
-        -XX:+UnlockExperimentalVMOptions)
-            unlockArg="$jvmArg"
-            ;;
-        -XX:+UseEpsilonGC)
-            hasEpsilonGC=true
-            jvmArgsToValidate+=("$jvmArg")
-            ;;
-        -XX:+Use*GC|-XX:-Use*GC)
+        -XX:+Use*GC|-XX:-Use*GC|-XX:+UnlockExperimentalVMOptions)
             jvmArgsToValidate+=("$jvmArg")
             ;;
     esac
 done
-
-if [ "$hasEpsilonGC" = true ] && [ -n "$unlockArg" ]; then
-    jvmArgsToValidate=("$unlockArg" "${jvmArgsToValidate[@]}")
-fi
 
 if [ "${#jvmArgsToValidate[@]}" -gt 0 ]; then
     validate_jvm_args "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" "${jvmArgsToValidate[@]}"
