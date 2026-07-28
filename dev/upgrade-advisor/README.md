@@ -93,13 +93,11 @@ Build the test image first, from the repository root:
 docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile
 ```
 
-Then run tests:
+Then run the tests:
 
 ```bash
 mvn verify -pl dev-tools-integration-tests -P upgrade-advisor-tests -DskipITs=false
 ```
-
-The `upgrade-advisor-tests` profile runs only upgrade-advisor tests.
 
 Each class fails when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Neither skips itself - a skipped suite leaves the build green with nothing asserted, which looks exactly like a passing run.
 
