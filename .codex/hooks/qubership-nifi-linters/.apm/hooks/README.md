@@ -28,25 +28,50 @@ It never hard-blocks your edits.
 
 ## Wiring
 
-This hook is declared in `lint-changed-file.json` next to this `README.md` and deployed by
-`apm install` / `apm compile`. The command is anchored to `${PLUGIN_ROOT}`, which APM
-rewrites to the installed package root, so the script resolves from any working directory:
+This hook is declared next to this `README.md` and deployed by `apm install`. It ships as
+**two** hook definitions rather than one, because Claude Code needs a different command
+than Codex and Cursor:
 
-```json
-{
-    "PostToolUse": [
-        {
-            "matcher": "Write|Edit",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "python \"${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py\""
-                }
-            ]
-        }
-    ]
-}
-```
+- `lint-changed-file-claude-hooks.json` - Claude Code only. Its `command` is anchored to
+  `${CLAUDE_PROJECT_DIR}` (the env var Claude Code sets on every hook subprocess to the true
+  project root - see <https://code.claude.com/docs/en/hooks>), in addition to `${PLUGIN_ROOT}`
+  which APM rewrites to the installed package's own relative location:
+
+  ```json
+  {
+      "PostToolUse": [
+          {
+              "matcher": "Write|Edit",
+              "hooks": [
+                  {
+                      "type": "command",
+                      "command": "python \"${CLAUDE_PROJECT_DIR}/${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py\""
+                  }
+              ]
+          }
+      ]
+  }
+  ```
+
+  Claude Code hooks run with `cwd` set to wherever the session's working directory happens to
+  be when the hook fires, which drifts away from the repository root whenever the agent `cd`s into a
+  subdirectory (e.g. to run `mvn test -pl <module>`). A bare `${PLUGIN_ROOT}`-relative command
+  then fails outright (`python: can't open file ...`) because the shell can't resolve the
+  script path before Python even starts - `${CLAUDE_PROJECT_DIR}` anchors it regardless of
+  `cwd`.
+
+- `lint-changed-file-codex-cursor-hooks.json` - Codex and Cursor. Command stays
+  `${PLUGIN_ROOT}`-relative, unchanged, since neither sets `CLAUDE_PROJECT_DIR` (or an
+  equivalent) and there is no evidence they are exposed to the same `cwd`-drift risk.
+
+The two-file split relies on APM's `*-<harness>-hooks.json` filename-based hook routing.
+That convention is documented as deprecated in favor of a `targets:` field on package
+dependencies, but `targets:` only selects which harnesses receive a whole dependency's
+primitives - it cannot give a single hook a different `command` per harness within one
+active target set, which is what this package needs. The filename convention is still
+functional (it prints an `apm install`-time deprecation warning) and is used the same way
+elsewhere (e.g. the `ai-agent-telemetry` package's `skill-call-*-hooks.json` files). If APM
+removes the convention, this wiring will need to be revisited.
 
 Do not hand-edit the generated `.claude/settings.json` hook entry (or the Cursor / Codex
 equivalents) - APM owns it and tracks it in the `.claude/apm-hooks.json` sidecar. Edit this
