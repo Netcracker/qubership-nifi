@@ -231,6 +231,9 @@ jvmArgsToValidate=()
 # shellcheck disable=SC2086
 for jvmArg in $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS; do
     case "$jvmArg" in
+        -XX:+UseEpsilonGC)
+            jvmArgsToValidate+=("-XX:+UnlockExperimentalVMOptions" "$jvmArg")
+            ;;
         -XX:+Use*GC|-XX:-Use*GC)
             jvmArgsToValidate+=("$jvmArg")
             ;;
