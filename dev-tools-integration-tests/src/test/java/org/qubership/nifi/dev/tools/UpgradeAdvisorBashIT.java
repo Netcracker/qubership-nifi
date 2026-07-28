@@ -15,7 +15,6 @@
  */
 package org.qubership.nifi.dev.tools;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,14 +28,20 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * Runs {@code upgradeAdvisor.sh} the way {@code dev/upgrade-advisor/README.md} documents for local
  * use: bash on the host, with {@code jq} on the {@code PATH}.
  *
  * <p>Both binaries are looked up on the {@code PATH} by default. Set {@code UPGRADE_ADVISOR_BASH}
  * to point at a specific bash build. The {@code jq} executable must remain on the {@code PATH}.
- * When either binary is missing, the whole class is skipped rather than failing - nothing is
- * downloaded on the fly.
+ * Nothing is downloaded on the fly.
+ *
+ * <p>A missing binary fails the class instead of skipping it. A skipped suite leaves the build
+ * green with nothing asserted, which is indistinguishable from a passing run. On a machine that
+ * cannot satisfy the prerequisites, leave the ITs out by not passing {@code -DskipITs=false}.
  */
 final class UpgradeAdvisorBashIT extends AbstractUpgradeAdvisorTest {
 
@@ -51,13 +56,15 @@ final class UpgradeAdvisorBashIT extends AbstractUpgradeAdvisorTest {
     @BeforeAll
     static void resolveScriptAndTools() {
         bash = System.getenv().getOrDefault("UPGRADE_ADVISOR_BASH", "bash");
-        Assumptions.assumeTrue(isAvailable(bash), "'" + bash + "' is not available on this machine");
-        Assumptions.assumeTrue(isAvailable("jq"), "'jq' is not available on this machine");
+        assertTrue(isAvailable(bash),
+            "'" + bash + "' is not available on this machine. Install bash or set UPGRADE_ADVISOR_BASH to one.");
+        assertTrue(isAvailable("jq"),
+            "'jq' is not available on the PATH. Install it - the advisor shells out to the bare 'jq' command.");
 
         script = locateScript();
-        Assumptions.assumeTrue(script != null,
+        assertNotNull(script,
             "Could not locate " + SCRIPT_RELATIVE_PATH + "; set the project.rootdir system property");
-        Assumptions.assumeTrue(canReadScript(),
+        assertTrue(canReadScript(),
             "'" + bash + "' cannot read " + forBash(script) + "; on Windows the first bash on the PATH is "
                 + "often the WSL one, which does not see native paths - set UPGRADE_ADVISOR_BASH to a "
                 + "bash that shares the filesystem, for example C:/Program Files/Git/bin/bash.exe");

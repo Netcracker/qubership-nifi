@@ -37,7 +37,8 @@ jobs:
           cache: 'maven'
 
       # The bash test case runs the advisor straight on the runner, so both tools must be present.
-      # They ship with ubuntu-latest; fail here rather than letting the tests skip themselves.
+      # They ship with ubuntu-latest. UpgradeAdvisorBashIT fails on its own when one is missing;
+      # this step just fails faster and records the versions, which matter when jq output changes.
       - name: Check advisor prerequisites
         run: |
           bash --version | head -1

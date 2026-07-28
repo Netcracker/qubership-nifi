@@ -17,7 +17,6 @@ package org.qubership.nifi.dev.tools;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +29,8 @@ import org.testcontainers.utility.DockerImageName;
 import java.nio.file.Path;
 import java.time.Duration;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * Runs {@code upgradeAdvisor.sh} inside the Alpine-based image built from
  * {@code dev/upgrade-advisor-autotest/Dockerfile}, the way {@code dev/upgrade-advisor/README.md}
@@ -37,8 +38,11 @@ import java.time.Duration;
  *
  * <p>The image is not built by Maven; build it first with
  * {@code docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile}
- * from the repository root, or point {@code -Dupgrade.advisor.image=...} at an equivalent image. The
- * class is skipped when no Docker daemon is reachable.
+ * from the repository root, or point {@code -Dupgrade.advisor.image=...} at an equivalent image.
+ *
+ * <p>An unreachable Docker daemon fails the class instead of skipping it. A skipped suite leaves
+ * the build green with nothing asserted, which is indistinguishable from a passing run. On a
+ * machine without Docker, leave the ITs out by not passing {@code -DskipITs=false}.
  *
  * <p>The exports are bound read-only, and the working directory is bound separately: the advisor
  * writes its report and temporary files into the current directory, and the reporting-task check
@@ -55,8 +59,8 @@ final class UpgradeAdvisorDockerIT extends AbstractUpgradeAdvisorTest {
 
     @BeforeAll
     static void requireDocker() {
-        Assumptions.assumeTrue(DockerClientFactory.instance().isDockerAvailable(),
-            "No Docker daemon is reachable on this machine");
+        assertTrue(DockerClientFactory.instance().isDockerAvailable(),
+            "No Docker daemon is reachable on this machine. Start Docker before running the advisor ITs.");
     }
 
     @Override

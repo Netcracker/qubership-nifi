@@ -77,7 +77,8 @@ Report filename is defined by `<reportFileName>` parameter. This file will be pl
 
 ## Testing
 
-Automated tests for the advisor live in the `dev-tools-integration-tests` Maven module. They run it against the fixture exports in `dev-tools-integration-tests/src/test/resources/upgrade-advisor` and check the resulting report, the summary printed to stdout, and the exit code.
+Automated tests for the advisor live in the `dev-tools-integration-tests` Maven module. They run it against the test
+exports in `dev-tools-integration-tests/src/test/resources/upgrade-advisor` and check the resulting report, the summary printed to stdout, and the exit code.
 
 The same assertions run twice, once for each documented way of invoking the advisor:
 
@@ -92,19 +93,19 @@ Build the test image first, from the repository root:
 docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile
 ```
 
-Then run both test classes:
+Then run tests:
 
 ```bash
 mvn verify -pl dev-tools-integration-tests -P upgrade-advisor-tests -DskipITs=false
 ```
 
-The `upgrade-advisor-tests` profile selects these tests and leaves out the update-script tests, which need a running NiFi.
+The `upgrade-advisor-tests` profile runs only upgrade-advisor tests.
 
 Each class fails when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Neither skips itself - a skipped suite leaves the build green with nothing asserted, which looks exactly like a passing run.
 
-If your machine cannot satisfy the prerequisites, leave the ITs out by not passing `-DskipITs=false`, rather than running them and reading past the skips.
+If your machine cannot satisfy the prerequisites, leave the ITs out by not passing `-DskipITs=false`, rather than running them and reading past the failures.
 
-For the same reason the `upgrade-advisor-test` workflow checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
+A class-level failure cannot catch a class that was never selected, so the `upgrade-advisor-test` workflow also checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
 
 On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a `bash` that shares a filesystem with the repository:
 
