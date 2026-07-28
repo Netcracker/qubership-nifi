@@ -90,3 +90,28 @@ The skill applies whenever an agent creates, extends, or reviews a component, co
 See the
 [`nifi-custom-component-developer-skill` skill](nifi-development-kit/.apm/skills/nifi-custom-component-developer-skill/SKILL.md)
 for the full rule set and its bundled reference files.
+
+### `qubership-nifi-docs-maintenance`
+
+Provides the `update-project-documentation` skill: keeps `README.md`,
+`docs/user-guide.md`, `docs/administrator-guide.md`, and
+`docs/installation-guide.md` in sync after a significant change, such as an
+environment variable added, removed, or changed, a new NiFi Processor,
+Controller Service, or Reporting Task, or a new tool/child module.
+
+The skill covers:
+
+- Mapping a change to the doc(s) it affects.
+- Regenerating `docs/user-guide.md` via the `qubership-nifi-docs-generator`
+  Maven plugin instead of hand-editing its generated tables.
+- Conventions for the environment variables table in
+  `docs/administrator-guide.md`.
+- Keeping the root `README.md` and per-tool `README.md` files consistent when
+  a tool or child module is added.
+
+A paired instructions file triggers the skill whenever an environment
+variable, NiFi component, or tool/child module is added, removed, or changed.
+
+See the
+[`update-project-documentation` skill](qubership-nifi-docs-maintenance/.apm/skills/update-project-documentation/SKILL.md)
+for the full workflow.
