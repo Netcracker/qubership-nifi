@@ -119,9 +119,9 @@ public void onTrigger(final ProcessContext context, final ProcessSession session
 }
 ```
 
-`inFlowFile` here follows the `INPUT_ALLOWED` check from `check-flowfile.md`
-- the component can run as a source (scheduled, no incoming connection) or
-as a step that reads its query/parameters from an incoming FlowFile's
+`inFlowFile` here follows the `INPUT_ALLOWED` check from `check-flowfile.md`,
+since the component can run as a source (scheduled, no incoming connection)
+or as a step that reads its query/parameters from an incoming FlowFile's
 attributes. Every output FlowFile is transferred as soon as it fills up, not
 batched in memory - the source is read once, streaming.
 
