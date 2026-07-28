@@ -215,6 +215,32 @@ if [ -n "${X_JAVA_ARGS}" ]; then
     done
 fi
 
+validate_jvm_args(){
+    local paramName="$1"
+    shift
+    local javaArgsCheckOutput
+    if ! javaArgsCheckOutput=$("$JAVA_HOME"/bin/java "$@" -version 2>&1); then
+        error "ERROR: Invalid JVM arguments in $paramName: $*"
+        error "$javaArgsCheckOutput"
+        sleep 5
+        exit 3
+    fi
+}
+
+jvmArgsToValidate=()
+# shellcheck disable=SC2086
+for jvmArg in $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS; do
+    case "$jvmArg" in
+        -XX:+Use*GC|-XX:-Use*GC|-XX:+UnlockExperimentalVMOptions)
+            jvmArgsToValidate+=("$jvmArg")
+            ;;
+    esac
+done
+
+if [ "${#jvmArgsToValidate[@]}" -gt 0 ]; then
+    validate_jvm_args "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" "${jvmArgsToValidate[@]}"
+fi
+
 # Setup NiFi to use Python
 uncomment "nifi.python.command" "${nifi_props_file}"
 prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
