@@ -17,8 +17,17 @@
 . /opt/nifi/scripts/logging_api.sh
 
 info "re_encrypt_sensitive_keys.sh start"
+### fetch sensitive key from file
+if [[ -z "$NIFI_NEW_SENSITIVE_KEY" ]]; then
+    if [[ -f "/tmp/nifi-sens-key/key" ]]; then
+        info "Found sensitive key file /tmp/nifi-sens-key/key, fetching data"
+        NIFI_NEW_SENSITIVE_KEY=$(cat "/tmp/nifi-sens-key/key")
+    else
+        warn "NIFI_NEW_SENSITIVE_KEY is not set and sensitive key file /tmp/nifi-sens-key/key does not exist"
+    fi
+fi
 if [ -z "${NIFI_NEW_SENSITIVE_KEY}" ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = '<empty>' ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = "" ]; then
-    error "NIFI_NEW_SENSITIVE_KEY cannot be empty. Terminating start-up..."
+    error "Either NIFI_NEW_SENSITIVE_KEY env variable or /tmp/nifi-sens-key/key file should be non-empty. Terminating start-up..."
     sleep 10
     exit 3
 fi

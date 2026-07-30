@@ -27,6 +27,8 @@ services:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
+      - tls-cert-pwd:/tmp/cert-pwd
+      - nifi-sens-key:/tmp/nifi-sens-key
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
@@ -41,19 +43,19 @@ services:
       - CONSUL_ENABLED=true
       - CONSUL_URL=http://consul:8500
       - AUTH=oidc
-      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
       - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
       - KEYSTORE_TYPE=PKCS12
-      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
       - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
       - TRUSTSTORE_TYPE=PKCS12
-      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - OIDC_CLIENT_ID=frontend
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
       - NIFI_WEB_PROXY_HOST=nifi:8080
+      - NIFI_KEY_PASSWORD_PATH=/tmp/cert-pwd/keystore-nifi.pass
+      - NIFI_KEYSTORE_PASSWORD_PATH=/tmp/cert-pwd/keystore-nifi.pass
+      - NIFI_TRUSTSTORE_PASSWORD_PATH=/tmp/cert-pwd/truststore.pass
     container_name: local-nifi
     restart: unless-stopped
     hostname: nifi
@@ -183,6 +185,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/tls-cert/nifi/
+  tls-cert-pwd:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/pwd/
   tls-cert-reg:
     driver: local
     driver_opts:
@@ -207,6 +215,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/nifi/extensions/
+  nifi-sens-key:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/nifi-sens-key/
   pg-db:
     driver: local
     driver_opts:
