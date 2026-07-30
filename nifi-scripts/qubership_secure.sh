@@ -23,26 +23,28 @@ scripts_dir='/opt/nifi/scripts'
 
 [ -f "${scripts_dir}/qubership_secure_add_funct.sh" ] && . "${scripts_dir}/qubership_secure_add_funct.sh"
 
-# escaping & in url
-esc_OIDC_DISCOVERY_URL_NEW="${OIDC_DISCOVERY_URL_NEW//&/\\&}"
+if [[ "$AUTH" == "oidc" ]]; then
+    # escaping & in url
+    esc_OIDC_DISCOVERY_URL_NEW="${OIDC_DISCOVERY_URL_NEW//&/\\&}"
 
-# Setup OpenId Connect SSO Properties
-prop_replace 'nifi.security.user.oidc.discovery.url' "${esc_OIDC_DISCOVERY_URL_NEW}"
-prop_replace 'nifi.security.user.oidc.client.id' "${OIDC_CLIENT_ID}"
-prop_replace 'nifi.security.user.oidc.client.secret' "${OIDC_CLIENT_SECRET}"
+    # Setup OpenId Connect SSO Properties
+    prop_replace 'nifi.security.user.oidc.discovery.url' "${esc_OIDC_DISCOVERY_URL_NEW}"
+    prop_replace 'nifi.security.user.oidc.client.id' "${OIDC_CLIENT_ID}"
+    prop_replace 'nifi.security.user.oidc.client.secret' "${OIDC_CLIENT_SECRET}"
 
-# Setup Identity Mapping
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.pattern\.dn=|nifi\.security\.identity\.mapping\.pattern\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.value\.dn=|nifi\.security\.identity\.mapping\.value\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.transform\.dn=|nifi\.security\.identity\.mapping\.transform\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-prop_replace 'nifi.security.identity.mapping.pattern.dn' '\^\.\*EMAILADDRESS=\(\[\^,\]\*\)\.\*\$'
-prop_replace 'nifi.security.identity.mapping.value.dn' "\$1"
+    # Setup Identity Mapping
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.pattern\.dn=|nifi\.security\.identity\.mapping\.pattern\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.value\.dn=|nifi\.security\.identity\.mapping\.value\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.transform\.dn=|nifi\.security\.identity\.mapping\.transform\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    prop_replace 'nifi.security.identity.mapping.pattern.dn' '\^\.\*EMAILADDRESS=\(\[\^,\]\*\)\.\*\$'
+    prop_replace 'nifi.security.identity.mapping.value.dn' "\$1"
 
-{
-    echo " "
-    echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
-    echo "nifi.security.identity.mapping.value.dn2=\$1"
-} >>"${NIFI_HOME}"/conf/nifi.properties
+    {
+        echo " "
+        echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
+        echo "nifi.security.identity.mapping.value.dn2=\$1"
+    } >>"${NIFI_HOME}"/conf/nifi.properties
+fi
 
 # Establish initial user and an associated admin identity
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
