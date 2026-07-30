@@ -182,7 +182,7 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
         fi
         if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
             if [[ -f "/tmp/zk-client-keystore/client-keystore-password" ]]; then
-                info "Found zookeeper client password file /tmp/zk-client-keystore/client-keystore-password, fetching data"
+                info "Found zookeeper client keystore password file /tmp/zk-client-keystore/client-keystore-password, fetching data"
                 ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=$(cat "/tmp/zk-client-keystore/client-keystore-password")
                 if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
                     error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."

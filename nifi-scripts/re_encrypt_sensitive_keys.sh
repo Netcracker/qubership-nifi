@@ -27,11 +27,11 @@ if [[ -z "$NIFI_NEW_SENSITIVE_KEY" ]]; then
             warn "NIFI_NEW_SENSITIVE_KEY is not set and sensitive key file $NIFI_SENSITIVE_KEY_PATH does not exist"
         fi
     else
-        warn "Neither NIFI_NEW_SENSITIVE_KEY, nor NIFI_SENSITIVE_KEY_PATH variable is set"
+        warn "Neither NIFI_NEW_SENSITIVE_KEY nor NIFI_SENSITIVE_KEY_PATH is set"
     fi
 fi
 if [ -z "${NIFI_NEW_SENSITIVE_KEY}" ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = '<empty>' ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = "" ]; then
-    error "Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH should be non-empty. Terminating start-up..."
+    error "Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH must be non-empty. Terminating start-up..."
     sleep 10
     exit 3
 fi
