@@ -156,6 +156,7 @@ services:
       - tls-cert-nifi-2:/tmp/tls-certs-2
       - tls-cert-ca:/tmp/cert
       - tls-cert-zk:/tmp/cert-zk
+      - tls-cert-zk-pass:/tmp/zk-client-keystore
     ports:
       - 127.0.0.1:10080:8080
     environment:
@@ -186,7 +187,6 @@ services:
       - ZOOKEEPER_SSL_ENABLED=true
       - ZOOKEEPER_CLIENT_KEYSTORE=/tmp/cert-zk/zk-client-nifi-2.p12
       - ZOOKEEPER_CLIENT_KEYSTORE_TYPE=PKCS12
-      - ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=${ZK_TLS_PASS}
     container_name: qubership-nifi-2
     hostname: qubership-nifi-2
     restart: unless-stopped
@@ -324,6 +324,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/tls-cert/
+  tls-cert-zk-pass:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/nifi-zk-tls-pass/
   tls-cert-reg:
     driver: local
     driver_opts:

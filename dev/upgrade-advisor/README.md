@@ -67,10 +67,54 @@ docker run --rm -v "<pathToScripts>:/advisor" -v "<pathToExports>:/export" -w "/
 The parameters referenced in the command above are described in the table below.
 
 | Parameter      | Required | Default                    | Description                                                                                                                                                                |
-| -------------- | -------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|----------------|----------|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | pathToScripts  | Y        | .                          | Path to the directory containing the `upgradeAdvisor.sh` script.                                                                                                           |
 | pathToExports  | Y        | .                          | Location of NiFi configuration exports, including flows, controller services, reporting tasks, or related configuration files.                                             |
 | csvSeparator   | N        | `comma`                    | Character for separating columns in csv file. Parameter has two available values -- comma (corresponds to ',') and semicolon (corresponds to ';'). Default is comma (','). |
 | reportFileName | N        | `upgradeAdvisorReport.csv` | Name of the report file with flow information.                                                                                                                             |
 
 Report filename is defined by `<reportFileName>` parameter. This file will be placed in the `<pathToScripts>` directory.
+
+## Testing
+
+Automated tests for the advisor live in the `dev-tools-integration-tests` Maven module. They run it against the test
+exports in `dev-tools-integration-tests/src/test/resources/upgrade-advisor` and check the resulting report, the summary printed to stdout, and the exit code.
+
+The same assertions run twice, once for each documented way of invoking the advisor:
+
+- `UpgradeAdvisorBashIT` runs `bash upgradeAdvisor.sh` on the host, using the `bash` and `jq` found on the `PATH`.
+- `UpgradeAdvisorDockerIT` runs the advisor inside the Alpine-based image built from `dev/upgrade-advisor-autotest/Dockerfile`.
+
+### Running the Tests
+
+Build the test image first, from the repository root:
+
+```bash
+docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile
+```
+
+Then run the tests:
+
+```bash
+mvn verify -pl dev-tools-integration-tests -P upgrade-advisor-tests -DskipITs=false
+```
+
+Each class fails when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Neither skips itself - a skipped suite leaves the build green with nothing asserted, which looks exactly like a passing run.
+
+If your machine cannot satisfy the prerequisites, leave the ITs out by not passing `-DskipITs=false`, rather than running them and reading past the failures.
+
+A class-level failure cannot catch a class that was never selected, so the `upgrade-advisor-test` workflow also checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
+
+On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a `bash` that shares a filesystem with the repository:
+
+```bash
+export UPGRADE_ADVISOR_BASH="C:/Program Files/Git/bin/bash.exe"
+```
+
+### Adding a Check
+
+When you add a check to the script, add a fixture directory under `src/test/resources/upgrade-advisor` that triggers it, along with a near-identical export that must not be reported, and assert both in `AbstractUpgradeAdvisorTest`.
+
+Give each scenario its own directory. The reporting task check greps every file below `<pathToExports>`, so fixtures that share a directory show up in each other's reports.
+
+Keep commas out of the `Issue` text. The advisor does not quote that column, so a comma splits the row when the report uses the comma separator.

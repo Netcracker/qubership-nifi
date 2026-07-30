@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \".claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py\""
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py\""
           }
         ]
       }

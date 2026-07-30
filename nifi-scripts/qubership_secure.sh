@@ -23,26 +23,28 @@ scripts_dir='/opt/nifi/scripts'
 
 [ -f "${scripts_dir}/qubership_secure_add_funct.sh" ] && . "${scripts_dir}/qubership_secure_add_funct.sh"
 
-# escaping & in url
-esc_OIDC_DISCOVERY_URL_NEW="${OIDC_DISCOVERY_URL_NEW//&/\\&}"
+if [[ "$AUTH" == "oidc" ]]; then
+    # escaping & in url
+    esc_OIDC_DISCOVERY_URL_NEW="${OIDC_DISCOVERY_URL_NEW//&/\\&}"
 
-# Setup OpenId Connect SSO Properties
-prop_replace 'nifi.security.user.oidc.discovery.url' "${esc_OIDC_DISCOVERY_URL_NEW}"
-prop_replace 'nifi.security.user.oidc.client.id' "${OIDC_CLIENT_ID}"
-prop_replace 'nifi.security.user.oidc.client.secret' "${OIDC_CLIENT_SECRET}"
+    # Setup OpenId Connect SSO Properties
+    prop_replace 'nifi.security.user.oidc.discovery.url' "${esc_OIDC_DISCOVERY_URL_NEW}"
+    prop_replace 'nifi.security.user.oidc.client.id' "${OIDC_CLIENT_ID}"
+    prop_replace 'nifi.security.user.oidc.client.secret' "${OIDC_CLIENT_SECRET}"
 
-# Setup Identity Mapping
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.pattern\.dn=|nifi\.security\.identity\.mapping\.pattern\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.value\.dn=|nifi\.security\.identity\.mapping\.value\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.transform\.dn=|nifi\.security\.identity\.mapping\.transform\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
-prop_replace 'nifi.security.identity.mapping.pattern.dn' '\^\.\*EMAILADDRESS=\(\[\^,\]\*\)\.\*\$'
-prop_replace 'nifi.security.identity.mapping.value.dn' "\$1"
+    # Setup Identity Mapping
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.pattern\.dn=|nifi\.security\.identity\.mapping\.pattern\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.value\.dn=|nifi\.security\.identity\.mapping\.value\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    sed -i -e "s|^\#\s*nifi\.security\.identity\.mapping\.transform\.dn=|nifi\.security\.identity\.mapping\.transform\.dn=|" "${NIFI_HOME}"/conf/nifi.properties
+    prop_replace 'nifi.security.identity.mapping.pattern.dn' '\^\.\*EMAILADDRESS=\(\[\^,\]\*\)\.\*\$'
+    prop_replace 'nifi.security.identity.mapping.value.dn' "\$1"
 
-{
-    echo " "
-    echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
-    echo "nifi.security.identity.mapping.value.dn2=\$1"
-} >>"${NIFI_HOME}"/conf/nifi.properties
+    {
+        echo " "
+        echo "nifi.security.identity.mapping.pattern.dn2=^CN=(.*?), .*$"
+        echo "nifi.security.identity.mapping.value.dn2=\$1"
+    } >>"${NIFI_HOME}"/conf/nifi.properties
+fi
 
 # Establish initial user and an associated admin identity
 sed -i -e 's|<property name="Initial User Identity 1"></property>|<property name="Initial User Identity 1">'"${INITIAL_ADMIN_IDENTITY}"'</property>|' "${NIFI_HOME}"/conf/authorizers.xml
@@ -117,6 +119,34 @@ else
     export KEYSTORE_PATH="/tmp/tls-certs/keystore.p12"
 fi
 
+### key password
+if [[ -z "$KEY_PASSWORD" && -n "$NIFI_KEY_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_KEY_PASSWORD_PATH" ]]; then
+        info "Found key password file $NIFI_KEY_PASSWORD_PATH, fetching data"
+        KEY_PASSWORD=$(cat "$NIFI_KEY_PASSWORD_PATH")
+    else
+        warn "Key password file $NIFI_KEY_PASSWORD_PATH does not exist"
+    fi
+fi
+### keystore password
+if [[ -z "$KEYSTORE_PASSWORD" && -n "$NIFI_KEYSTORE_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_KEYSTORE_PASSWORD_PATH" ]]; then
+        info "Found keystore password file $NIFI_KEYSTORE_PASSWORD_PATH, fetching data"
+        KEYSTORE_PASSWORD=$(cat "$NIFI_KEYSTORE_PASSWORD_PATH")
+    else
+        warn "Keystore password file $NIFI_KEYSTORE_PASSWORD_PATH does not exist"
+    fi
+fi
+### truststore password
+if [[ -z "$TRUSTSTORE_PASSWORD" && -n "$NIFI_TRUSTSTORE_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_TRUSTSTORE_PASSWORD_PATH" ]]; then
+        info "Found truststore password file $NIFI_TRUSTSTORE_PASSWORD_PATH, fetching data"
+        TRUSTSTORE_PASSWORD=$(cat "$NIFI_TRUSTSTORE_PASSWORD_PATH")
+    else
+        warn "Truststore password file $NIFI_TRUSTSTORE_PASSWORD_PATH does not exist"
+    fi
+fi
+
 export TRUSTSTORE_TYPE="PKCS12"
 export KEYSTORE_TYPE="PKCS12"
 TRUSTSTORE_PASSWORD="${TRUSTSTORE_PASSWORD//&/\\&}"
@@ -151,8 +181,17 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
             export ZOOKEEPER_CLIENT_KEYSTORE_TYPE="PKCS12"
         fi
         if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
-            error "Zookeeper client keystore password is not set."
-            exit 1
+            if [[ -f "/tmp/zk-client-keystore/client-keystore-password" ]]; then
+                info "Found zookeeper client keystore password file /tmp/zk-client-keystore/client-keystore-password, fetching data"
+                ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=$(cat "/tmp/zk-client-keystore/client-keystore-password")
+                if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
+                    error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
+                    exit 1
+                fi
+            else
+                error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
+                exit 1
+            fi
         fi
         #use keystore specified in environment variables:
         info "Setting zookeeper client keystore = $ZOOKEEPER_CLIENT_KEYSTORE, type = $ZOOKEEPER_CLIENT_KEYSTORE_TYPE"

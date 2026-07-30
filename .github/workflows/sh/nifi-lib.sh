@@ -205,6 +205,9 @@ prepare_sens_key() {
     NIFI_SENSITIVE_KEY=$(generate_random_password 12 4 4)
     export NIFI_SENSITIVE_KEY
     echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key.tmp
+    #copy sensitive key to local directory for testing:
+    mkdir -p ./nifi-sens-key/
+    echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key/key
 }
 
 prepare_results_dir() {
@@ -292,6 +295,9 @@ generate_tls_passwords() {
     export KEYSTORE_PASSWORD_NIFI_REG
     export KEYCLOAK_TLS_PASS
     export ZK_TLS_PASS
+    #copy ZK_TLS_PASS to local directory for testing:
+    mkdir -p ./nifi-zk-tls-pass/
+    echo "$ZK_TLS_PASS" >./nifi-zk-tls-pass/client-keystore-password
 }
 
 create_docker_env_file() {

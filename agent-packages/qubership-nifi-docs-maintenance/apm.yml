@@ -1,0 +1,4 @@
+name: qubership-nifi-docs-maintenance
+version: 1.0.0
+description: Keeps README.md, docs/user-guide.md, docs/administrator-guide.md, and docs/installation-guide.md in sync with significant repository changes.
+author: Qubership

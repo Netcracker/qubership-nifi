@@ -3,30 +3,34 @@
 qubership-nifi service can be started in Docker (or compatible) container runtime with support of `docker compose` command.
 
 Sections below describe typical startup configurations:
+
 1. plain - service without any authentication with plain (HTTP) communications
 2. tls - service with mTLS authentication with encrypted (HTTPS) communications.
 
 ## Prerequisites
 
 Make sure you have the following tools installed:
+
 1. Docker - any version of Docker Engine or any compatible Docker container runtime.
 2. Docker Compose - any version of Docker Compose or any compatible Docker container runtime.
 
 ## Running qubership-nifi in plain mode
 
 The steps below provide instructions on how to start the following services locally:
+
 1. qubership-nifi
 2. qubership-nifi-registry
 3. Consul.
 
 To start qubership-nifi in plain (unencrypted) mode, do the following:
+
 1. Copy the [`docker-compose.yaml`](../dev/plain/docker-compose.yml) and [`.env`](../dev/plain/.env) files to a local directory
 2. In the `.env` file set up values for all variables:
 
-   | Parameter                  | Required | Default | Description                                                                                                                                                                                                 |
-   |----------------------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-   | PATH_TO_LOCAL_VOLUME       | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<ul><li>nifi-registry/ - for storing NiFi Registry's data</li><li>nifi/conf/ - for storing nifi flow configuration</li></ul> |
-   | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                       |
+   | Parameter                | Required | Default | Description                                                                                                                                                                                  |
+   |--------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+   | PATH_TO_LOCAL_VOLUME     | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<br>- nifi-registry/ - for storing NiFi Registry's data<br>- nifi/conf/ - for storing nifi flow configuration |
+   | NIFI_SENSITIVE_PROPS_KEY | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                        |
 
 3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
@@ -38,22 +42,24 @@ Navigate to `http://localhost:28080/nifi/` to access qubership-nifi.
 ## Running qubership-nifi in TLS mode
 
 The steps below provide instructions on how to start the following services locally:
+
 1. qubership-nifi
 2. qubership-nifi-registry
 3. Consul
 4. Apache NiFi Toolkit (for TLS certificates generation).
 
 To start qubership-nifi in TLS mode, do the following:
+
 1. Copy the [`docker-compose.yaml`](../dev/tls/docker-compose.yml) and [`.env`](../dev/tls/.env) files to a local directory
 2. In the `.env` file set up values for all variables:
 
-    | Parameter                  | Required | Default | Description                                                                                                                                                                                                                                                          |
-    |----------------------------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | PATH_TO_LOCAL_VOLUME       | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<ul><li>nifi-registry/ - for storing NiFi Registry's data</li><li>nifi/conf/ - for storing nifi flow configuration</li><li>tls-certificate/ - for storing TLS certificates</li></ul>  |
-    | TRUSTSTORE_PASSWORD        | Y        |         | Defines password for keystore with trusted certificates. It'll be created during the first run.                                                                                                                                                                      |
-    | KEYSTORE_PASSWORD_NIFI     | Y        |         | Defines password for qubership-nifi keystore with server certificates. It'll be created during the first run.                                                                                                                                                        |
-    | KEYSTORE_PASSWORD_NIFI_REG | Y        |         | Defines password for qubership-nifi-registry keystore with server certificates. It'll be created during the first run.                                                                                                                                               |
-    | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                                                                                |
+    | Parameter                  | Required | Default | Description                                                                                                                                                                                                                                       |
+    |----------------------------|----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+    | PATH_TO_LOCAL_VOLUME       | Y        | .       | Defines directory, where local volumes will be located. Subdirectories include:<br>- nifi-registry/ - for storing NiFi Registry's data<br>- nifi/conf/ - for storing nifi flow configuration<br>- tls-certificate/ - for storing TLS certificates |
+    | TRUSTSTORE_PASSWORD        | Y        |         | Defines password for keystore with trusted certificates. It'll be created during the first run.                                                                                                                                                   |
+    | KEYSTORE_PASSWORD_NIFI     | Y        |         | Defines password for qubership-nifi keystore with server certificates. It'll be created during the first run.                                                                                                                                     |
+    | KEYSTORE_PASSWORD_NIFI_REG | Y        |         | Defines password for qubership-nifi-registry keystore with server certificates. It'll be created during the first run.                                                                                                                            |
+    | NIFI_SENSITIVE_PROPS_KEY   | Y        |         | Sensitive key for NiFi. Some string at least 12 characters in length.                                                                                                                                                                             |
 
 3. Change image in `docker-compose.yaml`, if needed. By default, `ghcr.io/netcracker/qubership-nifi:latest` is used
 4. Run `docker compose -f docker-compose.yaml up`.
