@@ -185,12 +185,11 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
                 info "Found zookeeper client password file /tmp/zk-client-keystore/client-keystore-password, fetching data"
                 ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=$(cat "/tmp/zk-client-keystore/client-keystore-password")
                 if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
-                    error "Zookeeper client keystore password is not in either ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD or path /tmp/zk-client-keystore/client-keystore-password."
+                    error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
                     exit 1
                 fi
             else
-                warn "Truststore password file $NIFI_TRUSTSTORE_PASSWORD_PATH does not exist"
-                error "Zookeeper client keystore password is not in either ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD or path /tmp/zk-client-keystore/client-keystore-password."
+                error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
                 exit 1
             fi
         fi
