@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-07-28T13:59:47.046379+00:00'
+generated_at: '2026-07-28T18:52:19.968465+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
@@ -40,6 +40,24 @@ dependencies:
     .claude/skills/nifi-custom-component-developer-skill/references/variable-initialization.md: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
   source: local
   local_path: ./agent-packages/nifi-development-kit
+- repo_url: _local/qubership-nifi-docs-maintenance
+  name: qubership-nifi-docs-maintenance
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/update-project-documentation
+  - .agents/skills/update-project-documentation/SKILL.md
+  - .claude/rules/update-project-documentation.md
+  - .claude/skills/update-project-documentation
+  - .claude/skills/update-project-documentation/SKILL.md
+  - .cursor/rules/update-project-documentation.mdc
+  deployed_file_hashes:
+    .agents/skills/update-project-documentation/SKILL.md: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
+    .claude/rules/update-project-documentation.md: sha256:e680628acc6ee9db850a4456eb55e1ad1d07c2d9830236ae3c3008365d52e8a7
+    .claude/skills/update-project-documentation/SKILL.md: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
+    .cursor/rules/update-project-documentation.mdc: sha256:82542fa2d536d7fecb3847ee64285bffb188e91fd9143b31bfeddc08781e5b59
+  source: local
+  local_path: ./agent-packages/qubership-nifi-docs-maintenance
 - repo_url: _local/qubership-nifi-linters
   name: qubership-nifi-linters
   version: 1.1.1
@@ -191,6 +209,15 @@ deployments:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   content_hash: sha256:3b936301f81645936d916eb4b21578b8721dc373b521062860d7ed7731681636
+- kind: project-relative
+  target: claude
+  value: .claude/rules/update-project-documentation.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: sha256:e680628acc6ee9db850a4456eb55e1ad1d07c2d9830236ae3c3008365d52e8a7
 - kind: project-relative
   target: claude
   value: .claude/skills/nifi-custom-component-developer-skill
@@ -443,6 +470,24 @@ deployments:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   content_hash: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
+- kind: project-relative
+  target: claude
+  value: .claude/skills/update-project-documentation
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/update-project-documentation/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
 - kind: project-relative
   target: codex
   value: .agents/skills/nifi-custom-component-developer-skill
@@ -697,6 +742,24 @@ deployments:
   content_hash: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
 - kind: project-relative
   target: codex
+  value: .agents/skills/update-project-documentation
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/update-project-documentation/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
+- kind: project-relative
+  target: codex
   value: .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md
   runtime: null
   scope: project
@@ -749,3 +812,12 @@ deployments:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   content_hash: sha256:ea6a01f61b58ae3e1079c1ef5f834c6d7efdebd13dfa6de4dd580fc32dfda275
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/update-project-documentation.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-docs-maintenance
+  active_owner: ./agent-packages/qubership-nifi-docs-maintenance
+  content_hash: sha256:82542fa2d536d7fecb3847ee64285bffb188e91fd9143b31bfeddc08781e5b59
