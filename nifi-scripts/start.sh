@@ -562,6 +562,7 @@ case ${AUTH} in
         ;;
     tls)
         info 'Enabling Two-Way SSL user authentication'
+        . "${scripts_dir}/qubership_secure.sh"
         . "${scripts_dir}/secure.sh"
         ;;
     ldap)
@@ -569,6 +570,7 @@ case ${AUTH} in
         # Reference ldap-provider in properties
         export NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER="ldap-provider"
 
+        . "${scripts_dir}/qubership_secure.sh"
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
         ;;

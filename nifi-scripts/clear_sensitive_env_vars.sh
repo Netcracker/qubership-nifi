@@ -24,5 +24,6 @@ unset KEY_PASSWORD
 unset TRUSTSTORE_PASSWORD
 unset SENSITIVE_KEY
 unset NIFI_NEW_SENSITIVE_KEY
+unset ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD
 
 info "clear_sensitive_env_vars.sh end"
