@@ -6,8 +6,8 @@ This guide describes common startup errors in qubership-nifi, their causes and h
 
 | Error type | Exit code | Description | Details |
 | --- | --- | --- | --- |
-| Invalid JVM arguments | 3 | Incorrect set of JVM arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments) |
-| Invalid Consul URL | - | `CONSUL_URL` is incorrect or Consul is not reachable, Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url) |
+| Invalid JVM arguments | 3 | Conflicting garbage collector arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments) |
+| Invalid Consul URL | 1 | `CONSUL_URL` is incorrect or Consul is not reachable, Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url) |
 | Invalid NIFI_NEW_SENSITIVE_KEY | 3 | `NIFI_NEW_SENSITIVE_KEY` does not match the key used on previous startup. | [Invalid NIFI_NEW_SENSITIVE_KEY](#3-invalid-nifi_new_sensitive_key) |
 | Invalid flow.json.gz | 1 | The persisted NiFi flow configuration (`flow.json.gz`) is corrupted and cannot be parsed. | [Invalid flow.json.gz](#4-invalid-flowjsongz) |
 | Invalid Certificate | 1 (or N/A) | Keystore/truststore configuration is incorrect (e.g. wrong password, missing or incomplete truststore). | [Invalid Certificate](#5-invalid-certificate) |
@@ -35,9 +35,13 @@ The container exits with **exit code 3**.
 
 ### Cause
 
-Incorrect (conflicting or otherwise invalid) set of JVM arguments in `NIFI_ADDITIONAL_JVM_ARGS` and/or `X_JAVA_ARGS`
-(for example, two different garbage collectors selected at once, such as `-XX:+UseG1GC` together with
-`-XX:+UseParallelGC`, possibly combined with `JAVA_TOOL_OPTIONS`).
+Conflicting garbage collector arguments in `NIFI_ADDITIONAL_JVM_ARGS` and/or `X_JAVA_ARGS`, for example
+`-XX:+UseG1GC` together with `-XX:+UseParallelGC`, or one of them combined with a collector already selected in
+`JAVA_TOOL_OPTIONS`.
+
+The startup check validates only garbage collector selection arguments (`-XX:+Use...GC`, `-XX:-Use...GC`) and
+`-XX:+UnlockExperimentalVMOptions`. Other invalid JVM arguments, such as a malformed `-Xmx` value or an unknown
+`-XX:` flag, do not trigger this check. They surface later, with a different message and a different exit code.
 
 ### Resolution
 
@@ -82,6 +86,8 @@ In both cases, the qubership-nifi startup log contains a line similar to:
 [...] ERROR: Consul app java process has terminated prematurely. See logs for details...
 ```
 
+The container exits with **exit code 1**.
+
 ### Cause
 
 The `CONSUL_URL` environment variable (or the hostname/port it resolves to) is incorrect or not reachable, so the
@@ -110,13 +116,16 @@ The container exits with **exit code 3**.
 
 ### Cause
 
-Incorrect value of the `NIFI_NEW_SENSITIVE_KEY` environment variable: it does not match the key used on the previous
-startup.
+Incorrect value of the NiFi sensitive key: it does not match the key used on the previous startup. The key is read
+from the `NIFI_NEW_SENSITIVE_KEY` environment variable or, when that variable is empty, from the file at
+`NIFI_SENSITIVE_KEY_PATH`.
 
 ### Resolution
 
-1. Set `NIFI_NEW_SENSITIVE_KEY` back to the value that was used on the initial deployment.
-2. Restart NiFi after correcting `NIFI_NEW_SENSITIVE_KEY`.
+1. Determine which source supplies the key in this deployment. `NIFI_NEW_SENSITIVE_KEY` takes precedence; the file at
+   `NIFI_SENSITIVE_KEY_PATH` is read only when the variable is empty.
+2. Set that source back to the value that was used on the initial deployment.
+3. Restart NiFi after correcting the key.
 
 ## 4. Invalid flow.json.gz
 
@@ -175,9 +184,10 @@ start to send crash dump
 
 The container exits with **exit code 1**.
 
-**Cause:** Incorrect keystore/truststore configuration (for example, a wrong `KEYSTORE_PASSWORD_NIFI` value) makes
-NiFi fail while loading the certificate for the web server. Unlike other startup errors, this failure does not
-produce a clear Java-level error message in the main startup log, only a crash dump.
+**Cause:** Incorrect keystore/truststore configuration (for example, a wrong `KEYSTORE_PASSWORD` value, set through
+the `KEYSTORE_PASSWORD_NIFI` deployment parameter) makes NiFi fail while loading the certificate for the web server.
+Unlike other startup errors, this failure does not produce a clear Java-level error message in the main startup log,
+only a crash dump.
 
 ### Symptom B: SSLHandshakeException / PKIX path validation failed
 
@@ -202,8 +212,12 @@ party during the TLS handshake.
 
 1. Check the values of `KEYSTORE_PATH`, `KEYSTORE_TYPE`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`, `TRUSTSTORE_PATH`,
    `TRUSTSTORE_TYPE` and `TRUSTSTORE_PASSWORD` for correctness.
-2. For Symptom A, check the generated crash dump and other NiFi logs (`nifi-app.log`, `nifi-bootstrap.log`) for
+2. Check whether the passwords come from files instead of environment variables. `NIFI_KEYSTORE_PASSWORD_PATH`,
+   `NIFI_KEY_PASSWORD_PATH` and `NIFI_TRUSTSTORE_PASSWORD_PATH` are read only when the corresponding
+   `KEYSTORE_PASSWORD`, `KEY_PASSWORD` and `TRUSTSTORE_PASSWORD` variables are not set. Verify whichever source the
+   deployment uses.
+3. For Symptom A, check the generated crash dump and other NiFi logs (`nifi-app.log`, `nifi-bootstrap.log`) for
    additional details on the failure.
-3. For Symptom B, verify that the truststore referenced by `TRUSTSTORE_PATH` contains the certificate (or CA
+4. For Symptom B, verify that the truststore referenced by `TRUSTSTORE_PATH` contains the certificate (or CA
    certificate) of the remote party (for example, NiFi Registry), and update it if necessary.
-4. Restart NiFi after correcting the keystore/truststore configuration.
+5. Restart NiFi after correcting the keystore/truststore configuration.

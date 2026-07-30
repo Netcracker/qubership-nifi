@@ -103,3 +103,7 @@ docker build .
 ### User Guide
 
 [User Guide](docs/user-guide.md)
+
+### Troubleshooting Guide
+
+[Troubleshooting Guide](docs/troubleshooting-guide.md)
