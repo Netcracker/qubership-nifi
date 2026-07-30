@@ -4,13 +4,13 @@ This guide describes common startup errors in qubership-nifi, their causes and h
 
 ## Summary
 
-| Error type                    | Exit code | Description                                                       | Details                                       |
-|--------------------------------|-----------|--------------------------------------------------------------------|------------------------------------------------|
-| Invalid JVM arguments          | 3         | Incorrect set of JVM arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments)           |
-| Invalid Consul URL             | -         | `CONSUL_URL` is incorrect or Consul is not reachable, Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url)              |
-| Invalid NIFI_NEW_SENSITIVE_KEY | 3         | `NIFI_NEW_SENSITIVE_KEY` does not match the key used on previous startup. | [Invalid NIFI_NEW_SENSITIVE_KEY](#3-invalid-nifi_new_sensitive_key)  |
-| Invalid flow.json.gz           | 1         | The persisted NiFi flow configuration (`flow.json.gz`) is corrupted and cannot be parsed. | [Invalid flow.json.gz](#4-invalid-flowjsongz) |
-| Invalid Certificate            | 1 (or N/A) | Keystore/truststore configuration is incorrect (e.g. wrong password, missing or incomplete truststore). | [Invalid Certificate](#5-invalid-certificate) |
+| Error type | Exit code | Description | Details |
+| --- | --- | --- | --- |
+| Invalid JVM arguments | 3 | Incorrect set of JVM arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments) |
+| Invalid Consul URL | - | `CONSUL_URL` is incorrect or Consul is not reachable, Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url) |
+| Invalid NIFI_NEW_SENSITIVE_KEY | 3 | `NIFI_NEW_SENSITIVE_KEY` does not match the key used on previous startup. | [Invalid NIFI_NEW_SENSITIVE_KEY](#3-invalid-nifi_new_sensitive_key) |
+| Invalid flow.json.gz | 1 | The persisted NiFi flow configuration (`flow.json.gz`) is corrupted and cannot be parsed. | [Invalid flow.json.gz](#4-invalid-flowjsongz) |
+| Invalid Certificate | 1 (or N/A) | Keystore/truststore configuration is incorrect (e.g. wrong password, missing or incomplete truststore). | [Invalid Certificate](#5-invalid-certificate) |
 
 ## 1. Invalid JVM arguments
 
@@ -18,7 +18,7 @@ This guide describes common startup errors in qubership-nifi, their causes and h
 
 NiFi fails to start and the logs contain a message similar to:
 
-```
+```text
 [2026-07-29T12:47:41.000] [ERROR] [request_id=] [tenant_id=] [thread=main] [class=c.n.c.n.extensions.start.sh] ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS: -XX:+UseG1GC -XX:+UseParallelGC
 [2026-07-29T12:47:41.000] [ERROR] [request_id=] [tenant_id=] [thread=main] [class=c.n.c.n.extensions.start.sh] Picked up JAVA_TOOL_OPTIONS: -XX:+UseParallelGC
 Error occurred during initialization of VM
@@ -27,7 +27,7 @@ Multiple garbage collectors selected
 
 The generic error message pattern is:
 
-```
+```text
 ERROR: Invalid JVM arguments in <parameter name>...
 ```
 
@@ -56,7 +56,7 @@ on `NIFI_CONSUL_INT_FRAMEWORK`:
 
 - With `NIFI_CONSUL_INT_FRAMEWORK=spring`, the logs contain a Spring Boot failure analysis report similar to:
 
-  ```
+  ```text
   ***************************
   APPLICATION FAILED TO START
   ***************************
@@ -78,7 +78,7 @@ on `NIFI_CONSUL_INT_FRAMEWORK`:
 
 In both cases, the qubership-nifi startup log contains a line similar to:
 
-```
+```text
 [...] ERROR: Consul app java process has terminated prematurely. See logs for details...
 ```
 
@@ -102,7 +102,7 @@ Consul and terminates prematurely.
 
 NiFi fails to start with the following error message:
 
-```
+```text
 oldKeyHash does not match newKeyHash. Probably NIFI_NEW_SENSITIVE_KEY is different from previously used key. Check NIFI_NEW_SENSITIVE_KEY for correctness. Terminating start-up...
 ```
 
@@ -124,7 +124,7 @@ startup.
 
 NiFi fails to start, and the logs contain a startup failure similar to:
 
-```
+```text
 [...] [ERROR] [...] [class=org.apache.nifi.web.server.JettyServer] [method=startUpFailure] [...] Failed to start Server
 org.apache.nifi.controller.serialization.FlowSerializationException: Could not parse flow as a VersionedDataflow
         at org.apache.nifi.cluster.protocol.StandardDataFlow.parseVersionedDataflow(StandardDataFlow.java:166)
@@ -167,7 +167,7 @@ This section covers two known variants of certificate-related failures.
 NiFi fails to start, but the startup log does not contain a clear error message describing the cause. Only NAR
 loading messages are printed, followed by a crash dump notice, for example:
 
-```
+```text
 [2026-07-30T13:00:17.009][INFO ] [...] [class=org.apache.nifi.nar.NarClassLoaders] [method=createNarClassLoader] [...] Loaded NAR file: /opt/nifi/nifi-current/./work/nar/extensions/nifi-dropbox-processors-nar-2.9.0.nar-unpacked as class loader org.apache.nifi.nar.NarClassLoader[./work/nar/extensions/nifi-dropbox-processors-nar-2.9.0.nar-unpacked]
 [2026-07-30T13:00:17.030][INFO ] [...] [class=org.apache.nifi.nar.NarClassLoaders] [method=createNarClassLoader] [...] Loaded NAR file: /opt/nifi/nifi-current/./work/nar/extensions/nifi-dropbox-services-nar-2.9.0.nar-unpacked as class loader org.apache.nifi.nar.NarClassLoader[./work/nar/extensions/nifi-dropbox-services-nar-2.9.0.nar-unpacked]
 start to send crash dump
@@ -184,7 +184,7 @@ produce a clear Java-level error message in the main startup log, only a crash d
 NiFi starts successfully, but the logs contain an `SSLHandshakeException` when NiFi tries to establish a TLS
 connection to another party (for example, when synchronizing a process group with NiFi Registry), such as:
 
-```
+```text
 [...] [ERROR] [...] [class=org.apache.nifi.groups.StandardProcessGroup] [method=synchronizeWithFlowRegistry] [...] Failed to synchronize StandardProcessGroup[...] with Flow Registry because could not retrieve version 4 of flow with identifier ... in bucket ...
 javax.net.ssl.SSLHandshakeException: (certificate_unknown) PKIX path validation failed: java.security.cert.CertPathValidatorException: Path does not chain with any of the trust anchors
         ...
