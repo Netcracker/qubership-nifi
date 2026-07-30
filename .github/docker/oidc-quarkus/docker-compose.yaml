@@ -56,6 +56,7 @@ services:
       - NIFI_KEY_PASSWORD_PATH=/tmp/cert-pwd/keystore-nifi.pass
       - NIFI_KEYSTORE_PASSWORD_PATH=/tmp/cert-pwd/keystore-nifi.pass
       - NIFI_TRUSTSTORE_PASSWORD_PATH=/tmp/cert-pwd/truststore.pass
+      - NIFI_SENSITIVE_KEY_PATH=/tmp/nifi-sens-key/key
     container_name: local-nifi
     restart: unless-stopped
     hostname: nifi
