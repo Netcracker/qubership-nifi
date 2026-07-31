@@ -20,7 +20,7 @@ runs:
         echo "Original run-mode = $origRunMode, modified run mode = $newRunMode"
         #setup_env_before_tests is called with copyTestNARs = false,
         #because test NARs are compiled for current (2.x) version
-        #and 1.x version won't able to use them
+        #and the 1.x version will not be able to use them
         setup_env_before_tests "$newRunMode" "false"
         #prepare both new run mode and original run mode, only the latter must be used
         prepare_results_dir "$origRunMode"
