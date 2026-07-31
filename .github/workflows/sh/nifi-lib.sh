@@ -449,6 +449,11 @@ prepare_zookeeper_configuration() {
 
 setup_env_before_tests() {
     local runMode="$1"
+    local copyTestNARs="$2"
+    if [ -z "$copyTestNARs" ]; then
+        #by default, copy test NARs:
+        copyTestNARs="true"
+    fi
     #generic case:
     prepare_sens_key
     prepare_results_dir "$runMode"
@@ -494,13 +499,17 @@ setup_env_before_tests() {
     else
         mkdir -p ./temp-vol/nifi/per-conf/
         mkdir -p ./temp-vol/nifi/extensions/
-        if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
-        -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
-            echo "Copying test NARs to extensions directory"
-            cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
-                ./temp-vol/nifi/extensions/
+        if [ "$copyTestNARs" == "true" ]; then
+            if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
+            -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
+                echo "Copying test NARs to extensions directory"
+                cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
+                    ./temp-vol/nifi/extensions/
+            else
+                echo "Test NARs not found, skipping copy to extensions directory"
+            fi
         else
-            echo "Test NARs not found, skipping copy to extensions directory"
+            echo "Test NARs copying to extensions directory is disabled. copyTestNARs = $copyTestNARs"
         fi
     fi
     chmod -R 777 ./temp-vol

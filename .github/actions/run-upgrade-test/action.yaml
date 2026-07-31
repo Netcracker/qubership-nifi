@@ -18,7 +18,10 @@ runs:
         origRunMode="${RUN_MODE}"
         newRunMode="${origRunMode/upgrade-/}"
         echo "Original run-mode = $origRunMode, modified run mode = $newRunMode"
-        setup_env_before_tests "$newRunMode"
+        #setup_env_before_tests is called with copyTestNARs = false,
+        #because test NARs are compiled for current (2.x) version
+        #and 1.x version won't able to use them
+        setup_env_before_tests "$newRunMode" "false"
         #prepare both new run mode and original run mode, only the latter must be used
         prepare_results_dir "$origRunMode"
         echo "RUN_MODE=$newRunMode" >> $GITHUB_OUTPUT
@@ -27,9 +30,6 @@ runs:
     - name:  Run local nifi with 1.x version
       shell: bash
       run: |
-        echo "Backup extensions for 2.x"
-        mv ./temp-vol/nifi/extensions/ ./temp-vol/nifi/extensions_bk
-        mkdir -p ./temp-vol/nifi/extensions/
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         export NIFI_IMAGE="ghcr.io/netcracker/qubership-nifi"
@@ -93,9 +93,6 @@ runs:
     - name: Run local nifi 2.x
       shell: bash
       run: |
-        echo "Restore extensions for 2.x"
-        rm -rf ./temp-vol/nifi/extensions/
-        mv ./temp-vol/nifi/extensions_bk ./temp-vol/nifi/extensions
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env up -d
