@@ -1,0 +1,169 @@
+/*
+ * Copyright 2020-2025 NetCracker Technology Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.qubership.nifi.tools.kb.docs;
+
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
+
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Converts a sanitized HTML content element to Markdown, preserving headings, paragraphs, lists,
+ * tables, block quotes, links, inline code, and code blocks in source order. Images are omitted and
+ * their sources are never requested. Unsafe link schemes are dropped to plain text. Output uses LF
+ * line endings.
+ */
+public final class HtmlToMarkdown {
+
+    private static final Set<String> UNSAFE_SCHEMES = Set.of("javascript", "data", "vbscript", "file");
+    private static final int MAX_HEADING_LEVEL = 6;
+
+    /**
+     * Converts the given content element to Markdown.
+     *
+     * @param root the content root element
+     * @return the Markdown text
+     */
+    public String convert(final Element root) {
+        final StringBuilder out = new StringBuilder();
+        convertBlockChildren(root, out);
+        return out.toString().replaceAll("\n{3,}", "\n\n").strip() + "\n";
+    }
+
+    private void convertBlockChildren(final Element parent, final StringBuilder out) {
+        for (final Node node : parent.childNodes()) {
+            if (node instanceof Element element) {
+                convertBlock(element, out);
+            } else if (node instanceof TextNode textNode && !textNode.isBlank()) {
+                out.append(textNode.text().strip()).append("\n\n");
+            }
+        }
+    }
+
+    private void convertBlock(final Element element, final StringBuilder out) {
+        final String tag = element.tagName().toLowerCase(Locale.ROOT);
+        switch (tag) {
+            case "h1", "h2", "h3", "h4", "h5", "h6" -> {
+                final int level = Math.min(tag.charAt(1) - '0', MAX_HEADING_LEVEL);
+                out.append("#".repeat(level)).append(' ').append(inline(element).strip()).append("\n\n");
+            }
+            case "p" -> appendParagraph(element, out);
+            case "ul" -> appendList(element, out, false);
+            case "ol" -> appendList(element, out, true);
+            case "pre" -> out.append("```\n").append(element.wholeText().stripTrailing()).append("\n```\n\n");
+            case "blockquote" -> appendBlockquote(element, out);
+            case "table" -> appendTable(element, out);
+            case "img" -> { }
+            case "div", "section", "article", "main", "span" -> convertBlockChildren(element, out);
+            default -> appendParagraph(element, out);
+        }
+    }
+
+    private void appendParagraph(final Element element, final StringBuilder out) {
+        final String text = inline(element).strip();
+        if (!text.isEmpty()) {
+            out.append(text).append("\n\n");
+        }
+    }
+
+    private void appendBlockquote(final Element element, final StringBuilder out) {
+        final String text = inline(element).strip();
+        if (!text.isEmpty()) {
+            out.append("> ").append(text.replace("\n", "\n> ")).append("\n\n");
+        }
+    }
+
+    private void appendList(final Element list, final StringBuilder out, final boolean ordered) {
+        int index = 1;
+        for (final Element item : list.children()) {
+            if (!"li".equalsIgnoreCase(item.tagName())) {
+                continue;
+            }
+            final String marker = ordered ? (index + ". ") : "- ";
+            out.append(marker).append(inline(item).strip()).append('\n');
+            index++;
+        }
+        out.append('\n');
+    }
+
+    private void appendTable(final Element table, final StringBuilder out) {
+        final var rows = table.select("tr");
+        if (rows.isEmpty()) {
+            return;
+        }
+        boolean headerWritten = false;
+        for (final Element row : rows) {
+            final var cells = row.select("th, td");
+            if (cells.isEmpty()) {
+                continue;
+            }
+            out.append("| ");
+            for (final Element cell : cells) {
+                out.append(inline(cell).replace("\n", " ").replace("|", "\\|").strip()).append(" | ");
+            }
+            out.append('\n');
+            if (!headerWritten) {
+                out.append("|");
+                out.append(" --- |".repeat(cells.size()));
+                out.append('\n');
+                headerWritten = true;
+            }
+        }
+        out.append('\n');
+    }
+
+    private String inline(final Element element) {
+        final StringBuilder sb = new StringBuilder();
+        for (final Node node : element.childNodes()) {
+            appendInlineNode(node, sb);
+        }
+        return sb.toString();
+    }
+
+    private void appendInlineNode(final Node node, final StringBuilder sb) {
+        if (node instanceof TextNode textNode) {
+            sb.append(textNode.text());
+            return;
+        }
+        if (!(node instanceof Element element)) {
+            return;
+        }
+        final String tag = element.tagName().toLowerCase(Locale.ROOT);
+        switch (tag) {
+            case "a" -> appendLink(element, sb);
+            case "code" -> sb.append('`').append(element.text()).append('`');
+            case "strong", "b" -> sb.append("**").append(inline(element)).append("**");
+            case "em", "i" -> sb.append('*').append(inline(element)).append('*');
+            case "br" -> sb.append('\n');
+            case "img" -> { }
+            default -> sb.append(inline(element));
+        }
+    }
+
+    private void appendLink(final Element anchor, final StringBuilder sb) {
+        final String text = inline(anchor).strip();
+        if (text.isEmpty()) {
+            // Drop empty anchors such as the self-links Asciidoctor emits before each heading;
+            // they carry no readable content and would otherwise corrupt the surrounding text.
+            return;
+        }
+        //append only link text:
+        sb.append(text);
+    }
+}

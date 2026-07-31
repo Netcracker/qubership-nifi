@@ -1,0 +1,130 @@
+/*
+ * Copyright 2020-2025 NetCracker Technology Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.qubership.nifi.tools.kb.output;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
+import org.qubership.nifi.tools.kb.model.ComponentIdentity;
+import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.GuideDocument;
+import org.qubership.nifi.tools.kb.model.GuideMode;
+import org.qubership.nifi.tools.kb.model.GuideType;
+import org.qubership.nifi.tools.kb.model.KnowledgeBase;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseProvenance;
+import org.qubership.nifi.tools.kb.model.GuidesResult;
+import org.qubership.nifi.tools.kb.render.JsonOutput;
+import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+class KnowledgeBaseWriterTest {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @TempDir
+    private Path temp;
+
+    private ComponentRecord processor(final boolean withDetails) {
+        final ObjectNode documented = MAPPER.createObjectNode();
+        documented.put("type", "org.apache.nifi.GenerateFlowFile");
+        documented.putObject("bundle").put("group", "org.apache.nifi")
+                .put("artifact", "nifi-standard-nar").put("version", "2.5.0");
+        documented.put("description", "Generates FlowFiles");
+        documented.putArray("tags").add("test").add("generate");
+
+        final ObjectNode definition = MAPPER.createObjectNode();
+        definition.put("type", "org.apache.nifi.GenerateFlowFile");
+        definition.put("additionalDetails", withDetails);
+        definition.putObject("propertyDescriptors").putObject("Batch Size")
+                .put("name", "Batch Size").put("required", true).put("sensitive", false)
+                .put("expressionLanguageScope", "NONE").put("defaultValue", "1");
+
+        final ComponentIdentity identity = new ComponentIdentity(NiFiComponentKind.PROCESSOR,
+                "org.apache.nifi", "nifi-standard-nar", "2.5.0", "org.apache.nifi.GenerateFlowFile");
+        final AdditionalDocumentationState state = withDetails
+                ? AdditionalDocumentationState.advertisedAvailable()
+                : AdditionalDocumentationState.notAdvertised();
+        return new ComponentRecord(identity, documented, definition, state,
+                withDetails ? "# GenerateFlowFile\nVerbatim details.\n" : null);
+    }
+
+    @Test
+    void writesAndValidatesSkipModeKnowledgeBase() {
+        final GuidesResult guides = new GuidesResult(GuideMode.SKIP, List.of());
+        final KnowledgeBase kb = new KnowledgeBase(
+                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
+                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
+                List.of(processor(true)), guides);
+
+        new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
+        assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
+
+        assertThat(Files.exists(temp.resolve("manifest.json"))).isTrue();
+        assertThat(Files.exists(temp.resolve("guides"))).isFalse();
+        assertThat(Files.exists(temp.resolve("README.md"))).isFalse();
+    }
+
+    @Test
+    void componentJsonHasExactlyThreeTopLevelObjects() throws Exception {
+        final KnowledgeBase kb = new KnowledgeBase(
+                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
+                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
+                List.of(processor(true)), new GuidesResult(GuideMode.SKIP, List.of()));
+        new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
+
+        final Path componentJson;
+        try (var stream = Files.walk(temp)) {
+            componentJson = stream.filter(p -> p.getFileName().toString().equals("component.json"))
+                    .findFirst().orElseThrow();
+        }
+        final JsonNode record = MAPPER.readTree(Files.readAllBytes(componentJson));
+        assertThat(record.fieldNames()).toIterable()
+                .containsExactlyInAnyOrder("documentedType", "definition", "additionalDocumentation");
+        assertThat(record.path("additionalDocumentation").path("available").asBoolean()).isTrue();
+        assertThat(Files.exists(componentJson.resolveSibling("additionalDetails.md"))).isTrue();
+    }
+
+    @Test
+    void writesAndValidatesRequiredGuideMode() {
+        final GuidesResult guides = new GuidesResult(GuideMode.REQUIRED, List.of(
+                new GuideDocument(GuideType.EXPRESSION_LANGUAGE, "# EL\n", "https://nifi.example.com/x",
+                        "text/html", List.of()),
+                new GuideDocument(GuideType.RECORD_PATH, "# RP\n", "https://nifi.example.com/y",
+                        "text/html", List.of()),
+                new GuideDocument(GuideType.DEVELOPER, "# Dev\n", "https://nifi.example.com/z",
+                        "text/html", List.of("NiFi Components"))));
+        final KnowledgeBase kb = new KnowledgeBase(
+                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
+                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
+                List.of(processor(true)), guides);
+
+        new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
+        assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
+        assertThat(Files.exists(temp.resolve("guides/index.json"))).isTrue();
+        assertThat(Files.exists(temp.resolve("guides/developer-guide.md"))).isTrue();
+    }
+}

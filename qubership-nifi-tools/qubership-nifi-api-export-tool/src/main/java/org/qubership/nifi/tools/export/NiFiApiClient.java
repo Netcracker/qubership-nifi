@@ -18,41 +18,48 @@ package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.qubership.nifi.tools.nifi.common.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.NiFiHttpResponse;
+import org.qubership.nifi.tools.nifi.common.NiFiRequestAuthenticator;
+import org.qubership.nifi.tools.nifi.common.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.NiFiUriResolver;
+import org.qubership.nifi.tools.nifi.common.Pkcs12TrustMaterial;
+import org.qubership.nifi.tools.nifi.common.TlsContextFactory;
+import org.qubership.nifi.tools.nifi.common.TrustMaterial;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.ByteArrayInputStream;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
-import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
- * HTTP client for NiFi REST API. Handles authentication and JSON requests.
+ * HTTP client for the NiFi REST API. It delegates transport, TLS, and JSON handling to the shared
+ * {@code qubership-nifi-tools-nifi-common} library while preserving this tool's username/password
+ * token acquisition and its GET/POST/DELETE surface.
  */
 public class NiFiApiClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(NiFiApiClient.class);
 
-    private static final int HTTP_OK = 200;
-    private static final int HTTP_CREATED = 201;
+    private static final int CONNECT_TIMEOUT_SECONDS = 30;
+    private static final String TOKEN_PATH = "/nifi-api/access/token";
 
-    private final String baseUrl;
     private final String username;
     private final String password;
-    private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper();
-
-    private String bearerToken;
+    private final NiFiUriResolver resolver;
+    private final NiFiHttpClient httpClient;
+    private final NiFiRestClient restClient;
+    private final MutableBearerAuthenticator authenticator = new MutableBearerAuthenticator();
 
     /**
-     * Creates a new NiFiApiClient for the given NiFi instance.
+     * Creates a new client that trusts the certificates in the supplied container truststore.
      *
      * @param url            the base URL of the NiFi instance
      * @param user           the username for authentication
@@ -62,32 +69,33 @@ public class NiFiApiClient {
      */
     public NiFiApiClient(final String url, final String user, final String pass,
                          final NiFiContainerManager.TruststoreData truststoreData) throws Exception {
-        this.baseUrl = url;
         this.username = user;
         this.password = pass;
-        this.httpClient = buildTruststoreHttpClient(truststoreData);
+        this.resolver = NiFiUriResolver.fromBaseUrl(url, false);
+        final HttpClient jdkClient = buildTruststoreHttpClient(truststoreData);
+        this.httpClient = new NiFiHttpClient(jdkClient, resolver, authenticator);
+        this.restClient = new NiFiRestClient(httpClient, mapper);
     }
 
     NiFiApiClient(final String url, final String user, final String pass,
                   final HttpClient client) {
-        this.baseUrl = url;
         this.username = user;
         this.password = pass;
-        this.httpClient = client;
+        this.resolver = NiFiUriResolver.fromBaseUrl(url, false);
+        this.httpClient = new NiFiHttpClient(client, resolver, authenticator);
+        this.restClient = new NiFiRestClient(httpClient, mapper);
     }
 
-    private HttpClient buildTruststoreHttpClient(
-            final NiFiContainerManager.TruststoreData ts) throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        keyStore.load(new ByteArrayInputStream(ts.getBytes()), ts.getPassword().toCharArray());
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance(
-                TrustManagerFactory.getDefaultAlgorithm());
-        tmf.init(keyStore);
-        SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, tmf.getTrustManagers(), new SecureRandom());
-        return HttpClient.newBuilder()
-                .sslContext(sslContext)
-                .build();
+    private static HttpClient buildTruststoreHttpClient(
+            final NiFiContainerManager.TruststoreData ts) {
+        final char[] storePassword = ts.getPassword().toCharArray();
+        try {
+            final TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(ts.getBytes(), storePassword);
+            final SSLContext sslContext = TlsContextFactory.create(Optional.empty(), Optional.of(trust));
+            return NiFiHttpClient.newHttpClient(sslContext, Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
+        } finally {
+            Arrays.fill(storePassword, '\0');
+        }
     }
 
     /**
@@ -96,21 +104,14 @@ public class NiFiApiClient {
      * @throws Exception if the HTTP request fails or authentication is rejected
      */
     public void authenticate() throws Exception {
-        String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
+        final String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
                 + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + "/nifi-api/access/token"))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != HTTP_CREATED && response.statusCode() != HTTP_OK) {
-            throw new RuntimeException(
-                    "Authentication failed with status " + response.statusCode() + ": " + response.body());
+        final NiFiHttpResponse response = httpClient.post(resolver.resolve(TOKEN_PATH), body,
+                "application/x-www-form-urlencoded", "text/plain");
+        if (!response.isSuccess()) {
+            throw new RuntimeException("Authentication failed with status " + response.statusCode());
         }
-        bearerToken = response.body().trim();
+        authenticator.setToken(response.bodyAsText().trim());
         LOG.info("Authentication successful");
     }
 
@@ -119,22 +120,10 @@ public class NiFiApiClient {
      *
      * @param path the API path (relative to base URL)
      * @return the parsed JSON response
-     * @throws Exception if the HTTP request fails or the response status is not 200
+     * @throws Exception if the HTTP request fails or the response status is not 2xx
      */
     public JsonNode get(final String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
-                .header("Authorization", "Bearer " + bearerToken)
-                .header("Accept", "application/json")
-                .GET()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != HTTP_OK) {
-            throw new RuntimeException(
-                    "GET " + path + " failed with status " + response.statusCode() + ": " + response.body());
-        }
-        return mapper.readTree(response.body());
+        return restClient.getJson(resolver.resolve(path));
     }
 
     /**
@@ -143,23 +132,10 @@ public class NiFiApiClient {
      * @param path     the API path (relative to base URL)
      * @param jsonBody the JSON request body
      * @return the parsed JSON response
-     * @throws Exception if the HTTP request fails or the response status is not 200/201
+     * @throws Exception if the HTTP request fails or the response status is not 2xx
      */
     public JsonNode post(final String path, final String jsonBody) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
-                .header("Authorization", "Bearer " + bearerToken)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != HTTP_OK && response.statusCode() != HTTP_CREATED) {
-            throw new RuntimeException(
-                    "POST " + path + " failed with status " + response.statusCode() + ": " + response.body());
-        }
-        return mapper.readTree(response.body());
+        return restClient.postJson(resolver.resolve(path), jsonBody);
     }
 
     /**
@@ -169,15 +145,30 @@ public class NiFiApiClient {
      * @throws Exception if the HTTP request fails
      */
     public void delete(final String path) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
-                .header("Authorization", "Bearer " + bearerToken)
-                .DELETE()
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() != HTTP_OK) {
+        final NiFiHttpResponse response = httpClient.delete(resolver.resolve(path));
+        if (!response.isSuccess()) {
             LOG.warn("DELETE {} returned status {}", path, response.statusCode());
+        }
+    }
+
+    /**
+     * A bearer authenticator whose token is populated after the username/password exchange. It
+     * applies the {@code Authorization} header only once a token is available.
+     */
+    private static final class MutableBearerAuthenticator implements NiFiRequestAuthenticator {
+
+        private volatile String token;
+
+        void setToken(final String accessToken) {
+            this.token = accessToken;
+        }
+
+        @Override
+        public void apply(final HttpRequest.Builder builder) {
+            final String current = token;
+            if (current != null && !current.isBlank()) {
+                builder.header("Authorization", "Bearer " + current);
+            }
         }
     }
 }
