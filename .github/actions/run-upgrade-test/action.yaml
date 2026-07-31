@@ -25,6 +25,9 @@ runs:
     - name:  Run local nifi with 1.x version
       shell: bash
       run: |
+        echo "Backup extensions for 2.x"
+        mv ./temp-vol/nifi/extensions/ ./temp-vol/nifi/extensions_bk
+        mkdir -p ./temp-vol/nifi/extensions/
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         export NIFI_IMAGE="ghcr.io/netcracker/qubership-nifi"
@@ -79,6 +82,9 @@ runs:
     - name: Run local nifi 2.x
       shell: bash
       run: |
+        echo "Restore extensions for 2.x"
+        rm -rf ./temp-vol/nifi/extensions/
+        mv ./temp-vol/nifi/extensions_bk ./temp-vol/nifi/extensions
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
         docker compose -f .github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml --env-file ./docker.env up -d

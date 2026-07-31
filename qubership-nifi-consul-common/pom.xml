@@ -15,6 +15,13 @@
         The qubership-nifi-consul-common module provides common utility classes and services for integrating Apache NiFi with Consul.
     </description>
 
+    <properties>
+        <!--Keep 21 for backward compatibility-->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+
     <dependencies>
         <!--EXTERNAL-->
         <!--slf4j will be provided by spring/quarkus applications using this library-->

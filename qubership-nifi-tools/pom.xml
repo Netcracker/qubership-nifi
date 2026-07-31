@@ -35,6 +35,7 @@
         <!--All tools should be compatible with 21-->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <jetty.version>12.1.5</jetty.version>
         <maven-plugin-api.version>3.9.14</maven-plugin-api.version>
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
