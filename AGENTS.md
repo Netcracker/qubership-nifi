@@ -21,7 +21,7 @@ mvn test -pl qubership-nifi-docs-generator
 docker build .
 ```
 
-Prerequisites: JDK 21, Maven 3.x, Docker.
+Prerequisites: JDK 25, Maven 3.x, Docker.
 
 Integration tests use Testcontainers and require Docker.
 The `TEST_DOCKER_URL` environment variable can override the Docker host.

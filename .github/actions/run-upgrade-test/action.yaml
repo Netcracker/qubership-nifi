@@ -15,13 +15,18 @@ runs:
       run: |
         echo "Preparing env..."
         . .github/workflows/sh/nifi-lib.sh
-        origRunMode="${{ inputs.run-mode }}"
+        origRunMode="${RUN_MODE}"
         newRunMode="${origRunMode/upgrade-/}"
         echo "Original run-mode = $origRunMode, modified run mode = $newRunMode"
-        setup_env_before_tests "$newRunMode"
+        #setup_env_before_tests is called with copyTestNARs = false,
+        #because test NARs are compiled for current (2.x) version
+        #and the 1.x version will not be able to use them
+        setup_env_before_tests "$newRunMode" "false"
         #prepare both new run mode and original run mode, only the latter must be used
         prepare_results_dir "$origRunMode"
         echo "RUN_MODE=$newRunMode" >> $GITHUB_OUTPUT
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name:  Run local nifi with 1.x version
       shell: bash
       run: |
@@ -29,16 +34,21 @@ runs:
         echo "Starting containers..."
         export NIFI_IMAGE="ghcr.io/netcracker/qubership-nifi"
         export NIFI_IMAGE_TAG="1.0.6"
-        docker compose -f .github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml --env-file ./docker.env up -d
+        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env up -d
+      env:
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Wait for nifi container to start (TLS)
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
+        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RUN_MODE}" \
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
           "$NIFI_CLIENT_PASSWORD"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Run collection for setup policies
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -69,28 +79,37 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        get_flow_json_version ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml"
+        get_flow_json_version ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml"
+      env:
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Stop local nifi
       shell: bash
       continue-on-error: true
       run: |
         echo "Stop local nifi..."
-        docker compose -f .github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml --env-file ./docker.env rm -f nifi
+        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env rm -f nifi
+      env:
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Run local nifi 2.x
       shell: bash
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Starting containers..."
-        docker compose -f .github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml --env-file ./docker.env up -d
+        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env up -d
+      env:
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Wait for nifi container restart (TLS)
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml" "${{ inputs.run-mode }}" \
+        wait_nifi_container "15" "150" "localhost" "8080" "true" ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RUN_MODE}" \
           "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
           "$NIFI_CLIENT_PASSWORD"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Run E2E upgrade test
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -117,16 +136,21 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Restarting containers..."
-        docker compose -f .github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml --env-file ./docker.env restart nifi
+        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env restart nifi
+      env:
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Wait for nifi container to start
       shell: bash
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-        wait_nifi_container "15" "60" "localhost" "8080" "true" ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml" "${{ inputs.results-dir }}" \
+        wait_nifi_container "15" "60" "localhost" "8080" "true" ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RUN_MODE}" \
         "./temp-vol/tls-cert/nifi/nifi-cert.pem" "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
         "$NIFI_CLIENT_PASSWORD"
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
+        BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
     - name: Run E2E restore test
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
