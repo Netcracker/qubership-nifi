@@ -168,15 +168,17 @@ class RedisBulkDistributedMapCacheClientServiceMockTest {
             }
             RedisScriptingCommands scriptingCommands = mock(RedisScriptingCommands.class);
             when(scriptingCommands.scriptLoad(any(byte[].class))).thenReturn("12345");
+            //the last argument of evalSha is a vararg, so it is matched as a whole array:
+            //since Mockito 5 any() matches a single vararg element, not an array of any length
             //NonTransientDataAccessException case:
-            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(1), any())).
+            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(1), any(byte[][].class))).
                     thenThrow(new RedisSystemException("Test error",
                             new RedisSystemException("Test nested error", null)));
             //TransientDataAccessException case:
-            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(2), any())).
+            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(2), any(byte[][].class))).
                     thenThrow(new TransientDataAccessResourceException("Test error"));
             //null message case:
-            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(3), any())).
+            when(scriptingCommands.evalSha(any(byte[].class), eq(MULTI), eq(3), any(byte[][].class))).
                     thenThrow(new DuplicateKeyException(null));
             when(conn.scriptingCommands()).thenReturn(scriptingCommands);
 
