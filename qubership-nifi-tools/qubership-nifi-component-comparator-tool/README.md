@@ -15,7 +15,7 @@ The qubership-nifi-component-comparator-tool produces six files:
 
 ## Prerequisites
 
-- JDK 17 or 21
+- JDK 21+
 - Maven 3.x
 
 ## Usage

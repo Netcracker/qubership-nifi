@@ -14,7 +14,7 @@ only significant changes remain in the diff.
 
 ## Prerequisites
 
-- Java - JDK 21
+- Java - JDK 21+
 - Maven - Maven 3.x
 
 ## Comparison logic

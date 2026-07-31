@@ -72,7 +72,7 @@ including shared libraries and integration-test modules.
 
 Build process requires the following tools:
 
-- Java - JDK 21
+- Java - JDK 25
 - Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
 - Docker - any version of Docker Engine or any compatible Docker container runtime.
 

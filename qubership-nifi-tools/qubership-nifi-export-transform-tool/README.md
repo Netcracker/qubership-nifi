@@ -13,7 +13,7 @@ as separate files in version control instead of embedding them inside the flow J
 
 ## Prerequisites
 
-- Java - JDK 21
+- Java - JDK 21+
 - Maven - Maven 3.x
 
 ## Usage

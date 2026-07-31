@@ -4,6 +4,11 @@ Aggregator module for the tooling that automates NiFi-related activities: genera
 exporting and comparing component APIs, transforming flow exports, and classifying flow differences.
 Each tool ships as its own child module; follow the links below for usage details.
 
+## Prerequisites
+
+- JDK 21+
+- Maven 3.x
+
 ## Child modules
 
 | Module                                                                                           | Description                                                                                                                                                                              |
