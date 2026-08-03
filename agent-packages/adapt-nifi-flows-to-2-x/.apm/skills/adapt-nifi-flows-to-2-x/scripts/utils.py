@@ -9,20 +9,34 @@ import re
 import uuid
 from pathlib import Path
 
+from json_format import JsonFormat, detect_format, dumps
+
 
 # ---------------------------------------------------------------------------
 # I/O helpers
 # ---------------------------------------------------------------------------
 
 
+# Formatting seen by load_json, keyed by resolved path, so that save_json can
+# write a file back the way it arrived. Never invalidated: these are one-shot
+# CLI scripts, and every save_json is preceded by a load_json of the same path.
+_FORMAT_CACHE: dict[Path, JsonFormat] = {}
+
+
 def load_json(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
-        return json.load(f)
+        content = f.read()
+    fmt = detect_format(content)
+    _FORMAT_CACHE[Path(path).resolve()] = fmt
+    for warning in fmt.warnings:
+        print(f"[WARN] {path}: {warning}")
+    return json.loads(content)
 
 
 def save_json(path: Path, data: dict) -> None:
+    fmt = _FORMAT_CACHE.get(Path(path).resolve(), JsonFormat.defaults())
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+        f.write(dumps(data, fmt))
     print(f"  [wrote] {path}")
 
 

@@ -53,7 +53,7 @@ class ExportTransformIT {
         // --- Step 1: Extract ---
         List<String> extractCommand = List.of(
                 mvn,
-                "org.qubership.nifi:qubership-nifi-export-transform-tool:" + pluginVersion + ":extract",
+                "org.qubership.nifi.plugins:qubership-nifi-export-transform-tool:" + pluginVersion + ":extract",
                 "-Dconfig=" + configTarget.toAbsolutePath(),
                 "-Dexport-dir=" + flowDirTarget.toAbsolutePath()
         );
@@ -94,7 +94,7 @@ class ExportTransformIT {
         // --- Step 2: Build ---
         List<String> buildCommand = List.of(
                 mvn,
-                "org.qubership.nifi:qubership-nifi-export-transform-tool:" + pluginVersion + ":build",
+                "org.qubership.nifi.plugins:qubership-nifi-export-transform-tool:" + pluginVersion + ":build",
                 "-Dconfig=" + configTarget.toAbsolutePath(),
                 "-Dexport-dir=" + flowDirTarget.toAbsolutePath()
         );

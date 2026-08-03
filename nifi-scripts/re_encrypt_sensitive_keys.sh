@@ -17,8 +17,21 @@
 . /opt/nifi/scripts/logging_api.sh
 
 info "re_encrypt_sensitive_keys.sh start"
+### fetch sensitive key from file
+if [[ -z "$NIFI_NEW_SENSITIVE_KEY" ]]; then
+    if [[ -n "$NIFI_SENSITIVE_KEY_PATH" ]]; then
+        if [[ -f "$NIFI_SENSITIVE_KEY_PATH" ]]; then
+            info "Found sensitive key file $NIFI_SENSITIVE_KEY_PATH, fetching data"
+            NIFI_NEW_SENSITIVE_KEY=$(cat "$NIFI_SENSITIVE_KEY_PATH")
+        else
+            warn "NIFI_NEW_SENSITIVE_KEY is not set and sensitive key file $NIFI_SENSITIVE_KEY_PATH does not exist"
+        fi
+    else
+        warn "Neither NIFI_NEW_SENSITIVE_KEY nor NIFI_SENSITIVE_KEY_PATH is set"
+    fi
+fi
 if [ -z "${NIFI_NEW_SENSITIVE_KEY}" ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = '<empty>' ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = "" ]; then
-    error "NIFI_NEW_SENSITIVE_KEY cannot be empty. Terminating start-up..."
+    error "Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH must be non-empty. Terminating start-up..."
     sleep 10
     exit 3
 fi

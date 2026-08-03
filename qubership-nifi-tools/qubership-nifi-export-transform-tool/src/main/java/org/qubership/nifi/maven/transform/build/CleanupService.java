@@ -6,6 +6,7 @@ import org.qubership.nifi.maven.transform.io.FileSystemService;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -33,20 +34,29 @@ public class CleanupService {
     }
 
     /**
-     * Finds and deletes all flowConf_* directories in the given export directory.
+     * Finds and deletes all flowConf_* directories in the given export directory,
+     * at any nesting depth. flowConf_* directories are created next to the flow file
+     * they belong to, and flow files may be nested arbitrarily deep under exportDir.
+     *
+     * The matching directories are collected into a list before any deletion happens,
+     * because deleting a directory while Files.walk is still lazily descending into it
+     * would make the walk fail trying to list an already-removed directory.
      *
      * @param exportDir root directory containing exported flow files
      */
     public void cleanup(Path exportDir) {
-        try (Stream<Path> stream = Files.walk(exportDir, 1)) {
-            stream
+        List<Path> flowConfDirs;
+        try (Stream<Path> stream = Files.walk(exportDir)) {
+            flowConfDirs = stream
                 .filter(path -> !path.equals(exportDir))
                 .filter(Files::isDirectory)
                 .filter(path -> path.getFileName().toString().startsWith(FLOW_CONF_PREFIX))
-                .forEach(this::deleteDirectory);
+                .toList();
         } catch (IOException e) {
             log.warn("Failed to scan export directory for cleanup: " + e.getMessage());
+            return;
         }
+        flowConfDirs.forEach(this::deleteDirectory);
     }
 
 

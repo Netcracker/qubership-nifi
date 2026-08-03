@@ -133,7 +133,7 @@ class EnrichSpecificationTest {
     void enrichNiFiAddsTagsWhenMissing() throws IOException {
         JsonNode result = enrich("spec-no-servers.json");
         assertTrue(result.path("tags").isArray());
-        assertEquals(28, result.path("tags").size());
+        assertEquals(29, result.path("tags").size());
     }
 
     @Test

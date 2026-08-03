@@ -847,6 +847,76 @@ def fix_type_rename(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[st
     return applied, manual
 
 
+# ---------------------------------------------------------------------------
+# Event Driven scheduling strategy
+# ---------------------------------------------------------------------------
+
+# Apache NiFi 2.x removed EVENT_DRIVEN. TIMER_DRIVEN is the closest equivalent, as long as
+# schedulingPeriod is zero: the processor then runs whenever work is available, which is the
+# nearest match to being triggered by every incoming FlowFile.
+EVENT_DRIVEN_REPLACEMENT_STRATEGY = "TIMER_DRIVEN"
+
+# EVENT_DRIVEN ignored schedulingPeriod, so a flow can carry any leftover value from before the
+# strategy was switched. TIMER_DRIVEN honors it, and a stale "30 sec" would silently throttle the
+# processor, so a non-zero period is reset to this and flagged for the user to review.
+EVENT_DRIVEN_REPLACEMENT_PERIOD = "0 sec"
+
+# Period values NiFi treats as zero: "0 sec", "0 secs", "0 s", "00 millis", a bare "0".
+ZERO_PERIOD_RE = re.compile(r"^\s*0+\s*[a-z]*\s*$", re.IGNORECASE)
+
+# An EVENT_DRIVEN processor may have concurrentlySchedulableTaskCount = 0 or any value
+# above 0. TIMER_DRIVEN does not support 0, so only a 0 is replaced with this value and
+# flagged for the user to review; every other count carries over unchanged.
+EVENT_DRIVEN_DEFAULT_TASK_COUNT = 4
+
+
+def fix_event_driven_scheduling(proc: dict, pg: dict, row: dict) -> tuple[list[str], list[str]]:
+    """
+    Switch a processor from EVENT_DRIVEN to TIMER_DRIVEN scheduling.
+    Returns (applied_messages, manual_messages).
+    """
+    applied = []
+    manual = []
+    proc_label = f"{proc.get('name', '?')} ({proc.get('identifier', '?')})"
+
+    if proc.get("schedulingStrategy") != "EVENT_DRIVEN":
+        return applied, manual
+
+    proc["schedulingStrategy"] = EVENT_DRIVEN_REPLACEMENT_STRATEGY
+    message = (
+        f"[FIXED] {proc_label}  -- schedulingStrategy: EVENT_DRIVEN -> "
+        f"{EVENT_DRIVEN_REPLACEMENT_STRATEGY}"
+    )
+
+    period = proc.get("schedulingPeriod")
+    if period is not None and not ZERO_PERIOD_RE.match(str(period)):
+        proc["schedulingPeriod"] = EVENT_DRIVEN_REPLACEMENT_PERIOD
+        message += (
+            f"; schedulingPeriod: {period} -> {EVENT_DRIVEN_REPLACEMENT_PERIOD}"
+        )
+        manual.append(
+            f"[MANUAL] {proc_label}  -- Run Schedule was '{period}', a value Event driven "
+            f"scheduling ignored, and is now set to '{EVENT_DRIVEN_REPLACEMENT_PERIOD}' so the "
+            f"processor keeps running as work arrives. Review it in the NiFi UI if the flow "
+            f"needs the processor to run on a fixed interval instead."
+        )
+
+    if proc.get("concurrentlySchedulableTaskCount") == 0:
+        proc["concurrentlySchedulableTaskCount"] = EVENT_DRIVEN_DEFAULT_TASK_COUNT
+        message += (
+            f"; concurrentlySchedulableTaskCount: 0 -> {EVENT_DRIVEN_DEFAULT_TASK_COUNT}"
+        )
+        manual.append(
+            f"[MANUAL] {proc_label}  -- Concurrent Tasks was 0, a value only Event driven "
+            f"scheduling accepted, and is now set to {EVENT_DRIVEN_DEFAULT_TASK_COUNT}. "
+            f"Review it against the expected load and adjust it in the NiFi UI if "
+            f"{EVENT_DRIVEN_DEFAULT_TASK_COUNT} does not fit."
+        )
+
+    applied.append(message)
+    return applied, manual
+
+
 def upgrade_azure_credentials_service(flow_contents: dict) -> tuple[list[str], list[str]]:
     """
     Find AzureStorageCredentialsControllerService in the flow tree and upgrade
@@ -1064,6 +1134,8 @@ def _classify_row(row: dict) -> str:
         return "fix_prometheus"  # handled by upgrade_prometheus_record_sink()
     if re.search(r"azurestoragecredentialscontrollerservice", issue.replace(" ", "")):
         return "fix_azure_credentials"  # handled by upgrade_azure_credentials_service()
+    if "scheduling strategy = event driven" in issue:
+        return "fix_event_driven_scheduling"
 
     return "manual"
 
@@ -1253,6 +1325,10 @@ def apply_csv_transforms(
                 manual.extend([f"{rel_path}  -- {m}" for m in all_msgs if m.startswith("[MANUAL]")])
             elif handler == "fix_type_rename":
                 app_msgs, man_msgs = fix_type_rename(comp, pg, row)
+                msgs = app_msgs
+                manual.extend([f"{rel_path}  -- {m}" for m in man_msgs])
+            elif handler == "fix_event_driven_scheduling":
+                app_msgs, man_msgs = fix_event_driven_scheduling(comp, pg, row)
                 msgs = app_msgs
                 manual.extend([f"{rel_path}  -- {m}" for m in man_msgs])
             else:

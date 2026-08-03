@@ -205,6 +205,9 @@ prepare_sens_key() {
     NIFI_SENSITIVE_KEY=$(generate_random_password 12 4 4)
     export NIFI_SENSITIVE_KEY
     echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key.tmp
+    #copy sensitive key to local directory for testing:
+    mkdir -p ./nifi-sens-key/
+    echo "$NIFI_SENSITIVE_KEY" >./nifi-sens-key/key
 }
 
 prepare_results_dir() {
@@ -292,6 +295,9 @@ generate_tls_passwords() {
     export KEYSTORE_PASSWORD_NIFI_REG
     export KEYCLOAK_TLS_PASS
     export ZK_TLS_PASS
+    #copy ZK_TLS_PASS to local directory for testing:
+    mkdir -p ./nifi-zk-tls-pass/
+    echo "$ZK_TLS_PASS" >./nifi-zk-tls-pass/client-keystore-password
 }
 
 create_docker_env_file() {
@@ -443,6 +449,11 @@ prepare_zookeeper_configuration() {
 
 setup_env_before_tests() {
     local runMode="$1"
+    local copyTestNARs="$2"
+    if [ -z "$copyTestNARs" ]; then
+        #by default, copy test NARs:
+        copyTestNARs="true"
+    fi
     #generic case:
     prepare_sens_key
     prepare_results_dir "$runMode"
@@ -488,13 +499,17 @@ setup_env_before_tests() {
     else
         mkdir -p ./temp-vol/nifi/per-conf/
         mkdir -p ./temp-vol/nifi/extensions/
-        if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
-        -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
-            echo "Copying test NARs to extensions directory"
-            cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
-                ./temp-vol/nifi/extensions/
+        if [ "$copyTestNARs" == "true" ]; then
+            if find qubership-test-bundle/qubership-nifi-test-nar/target -maxdepth 1 \
+            -type f -name 'qubership-nifi-test-nar-*.nar' -print -quit | grep -q .; then
+                echo "Copying test NARs to extensions directory"
+                cp qubership-test-bundle/qubership-nifi-test-nar/target/qubership-nifi-test-nar-*.nar \
+                    ./temp-vol/nifi/extensions/
+            else
+                echo "Test NARs not found, skipping copy to extensions directory"
+            fi
         else
-            echo "Test NARs not found, skipping copy to extensions directory"
+            echo "Test NARs copying to extensions directory is disabled. copyTestNARs = $copyTestNARs"
         fi
     fi
     chmod -R 777 ./temp-vol
