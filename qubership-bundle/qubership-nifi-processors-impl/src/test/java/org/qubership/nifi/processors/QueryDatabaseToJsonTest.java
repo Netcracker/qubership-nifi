@@ -18,7 +18,7 @@ package org.qubership.nifi.processors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.qubership.nifi.service.DerbyPreparedStatement;
+import org.qubership.nifi.service.H2PreparedStatement;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
@@ -29,19 +29,23 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.*;
+import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.DBCP_SERVICE;
+import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.PS_PROVIDER_SERVICE;
+import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.REL_FAILURE;
+import static org.qubership.nifi.processors.AbstractQueryDatabaseToJson.REL_SUCCESS;
 import static org.qubership.nifi.processors.AbstractSingleQueryDatabaseToJson.BATCH_SIZE;
 import static org.qubership.nifi.processors.QueryDatabaseToJson.PATH;
 import static org.qubership.nifi.processors.QueryDatabaseToJson.SQL_QUERY;
@@ -50,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class QueryDatabaseToJsonTest {
-    private final static String DB_LOCATION = "target/db_ldt";
+    private static final String DB_LOCATION = "db_ldt_query_json";
     private static final String DEFAULT_PATH = "$[*]";
     private TestRunner testRunner;
     private Connection connection;
@@ -63,39 +67,28 @@ public class QueryDatabaseToJsonTest {
     public void init() throws InitializationException, ClassNotFoundException, SQLException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
-        ControllerService preparedStatementControllerService = new DerbyPreparedStatement();
+        ControllerService preparedStatementControllerService = new H2PreparedStatement();
 
         testRunner = TestRunners.newTestRunner(QueryDatabaseToJson.class);
         testRunner.setValidateExpressionUsage(false);
 
         testRunner.setProperty(SQL_QUERY, "SELECT * FROM " + tableName + " WHERE id IN(?,?,?,?)");
         testRunner.setProperty(DBCP_SERVICE, "dbcp");
-        testRunner.setProperty(PS_PROVIDER_SERVICE, "DerbyPreparedStatement");
+        testRunner.setProperty(PS_PROVIDER_SERVICE, "H2PreparedStatement");
         testRunner.setProperty(PATH, DEFAULT_PATH);
 
         testRunner.addControllerService("dbcp", dbcp, dbcpProperties);
-        testRunner.addControllerService("DerbyPreparedStatement", preparedStatementControllerService);
+        testRunner.addControllerService("H2PreparedStatement", preparedStatementControllerService);
 
         testRunner.enableControllerService(dbcp);
         testRunner.enableControllerService(preparedStatementControllerService);
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        connection = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+        Class.forName("org.h2.Driver");
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
     }
 
     @AfterEach
     public void cleanUp() throws SQLException {
-        try {
-            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
-            // Do nothing, this is what happens at Derby shutdown
-        }
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
-            // Do nothing, may not have existed
-        }
-
+        connection.close();
     }
 
 
@@ -159,14 +152,15 @@ public class QueryDatabaseToJsonTest {
         assertEquals(1, countNumValues("VAL2", secondBatch));
         assertEquals(1, countNumValues("VAL2", secondBatch));
 
-        assertEquals("application/json",successFlowFiles.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()));
-        assertEquals("application/json",successFlowFiles.get(1).getAttribute(CoreAttributes.MIME_TYPE.key()));
+        assertEquals("application/json", successFlowFiles.get(0).getAttribute(CoreAttributes.MIME_TYPE.key()));
+        assertEquals("application/json", successFlowFiles.get(1).getAttribute(CoreAttributes.MIME_TYPE.key()));
     }
 
 
     private void initBdTestDataFirstSet() throws SQLException {
         this.statement = connection.createStatement();
-        statement.execute("create table " + tableName + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
+        statement.execute("create table " + tableName
+                + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
 
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"4", "400", "404"}, tableName);
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"2", "200", "202"}, tableName);
@@ -192,7 +186,8 @@ public class QueryDatabaseToJsonTest {
 
         String invalidId = "[\"11\", \"12\", \"13\", \"14\"]";
         this.statement = connection.createStatement();
-        statement.execute("create table " + tableName + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
+        statement.execute("create table " + tableName
+                + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
 
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"2", "200", "204"}, tableName);
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"4", "400", "404"}, tableName);
@@ -211,7 +206,8 @@ public class QueryDatabaseToJsonTest {
     public void testInvalidInputJson() throws SQLException {
         String testInvalidJson = "[\"\", \"\", \"\" ,\"\"]";
         this.statement = connection.createStatement();
-        statement.execute("create table " + tableName + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
+        statement.execute("create table " + tableName
+                + " (id integer not null, val integer, val2 integer, constraint my_pk4 primary key (id))");
 
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"2", "200", "204"}, tableName);
         insertInBd(new String[]{"ID", "VAL", "VAL2"}, new String[]{"4", "400", "404"}, tableName);
@@ -253,7 +249,7 @@ public class QueryDatabaseToJsonTest {
         return sb;
     }
 
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private final class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
         @Override
         public String getIdentifier() {
             return "dbcp";
