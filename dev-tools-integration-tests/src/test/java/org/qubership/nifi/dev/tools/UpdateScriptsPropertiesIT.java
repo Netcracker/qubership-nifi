@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.qubership.nifi.NifiFlowApiClient;
 
 import java.util.List;
 
@@ -93,7 +92,6 @@ class UpdateScriptsPropertiesIT {
         JsonNode snapshot = HARNESS.readFlow("flows/flow-with-renamed-properties.json");
 
         HARNESS.importAndValidate(snapshot.path("flowContents"),
-                List.of(new NifiFlowApiClient.IgnoredDifference(
-                        "InFlowJsonRecordSetWriter", "Property 'Allow Scientific Notation' was added")));
+                List.of());
     }
 }
