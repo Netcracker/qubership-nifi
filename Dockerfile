@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG NIFI_VERSION='2.9.0'
-ARG NIFI_VERSION_SHA256='sha256:ea9128e06e672bbb85964bd583630a1986aa4d8657bfaa551c6c2b5023a6543d'
+ARG NIFI_VERSION='2.10.0'
+ARG NIFI_VERSION_SHA256='sha256:362d7a7caa27f246f2fd8797f906cb216ae71546e15abee5c6b579187c42e28e'
 
 ARG BASE_IMAGE_VERSION='25-alpine-2.3.7'
 ARG BASE_IMAGE_VERSION_SHA256='sha256:577def182c22d770bba27ed663b14fff4621cf1ad99979fa3bf415e2ae756fac'
