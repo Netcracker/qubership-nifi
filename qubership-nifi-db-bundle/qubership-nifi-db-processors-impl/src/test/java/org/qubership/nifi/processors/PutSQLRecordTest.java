@@ -16,11 +16,18 @@
 
 package org.qubership.nifi.processors;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,15 +54,16 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.qubership.nifi.processors.PutSQLRecord;
+import org.qubership.nifi.JsonUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class PutSQLRecordTest {
-    private final static String DB_LOCATION = "target/db_ldt";
+    private static final String DB_NAME = "db_ldt_put_sql_record";
     private TestRunner testRunner;
     private Connection connection;
     private TestRecordReader recordReader;
@@ -75,42 +83,39 @@ public class PutSQLRecordTest {
         testRunner.addControllerService("dbcp", dbcp, dbcpProperties);
         testRunner.enableControllerService(dbcp);
         testRunner.assertValid(dbcp);
-        
+
         recordReader = new TestRecordReader();
         recordReaderFactory = new TestRecordReaderFactory(recordReader);
-        
+
         testRunner.addControllerService("recordReaderFactory", recordReaderFactory, Collections.emptyMap());
         testRunner.enableControllerService(recordReaderFactory);
         testRunner.assertValid(recordReaderFactory);
-        
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        connection = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+
+        Class.forName("org.h2.Driver");
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1");
         try (PreparedStatement ps = connection.prepareStatement(
-                "create table testTable1 (col1 varchar(255), col2 varchar(255)" + 
-                ", num1 numeric(20), num2 numeric(20)" + 
-                ", num3 numeric(20), ch4 varchar(10), num5 numeric(20)" + 
-                ", num6 numeric(20), num7 numeric(20)" + 
-                ", num8 numeric(20), time1 time, ts1 timestamp, date1 date, bool1 boolean, ch5 varchar(500)" +
-                ")");) {
+                "create table testTable1 (col1 varchar(255), col2 varchar(255)"
+                        + ", num1 numeric(20), num2 numeric(20)"
+                        + ", num3 numeric(20), ch4 varchar(10), num5 numeric(20)"
+                        + ", num6 numeric(20), num7 numeric(20)"
+                        + ", num8 numeric(20), time1 time, ts1 timestamp, date1 date, bool1 boolean, ch5 varchar(500)"
+                        + ")");) {
             ps.executeUpdate();
         }
     }
-    
+
     @AfterEach
     public void cleanUp() throws SQLException {
-        try {
-            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
-            // Do nothing, this is what happens at Derby shutdown
+        if (!connection.isClosed()) {
+            connection.close();
         }
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
-            // Do nothing, may not have existed
+        try (Connection shutdownConnection = DriverManager.getConnection(
+                "jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1");
+                Statement stmt = shutdownConnection.createStatement();) {
+            stmt.execute("SHUTDOWN");
         }
     }
-    
+
     @Test
     public void testSuccess() {
         //prepare schema:
@@ -131,7 +136,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("boolean1", RecordFieldType.BOOLEAN.getDataType()));
         fields.add(new RecordField("char4", RecordFieldType.STRING.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -139,8 +144,8 @@ public class PutSQLRecordTest {
         values.put("char2", "val1");
         values.put("bigint1", new BigInteger("111"));
         values.put("long1", Long.valueOf(111));
-        values.put("byte1", (byte)111);
-        values.put("short1", (short)111);
+        values.put("byte1", (byte) 111);
+        values.put("short1", (short) 111);
         values.put("boolean1", true);
         values.put("char3", '0');
         values.put("double1", Double.valueOf("1.1"));
@@ -156,8 +161,8 @@ public class PutSQLRecordTest {
         values.put("char2", "val2");
         values.put("bigint1", new BigInteger("222"));
         values.put("long1", Long.valueOf(222));
-        values.put("byte1", (byte)111);
-        values.put("short1", (short)111);
+        values.put("byte1", (byte) 111);
+        values.put("short1", (short) 111);
         values.put("boolean1", true);
         values.put("char3", '0');
         values.put("double1", Double.valueOf("1.1"));
@@ -170,22 +175,23 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
-            "insert into testTable1(col1, col2, num1, num2, num3, ch4, num5, num6, num7, num8, time1, ts1, date1, bool1, ch5) "
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+            "insert into testTable1(col1, col2, num1, num2, num3, ch4, num5, num6, num7, num8, time1, ts1,"
+                    + " date1, bool1, ch5) "
             + "values (?,?,?,?, ?,?,?,?, ?,?,?,?, ?,?,?)");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testInvalidParameters() {
         //prepare schema:
@@ -195,7 +201,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -213,17 +219,18 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         //configure processor:
         testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1) values (?,?,?)");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
-        AssertionError ex = Assertions.assertThrows(AssertionError.class, 
+        AssertionError ex = Assertions.assertThrows(AssertionError.class,
             () -> testRunner.run(),
             "Expected failure on run"
         );
         Assertions.assertNotNull(ex.getCause(), "AssertionError is expected to have caused by");
         Assertions.assertEquals("Failed to execute PutSQLRecord service actions", ex.getCause().getMessage());
         Assertions.assertNotNull(ex.getCause().getCause(), "ProcessException is expected to have caused by");
-        Assertions.assertEquals("Number of fields in record (4) does not match number of parameters (3)", ex.getCause().getCause().getMessage());
+        Assertions.assertEquals("Number of fields in record (4) does not match number of parameters (3)",
+                ex.getCause().getCause().getMessage());
     }
 
     @Test
@@ -255,7 +262,8 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
 
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
@@ -298,7 +306,8 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
 
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
@@ -309,7 +318,8 @@ public class PutSQLRecordTest {
         Assertions.assertNotNull(ex.getCause(), "AssertionError is expected to have caused by");
         Assertions.assertEquals("Failed to execute PutSQLRecord service actions", ex.getCause().getMessage());
         Assertions.assertNotNull(ex.getCause().getCause(), "ProcessException is expected to have caused by");
-        Assertions.assertEquals("Record contains unsupported type = CHOICE", ex.getCause().getCause().getMessage());
+        Assertions.assertEquals("Record contains unsupported type = CHOICE",
+                ex.getCause().getCause().getMessage());
     }
 
     @Test
@@ -341,7 +351,8 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
 
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
@@ -352,7 +363,8 @@ public class PutSQLRecordTest {
         Assertions.assertNotNull(ex.getCause(), "AssertionError is expected to have caused by");
         Assertions.assertEquals("Failed to execute PutSQLRecord service actions", ex.getCause().getMessage());
         Assertions.assertNotNull(ex.getCause().getCause(), "ProcessException is expected to have caused by");
-        Assertions.assertEquals("Record contains unsupported type = MAP", ex.getCause().getCause().getMessage());
+        Assertions.assertEquals("Record contains unsupported type = MAP",
+                ex.getCause().getCause().getMessage());
     }
 
     @Test
@@ -384,7 +396,8 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, num3) values (?,?,?,?,?)");
 
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
@@ -395,7 +408,8 @@ public class PutSQLRecordTest {
         Assertions.assertNotNull(ex.getCause(), "AssertionError is expected to have caused by");
         Assertions.assertEquals("Failed to execute PutSQLRecord service actions", ex.getCause().getMessage());
         Assertions.assertNotNull(ex.getCause().getCause(), "ProcessException is expected to have caused by");
-        Assertions.assertEquals("Record contains unsupported type = RECORD", ex.getCause().getCause().getMessage());
+        Assertions.assertEquals("Record contains unsupported type = RECORD",
+                ex.getCause().getCause().getMessage());
     }
 
     @Test
@@ -408,7 +422,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array1", RecordFieldType.ARRAY.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -416,7 +430,7 @@ public class PutSQLRecordTest {
         values.put("char2", "val1");
         values.put("bigint1", new BigInteger("111"));
         values.put("long1", Long.valueOf(111));
-        values.put("array1", new String[]{"X","Y","Z","XX"});
+        values.put("array1", new String[]{"X", "Y", "Z", "XX"});
         records.add(new MapRecord(schema, values));
         values = new HashMap<>();
         values.put("char1", "val2");
@@ -428,8 +442,9 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         //configure processor:
         testRunner.setProperty(PutSQLRecord.CONVERT_PAYLOAD, "true");
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
-        
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
@@ -442,7 +457,7 @@ public class PutSQLRecordTest {
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testChoiceTypeWithPayloadConversion() {
         //prepare schema:
@@ -453,7 +468,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array1", RecordFieldType.CHOICE.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -473,8 +488,9 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         //configure processor:
         testRunner.setProperty(PutSQLRecord.CONVERT_PAYLOAD, "true");
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
-        
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
@@ -487,7 +503,7 @@ public class PutSQLRecordTest {
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testMapTypeWithPayloadConversion() {
         //prepare schema:
@@ -498,7 +514,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array1", RecordFieldType.MAP.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -518,8 +534,9 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         //configure processor:
         testRunner.setProperty(PutSQLRecord.CONVERT_PAYLOAD, "true");
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
-        
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
@@ -532,9 +549,9 @@ public class PutSQLRecordTest {
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
-    public void testRecordTypeWithPayloadConversion() throws ClassNotFoundException, SQLException {
+    public void testRecordTypeWithPayloadConversion() throws ClassNotFoundException, SQLException, IOException {
         //prepare schema:
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("char1", RecordFieldType.STRING.getDataType()));
@@ -543,7 +560,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         fields.add(new RecordField("array1", RecordFieldType.RECORD.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> rec1 = new HashMap<>();
@@ -579,7 +596,7 @@ public class PutSQLRecordTest {
         rec2.put("char2", "val333");
         rec2.put("bigint1", new BigInteger("333"));
         rec2.put("long1", Long.valueOf(333));
-        rec2.put("array1", new MapRecord(schema,recNest));
+        rec2.put("array1", new MapRecord(schema, recNest));
 
         Map<String, Object> values = new HashMap<>();
         values.put("char1", "val111");
@@ -598,22 +615,47 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         //configure processor:
         testRunner.setProperty(PutSQLRecord.CONVERT_PAYLOAD, "true");
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
-        
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
+                "insert into testTable1(col1, col2, num1, num2, ch5) values (?,?,?,?,?)");
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
 
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        connection = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-        try (PreparedStatement ps = connection.prepareStatement("select * from testTable1");) {
-            ResultSet resultSet = ps.executeQuery();
-            while (resultSet.next()) {
-                String ch5 = resultSet.getString("ch5");
-                System.out.println(ch5);
+        Class.forName("org.h2.Driver");
+        try (Connection testConnection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1")) {
+            try (PreparedStatement ps = testConnection.prepareStatement(
+                    "select * from testTable1 order by col1");
+                 ResultSet resultSet = ps.executeQuery();) {
+                Assertions.assertTrue(resultSet.next(), "Expected first row in testTable1");
+                Assertions.assertEquals("val111", resultSet.getString("col1"));
+                Assertions.assertEquals("val111", resultSet.getString("col2"));
+                Assertions.assertEquals(111, resultSet.getInt("num1"));
+                Assertions.assertEquals(111, resultSet.getInt("num2"));
+                JsonNode ch5Row1 = JsonUtils.MAPPER.readTree(resultSet.getString("ch5"));
+                Assertions.assertEquals("val1", ch5Row1.get("char1").asText());
+                Assertions.assertEquals("val1", ch5Row1.get("char2").asText());
+                Assertions.assertEquals(444, ch5Row1.get("bigint1").asInt());
+                Assertions.assertEquals(444, ch5Row1.get("long1").asInt());
+                Assertions.assertTrue(ch5Row1.get("array1").isNull());
+
+                Assertions.assertTrue(resultSet.next(), "Expected second row in testTable1");
+                Assertions.assertEquals("val222", resultSet.getString("col1"));
+                Assertions.assertEquals("val222", resultSet.getString("col2"));
+                Assertions.assertEquals(222, resultSet.getInt("num1"));
+                Assertions.assertEquals(222, resultSet.getInt("num2"));
+                JsonNode ch5Row2 = JsonUtils.MAPPER.readTree(resultSet.getString("ch5"));
+                Assertions.assertEquals("val333", ch5Row2.get("char1").asText());
+                JsonNode recNestNode = ch5Row2.get("array1");
+                Assertions.assertEquals("val3331", recNestNode.get("char1").asText());
+                JsonNode recNest1Node = recNestNode.get("array1");
+                Assertions.assertEquals("val3333", recNest1Node.get("char1").asText());
+                JsonNode recNest2Node = recNest1Node.get("array1");
+                Assertions.assertEquals("val3332", recNest2Node.get("char1").asText());
+                Assertions.assertTrue(recNest2Node.get("array1").isNull());
+
+                Assertions.assertFalse(resultSet.next(), "Expected only 2 rows in testTable1");
             }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
         }
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
@@ -623,7 +665,7 @@ public class PutSQLRecordTest {
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testBatchRemaining() {
         //prepare schema:
@@ -633,7 +675,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -668,23 +710,23 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testBatchExact() {
         //prepare schema:
@@ -694,7 +736,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -735,23 +777,23 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(1, successFF.size());
     }
-    
+
     @Test
     public void testEmpty() {
         //prepare schema:
@@ -761,7 +803,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -772,22 +814,22 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run w/o input
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(0, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
     }
-    
+
     @Test
     public void testInvalidSQL() {
         //prepare schema:
@@ -797,7 +839,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -808,25 +850,29 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable2(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
-        
-        Assertions.assertEquals("Table/View 'TESTTABLE2' does not exist.", failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
+
+        String errorMsg = failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR);
+        Assertions.assertTrue(errorMsg.contains("TESTTABLE2"),
+                "Error message should mention the missing table: " + errorMsg);
+        Assertions.assertTrue(errorMsg.toLowerCase().contains("not found"),
+                "Error message should indicate the table was not found: " + errorMsg);
     }
-    
+
     @Test
     public void testSQLError() {
         //prepare schema:
@@ -836,7 +882,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -847,25 +893,29 @@ public class PutSQLRecordTest {
         records.add(new MapRecord(schema, values));
         recordReader.setRecords(records);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(num1, col1, col2, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
-        
-        Assertions.assertEquals("Invalid character string format for type DECIMAL.", failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
+
+        String errorMsg = failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR);
+        Assertions.assertTrue(errorMsg.contains("NUM1"),
+                "Error message should mention the offending column: " + errorMsg);
+        Assertions.assertTrue(errorMsg.toLowerCase().contains("conversion error"),
+                "Error message should indicate a data conversion error: " + errorMsg);
     }
-    
+
     @Test
     public void testSchemaNotFound() {
         //prepare schema:
@@ -875,7 +925,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -887,25 +937,25 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         recordReaderFactory.setThrowSchemaNotFound(true);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
-        
+
         Assertions.assertEquals("Test Schema not found", failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
     }
-    
+
     @Test
     public void testMalformedRecord() {
         //prepare schema:
@@ -915,7 +965,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -933,25 +983,26 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         recordReader.setThrowMalformedRecord(true);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
-        
-        Assertions.assertEquals("Test malformed record error", failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
+
+        Assertions.assertEquals("Test malformed record error",
+                failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
     }
-    
+
     @Test
     public void testIOException4Record() {
         //prepare schema:
@@ -961,7 +1012,7 @@ public class PutSQLRecordTest {
         fields.add(new RecordField("bigint1", RecordFieldType.BIGINT.getDataType()));
         fields.add(new RecordField("long1", RecordFieldType.LONG.getDataType()));
         RecordSchema schema = new SimpleRecordSchema(fields);
-        recordReader.setSchema(schema);        
+        recordReader.setSchema(schema);
         //prepara data:
         List<Record> records = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
@@ -979,22 +1030,22 @@ public class PutSQLRecordTest {
         recordReader.setRecords(records);
         recordReader.setThrowIOException(true);
         //configure processor:
-        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT, 
+        testRunner.setProperty(PutSQLRecord.SQL_STATEMENT,
             "insert into testTable1(col1, col2, num1, num2) "
             + "values (?,?,?,?)");
         testRunner.setProperty(PutSQLRecord.MAX_BATCH_SIZE, "3");
-        
+
         //run for empty file:
         testRunner.enqueue("{\"char1\":\"val1\"}");
         testRunner.run();
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);
         List<MockFlowFile> failureFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_FAILURE);
-        
+
         Assertions.assertEquals(0, retryFF.size());
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
-        
+
         Assertions.assertEquals("Test io error", failureFF.get(0).getAttribute(PutSQLRecord.ERROR_MSG_ATTR));
     }
 
@@ -1041,10 +1092,11 @@ public class PutSQLRecordTest {
         Assertions.assertEquals(1, failureFF.size());
         Assertions.assertEquals(0, successFF.size());
 
-        Assertions.assertEquals("Test malformed record error", failureFF.get(0).getAttribute(PutSQLRecord.PARSING_ERROR_MSG_ATTR));
+        Assertions.assertEquals("Test malformed record error",
+                failureFF.get(0).getAttribute(PutSQLRecord.PARSING_ERROR_MSG_ATTR));
     }
-    
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+
+    private final class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
         @Override
         public String getIdentifier() {
             return "dbcp";
@@ -1059,25 +1111,25 @@ public class PutSQLRecordTest {
             }
         }
     }
-    
+
     private class TestRecordReader implements RecordReader {
         private RecordSchema schema;
         private List<Record> records;
         private int pos;
         private boolean throwMalformedRecord;
         private boolean throwIOException;
-        
-        public TestRecordReader() {
+
+        TestRecordReader() {
             this.pos = 0;
         }
 
-        public TestRecordReader(RecordSchema schema, List<Record> records) {
-            this.schema = schema;
-            this.records = records;
+        TestRecordReader(final RecordSchema schemaValue, final List<Record> recordsValue) {
+            this.schema = schemaValue;
+            this.records = recordsValue;
             this.pos = 0;
         }
-        
-        public void resetPosition(){
+
+        public void resetPosition() {
             this.pos = 0;
         }
 
@@ -1085,38 +1137,38 @@ public class PutSQLRecordTest {
             return records;
         }
 
-        public void setRecords(List<Record> records) {
-            this.records = records;
+        public void setRecords(List<Record> recordsValue) {
+            this.records = recordsValue;
         }
 
-        public void setSchema(RecordSchema schema) {
-            this.schema = schema;
+        public void setSchema(RecordSchema schemaValue) {
+            this.schema = schemaValue;
         }
 
         public boolean isThrowMalformedRecord() {
             return throwMalformedRecord;
         }
 
-        public void setThrowMalformedRecord(boolean throwMalformedRecord) {
-            this.throwMalformedRecord = throwMalformedRecord;
+        public void setThrowMalformedRecord(boolean throwMalformedRecordValue) {
+            this.throwMalformedRecord = throwMalformedRecordValue;
         }
 
         public boolean isThrowIOException() {
             return throwIOException;
         }
 
-        public void setThrowIOException(boolean throwIOException) {
-            this.throwIOException = throwIOException;
+        public void setThrowIOException(boolean throwIOExceptionValue) {
+            this.throwIOException = throwIOExceptionValue;
         }
-        
-        
+
+
 
         @Override
         public Record nextRecord(boolean bln, boolean bln1) throws IOException, MalformedRecordException {
             if (pos >= records.size()) {
                 return null;
             }
-            
+
             //throw on second:
             if (pos > 0 && throwMalformedRecord) {
                 throw new MalformedRecordException("Test malformed record error");
@@ -1137,10 +1189,10 @@ public class PutSQLRecordTest {
         @Override
         public void close() throws IOException {
         }
-        
+
     }
-    
-    private class TestRecordReaderFactory extends AbstractControllerService 
+
+    private class TestRecordReaderFactory extends AbstractControllerService
             implements RecordReaderFactory {
         private RecordReader rr;
         private boolean throwSchemaNotFound;
@@ -1149,21 +1201,21 @@ public class PutSQLRecordTest {
             return throwSchemaNotFound;
         }
 
-        public void setThrowSchemaNotFound(boolean throwSchemaNotFound) {
-            this.throwSchemaNotFound = throwSchemaNotFound;
+        public void setThrowSchemaNotFound(boolean throwSchemaNotFoundValue) {
+            this.throwSchemaNotFound = throwSchemaNotFoundValue;
         }
-        
-        
-        public TestRecordReaderFactory(RecordReader rr) {
-            this.rr = rr;
+
+
+        TestRecordReaderFactory(final RecordReader rrValue) {
+            this.rr = rrValue;
         }
-        
+
         @OnEnabled
         public void onConfigured(final ConfigurationContext context) throws InitializationException {
         }
 
         @Override
-        public RecordReader createRecordReader(Map<String, String> map, InputStream in, long l, ComponentLog cl) 
+        public RecordReader createRecordReader(Map<String, String> map, InputStream in, long l, ComponentLog cl)
                 throws MalformedRecordException, IOException, SchemaNotFoundException {
             if (throwSchemaNotFound) {
                 throw new SchemaNotFoundException("Test Schema not found");
