@@ -43,7 +43,7 @@ if [[ -z "$SENSITIVE_KEY" ]]; then
             info "Found sensitive key (SENSITIVE_KEY) file $SENSITIVE_KEY_PATH, fetching data"
             SENSITIVE_KEY=$(cat "$SENSITIVE_KEY_PATH")
         else
-            info "SENSITIVE_KEY is not set and sensitive key file $SENSITIVE_KEY_PATH does not exist"
+            warn "SENSITIVE_KEY is not set and sensitive key file $SENSITIVE_KEY_PATH does not exist"
         fi
     else
         info "Neither SENSITIVE_KEY nor SENSITIVE_KEY_PATH is set"
@@ -55,7 +55,7 @@ if [[ -z "$OLD_SENSITIVE_KEY" ]]; then
             info "Found sensitive key (OLD_SENSITIVE_KEY) file $OLD_SENSITIVE_KEY_PATH, fetching data"
             OLD_SENSITIVE_KEY=$(cat "$OLD_SENSITIVE_KEY_PATH")
         else
-            info "OLD_SENSITIVE_KEY is not set and sensitive key file $OLD_SENSITIVE_KEY_PATH does not exist"
+            warn "OLD_SENSITIVE_KEY is not set and sensitive key file $OLD_SENSITIVE_KEY_PATH does not exist"
         fi
     else
         info "Neither OLD_SENSITIVE_KEY nor OLD_SENSITIVE_KEY_PATH is set"
