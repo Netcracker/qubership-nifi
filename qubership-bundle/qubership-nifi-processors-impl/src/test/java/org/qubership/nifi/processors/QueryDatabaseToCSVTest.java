@@ -57,7 +57,7 @@ import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.DBCP_SERV
 import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.WRITE_BY_BATCH;
 
 public class QueryDatabaseToCSVTest {
-    private static final String DB_LOCATION = "db_ldt_query_csv";
+    private static final String DB_NAME = "db_ldt_query_csv";
     private TestRunner testRunner;
     private Connection connection;
     private static final String TABLE_NAME = "TEST_TABLE";
@@ -78,7 +78,7 @@ public class QueryDatabaseToCSVTest {
         testRunner.enableControllerService(dbcp);
 
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME);
 
         // set some test attrs on flowfile
         Map<String, String> attributes = new HashMap<>();

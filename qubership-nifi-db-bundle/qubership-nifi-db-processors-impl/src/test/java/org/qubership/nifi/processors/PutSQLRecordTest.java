@@ -25,6 +25,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -57,9 +58,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.JsonUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class PutSQLRecordTest {
-    private static final String DB_LOCATION = "db_ldt_put_sql_record";
+    private static final String DB_NAME = "db_ldt_put_sql_record";
     private TestRunner testRunner;
     private Connection connection;
     private TestRecordReader recordReader;
@@ -88,7 +92,7 @@ public class PutSQLRecordTest {
         testRunner.assertValid(recordReaderFactory);
 
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1");
         try (PreparedStatement ps = connection.prepareStatement(
                 "create table testTable1 (col1 varchar(255), col2 varchar(255)"
                         + ", num1 numeric(20), num2 numeric(20)"
@@ -102,7 +106,14 @@ public class PutSQLRecordTest {
 
     @AfterEach
     public void cleanUp() throws SQLException {
-        connection.close();
+        if (!connection.isClosed()) {
+            connection.close();
+        }
+        try (Connection shutdownConnection = DriverManager.getConnection(
+                "jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1");
+                Statement stmt = shutdownConnection.createStatement();) {
+            stmt.execute("SHUTDOWN");
+        }
     }
 
     @Test
@@ -540,7 +551,7 @@ public class PutSQLRecordTest {
     }
 
     @Test
-    public void testRecordTypeWithPayloadConversion() throws ClassNotFoundException, SQLException {
+    public void testRecordTypeWithPayloadConversion() throws ClassNotFoundException, SQLException, IOException {
         //prepare schema:
         List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("char1", RecordFieldType.STRING.getDataType()));
@@ -612,15 +623,38 @@ public class PutSQLRecordTest {
         testRunner.run();
 
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
-        try (PreparedStatement ps = connection.prepareStatement("select * from testTable1");) {
-            ResultSet resultSet = ps.executeQuery();
-            while (resultSet.next()) {
-                String ch5 = resultSet.getString("ch5");
-                System.out.println(ch5);
-            }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME + ";DB_CLOSE_DELAY=-1");
+        try (PreparedStatement ps = connection.prepareStatement(
+                "select * from testTable1 order by col1");
+                ResultSet resultSet = ps.executeQuery();) {
+            Assertions.assertTrue(resultSet.next(), "Expected first row in testTable1");
+            Assertions.assertEquals("val111", resultSet.getString("col1"));
+            Assertions.assertEquals("val111", resultSet.getString("col2"));
+            Assertions.assertEquals(111, resultSet.getInt("num1"));
+            Assertions.assertEquals(111, resultSet.getInt("num2"));
+            JsonNode ch5Row1 = JsonUtils.MAPPER.readTree(resultSet.getString("ch5"));
+            Assertions.assertEquals("val1", ch5Row1.get("char1").asText());
+            Assertions.assertEquals("val1", ch5Row1.get("char2").asText());
+            Assertions.assertEquals(444, ch5Row1.get("bigint1").asInt());
+            Assertions.assertEquals(444, ch5Row1.get("long1").asInt());
+            Assertions.assertTrue(ch5Row1.get("array1").isNull());
+
+            Assertions.assertTrue(resultSet.next(), "Expected second row in testTable1");
+            Assertions.assertEquals("val222", resultSet.getString("col1"));
+            Assertions.assertEquals("val222", resultSet.getString("col2"));
+            Assertions.assertEquals(222, resultSet.getInt("num1"));
+            Assertions.assertEquals(222, resultSet.getInt("num2"));
+            JsonNode ch5Row2 = JsonUtils.MAPPER.readTree(resultSet.getString("ch5"));
+            Assertions.assertEquals("val333", ch5Row2.get("char1").asText());
+            JsonNode recNestNode = ch5Row2.get("array1");
+            Assertions.assertEquals("val3331", recNestNode.get("char1").asText());
+            JsonNode recNest1Node = recNestNode.get("array1");
+            Assertions.assertEquals("val3333", recNest1Node.get("char1").asText());
+            JsonNode recNest2Node = recNest1Node.get("array1");
+            Assertions.assertEquals("val3332", recNest2Node.get("char1").asText());
+            Assertions.assertTrue(recNest2Node.get("array1").isNull());
+
+            Assertions.assertFalse(resultSet.next(), "Expected only 2 rows in testTable1");
         }
         List<MockFlowFile> successFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_SUCCESS);
         List<MockFlowFile> retryFF = testRunner.getFlowFilesForRelationship(PutSQLRecord.REL_RETRY);

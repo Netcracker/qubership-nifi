@@ -54,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class QueryDatabaseToJsonTest {
-    private static final String DB_LOCATION = "db_ldt_query_json";
+    private static final String DB_NAME = "db_ldt_query_json";
     private static final String DEFAULT_PATH = "$[*]";
     private TestRunner testRunner;
     private Connection connection;
@@ -83,7 +83,7 @@ public class QueryDatabaseToJsonTest {
         testRunner.enableControllerService(dbcp);
         testRunner.enableControllerService(preparedStatementControllerService);
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME);
     }
 
     @AfterEach

@@ -62,7 +62,7 @@ import static org.qubership.nifi.processors.QueryDatabaseToJsonWithMerge.BATCH_S
 
 public class QueryDatabaseToJsonWithMergeTest {
 
-    private static final String DB_LOCATION = "db_ldt_query_json_merge";
+    private static final String DB_NAME = "db_ldt_query_json_merge";
     private TestRunner testRunner;
     private Connection connection;
     private static final String TABLE_NAME = "TEST_TABLE";
@@ -86,7 +86,7 @@ public class QueryDatabaseToJsonWithMergeTest {
         testRunner.enableControllerService(preparedStatementControllerService);
 
         Class.forName("org.h2.Driver");
-        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_LOCATION);
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME);
     }
 
     @AfterEach
