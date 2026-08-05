@@ -8,7 +8,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 
 import java.io.Closeable;
 import java.io.File;
@@ -44,19 +44,19 @@ public final class GitSource implements Closeable {
     public GitSource(final File basedir, final File pathInput, final FlowClassifier classifierValue)
             throws IOException {
         if (pathInput.isAbsolute()) {
-            throw new FlowParseException("Git-mode path must be relative, not absolute: " + pathInput);
+            throw new FlowDiffInputException("Git-mode path must be relative, not absolute: " + pathInput);
         }
         this.classifier = classifierValue;
         this.repository = new FileRepositoryBuilder().readEnvironment().findGitDir(basedir).build();
         try {
             if (repository.getWorkTree() == null || repository.getDirectory() == null) {
-                throw new FlowParseException("No Git worktree encloses: " + basedir);
+                throw new FlowDiffInputException("No Git worktree encloses: " + basedir);
             }
             this.worktreeRoot = repository.getWorkTree().getCanonicalFile().toPath();
             File resolved = new File(basedir, pathInput.getPath());
             this.pathExists = resolved.exists();
             this.worktreeRelative = worktreeRelative(resolved, pathInput);
-        } catch (IOException | NoWorkTreeException | FlowParseException e) {
+        } catch (IOException | NoWorkTreeException | FlowDiffInputException e) {
             //close the repository before throwing an error:
             this.repository.close();
             throw e;
@@ -74,7 +74,7 @@ public final class GitSource implements Closeable {
                 parent = parent.getParentFile();
             }
             if (parent == null) {
-                throw new FlowParseException("Cannot resolve a worktree parent for: " + pathInput);
+                throw new FlowDiffInputException("Cannot resolve a worktree parent for: " + pathInput);
             }
             Path parentCanonical = parent.getCanonicalFile().toPath();
             requireInside(parentCanonical, pathInput);
@@ -87,7 +87,7 @@ public final class GitSource implements Closeable {
 
     private void requireInside(final Path candidate, final File pathInput) {
         if (!candidate.startsWith(worktreeRoot)) {
-            throw new FlowParseException("Path resolves outside the Git worktree: " + pathInput);
+            throw new FlowDiffInputException("Path resolves outside the Git worktree: " + pathInput);
         }
     }
 
@@ -160,7 +160,7 @@ public final class GitSource implements Closeable {
         Map<String, Candidate> candidates = new LinkedHashMap<>();
         ObjectId commitId = repository.resolve(branch + "^{commit}");
         if (commitId == null) {
-            throw new FlowParseException("Cannot resolve branch or ref: " + branch);
+            throw new FlowDiffInputException("Cannot resolve branch or ref: " + branch);
         }
         try (RevWalk revWalk = new RevWalk(repository)) {
             RevCommit commit = revWalk.parseCommit(commitId);

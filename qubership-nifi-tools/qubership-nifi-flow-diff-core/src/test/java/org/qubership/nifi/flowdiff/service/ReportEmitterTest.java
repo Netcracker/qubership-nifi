@@ -2,6 +2,7 @@ package org.qubership.nifi.flowdiff.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.qubership.nifi.flowdiff.error.FlowDiffExecutionException;
 import org.qubership.nifi.flowdiff.report.ReportModel;
 
 import java.io.ByteArrayOutputStream;

@@ -5,8 +5,8 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 import org.qubership.nifi.flowdiff.flow.FlowParseException;
-import org.qubership.nifi.flowdiff.service.FlowDiffInputException;
 import org.qubership.nifi.flowdiff.service.RevertSummary;
 import org.qubership.nifi.flowdiff.service.TechnicalRevertService;
 
@@ -33,14 +33,13 @@ public final class GitRevertTechnicalMojo extends AbstractFlowDiffMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         RevertSummary summary;
         try {
-            summary = new TechnicalRevertService().revertGit(getBasedir(), path, isSkipMalformed());
+            // Report each file as it is rewritten, so a run that fails part way still names the files it changed.
+            summary = new TechnicalRevertService()
+                    .revertGit(getBasedir(), path, isSkipMalformed(), System.out::println);
         } catch (FlowDiffInputException | FlowParseException e) {
             throw new MojoFailureException(e.getMessage(), e);
         } catch (IOException e) {
             throw new MojoExecutionException("I/O error during revert", e);
-        }
-        for (String line : summary.summaryLines()) {
-            System.out.println(line);
         }
         System.out.println(summary.totalLine());
     }

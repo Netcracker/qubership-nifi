@@ -6,11 +6,12 @@ import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.flowdiff.LogCapture;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TechnicalRevertServiceTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    /** The breakdown WORKING carries against COMMITTED, appended to a path to form the reported line. */
+    private static final String BREAKDOWN =
+            ": 3 reverted (instanceIdentifier=1, rootIdentifier=1, groupIdentifier=1, endpointGroupId=0)";
     private static final String COMMITTED = """
             {"flowContents":{"identifier":"root-committed","name":"R","componentType":"PROCESS_GROUP","processors":[
               {"identifier":"p1","name":"A","componentType":"PROCESSOR","instanceIdentifier":"p1-c",
@@ -72,9 +76,23 @@ class TechnicalRevertServiceTest {
 
         assertEquals(1, summary.filesWritten());
         assertEquals(3, summary.totalReverted());
-        assertEquals(List.of("flows/a.json: 3 reverted (instanceIdentifier=1, rootIdentifier=1, groupIdentifier=1, "
-                + "endpointGroupId=0)"), summary.summaryLines());
+        assertEquals(List.of("flows/a.json" + BREAKDOWN), summary.summaryLines());
         assertEquals("Total: 1 files rewritten, 3 technical changes reverted.", summary.totalLine());
+    }
+
+    @Test
+    void reportsEachFileAsItIsRewritten() throws Exception {
+        commit("flows/a.json", COMMITTED);
+        commit("flows/b.json", COMMITTED);
+        Files.writeString(dir.resolve("flows/a.json"), WORKING, StandardCharsets.UTF_8);
+        Files.writeString(dir.resolve("flows/b.json"), WORKING, StandardCharsets.UTF_8);
+
+        List<String> reported = new ArrayList<>();
+        RevertSummary summary = service.revertGit(dir.toFile(), "flows", false, reported::add);
+
+        // The lines arrive while the run is going, which is what leaves a record behind when one fails part way.
+        assertEquals(List.of("flows/a.json" + BREAKDOWN, "flows/b.json" + BREAKDOWN), reported);
+        assertEquals(summary.summaryLines(), reported);
     }
 
     @Test
@@ -90,7 +108,7 @@ class TechnicalRevertServiceTest {
     void absolutePathIsRejected() throws Exception {
         commit("flows/a.json", COMMITTED);
         String absolute = dir.resolve("flows/a.json").toString();
-        FlowParseException ex = assertThrows(FlowParseException.class,
+        FlowDiffInputException ex = assertThrows(FlowDiffInputException.class,
                 () -> service.revertGit(dir.toFile(), absolute, false));
         assertTrue(ex.getMessage().contains("must be relative"), ex.getMessage());
     }

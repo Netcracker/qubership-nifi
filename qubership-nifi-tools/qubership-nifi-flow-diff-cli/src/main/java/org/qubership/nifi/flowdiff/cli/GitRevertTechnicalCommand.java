@@ -20,10 +20,9 @@ final class GitRevertTechnicalCommand extends AbstractFlowDiffCommand {
 
     @Override
     public Integer call() throws Exception {
-        RevertSummary summary = new TechnicalRevertService().revertGit(getBasedir(), path, isSkipMalformed());
-        for (String line : summary.summaryLines()) {
-            System.out.println(line);
-        }
+        // Report each file as it is rewritten, so a run that fails part way still names the files it changed.
+        RevertSummary summary = new TechnicalRevertService()
+                .revertGit(getBasedir(), path, isSkipMalformed(), System.out::println);
         System.out.println(summary.totalLine());
         return ExitCode.OK;
     }

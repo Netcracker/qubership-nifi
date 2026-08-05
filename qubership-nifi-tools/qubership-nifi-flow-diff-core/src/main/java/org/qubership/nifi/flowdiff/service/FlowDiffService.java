@@ -1,5 +1,6 @@
 package org.qubership.nifi.flowdiff.service;
 
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 import org.qubership.nifi.flowdiff.io.Candidate;
 import org.qubership.nifi.flowdiff.io.DirectorySource;
 import org.qubership.nifi.flowdiff.io.FlowClassifier;
@@ -76,7 +77,9 @@ public final class FlowDiffService {
      * @param branch        the baseline revision, resolved by JGit
      * @param skipMalformed whether to continue past a malformed candidate file instead of failing
      * @return the assembled report model
-     * @throws IOException when a flow cannot be read from Git or the working tree
+     * @throws IOException            when a flow cannot be read from Git or the working tree
+     * @throws FlowDiffInputException when the path is absolute, resolves outside the worktree, no worktree encloses
+     *                                the base directory, or the branch cannot be resolved
      */
     public ReportModel gitDiff(final File basedir, final String path, final String branch,
             final boolean skipMalformed) throws IOException {

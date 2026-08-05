@@ -4,6 +4,7 @@ import org.qubership.nifi.flowdiff.revert.RevertCounts;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,9 @@ public final class RevertSummary {
      * @param countsValue the per-file counts of the files that were rewritten, in processing order
      */
     public RevertSummary(final Map<String, RevertCounts> countsValue) {
-        this.counts = Collections.unmodifiableMap(countsValue);
+        // Copy rather than wrap: an unmodifiable view would still follow later edits by the caller. LinkedHashMap
+        // rather than Map.copyOf, which would discard the processing order this class reports in.
+        this.counts = Collections.unmodifiableMap(new LinkedHashMap<>(countsValue));
     }
 
     /**
@@ -77,7 +80,16 @@ public final class RevertSummary {
         return "Total: " + filesWritten() + " files rewritten, " + totalReverted() + " technical changes reverted.";
     }
 
-    private static String summaryLine(final String key, final RevertCounts fileCounts) {
+    /**
+     * Formats the line reported for one rewritten file. {@link TechnicalRevertService} calls this as it goes, so a run
+     * that fails part way still leaves a record of the files it had already rewritten; {@link #summaryLines()} calls
+     * it for the whole run. Both share this method so the two paths cannot drift apart.
+     *
+     * @param key        the worktree-relative path of the rewritten file
+     * @param fileCounts the counts reverted in that file
+     * @return the summary line for that file
+     */
+    public static String summaryLine(final String key, final RevertCounts fileCounts) {
         return key + ": " + fileCounts.total() + " reverted (instanceIdentifier=" + fileCounts.instanceIdentifier()
                 + ", rootIdentifier=" + fileCounts.rootIdentifier()
                 + ", groupIdentifier=" + fileCounts.groupIdentifier()

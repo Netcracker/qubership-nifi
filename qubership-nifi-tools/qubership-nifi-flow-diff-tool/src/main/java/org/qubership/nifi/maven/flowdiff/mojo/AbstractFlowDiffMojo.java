@@ -1,11 +1,8 @@
 package org.qubership.nifi.maven.flowdiff.mojo;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.qubership.nifi.flowdiff.report.ReportModel;
-import org.qubership.nifi.flowdiff.service.FlowDiffMapper;
-import org.qubership.nifi.flowdiff.service.FlowDiffService;
 import org.qubership.nifi.flowdiff.service.ReportEmitter;
 import org.qubership.nifi.flowdiff.service.ReportOptions;
 
@@ -46,11 +43,6 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     private boolean skipMalformed;
 
     /**
-     * Jackson ObjectMapper for reuse within plugin.
-     */
-    public static final ObjectMapper MAPPER = FlowDiffMapper.INSTANCE;
-
-    /**
      * Returns the project base directory.
      *
      * @return the base directory
@@ -66,17 +58,6 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
      */
     protected final boolean isSkipMalformed() {
         return skipMalformed;
-    }
-
-    /**
-     * Resolves an input against the base directory: an absolute path is used as is, a relative path is resolved
-     * against {@code basedir}.
-     *
-     * @param input the input file, possibly relative
-     * @return the resolved file
-     */
-    protected final File resolveAgainstBasedir(final File input) {
-        return FlowDiffService.resolveAgainstBasedir(basedir, input);
     }
 
     /**

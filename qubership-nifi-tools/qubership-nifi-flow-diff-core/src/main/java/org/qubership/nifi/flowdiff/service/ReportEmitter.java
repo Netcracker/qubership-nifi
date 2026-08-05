@@ -1,5 +1,6 @@
 package org.qubership.nifi.flowdiff.service;
 
+import org.qubership.nifi.flowdiff.error.FlowDiffExecutionException;
 import org.qubership.nifi.flowdiff.report.JsonReporter;
 import org.qubership.nifi.flowdiff.report.MarkdownReporter;
 import org.qubership.nifi.flowdiff.report.ReportFormat;

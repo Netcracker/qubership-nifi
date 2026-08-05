@@ -5,7 +5,7 @@ import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -60,14 +60,14 @@ class GitSourceTest {
     @Test
     void absolutePathRejectedEvenInsideWorktree() {
         File absolute = dir.resolve("flows/a.json").toAbsolutePath().toFile();
-        assertThrows(FlowParseException.class,
+        assertThrows(FlowDiffInputException.class,
                 () -> new GitSource(dir.toFile(), absolute, classifier()).close());
     }
 
     @Test
     void pathOutsideWorktreeRejected() {
         File outside = new File(".." + File.separator + "outside");
-        FlowParseException ex = assertThrows(FlowParseException.class,
+        FlowDiffInputException ex = assertThrows(FlowDiffInputException.class,
                 () -> new GitSource(dir.toFile(), outside, classifier()).close());
         assertTrue(ex.getMessage().contains("outside"), ex.getMessage());
     }
@@ -75,7 +75,7 @@ class GitSourceTest {
     @Test
     void missingBranchRejected() throws Exception {
         try (GitSource git = new GitSource(dir.toFile(), new File("flows"), classifier())) {
-            FlowParseException ex = assertThrows(FlowParseException.class,
+            FlowDiffInputException ex = assertThrows(FlowDiffInputException.class,
                     () -> git.discoverCommitted("no-such-branch"));
             assertTrue(ex.getMessage().contains("no-such-branch"), ex.getMessage());
         }

@@ -261,17 +261,17 @@ ReportModel gitModel = service.gitDiff(basedir, "flows", "main", false);
 // to the user when a format that needs an output file was requested without one.
 new ReportEmitter(new ReportOptions("md", new File("diff.md"), 200, false), "--output <file>").emit(model);
 
-// Rewrite the working copy so its technical fields match HEAD.
-RevertSummary summary = new TechnicalRevertService().revertGit(basedir, "flows", false);
-summary.summaryLines().forEach(System.out::println);
+// Rewrite the working copy so its technical fields match HEAD, reporting each file as it is rewritten. Passing a
+// listener rather than reading summaryLines() afterwards means a run that fails part way still names what it changed.
+RevertSummary summary = new TechnicalRevertService().revertGit(basedir, "flows", false, System.out::println);
 System.out.println(summary.totalLine());
 ```
 
 Failures are unchecked and name the file, path, or option at fault:
 
-| Exception                    | Raised for                                                                                                                               |
-|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| `FlowParseException`         | malformed JSON, a duplicate or missing identifier, an unresolvable revision, or a Git-mode path that is absolute or outside the worktree |
-| `FlowDiffInputException`     | a path that does not exist, or a baseline and target that are not the same kind                                                          |
-| `FlowDiffExecutionException` | an unknown format, a missing output file, or a report that cannot be written                                                             |
-| `IOException`                | a flow that cannot be read or written                                                                                                    |
+| Exception                    | Raised for                                                                                                                                      |
+|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `FlowParseException`         | malformed JSON, a flow export without `flowContents`, or a duplicate or missing identifier                                                      |
+| `FlowDiffInputException`     | a missing path, a baseline and target of different kinds, an unresolvable revision, or a Git-mode path that is absolute or outside the worktree |
+| `FlowDiffExecutionException` | an unknown format, a missing output file, or a report that cannot be written                                                                    |
+| `IOException`                | a flow that cannot be read or written                                                                                                           |

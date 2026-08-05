@@ -4,7 +4,7 @@ import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.flowdiff.compare.ChangeCategory;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
 import org.qubership.nifi.flowdiff.report.ReportModel;
 
 import java.io.File;
@@ -144,7 +144,7 @@ class FlowDiffServiceTest {
         write("flows/a.json", COMMITTED);
         commitAll();
         String absolute = dir.resolve("flows/a.json").toString();
-        FlowParseException ex = assertThrows(FlowParseException.class,
+        FlowDiffInputException ex = assertThrows(FlowDiffInputException.class,
                 () -> service.gitDiff(dir.toFile(), absolute, "HEAD", false));
         assertTrue(ex.getMessage().contains("must be relative"), ex.getMessage());
     }

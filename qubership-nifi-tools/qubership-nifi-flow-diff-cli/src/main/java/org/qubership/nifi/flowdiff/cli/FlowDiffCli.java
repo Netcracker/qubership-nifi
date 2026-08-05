@@ -43,7 +43,6 @@ public final class FlowDiffCli {
     public static int run(final String... args) {
         return new CommandLine(new FlowDiffCli())
                 .setExecutionExceptionHandler(FlowDiffCli::reportFailure)
-                .setCaseInsensitiveEnumValuesAllowed(true)
                 .execute(args);
     }
 

@@ -1,4 +1,4 @@
-package org.qubership.nifi.flowdiff.service;
+package org.qubership.nifi.flowdiff.error;
 
 /**
  * Signals that a run could not be carried out although its inputs were acceptable: an unknown report format, a format

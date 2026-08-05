@@ -18,9 +18,9 @@ goals and produces identical reports; use it when you are already inside a build
 
 ## Getting the jars
 
-The jar carries a `Main-Class` entry but bundles nothing third-party, so `java -jar` alone fails: the classpath has to
-carry the dependencies too. Both options below fill a directory with the twelve runtime jars, and that directory is the
-whole classpath. Take either one; the run command that follows is the same.
+The jar bundles nothing third-party, so its dependencies have to sit alongside it. Both options below fill a directory
+with the runtime jars; the manifest names its siblings by filename, so that directory is all `java` needs. Take either
+one; the run command that follows is the same.
 
 ### Option 1: fetch script
 
@@ -136,11 +136,19 @@ To move to a new release, edit `flow.diff.version`, delete the output directory,
 Whichever option produced the directory, the entry point is called the same way:
 
 ```shell
-java -cp "lib/*" org.qubership.nifi.flowdiff.cli.FlowDiffCli git-diff --path flows --branch main
+java -jar lib/qubership-nifi-flow-diff-cli-<version>.jar git-diff --path flows --branch main
 ```
 
 Relative paths resolve against `--basedir`, which defaults to the working directory,
 the directory `java` was started from. The Git subcommands also discover the enclosing repository from it.
+
+The manifest lists its dependencies under `Class-Path` by exact filename, resolved against the jar's own directory.
+Naming the classpath instead works too, and keeps working when a directory holds a different set of versions than the
+jar was built against:
+
+```shell
+java -cp "lib/*" org.qubership.nifi.flowdiff.cli.FlowDiffCli git-diff --path flows --branch main
+```
 
 ## Subcommands
 
@@ -148,7 +156,7 @@ Three subcommands. `diff` and `git-diff` are read-only and emit a report; `git-r
 copy in place. Run `--help` on the tool or on any subcommand for the full option list.
 
 The examples below write `nifi-flow-diff` for the launcher, meaning
-`java -cp "lib/*" org.qubership.nifi.flowdiff.cli.FlowDiffCli`.
+`java -jar lib/qubership-nifi-flow-diff-cli-<version>.jar`.
 
 ### diff
 

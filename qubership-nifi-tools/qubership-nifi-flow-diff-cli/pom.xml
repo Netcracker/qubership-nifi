@@ -93,6 +93,13 @@
                         <manifest>
                             <mainClass>${cli.main.class}</mainClass>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <!-- Class-Path names the sibling jars, it does not bundle them: java -jar works when the
+                                 dependencies sit next to this jar, as both documented staging routes leave them. The
+                                 simple layout matches the flat artifactId-version.jar names dependency:copy-dependencies
+                                 writes, and the empty prefix resolves each entry against this jar's own directory. -->
+                            <addClasspath>true</addClasspath>
+                            <classpathLayoutType>simple</classpathLayoutType>
+                            <classpathPrefix></classpathPrefix>
                         </manifest>
                     </archive>
                 </configuration>
