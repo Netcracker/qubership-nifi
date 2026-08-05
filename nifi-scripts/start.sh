@@ -295,6 +295,10 @@ mkdir -p "${NIFI_HOME}/persistent_conf/conf"
 mkdir -p "${NIFI_HOME}/persistent_conf/conf-restore"
 mkdir -p "${NIFI_HOME}/provenance_repository/provenance_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/database_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/connector_assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/nar_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/work/python"
 
 bash "${scripts_dir}/restore_nifi_configurations.sh"
 
