@@ -3,8 +3,8 @@ package org.qubership.nifi.flowdiff.io;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
 import org.qubership.nifi.flowdiff.flow.FlowExport;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

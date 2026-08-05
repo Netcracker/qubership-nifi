@@ -3,10 +3,10 @@ package org.qubership.nifi.flowdiff.compare;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
 import org.qubership.nifi.flowdiff.flow.ComponentType;
 import org.qubership.nifi.flowdiff.flow.FlowExport;
 import org.qubership.nifi.flowdiff.flow.FlowFields;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
 
 import java.util.List;
 

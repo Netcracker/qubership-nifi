@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.flowdiff.LogCapture;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

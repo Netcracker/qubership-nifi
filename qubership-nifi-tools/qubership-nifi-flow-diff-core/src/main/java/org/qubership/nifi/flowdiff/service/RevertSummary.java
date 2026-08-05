@@ -83,13 +83,15 @@ public final class RevertSummary {
     /**
      * Formats the line reported for one rewritten file. {@link TechnicalRevertService} calls this as it goes, so a run
      * that fails part way still leaves a record of the files it had already rewritten; {@link #summaryLines()} calls
-     * it for the whole run. Both share this method so the two paths cannot drift apart.
+     * it for the whole run. Both share this method so the two paths cannot drift apart. Package-private rather than
+     * public: the only caller outside this class is that service, which shares the package, and the format is an
+     * implementation detail frontends read through {@link #summaryLines()}.
      *
      * @param key        the worktree-relative path of the rewritten file
      * @param fileCounts the counts reverted in that file
      * @return the summary line for that file
      */
-    public static String summaryLine(final String key, final RevertCounts fileCounts) {
+    static String summaryLine(final String key, final RevertCounts fileCounts) {
         return key + ": " + fileCounts.total() + " reverted (instanceIdentifier=" + fileCounts.instanceIdentifier()
                 + ", rootIdentifier=" + fileCounts.rootIdentifier()
                 + ", groupIdentifier=" + fileCounts.groupIdentifier()

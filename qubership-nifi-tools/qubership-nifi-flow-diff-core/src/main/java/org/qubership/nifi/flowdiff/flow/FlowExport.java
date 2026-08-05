@@ -1,6 +1,7 @@
 package org.qubership.nifi.flowdiff.flow;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
 
 import java.util.Iterator;
 import java.util.Set;

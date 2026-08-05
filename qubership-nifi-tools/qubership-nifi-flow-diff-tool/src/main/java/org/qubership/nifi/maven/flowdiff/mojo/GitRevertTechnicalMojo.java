@@ -6,7 +6,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
-import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
 import org.qubership.nifi.flowdiff.service.RevertSummary;
 import org.qubership.nifi.flowdiff.service.TechnicalRevertService;
 

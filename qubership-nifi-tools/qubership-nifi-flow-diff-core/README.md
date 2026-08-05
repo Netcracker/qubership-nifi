@@ -245,8 +245,9 @@ Significant: 5, Environmental: 1, Technical: 61
 
 ## Library usage
 
-Everything a frontend needs lives in `org.qubership.nifi.flowdiff.service`. Relative paths resolve against the
-`basedir` argument, which is `${project.basedir}` for the Maven plugin and the working directory for the command line.
+A frontend needs two packages: `org.qubership.nifi.flowdiff.service` for the entry points below, and
+`org.qubership.nifi.flowdiff.error` for the failures they raise. Relative paths resolve against the `basedir`
+argument, which is `${project.basedir}` for the Maven plugin and the working directory for the command line.
 
 ```java
 FlowDiffService service = new FlowDiffService();
@@ -267,7 +268,8 @@ RevertSummary summary = new TechnicalRevertService().revertGit(basedir, "flows",
 System.out.println(summary.totalLine());
 ```
 
-Failures are unchecked and name the file, path, or option at fault:
+Failures are unchecked and name the file, path, or option at fault. All three live in
+`org.qubership.nifi.flowdiff.error`, so one import covers everything a frontend catches:
 
 | Exception                    | Raised for                                                                                                                                      |
 |------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|

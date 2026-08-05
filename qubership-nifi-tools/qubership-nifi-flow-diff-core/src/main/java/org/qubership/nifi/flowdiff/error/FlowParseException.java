@@ -1,4 +1,4 @@
-package org.qubership.nifi.flowdiff.flow;
+package org.qubership.nifi.flowdiff.error;
 
 /**
  * Signals that a flow export could not be processed: malformed JSON, a duplicate or missing component
