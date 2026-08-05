@@ -6,7 +6,7 @@ versioned flow or two NiFi flow exports (exported via `Download flow definition`
 when a flow is copied or recreated.
 
 The classification rules, the report formats, and worked examples of each are documented once in
-[`qubership-nifi-flow-diff-core`](../qubership-nifi-flow-diff-core/README.md), the library this plugin is a front end
+[`qubership-nifi-flow-diff-core`](../qubership-nifi-flow-diff-core/README.md), the library this plugin is a frontend
 for. This page covers only how to drive it from Maven. To run the same thing outside a build, use
 [`qubership-nifi-flow-diff-cli`](../qubership-nifi-flow-diff-cli/README.md), which takes the same parameters as
 command-line options and produces identical reports.

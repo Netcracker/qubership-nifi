@@ -6,7 +6,7 @@ versioned flows or two NiFi flow exports (exported via `Download flow definition
 recreated.
 
 The classification rules, the report formats, and worked examples of each are documented once in
-[`qubership-nifi-flow-diff-core`](../qubership-nifi-flow-diff-core/README.md), the library this tool is a front end
+[`qubership-nifi-flow-diff-core`](../qubership-nifi-flow-diff-core/README.md), the library this tool is a frontend
 for. This page covers only how to drive it from a shell. The Maven plugin
 [`qubership-nifi-flow-diff-tool`](../qubership-nifi-flow-diff-tool/README.md) exposes the same three operations as
 goals and produces identical reports; use it when you are already inside a build.
@@ -138,7 +138,8 @@ Whichever option produced the directory, the entry point is called the same way:
 ```shell
 java -cp "lib/*" org.qubership.nifi.flowdiff.cli.FlowDiffCli git-diff --path flows --branch main
 ```
-Relative paths resolve against `--basedir`, which defaults to the working directory, 
+
+Relative paths resolve against `--basedir`, which defaults to the working directory,
 the directory `java` was started from. The Git subcommands also discover the enclosing repository from it.
 
 ## Subcommands
@@ -200,7 +201,7 @@ nifi-flow-diff git-revert-technical --path <dirOrFile>
 | `--basedir`          | all                            | working directory | Directory that relative paths resolve against.                                 |
 
 Every option maps one to one onto a parameter of the Maven plugin; the plugin
-[README](../qubership-nifi-flow-diff-tool/README.md) lists both spellings side by side.
+[Readme](../qubership-nifi-flow-diff-tool/README.md) lists both spellings side by side.
 
 ## Exit codes
 

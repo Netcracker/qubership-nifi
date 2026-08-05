@@ -13,7 +13,7 @@ produce diffs dominated by that technical changes, which buries the significant 
 matches components by identity, sorts every difference into one of four categories, and can rewrite the working copy so
 only significant changes remain in the diff.
 
-Both front ends share this code, so a report is identical whichever one produced it. Pick the front end by where you
+Both frontends share this code, so a report is identical whichever one produced it. Pick the frontend by where you
 run it: the Maven plugin inside a build, the command-line tool anywhere else.
 
 ## Comparison logic
@@ -245,7 +245,7 @@ Significant: 5, Environmental: 1, Technical: 61
 
 ## Library usage
 
-Everything a front end needs lives in `org.qubership.nifi.flowdiff.service`. Relative paths resolve against the
+Everything a frontend needs lives in `org.qubership.nifi.flowdiff.service`. Relative paths resolve against the
 `basedir` argument, which is `${project.basedir}` for the Maven plugin and the working directory for the command line.
 
 ```java
@@ -257,7 +257,7 @@ ReportModel model = service.diff(basedir, new File("flows/base"), new File("flow
 // The working tree against a committed baseline. The path must be relative.
 ReportModel gitModel = service.gitDiff(basedir, "flows", "main", false);
 
-// Render it. The hint is how the calling front end spells its own output option, quoted back
+// Render it. The hint is how the calling frontend spells its own output option, quoted back
 // to the user when a format that needs an output file was requested without one.
 new ReportEmitter(new ReportOptions("md", new File("diff.md"), 200, false), "--output <file>").emit(model);
 

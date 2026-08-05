@@ -52,7 +52,7 @@ This is a multi-module Maven project that extends Apache NiFi 2.x with custom pr
 - **`qubership-test-bundle/`** - Test-only NiFi components.
 - **`qubership-nifi-tools/`** - various tools to automate nifi-related activities: docs generator plugin,
   api-export-tool, openapi-spec-enricher, component-comparator-tool, flow-diff-core (classifies differences between
-  flow exports and reverts NiFi-generated technical identifiers) with its two front ends, flow-diff-tool (Maven
+  flow exports and reverts NiFi-generated technical identifiers) with its two frontends, flow-diff-tool (Maven
   plugin) and flow-diff-cli (command line).
 
 ### NiFi Component Pattern
