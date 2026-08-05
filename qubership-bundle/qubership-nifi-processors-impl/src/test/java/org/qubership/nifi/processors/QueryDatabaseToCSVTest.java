@@ -25,7 +25,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterEach;
@@ -34,7 +33,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +43,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
@@ -60,7 +57,7 @@ import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.DBCP_SERV
 import static org.qubership.nifi.processors.extract.QueryDatabaseToCSV.WRITE_BY_BATCH;
 
 public class QueryDatabaseToCSVTest {
-    private static final String DB_LOCATION = "target/db_ldt";
+    private static final String DB_NAME = "db_ldt_query_csv";
     private TestRunner testRunner;
     private Connection connection;
     private static final String TABLE_NAME = "TEST_TABLE";
@@ -80,8 +77,8 @@ public class QueryDatabaseToCSVTest {
         testRunner.addControllerService("dbcp", dbcp, dbcpProperties);
         testRunner.enableControllerService(dbcp);
 
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        connection = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+        Class.forName("org.h2.Driver");
+        connection = DriverManager.getConnection("jdbc:h2:mem:" + DB_NAME);
 
         // set some test attrs on flowfile
         Map<String, String> attributes = new HashMap<>();
@@ -93,17 +90,7 @@ public class QueryDatabaseToCSVTest {
 
     @AfterEach
     public void cleanUp() throws SQLException {
-        try {
-            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException e) {
-            // Do nothing, this is what happens at Derby shutdown
-        }
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ioe) {
-            // Do nothing, may not have existed
-        }
+        connection.close();
     }
 
     @Test
@@ -149,7 +136,7 @@ public class QueryDatabaseToCSVTest {
         failedFlowFiles.get(0).assertAttributeEquals("TestAttr1", "testVal1");
         failedFlowFiles.get(0).assertAttributeEquals("TestAttr2", "testVal2");
         compareErrorAttributes(failedFlowFiles.get(0),
-                "extraction.error", "java.sql.SQLSyntaxErrorException");
+                "extraction.error", "SQLSyntaxErrorException");
     }
 
     @Test
@@ -165,7 +152,7 @@ public class QueryDatabaseToCSVTest {
         failedFlowFiles.get(0).assertAttributeEquals("TestAttr2", "testVal2");
 
         compareErrorAttributes(failedFlowFiles.get(0),
-                "extraction.error", "java.sql.SQLSyntaxErrorException");
+                "extraction.error", "SQLSyntaxErrorException");
     }
 
     @Test
