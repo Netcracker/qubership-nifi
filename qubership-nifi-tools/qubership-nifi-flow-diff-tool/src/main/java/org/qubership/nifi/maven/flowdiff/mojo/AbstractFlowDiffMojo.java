@@ -2,28 +2,24 @@ package org.qubership.nifi.maven.flowdiff.mojo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.qubership.nifi.maven.flowdiff.report.JsonReporter;
-import org.qubership.nifi.maven.flowdiff.report.MarkdownReporter;
-import org.qubership.nifi.maven.flowdiff.report.ReportFormat;
-import org.qubership.nifi.maven.flowdiff.report.ReportModel;
-import org.qubership.nifi.maven.flowdiff.report.TextReporter;
+import org.qubership.nifi.flowdiff.report.ReportModel;
+import org.qubership.nifi.flowdiff.service.FlowDiffMapper;
+import org.qubership.nifi.flowdiff.service.FlowDiffService;
+import org.qubership.nifi.flowdiff.service.ReportEmitter;
+import org.qubership.nifi.flowdiff.service.ReportOptions;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.util.Locale;
 
 /**
  * Shared behavior for the flow-diff goals: the common report parameters, resolving a relative input against the Maven
- * {@code basedir}, and emitting the report in the requested format. Until the JSON and Markdown renderers land, a
- * request for a non-text format fails fast rather than silently rendering text.
+ * {@code basedir}, and emitting the report in the requested format. The work itself lives in
+ * {@code qubership-nifi-flow-diff-core}, which the command-line front end drives through the same services.
  */
 public abstract class AbstractFlowDiffMojo extends AbstractMojo {
+
+    /** How this front end spells its output option, quoted in the message when the option is missing. */
+    static final String OUTPUT_OPTION_HINT = "-Doutput=<file>";
 
     /** The project base directory that relative inputs resolve against. */
     @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
@@ -52,7 +48,7 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
     /**
      * Jackson ObjectMapper for reuse within plugin.
      */
-    public static final ObjectMapper MAPPER = new ObjectMapper();
+    public static final ObjectMapper MAPPER = FlowDiffMapper.INSTANCE;
 
     /**
      * Returns the project base directory.
@@ -80,10 +76,7 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
      * @return the resolved file
      */
     protected final File resolveAgainstBasedir(final File input) {
-        if (input.isAbsolute()) {
-            return input;
-        }
-        return new File(basedir, input.getPath());
+        return FlowDiffService.resolveAgainstBasedir(basedir, input);
     }
 
     /**
@@ -91,45 +84,9 @@ public abstract class AbstractFlowDiffMojo extends AbstractMojo {
      * text report with no output file.
      *
      * @param model the diff model
-     * @throws MojoExecutionException when the format is unknown or unsupported, or the report cannot be written
      */
-    protected final void emit(final ReportModel model) throws MojoExecutionException {
-        ReportFormat reportFormat = ReportFormat.parse(format).orElseThrow(() -> new MojoExecutionException(
-                "Unknown format '" + format + "'. Use text, json, or md."));
-        if (reportFormat == ReportFormat.TEXT && output == null) {
-            // Wrap standard output without closing it, so subsequent Maven output is unaffected.
-            Writer out = new OutputStreamWriter(System.out, StandardCharsets.UTF_8);
-            render(reportFormat, model, out);
-            try {
-                out.flush();
-            } catch (IOException e) {
-                throw new MojoExecutionException("Failed to write the report to standard output", e);
-            }
-            return;
-        }
-        if (output == null) {
-            throw new MojoExecutionException("Report format '" + reportFormat.name().toLowerCase(Locale.ROOT)
-                    + "' requires -Doutput=<file>.");
-        }
-        try (Writer out = Files.newBufferedWriter(output.toPath(), StandardCharsets.UTF_8)) {
-            render(reportFormat, model, out);
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to write report to " + output, e);
-        }
-    }
-
-    private void render(final ReportFormat reportFormat, final ReportModel model, final Writer out)
-            throws MojoExecutionException {
-        try {
-            switch (reportFormat) {
-                case TEXT -> new TextReporter(maxValueLength, showTechnical).render(model, out);
-                case MD -> new MarkdownReporter(maxValueLength, showTechnical).render(model, out);
-                case JSON -> new JsonReporter(MAPPER, showTechnical).render(model, out);
-                default -> throw new MojoExecutionException("Unsupported format: " + reportFormat);
-            }
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to render the "
-                    + reportFormat.name().toLowerCase(Locale.ROOT) + " report", e);
-        }
+    protected final void emit(final ReportModel model) {
+        ReportOptions options = new ReportOptions(format, output, maxValueLength, showTechnical);
+        new ReportEmitter(options, OUTPUT_OPTION_HINT).emit(model);
     }
 }

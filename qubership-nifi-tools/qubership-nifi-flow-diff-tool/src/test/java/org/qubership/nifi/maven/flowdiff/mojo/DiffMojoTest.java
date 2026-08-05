@@ -2,12 +2,8 @@ package org.qubership.nifi.maven.flowdiff.mojo;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -19,10 +15,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link DiffMojo}: the interim fail-fast for a non-text format, the directory-versus-file mismatch failure,
- * and writing a text report to an output file.
+ * Tests for {@link DiffMojo}: that the {@code @Parameter} fields reach the core service, that the report lands where
+ * {@code output} says, and that a core failure surfaces as the Maven exception the goal contract promises - an input
+ * problem as a {@code MojoFailureException}, a report problem as a {@code MojoExecutionException}.
  */
-@ExtendWith(MockitoExtension.class)
 class DiffMojoTest {
 
     private static final String FLOW_ONE = """
@@ -31,9 +27,6 @@ class DiffMojoTest {
     private static final String FLOW_TWO = """
             {"flowContents":{"identifier":"root","name":"Root","componentType":"PROCESS_GROUP","processors":[
               {"identifier":"p1","name":"A","componentType":"PROCESSOR","properties":{"k":"2"}}]}}""";
-
-    @Mock
-    private Log log;
 
     @TempDir
     private Path dir;
@@ -48,7 +41,6 @@ class DiffMojoTest {
     private DiffMojo mojo(final File baseline, final File target, final String format, final File output)
             throws Exception {
         DiffMojo mojo = new DiffMojo();
-        mojo.setLog(log);
         setField(AbstractFlowDiffMojo.class, mojo, "basedir", dir.toFile());
         setField(AbstractFlowDiffMojo.class, mojo, "format", format);
         setField(AbstractFlowDiffMojo.class, mojo, "output", output);
@@ -110,5 +102,14 @@ class DiffMojoTest {
         DiffMojo mojo = mojo(dir.resolve("missing.json").toFile(), target, "text", null);
         MojoFailureException ex = assertThrows(MojoFailureException.class, mojo::execute);
         assertTrue(ex.getMessage().contains("does not exist"), ex.getMessage());
+    }
+
+    @Test
+    void malformedFlowFailsAsAGoalFailure() throws Exception {
+        File baseline = writeFile("a.json", FLOW_ONE);
+        File target = writeFile("b.json", "{ not valid json ");
+        DiffMojo mojo = mojo(baseline, target, "text", null);
+        MojoFailureException ex = assertThrows(MojoFailureException.class, mojo::execute);
+        assertTrue(ex.getMessage().contains("b.json"), ex.getMessage());
     }
 }

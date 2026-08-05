@@ -5,16 +5,14 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
-import org.qubership.nifi.maven.flowdiff.io.Candidate;
-import org.qubership.nifi.maven.flowdiff.io.DirectorySource;
-import org.qubership.nifi.maven.flowdiff.io.FlowClassifier;
-import org.qubership.nifi.maven.flowdiff.report.DiffModelBuilder;
-import org.qubership.nifi.maven.flowdiff.report.ReportModel;
+import org.qubership.nifi.flowdiff.flow.FlowParseException;
+import org.qubership.nifi.flowdiff.report.ReportModel;
+import org.qubership.nifi.flowdiff.service.FlowDiffExecutionException;
+import org.qubership.nifi.flowdiff.service.FlowDiffInputException;
+import org.qubership.nifi.flowdiff.service.FlowDiffService;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * The {@code nifi-flow-diff:diff} goal: compares a baseline against a target and emits a read-only report. Each input
@@ -34,29 +32,13 @@ public final class DiffMojo extends AbstractFlowDiffMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        File base = resolveAgainstBasedir(baseline);
-        File tgt = resolveAgainstBasedir(target);
-        if (!base.exists()) {
-            throw new MojoFailureException("Baseline path does not exist: " + base);
-        }
-        if (!tgt.exists()) {
-            throw new MojoFailureException("Target path does not exist: " + tgt);
-        }
-        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
-        DirectorySource baseSource = new DirectorySource(base, classifier);
-        DirectorySource targetSource = new DirectorySource(tgt, classifier);
-        if (baseSource.isDirectory() != targetSource.isDirectory()) {
-            throw new MojoFailureException("baseline and target must both be directories or both be single files: "
-                    + base + " vs " + tgt);
-        }
         try {
-            Map<String, Candidate> baseCandidates = baseSource.discover();
-            Map<String, Candidate> targetCandidates = targetSource.discover();
-            ReportModel model = new DiffModelBuilder(getLog())
-                    .build(baseCandidates, targetCandidates, baseSource.isDirectory());
+            ReportModel model = new FlowDiffService().diff(getBasedir(), baseline, target, isSkipMalformed());
             emit(model);
-        } catch (FlowParseException e) {
+        } catch (FlowDiffInputException | FlowParseException e) {
             throw new MojoFailureException(e.getMessage(), e);
+        } catch (FlowDiffExecutionException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         } catch (IOException e) {
             throw new MojoExecutionException("I/O error while reading flows", e);
         }
