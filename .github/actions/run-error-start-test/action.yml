@@ -32,7 +32,7 @@ runs:
         echo "Change Consul ACL token for NiFi..."
         docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env rm -f nifi
         regenerate_consul_token
-        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env up -d
+        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env up -d --no-deps nifi
       env:
         RUN_MODE: ${{ inputs.run-mode }}
         ERROR_MODE: ${{ inputs.error-mode }}
@@ -66,11 +66,11 @@ runs:
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Restarting nifi and nifi-toolkit containers..."
+        echo "Restarting the NiFi container..."
         docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env rm -f nifi
         [ -f ./consul-acl-read-token.tmp ] && READ_CONSUL_TOKEN=$(cat ./consul-acl-read-token.tmp)
         sed -i "s/^CONSUL_TOKEN=.*$/CONSUL_TOKEN=$READ_CONSUL_TOKEN/" ./docker.env
-        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env up -d
+        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env up -d --no-deps nifi
       env:
         RUN_MODE: ${{ inputs.run-mode }}
     - name: Checking that local-nifi has not started
