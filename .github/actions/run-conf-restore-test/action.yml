@@ -53,16 +53,18 @@ runs:
         export CONF_VERSION=$(cat ./nifi-conf-version.tmp)
         [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
         set_configuration_version "$CONF_VERSION" "$CONSUL_TOKEN"
-    - name: Restart local NiFi and wait for health
+    - name: Restart local NiFi and wait for containers to become healthy
       shell: bash
+      continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Restarting containers..."
         docker compose -f "${DOCKER_COMPOSE_PATH}" --env-file ./docker.env restart nifi
-        docker compose -f "${DOCKER_COMPOSE_PATH}" --env-file ./docker.env \
-          up -d --wait --wait-timeout 75 nifi
+        start_containers_and_wait "${DOCKER_COMPOSE_PATH}" "${RESULTS_DIR}" "75" nifi
       env:
         DOCKER_COMPOSE_PATH: ${{ inputs.docker-compose-path }}
+        RESULTS_DIR: ${{ inputs.results-dir }}
     - name: Checking that the version has been restored and the created process group does not exist
       if: ${{ inputs.success-scenario == 'true' }}
       continue-on-error: true

@@ -24,29 +24,29 @@ runs:
     - name: Start local NiFi before the Consul read error
       shell: bash
       if: ${{ inputs.error-mode == 'tls-consul-read' }}
+      continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Starting containers..."
-        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env \
-          up -d --wait --wait-timeout 180
+        start_containers_and_wait ".github/docker/${RUN_MODE}/docker-compose.yaml" "${ERROR_MODE}" "180"
         echo "Change Consul ACL token for NiFi..."
         docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env rm -f nifi
         regenerate_consul_token
         docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env up -d
       env:
         RUN_MODE: ${{ inputs.run-mode }}
+        ERROR_MODE: ${{ inputs.error-mode }}
     - name: Start local NiFi before the Consul write error
       shell: bash
       if: ${{ inputs.error-mode == 'tls-consul-write' }}
+      continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Starting containers..."
-        docker compose -f ".github/docker/${RUN_MODE}/docker-compose.yaml" --env-file ./docker.env \
-          up -d --wait --wait-timeout 180
+        start_containers_and_wait ".github/docker/${RUN_MODE}/docker-compose.yaml" "${ERROR_MODE}" "180"
       env:
         RUN_MODE: ${{ inputs.run-mode }}
+        ERROR_MODE: ${{ inputs.error-mode }}
     - name: Set restore version for nifi configuration
       if: ${{ inputs.error-mode == 'tls-consul-write' }}
       shell: bash

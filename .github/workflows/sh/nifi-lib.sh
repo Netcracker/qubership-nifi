@@ -138,6 +138,40 @@ prepare_results_dir() {
     mkdir -p "./test-results/$resultsDir/"
 }
 
+start_containers_and_wait() {
+    local composeFile="$1"
+    local resultsDir="$2"
+    local waitTimeout="$3"
+    shift 3
+    if [ -z "$waitTimeout" ]; then
+        echo "Using default timeout = 180 seconds"
+        waitTimeout=180
+    fi
+    local composeArgs=(-f "$composeFile" --env-file ./docker.env)
+    echo "Starting containers from $composeFile and waiting up to $waitTimeout seconds for them to become healthy..."
+    local waitSuccess="true"
+    docker compose "${composeArgs[@]}" up -d --wait --wait-timeout "$waitTimeout" "$@" || waitSuccess="false"
+    local summaryFileName
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
+    if [ "$waitSuccess" == "false" ]; then
+        local logFile="./test-results/$resultsDir/nifi_log_after_wait.log"
+        echo "List of containers:"
+        docker ps -a
+        echo "Container startup failed. Last 500 lines of logs for compose file $composeFile:"
+        docker compose "${composeArgs[@]}" logs --tail 500 >"$logFile" 2>&1 || \
+            echo "Failed to collect Docker Compose logs." >>"$logFile"
+        cat "$logFile"
+        echo "Container startup failed" >"./test-results/$resultsDir/failed_nifi_wait.lst"
+        echo "| Wait for container start                       | Failed :x:                 |" \
+            >"./test-results/$resultsDir/$summaryFileName"
+        return 1
+    fi
+    echo "Wait finished successfully. All containers are up and healthy."
+    echo "| Wait for container start                       | Success :white_check_mark: |" \
+        >"./test-results/$resultsDir/$summaryFileName"
+    return 0
+}
+
 generate_tls_passwords() {
     echo "Generating passwords..."
     TRUSTSTORE_PASSWORD=$(generate_random_password 8 4 3)

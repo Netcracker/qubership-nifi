@@ -17,13 +17,13 @@ runs:
         setup_env_before_tests "${RUN_MODE}"
       env:
         RUN_MODE: ${{ inputs.run-mode }}
-    - name: Start local NiFi and wait for health
+    - name: Start local NiFi and wait for containers to become healthy
       shell: bash
+      continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Starting containers..."
-        docker compose -f .github/docker/${RUN_MODE}/docker-compose.yaml --env-file ./docker.env \
-          up -d --wait --wait-timeout 180
+        start_containers_and_wait ".github/docker/${RUN_MODE}/docker-compose.yaml" "${RUN_MODE}" "180"
       env:
         RUN_MODE: ${{ inputs.run-mode }}
     - name: Test log level configuration

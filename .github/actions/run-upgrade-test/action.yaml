@@ -27,17 +27,18 @@ runs:
         echo "RUN_MODE=$newRunMode" >> $GITHUB_OUTPUT
       env:
         RUN_MODE: ${{ inputs.run-mode }}
-    - name: Run local NiFi 1.x and wait for health
+    - name: Run local NiFi 1.x and wait for containers to become healthy
       shell: bash
+      continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Starting containers..."
         export NIFI_IMAGE="ghcr.io/netcracker/qubership-nifi"
         export NIFI_IMAGE_TAG="1.0.6"
-        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env \
-          up -d --wait --wait-timeout 180
+        start_containers_and_wait ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RESULTS_DIR}" "180"
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
+        RESULTS_DIR: ${{ inputs.run-mode }}
     - name: Run collection for setup policies
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -79,15 +80,16 @@ runs:
         docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env rm -f nifi
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
-    - name: Run local NiFi 2.x and wait for health
+    - name: Run local NiFi 2.x and wait for containers to become healthy
       shell: bash
+      continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
-        echo "Starting containers..."
-        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env \
-          up -d --wait --wait-timeout 180
+        start_containers_and_wait ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RESULTS_DIR}" "180"
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
+        RESULTS_DIR: ${{ inputs.run-mode }}
     - name: Run E2E upgrade test
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
@@ -109,16 +111,18 @@ runs:
         export CONF_VERSION=$(cat ./nifi-conf-version.tmp)
         [ -f ./consul-acl-token.tmp ] && CONSUL_TOKEN=$(cat ./consul-acl-token.tmp)
         set_configuration_version "$CONF_VERSION" "$CONSUL_TOKEN"
-    - name: Restart local NiFi and wait for health
+    - name: Restart local NiFi and wait for containers to become healthy
       shell: bash
+      continue-on-error: true
       run: |
+        . .github/workflows/sh/nifi-lib.sh
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Restarting containers..."
-        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env restart nifi
-        docker compose -f .github/docker/${BASE_RUN_MODE}/docker-compose.yaml --env-file ./docker.env \
-          up -d --wait --wait-timeout 75 nifi
+        docker compose -f ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" --env-file ./docker.env restart nifi
+        start_containers_and_wait ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RESULTS_DIR}" "75" nifi
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
+        RESULTS_DIR: ${{ inputs.run-mode }}
     - name: Run E2E restore test
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
