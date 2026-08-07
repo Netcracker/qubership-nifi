@@ -92,9 +92,21 @@ services:
     #    - bash
     #    - /opt/nifi-registry/scripts/ready.sh
     #  interval: 5s
-    #  timeout: 10s
-    #  retries: 30
+    #  timeout: 5s
+    #  retries: 15
     #  start_period: 15s
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 5
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi-registry:18080/nifi-registry-api/config > /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
   consul:
     image: hashicorp/consul:1.20
     volumes:
@@ -106,7 +118,7 @@ services:
       test:
         - "CMD-SHELL"
         - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
-      start_period: 10s
+      start_period: 5s
       interval: 5s
       timeout: 3s
       retries: 12

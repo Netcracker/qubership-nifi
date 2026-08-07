@@ -233,11 +233,11 @@ services:
     hostname: consul
     healthcheck:
       test:
-        - CMD
-        - consul
-        - members
+        - "CMD-SHELL"
+        - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
+      start_period: 5s
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 12
   keycloak:
     image: keycloak/keycloak:26.1.4
