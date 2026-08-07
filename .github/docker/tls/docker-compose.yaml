@@ -83,15 +83,16 @@ services:
       - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry
     hostname: nifi-registry
-    healthcheck:
-      test:
-        - CMD
-        - bash
-        - /opt/nifi-registry/scripts/ready.sh
-      interval: 5s
-      timeout: 10s
-      retries: 30
-      start_period: 15s
+    #Uncomment after fix for auth=TLS support in ready.sh is delivered:
+    #healthcheck:
+    #  test:
+    #    - CMD
+    #    - bash
+    #    - /opt/nifi-registry/scripts/ready.sh
+    #  interval: 5s
+    #  timeout: 10s
+    #  retries: 30
+    #  start_period: 15s
   consul:
     image: hashicorp/consul:1.20
     volumes:
