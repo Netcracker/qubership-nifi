@@ -50,8 +50,10 @@ runs:
     - name: Prepare output directory
       shell: bash
       run: |
-        echo "Preparing output directory ${{ inputs.results-dir }}"
-        mkdir -p "./test-results/${{ inputs.results-dir }}/"
+        echo "Preparing output directory ${RESULTS_DIR}"
+        mkdir -p "./test-results/${RESULTS_DIR}/"
+      env:
+        RESULTS_DIR: ${{ inputs.results-dir }}
     - name: Run newman tests
       shell: bash
       continue-on-error: true
@@ -59,10 +61,10 @@ runs:
         . .github/workflows/sh/nifi-lib.sh
         gitDir="$(pwd)"
         collectionsDir="${gitDir}/.github/collections"
-        echo "Running newman using collection ${{ inputs.collection-name }} with env ${{ inputs.env-name }} from $collectionsDir"
-        caCertsFile="${{ inputs.tls-ca-certs }}"
+        echo "Running newman using collection ${COLLECTION_NAME} with env ${ENV_NAME} from $collectionsDir"
+        caCertsFile="${TLS_CA_CERTS}"
         caCertsOption=''
-        clientCertConfigFile="${{ inputs.tls-client-certs-config }}"
+        clientCertConfigFile="${TLS_CLIENT_CERTS_CONFIG}"
         clientCertConfigOption=''
         echo "Additional TLS options: caCertsFile = $caCertsFile, clientCertConfigFile = $clientCertConfigFile"
         if [ -n "$caCertsFile" ]; then
@@ -72,43 +74,53 @@ runs:
         fi
         if [ -n "$clientCertConfigFile" ]; then
           clientCertConfigOption="--ssl-client-cert-list \"/tmp/tls-certs/$clientCertConfigFile\""
-        else
-          clientCertConfigFile=''
         fi
         additionalVolumes=''
-        tlsCertsDir="${{ inputs.tls-certs-dir }}"
+        tlsCertsDir="${TLS_CERTS_DIR}"
         if [ -d "$tlsCertsDir" ]; then
           echo "TLS certificate directory found at $tlsCertsDir, adding volume mapped to /tmp/tls-certs"
           additionalVolumes="-v \"$tlsCertsDir:/tmp/tls-certs\""
         fi
-        globalVarFiles="${{ inputs.global-vars-file-name }}"
-        if [ -n "globalVarFiles" ]; then
+        globalVarFiles="${GLOBAL_VARS_FILE_NAME}"
+        if [ -n "$globalVarFiles" ]; then
           pathGlobalVarFiles="--globals \"$globalVarFiles\""
         else
           pathGlobalVarFiles=''
         fi
-        composeFile="${{ inputs.docker-compose-file }}"
+        composeFile="${DOCKER_COMPOSE_FILE}"
         eval docker run --net=host --rm -v "$collectionsDir:/etc/newman" \
-          "$additionalVolumes" postman/newman:alpine run "${{ inputs.collection-name }}" \
-          --environment="${{ inputs.env-name }}" -r cli,junit \
+          "$additionalVolumes" postman/newman:alpine run "${COLLECTION_NAME}" \
+          --environment="${ENV_NAME}" -r cli,junit \
           "$caCertsOption" "$clientCertConfigOption" "$pathGlobalVarFiles" || \
-          { echo "Collection ${{ inputs.short-name }} failed to run" > \
-            "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst"; \
+          { echo "Collection ${SHORT_NAME} failed to run" > \
+            "./test-results/${RESULTS_DIR}/failed_${SHORT_NAME}_at.lst"; \
             docker compose -f "$composeFile" --env-file ./docker.env logs > ./nifi_log_tmp.lst; \
-            cp ./nifi_log_tmp.lst "./test-results/${{ inputs.results-dir }}/nifi_log_after_newman.log"; }
-        summaryFileName=$(get_next_summary_file_name "${{ inputs.results-dir }}")
-        if [ -f "./test-results/${{ inputs.results-dir }}/failed_${{ inputs.short-name }}_at.lst" ]; then
+            cp ./nifi_log_tmp.lst "./test-results/${RESULTS_DIR}/nifi_log_after_newman.log"; }
+        summaryFileName=$(get_next_summary_file_name "${RESULTS_DIR}")
+        if [ -f "./test-results/${RESULTS_DIR}/failed_${SHORT_NAME}_at.lst" ]; then
           # failed:
-          echo "| Autotest collection ${{ inputs.short-name }}   | Failed :x:                 |" \
-            >"./test-results/${{ inputs.results-dir }}/$summaryFileName"
+          echo "| Autotest collection ${SHORT_NAME}   | Failed :x:                 |" \
+            >"./test-results/${RESULTS_DIR}/$summaryFileName"
         else
           # success
-          echo "| Autotest collection ${{ inputs.short-name }}   | Success :white_check_mark: |" \
-            >"./test-results/${{ inputs.results-dir }}/$summaryFileName"
+          echo "| Autotest collection ${SHORT_NAME}   | Success :white_check_mark: |" \
+            >"./test-results/${RESULTS_DIR}/$summaryFileName"
         fi
+      env:
+        COLLECTION_NAME: ${{ inputs.collection-name }}
+        SHORT_NAME: ${{ inputs.short-name }}
+        ENV_NAME: ${{ inputs.env-name }}
+        RESULTS_DIR: ${{ inputs.results-dir }}
+        TLS_CERTS_DIR: ${{ inputs.tls-certs-dir }}
+        TLS_CA_CERTS: ${{ inputs.tls-ca-certs }}
+        TLS_CLIENT_CERTS_CONFIG: ${{ inputs.tls-client-certs-config }}
+        GLOBAL_VARS_FILE_NAME: ${{ inputs.global-vars-file-name }}
+        DOCKER_COMPOSE_FILE: ${{ inputs.docker-compose-file }}
     - name: Collect test results
       shell: bash
       continue-on-error: true
       run: |
-        echo "Collecting collection results into ./test-results/${{ inputs.results-dir }}..."
-        find .github/collections -name \*.xml -exec cp {} ./test-results/${{ inputs.results-dir }}/ \;
+        echo "Collecting collection results into ./test-results/${RESULTS_DIR}..."
+        find .github/collections -name \*.xml -exec cp {} "./test-results/${RESULTS_DIR}/" \;
+      env:
+        RESULTS_DIR: ${{ inputs.results-dir }}

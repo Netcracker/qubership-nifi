@@ -23,7 +23,9 @@ runs:
       continue-on-error: true
       run: |
         . .github/workflows/sh/nifi-lib.sh
-        get_flow_json_version "${{ inputs.docker-compose-path }}"
+        get_flow_json_version "${DOCKER_COMPOSE_PATH}"
+      env:
+        DOCKER_COMPOSE_PATH: ${{ inputs.docker-compose-path }}
     - name: Getting the flow.json.gz version from the archive folder (error scenario)
       if: ${{ inputs.success-scenario == 'false' }}
       shell: bash
@@ -56,9 +58,11 @@ runs:
       run: |
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         echo "Restarting containers..."
-        docker compose -f ${{ inputs.docker-compose-path }} --env-file ./docker.env restart nifi
-        docker compose -f ${{ inputs.docker-compose-path }} --env-file ./docker.env \
+        docker compose -f "${DOCKER_COMPOSE_PATH}" --env-file ./docker.env restart nifi
+        docker compose -f "${DOCKER_COMPOSE_PATH}" --env-file ./docker.env \
           up -d --wait --wait-timeout 75 nifi
+      env:
+        DOCKER_COMPOSE_PATH: ${{ inputs.docker-compose-path }}
     - name: Checking that the version has been restored and the created process group does not exist
       if: ${{ inputs.success-scenario == 'true' }}
       continue-on-error: true
