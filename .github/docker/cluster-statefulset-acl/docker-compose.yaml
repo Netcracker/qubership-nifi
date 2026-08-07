@@ -6,7 +6,7 @@ x-nifi-healthcheck: &nifi-healthcheck
       curl --fail --silent --show-error --max-time 10
       --cert "$${NIFI_HEALTHCHECK_CERT_DIR}/CN=admin_OU=NIFI.p12:$$(cat "$${NIFI_HEALTHCHECK_CERT_DIR}/CN=admin_OU=NIFI.password")"
       --cert-type P12 --cacert "$${NIFI_HEALTHCHECK_CERT_DIR}/nifi-cert.pem"
-      https://localhost:8080/nifi-api/controller/config > /dev/null
+      https://$${HOSTNAME}:8080/nifi-api/controller/config > /dev/null
   interval: 5s
   timeout: 10s
   retries: 30
