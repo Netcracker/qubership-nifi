@@ -82,21 +82,12 @@ jobs:
           echo "NIFI_IMAGE=${{ matrix.nifi.image }}" >> ./docker.env
           echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}" >> ./docker.env
 
-      - name: Start NiFi environment
+      - name: Start NiFi environment and wait for health
         run: |
           NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
           export NIFI_SENSITIVE_KEY
-          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env up -d
-
-      - name: Wait for NiFi to start
-        run: |
-          . .github/workflows/sh/nifi-lib.sh
-          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-          wait_nifi_container "15" "150" "localhost" "8080" "true" \
-            ".github/docker/oidc/docker-compose.yaml" "oidc" \
-            "./temp-vol/tls-cert/nifi/nifi-cert.pem" \
-            "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
-            "$NIFI_CLIENT_PASSWORD"
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
+            up -d --wait --wait-timeout 180
 
       - name: Determine compose network name
         id: network
