@@ -243,7 +243,7 @@ fi
 
 # Setup NiFi to use Python
 uncomment "nifi.python.command" "${nifi_props_file}"
-prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/persistent_conf/python_extensions"
 # Use ./extensions for new NARs
 # Setup NiFi to scan for new NARs in nar_extensions
 # prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
@@ -295,6 +295,10 @@ mkdir -p "${NIFI_HOME}/persistent_conf/conf"
 mkdir -p "${NIFI_HOME}/persistent_conf/conf-restore"
 mkdir -p "${NIFI_HOME}/provenance_repository/provenance_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/database_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/connector_assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/nar_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/python_extensions"
 
 bash "${scripts_dir}/restore_nifi_configurations.sh"
 
