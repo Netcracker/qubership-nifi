@@ -4,7 +4,7 @@ services:
     image: apache/nifi-toolkit:1.28.1
     depends_on:
       consul:
-        condition: service_started
+        condition: service_healthy
     container_name: nifi-toolkit
     entrypoint: /bin/bash
     command: /tmp/tls-scripts/nifi-gen-certs.sh
@@ -48,6 +48,18 @@ services:
       - NIFI_TRUSTSTORE_PASSWORD_PATH=/tmp/cert-pwd/truststore.pass
       - NIFI_SENSITIVE_KEY_PATH=/tmp/nifi-sens-key/key
     container_name: local-nifi
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 10
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi:8080/nifi-api/controller/config > /dev/null
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
     hostname: nifi
   nifi-registry:
@@ -70,8 +82,18 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry
     hostname: nifi-registry
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - /opt/nifi-registry/scripts/ready.sh
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
   consul:
     image: hashicorp/consul:1.20
     volumes:
@@ -79,6 +101,14 @@ services:
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
+    healthcheck:
+      test:
+        - CMD
+        - consul
+        - members
+      interval: 5s
+      timeout: 5s
+      retries: 12
 volumes:
   tls-scripts:
     driver: local

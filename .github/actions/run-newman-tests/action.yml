@@ -13,11 +13,11 @@ inputs:
   env-name:
     description: 'Environment name for newman run'
     required: false
-    default: 'NiFi_AT.json.postman_environment'
+    default: 'NiFi_AT_TLS.json.postman_environment'
   results-dir:
     description: 'Directory to store results'
     required: false
-    default: 'plain'
+    default: 'tls'
   tls-certs-dir:
     description: |
       Path to local directory with TLS certificates in PEM format.
