@@ -1,12 +1,9 @@
 package org.qubership.nifi.maven.flowdiff.mojo;
 
-import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugin.MojoFailureException;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.lang.reflect.Field;
@@ -15,13 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link GitDiffMojo}: classifying working-tree changes against the committed baseline, discovering a flow
- * removed from the working tree, and comparing against a branch tip rather than the merge-base.
+ * Tests for {@link GitDiffMojo}: that {@code path}, {@code branch}, {@code format}, and {@code output} reach the core
+ * service and produce a report on disk, and that an unresolvable revision surfaces as a {@code MojoFailureException}.
  */
-@ExtendWith(MockitoExtension.class)
 class GitDiffMojoTest {
 
     private static final String COMMITTED = """
@@ -32,11 +29,6 @@ class GitDiffMojoTest {
             {"flowContents":{"identifier":"root-working","name":"R","componentType":"PROCESS_GROUP","processors":[
               {"identifier":"p1","name":"A","componentType":"PROCESSOR","instanceIdentifier":"p1-w",
                "groupIdentifier":"root-working","properties":{"k":"v2"}}]}}""";
-    private static final String SIMPLE_FLOW = """
-            {"flowContents":{"identifier":"r2","name":"R2","componentType":"PROCESS_GROUP","processors":[]}}""";
-
-    @Mock
-    private Log log;
 
     @TempDir
     private Path dir;
@@ -68,10 +60,8 @@ class GitDiffMojoTest {
         field.set(target, value);
     }
 
-    private String runDiff(final String path, final String branch) throws Exception {
-        File output = dir.resolve("report.txt").toFile();
+    private GitDiffMojo mojo(final String path, final String branch, final File output) throws Exception {
         GitDiffMojo mojo = new GitDiffMojo();
-        mojo.setLog(log);
         setField(AbstractFlowDiffMojo.class, mojo, "basedir", dir.toFile());
         setField(AbstractFlowDiffMojo.class, mojo, "format", "text");
         setField(AbstractFlowDiffMojo.class, mojo, "output", output);
@@ -79,8 +69,7 @@ class GitDiffMojoTest {
         setField(AbstractFlowDiffMojo.class, mojo, "skipMalformed", false);
         setField(GitDiffMojo.class, mojo, "path", path);
         setField(GitDiffMojo.class, mojo, "branch", branch);
-        mojo.execute();
-        return Files.readString(output.toPath(), StandardCharsets.UTF_8);
+        return mojo;
     }
 
     @Test
@@ -88,43 +77,22 @@ class GitDiffMojoTest {
         write("flows/a.json", COMMITTED);
         commitAll();
         write("flows/a.json", WORKING);
+        File output = dir.resolve("report.txt").toFile();
 
-        String report = runDiff("flows", "HEAD");
+        mojo("flows", "HEAD", output).execute();
 
+        String report = Files.readString(output.toPath(), StandardCharsets.UTF_8);
         assertTrue(report.contains("properties/k: v -> v2"), report);
         assertTrue(report.contains("technical: 3"), report);
         assertFalse(report.contains("instanceIdentifier"), report);
     }
 
     @Test
-    void discoversFlowRemovedFromWorkingTree() throws Exception {
-        write("flows/a.json", COMMITTED);
-        write("flows/b.json", SIMPLE_FLOW);
-        commitAll();
-        Files.delete(dir.resolve("flows/b.json"));
-
-        String report = runDiff("flows", "HEAD");
-
-        assertTrue(report.contains("removed flow: flows/b.json"), report);
-    }
-
-    @Test
-    void comparesAgainstBranchTip() throws Exception {
+    void unresolvableBranchFails() throws Exception {
         write("flows/a.json", COMMITTED);
         commitAll();
-        String main;
-        try (Git git = openOrInit()) {
-            main = git.getRepository().getBranch();
-            git.checkout().setCreateBranch(true).setName("feature").call();
-        }
-        write("flows/c.json", SIMPLE_FLOW);
-        commitAll();
-        try (Git git = openOrInit()) {
-            git.checkout().setName(main).call();
-        }
-
-        String report = runDiff("flows", "feature");
-
-        assertTrue(report.contains("removed flow: flows/c.json"), report);
+        GitDiffMojo mojo = mojo("flows", "no-such-branch", dir.resolve("report.txt").toFile());
+        MojoFailureException ex = assertThrows(MojoFailureException.class, mojo::execute);
+        assertTrue(ex.getMessage().contains("no-such-branch"), ex.getMessage());
     }
 }

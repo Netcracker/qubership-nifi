@@ -60,8 +60,9 @@ usage details. The main tools are:
   API Hub validation.
 - **qubership-nifi-export-transform-tool** - extracts large processor property values
   from flow JSON and restores them on demand.
-- **qubership-nifi-flow-diff-tool** - classifies differences between flow exports and
-  reverts NiFi-generated technical identifiers.
+- **qubership-nifi-flow-diff-tool** and **qubership-nifi-flow-diff-cli** - classify
+  differences between flow exports and revert NiFi-generated technical identifiers, as a
+  Maven plugin and as a command-line tool over the same library.
 
 See [`qubership-nifi-tools`](qubership-nifi-tools/README.md) for the complete list,
 including shared libraries and integration-test modules.
