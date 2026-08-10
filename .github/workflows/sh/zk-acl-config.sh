@@ -1,7 +1,5 @@
 #!/bin/bash -e
 
-echo "Waiting for zookeeper to start (sleep for 10s):"
-sleep 10
 echo "Creating /local znode..."
 zkCli.sh -client-configuration /conf/client.cfg -server zookeeper:2182 create /local
 echo "Setting ACL for /local znode..."

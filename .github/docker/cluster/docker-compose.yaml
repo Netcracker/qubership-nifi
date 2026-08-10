@@ -1,4 +1,17 @@
 ---
+x-nifi-healthcheck: &nifi-healthcheck
+  test:
+    - CMD-SHELL
+    - >-
+      curl --fail --silent --show-error --max-time 10
+      --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+      --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+      https://$${HOSTNAME}:8080/nifi-api/controller/config > /dev/null
+  interval: 5s
+  timeout: 10s
+  retries: 30
+  start_period: 15s
+
 services:
   nifi-toolkit:
     image: apache/nifi-toolkit:1.28.1
@@ -21,15 +34,26 @@ services:
     environment:
       ZOO_MY_ID: 1
       ZOO_SERVERS: server.1=zookeeper:2888:3888;2181
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - nc -z 127.0.0.1 2181
+      interval: 5s
+      timeout: 5s
+      retries: 12
   qubership-nifi-0:
     image: local-nifi:test
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
     volumes:
       - nifi-conf0:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-0:/tmp/tls-certs
@@ -62,6 +86,7 @@ services:
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
     container_name: local-nifi
+    healthcheck: *nifi-healthcheck
     hostname: qubership-nifi-0
     restart: unless-stopped
   qubership-nifi-1:
@@ -70,9 +95,13 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
     volumes:
       - nifi-conf1:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-1:/tmp/tls-certs
@@ -83,6 +112,7 @@ services:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
       - CONSUL_URL=consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=spring
       - AUTH=oidc
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
@@ -104,6 +134,7 @@ services:
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
     container_name: qubership-nifi-1
+    healthcheck: *nifi-healthcheck
     hostname: qubership-nifi-1
     restart: unless-stopped
   qubership-nifi-2:
@@ -112,9 +143,13 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+      zookeeper:
+        condition: service_healthy
     volumes:
       - nifi-conf2:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-2:/tmp/tls-certs
@@ -125,6 +160,7 @@ services:
       - NAMESPACE=local
       - CONSUL_ENABLED=true
       - CONSUL_URL=consul:8500
+      - NIFI_CONSUL_INT_FRAMEWORK=spring
       - AUTH=oidc
       - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
@@ -146,6 +182,7 @@ services:
       - NIFI_ELECTION_MAX_WAIT=30 secs
       - NIFI_WEB_PROXY_HOST=localhost:8080,localhost:9080,localhost:10080
     container_name: qubership-nifi-2
+    healthcheck: *nifi-healthcheck
     hostname: qubership-nifi-2
     restart: unless-stopped
   nifi-registry:
@@ -154,9 +191,9 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - tls-cert-reg:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
@@ -179,13 +216,11 @@ services:
       - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry-cluster
     hostname: nifi-registry
-    labels:
-      - "autoheal=true" # Label for autoheal to monitor
     healthcheck:
-      interval: 15s
-      retries: 3
-      start_period: 10s
-      timeout: 5s
+      interval: 5s
+      retries: 30
+      start_period: 15s
+      timeout: 10s
       test:
         - "CMD"
         - "bash"
@@ -196,13 +231,21 @@ services:
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 12
   keycloak:
     image: keycloak/keycloak:26.1.4
     hostname: keycloak
     restart: on-failure:3
     depends_on:
       postgresql:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - keycloak-init:/opt/keycloak/data/import
       - tls-cert:/tmp/tls-certs
@@ -227,6 +270,16 @@ services:
       - "https://localhost:28443"
       - "--hostname-backchannel-dynamic"
       - "true"
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/8443
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
   postgresql:
     image: postgres:16.8
     ports:
@@ -238,13 +291,15 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     container_name: postgresql
     hostname: postgresql
-  autoheal:
-    restart: always
-    image: willfarrell/autoheal:latest
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=autoheal
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -U
+        - postgres
+      interval: 5s
+      timeout: 5s
+      retries: 12
 volumes:
   tls-scripts:
     driver: local
