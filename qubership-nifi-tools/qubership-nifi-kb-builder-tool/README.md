@@ -108,7 +108,7 @@ java -cp "lib/*" org.qubership.nifi.tools.kb.cli.KnowledgeBaseBuilderApplication
 | `--certificate-file <path>`           | Certificate mode | PKCS#12 file with one private-key entry and its certificate chain.                             |
 | `--ca-file <path>`                    | No               | PEM file with one or more trusted CA certificates. Omit to use the JVM trust store.            |
 | `--skip-guides`                       | No               | Builds the component catalog without requesting or processing the guides.                      |
-| `--output-dir <path>`                 | Yes              | Destination directory. An existing directory is replaced only after a validated build.         |
+| `--output-dir <path>`                 | Yes              | Destination directory. It must not be a file or contain the working directory, certificate, or CA file. An existing directory is replaced only after a validated build. |
 | `-h`, `--help`                        | No               | Prints usage without reading secrets or making requests.                                       |
 | `-V`, `--version`                     | No               | Prints the builder version.                                                                    |
 

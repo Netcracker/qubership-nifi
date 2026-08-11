@@ -94,6 +94,9 @@ public final class BuilderConfig {
         if (resolved.getParent() == null) {
             throw new ConfigurationException("--output-dir must not resolve to a filesystem root");
         }
+        if (Files.exists(resolved) && !Files.isDirectory(resolved)) {
+            throw new ConfigurationException("--output-dir exists and is not a directory: " + resolved);
+        }
         return resolved;
     }
 
@@ -152,22 +155,14 @@ public final class BuilderConfig {
 
     private static void validateOutputOverlap(final Builder builder) {
         final Path workingDir = Paths.get("").toAbsolutePath().normalize();
-        rejectOverlap(builder.outputDir, workingDir, "the process working directory");
-        rejectCredentialOverlap(builder.outputDir, builder.certificateFile, "the PKCS#12 file");
-        rejectCredentialOverlap(builder.outputDir, builder.caFile, "the CA file");
+        rejectProtectedPath(builder.outputDir, workingDir, "the process working directory");
+        rejectProtectedPath(builder.outputDir, builder.certificateFile, "the PKCS#12 file");
+        rejectProtectedPath(builder.outputDir, builder.caFile, "the CA file");
     }
 
-    private static void rejectCredentialOverlap(final Path outputDir, final Path credential, final String label) {
-        if (credential == null) {
-            return;
-        }
-        rejectOverlap(outputDir, credential, label);
-        rejectOverlap(outputDir, credential.getParent(), "the parent directory of " + label);
-    }
-
-    private static void rejectOverlap(final Path outputDir, final Path forbidden, final String label) {
-        if (forbidden != null && outputDir.equals(forbidden.toAbsolutePath().normalize())) {
-            throw new ConfigurationException("--output-dir must not resolve to " + label);
+    private static void rejectProtectedPath(final Path outputDir, final Path protectedPath, final String label) {
+        if (protectedPath != null && protectedPath.toAbsolutePath().normalize().startsWith(outputDir)) {
+            throw new ConfigurationException("--output-dir must not contain " + label);
         }
     }
 

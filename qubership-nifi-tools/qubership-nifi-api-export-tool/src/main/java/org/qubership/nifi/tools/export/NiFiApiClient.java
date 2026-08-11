@@ -27,7 +27,6 @@ import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
 import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 import org.qubership.nifi.tools.nifi.common.tls.Pkcs12TrustMaterial;
 import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
-import org.qubership.nifi.tools.nifi.common.tls.TrustMaterial;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,10 +90,14 @@ public class NiFiApiClient implements Closeable {
             final NiFiContainerManager.TruststoreData ts) {
         final char[] storePassword = ts.getPassword().toCharArray();
         try {
-            final TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(ts.getBytes(), storePassword);
-            final SSLContext sslContext = TlsContextFactory.create(Optional.empty(), Optional.of(trust));
-            return NiFiHttpClient.newHttpClient(sslContext,
-                    Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
+            final Pkcs12TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(ts.getBytes(), storePassword);
+            try {
+                final SSLContext sslContext = TlsContextFactory.create(Optional.empty(), Optional.of(trust));
+                return NiFiHttpClient.newHttpClient(sslContext,
+                        Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
+            } finally {
+                trust.clearPassword();
+            }
         } finally {
             Arrays.fill(storePassword, '\0');
         }

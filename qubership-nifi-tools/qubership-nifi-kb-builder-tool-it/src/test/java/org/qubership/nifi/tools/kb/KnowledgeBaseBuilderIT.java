@@ -27,7 +27,6 @@ import org.qubership.nifi.tools.export.NiFiContainerManager;
 import org.qubership.nifi.tools.kb.cli.Environment;
 import org.qubership.nifi.tools.nifi.common.tls.Pkcs12TrustMaterial;
 import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
-import org.qubership.nifi.tools.nifi.common.tls.TrustMaterial;
 
 import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
@@ -70,6 +69,8 @@ class KnowledgeBaseBuilderIT {
     private static final int HOST_PORT = 19443;
     private static final int STARTUP_TIMEOUT_SECONDS = 240;
     private static final int RUN_TIMEOUT_MINUTES = 5;
+    private static final int FORCED_TERMINATION_TIMEOUT_SECONDS = 30;
+    private static final int OUTPUT_DRAIN_TIMEOUT_SECONDS = 10;
     private static final int PEM_LINE_LENGTH = 64;
     private static final int HTTP_MIN_SUCCESS = 200;
     private static final int HTTP_MAX_SUCCESS = 300;
@@ -188,13 +189,28 @@ class KnowledgeBaseBuilderIT {
         final StringBuilder output = new StringBuilder();
         // Drained on a separate thread so that a large guide build cannot fill the pipe and deadlock.
         final Thread drain = new Thread(() -> drainTo(process, output), "kb-builder-output");
+        drain.setDaemon(true);
         drain.start();
         final boolean finished = process.waitFor(RUN_TIMEOUT_MINUTES, TimeUnit.MINUTES);
-        drain.join();
         if (!finished) {
             process.destroyForcibly();
+            final boolean terminated = process.waitFor(FORCED_TERMINATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            drain.join(TimeUnit.SECONDS.toMillis(OUTPUT_DRAIN_TIMEOUT_SECONDS));
+            if (drain.isAlive()) {
+                drain.interrupt();
+            }
+            if (!terminated) {
+                throw new IllegalStateException("The builder timed out and could not be terminated within "
+                        + FORCED_TERMINATION_TIMEOUT_SECONDS + " seconds");
+            }
             throw new IllegalStateException("The builder did not finish within " + RUN_TIMEOUT_MINUTES
                     + " minutes. Output:\n" + output);
+        }
+        drain.join(TimeUnit.SECONDS.toMillis(OUTPUT_DRAIN_TIMEOUT_SECONDS));
+        if (drain.isAlive()) {
+            drain.interrupt();
+            throw new IllegalStateException("The builder output could not be drained within "
+                    + OUTPUT_DRAIN_TIMEOUT_SECONDS + " seconds");
         }
         System.out.print(output);
         return process.exitValue();
@@ -274,8 +290,12 @@ class KnowledgeBaseBuilderIT {
     private static SSLContext buildSslContext(final NiFiContainerManager.TruststoreData truststore) {
         final char[] password = truststore.getPassword().toCharArray();
         try {
-            final TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(truststore.getBytes(), password);
-            return TlsContextFactory.create(Optional.empty(), Optional.of(trust));
+            final Pkcs12TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(truststore.getBytes(), password);
+            try {
+                return TlsContextFactory.create(Optional.empty(), Optional.of(trust));
+            } finally {
+                trust.clearPassword();
+            }
         } finally {
             java.util.Arrays.fill(password, '\0');
         }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -48,6 +49,26 @@ class TlsMaterialTest {
         final Pkcs12KeyMaterial material =
                 Pkcs12KeyMaterial.fromFile(clientKeyStore, CORRECT_PASSWORD);
         assertThat(material.keyManagers()).isNotEmpty();
+    }
+
+    @Test
+    void clearedKeyMaterialPasswordCannotBeReused() {
+        final Pkcs12KeyMaterial material =
+                Pkcs12KeyMaterial.fromFile(clientKeyStore, CORRECT_PASSWORD);
+
+        material.clearPassword();
+
+        assertThatThrownBy(material::keyManagers).isInstanceOf(TlsMaterialException.class);
+    }
+
+    @Test
+    void clearedTrustMaterialPasswordCannotBeReused() throws Exception {
+        final Pkcs12TrustMaterial material = Pkcs12TrustMaterial.fromBytes(
+                Files.readAllBytes(clientKeyStore), CORRECT_PASSWORD);
+
+        material.clearPassword();
+
+        assertThatThrownBy(material::trustManagers).isInstanceOf(TlsMaterialException.class);
     }
 
     @Test

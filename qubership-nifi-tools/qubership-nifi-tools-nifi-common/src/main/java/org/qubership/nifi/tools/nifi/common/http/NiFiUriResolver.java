@@ -106,7 +106,7 @@ public final class NiFiUriResolver {
             throw new IllegalArgumentException("NiFi URL must contain a host");
         }
 
-        final String normalizedPrefix = stripNifiSuffix(trimTrailingSlash(uri.getPath()));
+        final String normalizedPrefix = stripNifiSuffix(trimTrailingSlash(uri.getRawPath()));
         final StringBuilder base = new StringBuilder();
         base.append(uriScheme).append("://").append(uri.getHost());
         if (uri.getPort() != -1) {

@@ -80,6 +80,31 @@ class NiFiUriResolverTest {
     }
 
     @Test
+    void preservesEncodedSpaceInProxyPrefix() {
+        final NiFiUriResolver resolver =
+                NiFiUriResolver.fromBaseUrl("https://gateway.example.com/team%20one/nifi");
+
+        assertThat(resolver.resolve("/nifi-api/flow/about").toString())
+                .isEqualTo("https://gateway.example.com/team%20one/nifi-api/flow/about");
+    }
+
+    @Test
+    void preservesEncodedNonAsciiCharactersInProxyPrefix() {
+        final NiFiUriResolver resolver =
+                NiFiUriResolver.fromBaseUrl("https://gateway.example.com/caf%C3%A9/nifi");
+
+        assertThat(resolver.baseUrl()).isEqualTo("https://gateway.example.com/caf%C3%A9");
+    }
+
+    @Test
+    void preservesEncodedSeparatorInProxyPrefix() {
+        final NiFiUriResolver resolver =
+                NiFiUriResolver.fromBaseUrl("https://gateway.example.com/team%2Fone/nifi");
+
+        assertThat(resolver.baseUrl()).isEqualTo("https://gateway.example.com/team%2Fone");
+    }
+
+    @Test
     void encodesDefinitionSegments() {
         final NiFiUriResolver resolver = NiFiUriResolver.fromBaseUrl("https://nifi.example.com");
         final URI uri = resolver.resolveDefinition(NiFiComponentKind.PROCESSOR,

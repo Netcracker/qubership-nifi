@@ -78,16 +78,21 @@ public final class TransportFactory {
 
     private SSLContext buildSslContext(final BuilderConfig config) {
         final Optional<TrustMaterial> trust = config.caFile().map(path -> PemTrustMaterial.fromFile(path));
-        Optional<ClientKeyMaterial> key = Optional.empty();
-        if (config.authMode() == AuthMode.CERTIFICATE) {
-            final Path certFile = config.certificateFile().orElseThrow();
-            final char[] password = config.certificatePassword().orElseThrow();
-            try {
-                key = Optional.of(Pkcs12KeyMaterial.fromFile(certFile, password));
-            } finally {
-                Arrays.fill(password, '\0');
-            }
+        if (config.authMode() != AuthMode.CERTIFICATE) {
+            return TlsContextFactory.create(Optional.empty(), trust);
         }
-        return TlsContextFactory.create(key, trust);
+        final Path certFile = config.certificateFile().orElseThrow();
+        final char[] password = config.certificatePassword().orElseThrow();
+        final Pkcs12KeyMaterial keyMaterial;
+        try {
+            keyMaterial = Pkcs12KeyMaterial.fromFile(certFile, password);
+        } finally {
+            Arrays.fill(password, '\0');
+        }
+        try {
+            return TlsContextFactory.create(Optional.<ClientKeyMaterial>of(keyMaterial), trust);
+        } finally {
+            keyMaterial.clearPassword();
+        }
     }
 }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,11 +42,20 @@ class BuilderConfigTest {
 
     private BuildCommand command(final String url, final String auth, final String certFile,
                                  final boolean skipGuides) {
+        return command(url, auth, certFile, null, skipGuides, temp.resolve("out"));
+    }
+
+    private BuildCommand command(final String url, final String auth, final String certFile,
+                                 final String caFile, final boolean skipGuides, final Path outputDir) {
         final List<String> args = new ArrayList<>(List.of(
-                "--nifi-url", url, "--auth", auth, "--output-dir", temp.resolve("out").toString()));
+                "--nifi-url", url, "--auth", auth, "--output-dir", outputDir.toString()));
         if (certFile != null) {
             args.add("--certificate-file");
             args.add(certFile);
+        }
+        if (caFile != null) {
+            args.add("--ca-file");
+            args.add(caFile);
         }
         if (skipGuides) {
             args.add("--skip-guides");
@@ -137,5 +147,56 @@ class BuilderConfigTest {
         final BuildCommand httpCommand = command("http://nifi.example.com", "token", null, false);
         assertThatThrownBy(() -> BuilderConfig.resolve(httpCommand, environment))
                 .isInstanceOf(ConfigurationException.class).hasMessageContaining("HTTPS");
+    }
+
+    @Test
+    void rejectsExistingNonDirectoryOutput() throws IOException {
+        env.put(Environment.NIFI_ACCESS_TOKEN, "tok");
+        final Path outputFile = Files.createFile(temp.resolve("existing-output"));
+        final BuildCommand buildCommand = command("https://nifi.example.com", "token", null,
+                null, false, outputFile);
+
+        assertThatThrownBy(() -> BuilderConfig.resolve(buildCommand, environment))
+                .isInstanceOf(ConfigurationException.class)
+                .hasMessageContaining("is not a directory");
+    }
+
+    @Test
+    void rejectsOutputAncestorOfWorkingDirectory() {
+        env.put(Environment.NIFI_ACCESS_TOKEN, "tok");
+        final Path workingDirectory = Paths.get("").toAbsolutePath().normalize();
+        final Path outputAncestor = workingDirectory.getParent();
+        final BuildCommand buildCommand = command("https://nifi.example.com", "token", null,
+                null, false, outputAncestor);
+
+        assertThatThrownBy(() -> BuilderConfig.resolve(buildCommand, environment))
+                .isInstanceOf(ConfigurationException.class)
+                .hasMessageContaining("process working directory");
+    }
+
+    @Test
+    void rejectsOutputGrandparentOfCertificate() throws IOException {
+        env.put(Environment.NIFI_PKCS12_PASSWORD, "pw");
+        final Path credentialDir = Files.createDirectories(temp.resolve("credentials/nested"));
+        final Path certificate = Files.createFile(credentialDir.resolve("client.p12"));
+        final BuildCommand buildCommand = command("https://nifi.example.com", "certificate",
+                certificate.toString(), null, false, temp.resolve("credentials"));
+
+        assertThatThrownBy(() -> BuilderConfig.resolve(buildCommand, environment))
+                .isInstanceOf(ConfigurationException.class)
+                .hasMessageContaining("PKCS#12 file");
+    }
+
+    @Test
+    void rejectsOutputGrandparentOfCaFile() throws IOException {
+        env.put(Environment.NIFI_ACCESS_TOKEN, "tok");
+        final Path credentialDir = Files.createDirectories(temp.resolve("trust/nested"));
+        final Path caFile = Files.createFile(credentialDir.resolve("ca.pem"));
+        final BuildCommand buildCommand = command("https://nifi.example.com", "token", null,
+                caFile.toString(), false, temp.resolve("trust"));
+
+        assertThatThrownBy(() -> BuilderConfig.resolve(buildCommand, environment))
+                .isInstanceOf(ConfigurationException.class)
+                .hasMessageContaining("CA file");
     }
 }

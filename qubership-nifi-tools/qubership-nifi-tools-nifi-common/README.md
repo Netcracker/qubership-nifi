@@ -53,6 +53,10 @@ try (NiFiRestClient rest = new NiFiRestClient(http, new ObjectMapper())) {
 `NiFiRestClient` and `NiFiHttpClient` own the underlying Apache client and its connection pool.
 Close one of them when the work is done.
 
+`Pkcs12KeyMaterial` and `Pkcs12TrustMaterial` copy their password arrays. Call `clearPassword()` in
+a `finally` block after `TlsContextFactory.create` returns or fails. The caller remains responsible
+for clearing the password array supplied to the material object.
+
 `NiFiUriResolver.fromBaseUrl` requires HTTPS by default; the two-argument overload relaxes that for
 a test server. It accepts either the deployment URL or the browser UI URL, stripping a trailing
 `/nifi` or `/nifi-api` so both normalize to the same base, and it preserves a reverse-proxy path

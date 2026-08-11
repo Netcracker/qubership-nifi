@@ -23,6 +23,7 @@ import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.GuidesResult;
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
 import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
 import org.qubership.nifi.tools.nifi.common.http.NiFiHttpResponse;
 import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
@@ -68,8 +69,8 @@ public final class GuideCollector {
      * @param mode        the guide mode
      * @param nifiVersion the detected NiFi version, used in the generated provenance header
      * @return the guides result, empty in skip mode
-     * @throws GuideException when a guide cannot be fetched, fails the sentinel check, or is missing
-     *                        a required section
+     * @throws NiFiApiException when a guide request returns a non-success HTTP status
+     * @throws GuideException   when a guide fails the sentinel check or is missing a required section
      */
     public GuidesResult collect(final NiFiHttpClient httpClient, final NiFiUriResolver resolver,
                                 final GuideMode mode, final String nifiVersion) {
@@ -89,8 +90,10 @@ public final class GuideCollector {
         LOG.info("Collecting guide {}", type.getTitle());
         final NiFiHttpResponse response = httpClient.get(uri, ACCEPT_HTML);
         if (!response.isSuccess()) {
-            throw new GuideException("Guide " + type.getTitle() + " is not accessible (status "
-                    + response.statusCode() + ")");
+            throw new NiFiApiException("GET", NiFiHttpClient.redact(uri), response.statusCode(),
+                    NiFiHttpClient.excerpt(response.bodyAsText()),
+                    "Guide " + type.getTitle() + " request did not succeed (status "
+                            + response.statusCode() + ")");
         }
         final String contentType = response.contentType().orElse("");
         if (!contentType.toLowerCase(Locale.ROOT).contains("html")) {

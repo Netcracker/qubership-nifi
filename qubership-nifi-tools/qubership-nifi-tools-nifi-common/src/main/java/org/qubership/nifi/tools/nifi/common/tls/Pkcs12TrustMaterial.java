@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Arrays;
 
 /**
  * Trust material backed by a PKCS#12 trust store supplied as raw bytes rather than as a file path,
@@ -66,5 +67,12 @@ public final class Pkcs12TrustMaterial implements TrustMaterial {
         } catch (final GeneralSecurityException | IOException e) {
             throw new TlsMaterialException("PKCS#12 trust store could not be loaded", e);
         }
+    }
+
+    /**
+     * Clears the retained password characters. Call after the SSL context has been initialized.
+     */
+    public void clearPassword() {
+        Arrays.fill(storePassword, '\0');
     }
 }
