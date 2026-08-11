@@ -16,6 +16,8 @@
 
 package org.qubership.nifi.tools.kb.render;
 
+import org.qubership.nifi.tools.kb.DigestUtils;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
@@ -23,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,10 +42,7 @@ public final class CatalogFingerprint {
 
     private static final String PREFIX = "sha256:";
     private static final int LENGTH_FIELD_BYTES = 8;
-    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
     private static final int BYTE_MASK = 0xFF;
-    private static final int NIBBLE_MASK = 0x0F;
-    private static final int HIGH_NIBBLE_SHIFT = 4;
 
     private CatalogFingerprint() {
         // utility class
@@ -63,7 +61,7 @@ public final class CatalogFingerprint {
         final List<String> sorted = new ArrayList<>(relativePaths);
         sorted.sort(Comparator.comparing(path -> path.getBytes(StandardCharsets.UTF_8),
                 CatalogFingerprint::compareUnsigned));
-        final MessageDigest digest = newDigest();
+        final MessageDigest digest = DigestUtils.newSha256Digest();
         for (final String relativePath : sorted) {
             final byte[] pathBytes = relativePath.getBytes(StandardCharsets.UTF_8);
             final byte[] contentBytes = normalizeToLf(read(root.resolve(relativePath)));
@@ -72,7 +70,7 @@ public final class CatalogFingerprint {
             digest.update(lengthPrefix(contentBytes.length));
             digest.update(contentBytes);
         }
-        return PREFIX + toHex(digest.digest());
+        return PREFIX + DigestUtils.toLowerHex(digest.digest());
     }
 
     private static byte[] read(final Path file) {
@@ -104,21 +102,4 @@ public final class CatalogFingerprint {
         return left.length - right.length;
     }
 
-    private static String toHex(final byte[] bytes) {
-        final StringBuilder sb = new StringBuilder(bytes.length * 2);
-        for (final byte b : bytes) {
-            final int value = b & BYTE_MASK;
-            sb.append(HEX_DIGITS[(value >> HIGH_NIBBLE_SHIFT) & NIBBLE_MASK]);
-            sb.append(HEX_DIGITS[value & NIBBLE_MASK]);
-        }
-        return sb.toString();
-    }
-
-    private static MessageDigest newDigest() {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is not available", e);
-        }
-    }
 }

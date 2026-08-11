@@ -17,11 +17,9 @@
 package org.qubership.nifi.tools.nifi.common.tls;
 
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -53,11 +51,7 @@ public final class PemTrustMaterial implements TrustMaterial {
      * @throws TlsMaterialException when the file is missing, unreadable, or contains no certificate
      */
     public static PemTrustMaterial fromFile(final Path pemFile) {
-        try {
-            return new PemTrustMaterial(Files.readAllBytes(pemFile));
-        } catch (final IOException e) {
-            throw new TlsMaterialException("CA file could not be read", e);
-        }
+        return new PemTrustMaterial(TlsMaterialUtils.readAllBytes(pemFile, "CA file could not be read"));
     }
 
     /**
@@ -88,10 +82,7 @@ public final class PemTrustMaterial implements TrustMaterial {
                 trustStore.setCertificateEntry(ENTRY_PREFIX + index, certificate);
                 index++;
             }
-            final TrustManagerFactory tmf =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-            return tmf.getTrustManagers();
+            return TlsMaterialUtils.createTrustManagers(trustStore);
         } catch (final GeneralSecurityException | IOException e) {
             throw new TlsMaterialException("CA file is not valid PEM certificate material", e);
         }

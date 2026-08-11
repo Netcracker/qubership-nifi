@@ -17,7 +17,6 @@
 package org.qubership.nifi.tools.nifi.common.auth;
 
 import org.apache.hc.core5.http.HttpRequest;
-import java.util.Objects;
 
 /**
  * Adds an {@code Authorization: Bearer} header carrying an access token. The token is held only in
@@ -44,8 +43,7 @@ public final class BearerTokenAuthenticator implements NiFiRequestAuthenticator 
 
     @Override
     public void apply(final HttpRequest request) {
-        Objects.requireNonNull(request, "request");
-        request.setHeader(AUTHORIZATION_HEADER, "Bearer " + token);
+        RequestAuthenticationUtils.setHeader(request, AUTHORIZATION_HEADER, "Bearer " + token);
     }
 
     @Override

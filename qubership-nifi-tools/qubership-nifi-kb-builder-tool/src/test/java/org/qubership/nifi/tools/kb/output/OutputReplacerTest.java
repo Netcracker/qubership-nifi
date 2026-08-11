@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.kb.output;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,6 +36,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class OutputReplacerTest {
 
+    private static final String OUTPUT_DIRECTORY = "output";
+    private static final String NEW_FILE = "new.txt";
+    private static final String OLD_FILE = "old.txt";
+
     @TempDir
     private Path temp;
 
@@ -42,7 +47,7 @@ class OutputReplacerTest {
 
     @Test
     void createsStagingDirectoryBesideDestination() {
-        final Path staging = replacer.createStaging(temp.resolve("output"));
+        final Path staging = replacer.createStaging(temp.resolve(OUTPUT_DIRECTORY));
 
         assertThat(staging).isDirectory();
         assertThat(staging.getParent()).isEqualTo(temp);
@@ -53,34 +58,31 @@ class OutputReplacerTest {
     void reportsStagingCreationFailure() throws Exception {
         final Path parentFile = Files.writeString(temp.resolve("parent-file"), "content");
 
-        assertThatThrownBy(() -> replacer.createStaging(parentFile.resolve("output")))
+        assertThatThrownBy(() -> replacer.createStaging(parentFile.resolve(OUTPUT_DIRECTORY)))
                 .isInstanceOf(OutputException.class)
                 .hasMessageContaining("Failed to create staging directory");
     }
 
     @Test
     void movesStagingIntoMissingDestination() throws Exception {
-        final Path destination = temp.resolve("output");
-        final Path staging = Files.createDirectory(temp.resolve("staging"));
-        Files.writeString(staging.resolve("new.txt"), "new");
+        final Path destination = temp.resolve(OUTPUT_DIRECTORY);
+        final Path staging = createStaging();
 
         replacer.replace(destination, staging);
 
-        assertThat(destination.resolve("new.txt")).hasContent("new");
+        assertThat(destination.resolve(NEW_FILE)).hasContent("new");
         assertThat(staging).doesNotExist();
     }
 
     @Test
     void replacesExistingDestinationAndRemovesBackup() throws Exception {
-        final Path destination = Files.createDirectory(temp.resolve("output"));
-        Files.writeString(destination.resolve("old.txt"), "old");
-        final Path staging = Files.createDirectory(temp.resolve("staging"));
-        Files.writeString(staging.resolve("new.txt"), "new");
+        final Path destination = createDestination();
+        final Path staging = createStaging();
 
         replacer.replace(destination, staging);
 
-        assertThat(destination.resolve("new.txt")).hasContent("new");
-        assertThat(destination.resolve("old.txt")).doesNotExist();
+        assertThat(destination.resolve(NEW_FILE)).hasContent("new");
+        assertThat(destination.resolve(OLD_FILE)).doesNotExist();
         try (var children = Files.list(temp)) {
             assertThat(children.map(path -> path.getFileName().toString()))
                     .noneMatch(name -> name.startsWith(".kb-backup-"));
@@ -89,13 +91,12 @@ class OutputReplacerTest {
 
     @Test
     void restoresExistingDestinationWhenStagingMoveFails() throws Exception {
-        final Path destination = Files.createDirectory(temp.resolve("output"));
-        Files.writeString(destination.resolve("old.txt"), "old");
+        final Path destination = createDestination();
 
         assertThatThrownBy(() -> replacer.replace(destination, temp.resolve("missing-staging")))
                 .isInstanceOf(OutputException.class)
                 .hasMessageContaining("Failed to replace the output directory");
-        assertThat(destination.resolve("old.txt")).hasContent("old");
+        assertThat(destination.resolve(OLD_FILE)).hasContent("old");
     }
 
     @Test
@@ -107,5 +108,17 @@ class OutputReplacerTest {
         replacer.deleteRecursively(temp.resolve("missing"));
 
         assertThat(temp.resolve("tree")).doesNotExist();
+    }
+
+    private Path createDestination() throws IOException {
+        final Path destination = Files.createDirectory(temp.resolve(OUTPUT_DIRECTORY));
+        Files.writeString(destination.resolve(OLD_FILE), "old");
+        return destination;
+    }
+
+    private Path createStaging() throws IOException {
+        final Path staging = Files.createDirectory(temp.resolve("staging"));
+        Files.writeString(staging.resolve(NEW_FILE), "new");
+        return staging;
     }
 }

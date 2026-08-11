@@ -19,9 +19,11 @@ package org.qubership.nifi.tools.kb.model;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 /**
- * Maps a {@link NiFiComponentKind} to its Knowledge Base output directory name and display label.
+ * Maps a {@link NiFiComponentKind} to its Knowledge Base output names and display label.
  */
 public final class ComponentKindLayout {
+
+    private static final String PROCESSORS = "processors";
 
     private ComponentKindLayout() {
         // utility class
@@ -35,7 +37,7 @@ public final class ComponentKindLayout {
      */
     public static String directoryName(final NiFiComponentKind kind) {
         return switch (kind) {
-            case PROCESSOR -> "processors";
+            case PROCESSOR -> PROCESSORS;
             case CONTROLLER_SERVICE -> "controller-services";
             case REPORTING_TASK -> "reporting-tasks";
         };
@@ -52,6 +54,20 @@ public final class ComponentKindLayout {
             case PROCESSOR -> "Processors";
             case CONTROLLER_SERVICE -> "Controller Services";
             case REPORTING_TASK -> "Reporting Tasks";
+        };
+    }
+
+    /**
+     * Returns the component-count field name in {@code manifest.json} for the given kind.
+     *
+     * @param kind the component kind
+     * @return the manifest field name
+     */
+    public static String manifestCountField(final NiFiComponentKind kind) {
+        return switch (kind) {
+            case PROCESSOR -> PROCESSORS;
+            case CONTROLLER_SERVICE -> "controllerServices";
+            case REPORTING_TASK -> "reportingTasks";
         };
     }
 }

@@ -21,6 +21,7 @@ import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 import org.qubership.nifi.tools.kb.render.CatalogFingerprint;
 import org.qubership.nifi.tools.kb.render.ComponentJsonRenderer;
 import org.qubership.nifi.tools.kb.render.ComponentMarkdownRenderer;
@@ -43,11 +44,6 @@ import java.util.List;
  * then guides, and finally the manifest.
  */
 public final class KnowledgeBaseWriter {
-
-    private static final String COMPONENTS = "components";
-    private static final String COMPONENT_JSON = "component.json";
-    private static final String COMPONENT_MD = "component.md";
-    private static final String ADDITIONAL_DETAILS = "additionalDetails.md";
 
     private final ComponentJsonRenderer componentJson;
     private final ComponentMarkdownRenderer componentMarkdown = new ComponentMarkdownRenderer();
@@ -95,7 +91,7 @@ public final class KnowledgeBaseWriter {
         final List<ComponentRecord> sorted = new ArrayList<>(kb.components());
         sorted.sort(ComponentSorting.BY_IDENTITY);
 
-        final Path componentsDir = root.resolve(COMPONENTS);
+        final Path componentsDir = root.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY);
         Files.createDirectories(componentsDir);
 
         final List<String> catalogPaths = new ArrayList<>();
@@ -104,10 +100,10 @@ public final class KnowledgeBaseWriter {
             writeComponent(componentsDir, record, catalogPaths);
         }
 
-        writeBytes(componentsDir.resolve("index.json"), index.renderJson(sorted));
-        writeString(componentsDir.resolve("index.md"), index.renderMarkdown(sorted));
-        catalogPaths.add(COMPONENTS + "/index.json");
-        catalogPaths.add(COMPONENTS + "/index.md");
+        writeBytes(componentsDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), index.renderJson(sorted));
+        writeString(componentsDir.resolve(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE), index.renderMarkdown(sorted));
+        catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_JSON_FILE));
+        catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE));
 
         final String fingerprint = CatalogFingerprint.compute(root, catalogPaths);
 
@@ -115,7 +111,7 @@ public final class KnowledgeBaseWriter {
             writeGuides(root, kb);
         }
 
-        writeBytes(root.resolve("manifest.json"), manifest.render(kb, fingerprint));
+        writeBytes(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
     }
 
     private void writeComponent(final Path componentsDir, final ComponentRecord record,
@@ -124,26 +120,33 @@ public final class KnowledgeBaseWriter {
         final Path dir = componentsDir.resolve(kindDir).resolve(record.identity().directoryName());
         Files.createDirectories(dir);
 
-        writeBytes(dir.resolve(COMPONENT_JSON), componentJson.render(record));
-        writeString(dir.resolve(COMPONENT_MD), componentMarkdown.render(record));
-        catalogPaths.add(COMPONENTS + "/" + ComponentSorting.relativePath(record.identity(), COMPONENT_JSON));
-        catalogPaths.add(COMPONENTS + "/" + ComponentSorting.relativePath(record.identity(), COMPONENT_MD));
+        writeBytes(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(record));
+        writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE), componentMarkdown.render(record));
+        catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+                KnowledgeBaseFormat.COMPONENT_JSON_FILE)));
+        catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+                KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE)));
 
         if (record.additionalDocumentation().isAvailable()) {
             final byte[] verbatim = record.additionalDetailsContent().orElse("")
                     .getBytes(StandardCharsets.UTF_8);
-            Files.write(dir.resolve(ADDITIONAL_DETAILS), verbatim);
-            catalogPaths.add(COMPONENTS + "/" + ComponentSorting.relativePath(record.identity(), ADDITIONAL_DETAILS));
+            Files.write(dir.resolve(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE), verbatim);
+            catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+                    KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE)));
         }
     }
 
     private void writeGuides(final Path root, final KnowledgeBase kb) throws IOException {
-        final Path guidesDir = root.resolve("guides");
+        final Path guidesDir = root.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
         Files.createDirectories(guidesDir);
         for (final GuideDocument document : kb.guides().documents()) {
             writeString(guidesDir.resolve(document.type().getOutputFileName()), document.markdown());
         }
-        writeBytes(guidesDir.resolve("index.json"), guideIndex.render(kb.guides()));
+        writeBytes(guidesDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), guideIndex.render(kb.guides()));
+    }
+
+    private static String componentPath(final String relativePath) {
+        return KnowledgeBaseFormat.COMPONENTS_DIRECTORY + '/' + relativePath;
     }
 
     private static void writeBytes(final Path file, final byte[] content) throws IOException {

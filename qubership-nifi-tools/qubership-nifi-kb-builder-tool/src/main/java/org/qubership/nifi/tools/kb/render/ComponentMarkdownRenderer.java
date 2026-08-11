@@ -21,6 +21,7 @@ import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -49,8 +50,7 @@ public final class ComponentMarkdownRenderer {
         md.append("# ").append(identity.simpleName()).append(LF).append(LF);
 
         appendIdentity(md, identity);
-        appendDescriptionAndTags(md, definition, componentType);
-        appendDeprecationAndRestrictions(md, definition, componentType);
+        appendMetadata(md, definition, componentType);
         appendInputAndRelationships(md, definition);
         appendProperties(md, definition);
         appendControllerServiceApis(md, componentType, definition);
@@ -68,19 +68,24 @@ public final class ComponentMarkdownRenderer {
                 .append(':').append(identity.getVersion()).append('`').append(LF).append(LF);
     }
 
-    private void appendDescriptionAndTags(final StringBuilder md, final JsonNode definition,
-                                          final JsonNode componentType) {
-        if (definition == null || componentType == null) {
-            //skip if either definition or componentType are null
-            //they should never be nulls
+    private void appendMetadata(final StringBuilder md, final JsonNode definition, final JsonNode componentType) {
+        if (isMissingMetadata(definition, componentType)) {
             return;
         }
-        final String description = firstNonBlank(text(definition, "description"), text(componentType, "description"));
+        appendDescriptionAndTags(md, definition, componentType);
+        appendDeprecationAndRestrictions(md, definition, componentType);
+    }
+
+    private void appendDescriptionAndTags(final StringBuilder md, final JsonNode definition,
+                                          final JsonNode componentType) {
+        final String description = firstNonBlank(text(definition, ComponentFields.DESCRIPTION),
+                text(componentType, ComponentFields.DESCRIPTION));
         if (!description.isBlank()) {
             md.append("## Description").append(LF).append(LF)
                     .append(Markdown.inline(description)).append(LF).append(LF);
         }
-        final JsonNode tags = definition.has("tags") ? definition.get("tags") : componentType.get("tags");
+        final JsonNode tags = definition.has(ComponentFields.TAGS)
+                ? definition.get(ComponentFields.TAGS) : componentType.get(ComponentFields.TAGS);
         if (tags != null && tags.isArray() && !tags.isEmpty()) {
             md.append("Tags: ");
             for (int i = 0; i < tags.size(); i++) {
@@ -95,15 +100,10 @@ public final class ComponentMarkdownRenderer {
 
     private void appendDeprecationAndRestrictions(final StringBuilder md, final JsonNode definition,
                                                   final JsonNode componentType) {
-        if (definition == null || componentType == null) {
-            //skip if either definition or componentType are null
-            //they should never be nulls
-            return;
-        }
-        final String deprecationReason = firstNonBlank(text(definition, "deprecationReason"),
-                text(componentType, "deprecationReason"));
-        final boolean restricted = definition.path("restricted").
-                asBoolean(componentType.path("restricted").asBoolean());
+        final String deprecationReason = firstNonBlank(text(definition, ComponentFields.DEPRECATION_REASON),
+                text(componentType, ComponentFields.DEPRECATION_REASON));
+        final boolean restricted = definition.path(ComponentFields.RESTRICTED)
+                .asBoolean(componentType.path(ComponentFields.RESTRICTED).asBoolean());
         if (!deprecationReason.isBlank() || restricted) {
             md.append("## Deprecation and restrictions").append(LF).append(LF);
             if (!deprecationReason.isBlank()) {
@@ -135,8 +135,8 @@ public final class ComponentMarkdownRenderer {
             md.append("| Relationship | Description |").append(LF);
             md.append("|---|---|").append(LF);
             for (final JsonNode relationship : relationships) {
-                md.append("| ").append(Markdown.cell(text(relationship, "name")))
-                        .append(" | ").append(Markdown.cell(text(relationship, "description")))
+                md.append("| ").append(Markdown.cell(text(relationship, ComponentFields.NAME)))
+                        .append(" | ").append(Markdown.cell(text(relationship, ComponentFields.DESCRIPTION)))
                         .append(" |").append(LF);
             }
             md.append(LF);
@@ -160,8 +160,8 @@ public final class ComponentMarkdownRenderer {
         while (fields.hasNext()) {
             final Map.Entry<String, JsonNode> entry = fields.next();
             final JsonNode descriptor = entry.getValue();
-            md.append("| ").append(Markdown.cell(text(descriptor, "name", entry.getKey())))
-                    .append(" | ").append(Markdown.cell(text(descriptor, "displayName")))
+            md.append("| ").append(Markdown.cell(text(descriptor, ComponentFields.NAME, entry.getKey())))
+                    .append(" | ").append(Markdown.cell(text(descriptor, ComponentFields.DISPLAY_NAME)))
                     .append(" | ").append(descriptor.path("required").asBoolean() ? "yes" : "no")
                     .append(" | ").append(descriptor.path("sensitive").asBoolean() ? "yes" : "no")
                     .append(" | ").append(Markdown.cell(text(descriptor, "expressionLanguageScope")))
@@ -174,20 +174,19 @@ public final class ComponentMarkdownRenderer {
 
     private void appendControllerServiceApis(final StringBuilder md, final JsonNode componentType,
                                              final JsonNode definition) {
-        if (definition == null || componentType == null) {
-            //skip if either definition or componentType are null
-            //they should never be nulls
+        if (isMissingMetadata(definition, componentType)) {
             return;
         }
-        final JsonNode apis = componentType.has("controllerServiceApis")
-                ? componentType.get("controllerServiceApis")
+        final JsonNode apis = componentType.has(ComponentFields.CONTROLLER_SERVICE_APIS)
+                ? componentType.get(ComponentFields.CONTROLLER_SERVICE_APIS)
                 : definition.get("providedApiImplementations");
         if (apis == null || !apis.isArray() || apis.isEmpty()) {
             return;
         }
         md.append("## Controller service APIs").append(LF).append(LF);
         for (final JsonNode api : apis) {
-            final String apiType = api.has("type") ? text(api, "type") : Markdown.inline(api.asText());
+            final String apiType = api.has(ComponentFields.TYPE)
+                    ? text(api, ComponentFields.TYPE) : Markdown.inline(api.asText());
             md.append("- `").append(apiType).append('`').append(LF);
         }
         md.append(LF);
@@ -206,8 +205,8 @@ public final class ComponentMarkdownRenderer {
         md.append("| Attribute | Description |").append(LF);
         md.append("|---|---|").append(LF);
         for (final JsonNode attribute : attributes) {
-            md.append("| ").append(Markdown.cell(text(attribute, "name")))
-                    .append(" | ").append(Markdown.cell(text(attribute, "description")))
+            md.append("| ").append(Markdown.cell(text(attribute, ComponentFields.NAME)))
+                    .append(" | ").append(Markdown.cell(text(attribute, ComponentFields.DESCRIPTION)))
                     .append(" |").append(LF);
         }
         md.append(LF);
@@ -221,7 +220,8 @@ public final class ComponentMarkdownRenderer {
                     .append(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE).append("](")
                     .append(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE).append(')').append(LF);
         }
-        md.append("- Lossless definition: [component.json](component.json)").append(LF).append(LF);
+        md.append("- Lossless definition: [").append(KnowledgeBaseFormat.COMPONENT_JSON_FILE).append("](")
+                .append(KnowledgeBaseFormat.COMPONENT_JSON_FILE).append(')').append(LF).append(LF);
     }
 
     private static String allowableValues(final JsonNode descriptor) {
@@ -232,11 +232,12 @@ public final class ComponentMarkdownRenderer {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < values.size(); i++) {
             final JsonNode entry = values.get(i);
-            final JsonNode holder = entry.has("allowableValue") ? entry.get("allowableValue") : entry;
+            final JsonNode holder = entry.has(ComponentFields.ALLOWABLE_VALUE)
+                    ? entry.get(ComponentFields.ALLOWABLE_VALUE) : entry;
             if (i > 0) {
                 sb.append(", ");
             }
-            sb.append(holder.path("value").asText(holder.path("displayName").asText("")));
+            sb.append(holder.path("value").asText(holder.path(ComponentFields.DISPLAY_NAME).asText("")));
         }
         return sb.toString();
     }
@@ -252,5 +253,9 @@ public final class ComponentMarkdownRenderer {
 
     private static String firstNonBlank(final String first, final String second) {
         return first != null && !first.isBlank() ? first : (second == null ? "" : second);
+    }
+
+    private static boolean isMissingMetadata(final JsonNode definition, final JsonNode componentType) {
+        return definition == null || componentType == null;
     }
 }

@@ -44,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class NiFiRestClientTest {
 
+    private static final String POST = "POST";
+
     private MockWebServer server;
     private NiFiUriResolver resolver;
     private NiFiRestClient client;
@@ -109,10 +111,11 @@ class NiFiRestClientTest {
         assertThat(client.postJson(uri("/items"), "{\"name\":\"item\"}")
                 .path("created").asBoolean()).isTrue();
         final RecordedRequest request = server.takeRequest();
-        assertThat(request.getMethod()).isEqualTo("POST");
+        assertThat(request.getMethod()).isEqualTo(POST);
         assertThat(request.getBody().readUtf8()).isEqualTo("{\"name\":\"item\"}");
         assertThatThrownBy(() -> client.postJson(uri("/items"), "{}"))
-                .isInstanceOf(NiFiApiException.class)
+                .isInstanceOfSatisfying(NiFiApiException.class,
+                        exception -> assertThat(exception.getMethod()).isEqualTo(POST))
                 .hasMessageContaining("status 400");
     }
 
@@ -136,7 +139,7 @@ class NiFiRestClientTest {
 
     private static MockResponse jsonResponse(final int status, final String body) {
         return new MockResponse().setResponseCode(status)
-                .setHeader("Content-Type", "application/json; charset=utf-8")
+                .setHeader("Content-Type", NiFiHttpClient.APPLICATION_JSON + "; charset=utf-8")
                 .setBody(body);
     }
 }

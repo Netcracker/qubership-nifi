@@ -16,11 +16,10 @@
 
 package org.qubership.nifi.tools.kb.model;
 
+import org.qubership.nifi.tools.kb.DigestUtils;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 /**
@@ -32,10 +31,6 @@ import java.util.Objects;
 public final class ComponentIdentity {
 
     private static final int HASH_PREFIX_LENGTH = 12;
-    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
-    private static final int BYTE_MASK = 0xFF;
-    private static final int NIBBLE_MASK = 0x0F;
-    private static final int HIGH_NIBBLE_SHIFT = 4;
 
     private final NiFiComponentKind kind;
     private final String group;
@@ -133,14 +128,8 @@ public final class ComponentIdentity {
      * @return the identity hash, always 12 characters
      */
     public String identityHash() {
-        final byte[] digest = sha256(canonical().getBytes(StandardCharsets.UTF_8));
-        final StringBuilder sb = new StringBuilder(HASH_PREFIX_LENGTH);
-        for (int i = 0; i < digest.length && sb.length() < HASH_PREFIX_LENGTH; i++) {
-            final int value = digest[i] & BYTE_MASK;
-            sb.append(HEX_DIGITS[(value >> HIGH_NIBBLE_SHIFT) & NIBBLE_MASK]);
-            sb.append(HEX_DIGITS[value & NIBBLE_MASK]);
-        }
-        return sb.substring(0, HASH_PREFIX_LENGTH);
+        final byte[] digest = DigestUtils.sha256(canonical().getBytes(StandardCharsets.UTF_8));
+        return DigestUtils.toLowerHex(digest).substring(0, HASH_PREFIX_LENGTH);
     }
 
     /**
@@ -163,14 +152,6 @@ public final class ComponentIdentity {
             sb.append(allowed ? c : '_');
         }
         return sb.length() == 0 ? "component" : sb.toString();
-    }
-
-    private static byte[] sha256(final byte[] input) {
-        try {
-            return MessageDigest.getInstance("SHA-256").digest(input);
-        } catch (final NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is not available", e);
-        }
     }
 
     @Override

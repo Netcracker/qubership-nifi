@@ -20,7 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
+import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
+import org.qubership.nifi.tools.kb.render.ManifestRenderer;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.io.IOException;
@@ -39,8 +42,6 @@ import java.util.stream.Stream;
 public final class KnowledgeBaseValidator {
 
     private static final Pattern FINGERPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
-    private static final String COMPONENT_JSON = "component.json";
-    private static final String COMPONENT_MD = "component.md";
     private static final int TOP_LEVEL_FIELD_COUNT = 3;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -52,16 +53,18 @@ public final class KnowledgeBaseValidator {
      * @throws OutputException when validation fails
      */
     public void validate(final Path root) {
-        requireFile(root.resolve("manifest.json"));
-        requireFile(root.resolve("components/index.json"));
-        requireFile(root.resolve("components/index.md"));
+        requireFile(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE));
+        final Path components = root.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY);
+        requireFile(components.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE));
+        requireFile(components.resolve(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE));
 
-        final JsonNode manifest = read(root.resolve("manifest.json"));
-        if (!"1".equals(manifest.path("schemaVersion").asText())) {
+        final JsonNode manifest = read(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE));
+        if (!ManifestRenderer.SCHEMA_VERSION.equals(
+                manifest.path(KnowledgeBaseFormat.SCHEMA_VERSION_FIELD).asText())) {
             throw new OutputException("Unsupported manifest schema version: "
-                    + manifest.path("schemaVersion").asText());
+                    + manifest.path(KnowledgeBaseFormat.SCHEMA_VERSION_FIELD).asText());
         }
-        if (!FINGERPRINT.matcher(manifest.path("fingerprint").asText("")).matches()) {
+        if (!FINGERPRINT.matcher(manifest.path(KnowledgeBaseFormat.FINGERPRINT_FIELD).asText("")).matches()) {
             throw new OutputException("Manifest fingerprint is not a valid sha256 value");
         }
         validateGuides(root, manifest);
@@ -69,20 +72,20 @@ public final class KnowledgeBaseValidator {
     }
 
     private void validateGuides(final Path root, final JsonNode manifest) {
-        final String mode = manifest.path("guides").path("mode").asText();
-        final Path guidesDir = root.resolve("guides");
-        if ("required".equals(mode)) {
-            requireFile(guidesDir.resolve("index.json"));
+        final String mode = manifest.path(KnowledgeBaseFormat.GUIDES_FIELD).path("mode").asText();
+        final Path guidesDir = root.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
+        if (GuideMode.REQUIRED.manifestMode().equals(mode)) {
+            requireFile(guidesDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE));
             for (final GuideType type : GuideType.values()) {
                 requireFile(root.resolve(type.getOutputPath()));
-                requireStatus(manifest, type, "collected");
+                requireStatus(manifest, type, GuideMode.REQUIRED.manifestStatus());
             }
-        } else if ("skip".equals(mode)) {
+        } else if (GuideMode.SKIP.manifestMode().equals(mode)) {
             if (Files.exists(guidesDir)) {
                 throw new OutputException("guides/ directory must be absent in skip mode");
             }
             for (final GuideType type : GuideType.values()) {
-                requireStatus(manifest, type, "skipped");
+                requireStatus(manifest, type, GuideMode.SKIP.manifestStatus());
             }
         } else {
             throw new OutputException("Manifest guide mode must be 'required' or 'skip', but was: " + mode);
@@ -90,7 +93,8 @@ public final class KnowledgeBaseValidator {
     }
 
     private void requireStatus(final JsonNode manifest, final GuideType type, final String expected) {
-        final String status = manifest.path("guides").path(type.getManifestKey()).path("status").asText();
+        final String status = manifest.path(KnowledgeBaseFormat.GUIDES_FIELD).path(type.getManifestKey())
+                .path(KnowledgeBaseFormat.STATUS_FIELD).asText();
         if (!expected.equals(status)) {
             throw new OutputException("Guide " + type.getManifestKey() + " status must be '" + expected
                     + "' but was '" + status + "'");
@@ -99,7 +103,8 @@ public final class KnowledgeBaseValidator {
 
     private void validateComponents(final Path root, final JsonNode manifest) {
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
-            final Path kindDir = root.resolve("components").resolve(ComponentKindLayout.directoryName(kind));
+            final Path kindDir = root.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY)
+                    .resolve(ComponentKindLayout.directoryName(kind));
             final long dirs = countComponentDirs(kindDir);
             final long expected = manifestCount(manifest, kind);
             if (dirs != expected) {
@@ -121,19 +126,21 @@ public final class KnowledgeBaseValidator {
     }
 
     private void validateComponentDir(final Path dir) {
-        requireFile(dir.resolve(COMPONENT_JSON));
-        requireFile(dir.resolve(COMPONENT_MD));
-        final JsonNode record = read(dir.resolve(COMPONENT_JSON));
-        if (record.size() != TOP_LEVEL_FIELD_COUNT || !record.has("documentedType") || !record.has("definition")
-                || !record.has("additionalDocumentation")) {
+        requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
+        requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE));
+        final JsonNode record = read(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
+        if (record.size() != TOP_LEVEL_FIELD_COUNT || !record.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
+                || !record.has(KnowledgeBaseFormat.DEFINITION_FIELD)
+                || !record.has(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)) {
             throw new OutputException("component.json must contain exactly documentedType, definition, and "
                     + "additionalDocumentation: " + dir.getFileName());
         }
-        final JsonNode state = record.path("additionalDocumentation");
-        final boolean available = state.path("available").asBoolean();
+        final JsonNode state = record.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
+        final boolean available = state.path(KnowledgeBaseFormat.AVAILABLE_FIELD).asBoolean();
         final Path detailsFile = dir.resolve(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE);
         if (available) {
-            if (!state.path("advertised").asBoolean() || !state.path("requested").asBoolean()) {
+            if (!state.path(KnowledgeBaseFormat.ADVERTISED_FIELD).asBoolean()
+                    || !state.path(KnowledgeBaseFormat.REQUESTED_FIELD).asBoolean()) {
                 throw new OutputException("available additional documentation must be advertised and requested: "
                         + dir.getFileName());
             }
@@ -144,12 +151,8 @@ public final class KnowledgeBaseValidator {
     }
 
     private long manifestCount(final JsonNode manifest, final NiFiComponentKind kind) {
-        final String key = switch (kind) {
-            case PROCESSOR -> "processors";
-            case CONTROLLER_SERVICE -> "controllerServices";
-            case REPORTING_TASK -> "reportingTasks";
-        };
-        return manifest.path("counts").path(key).asLong();
+        return manifest.path(KnowledgeBaseFormat.COUNTS_FIELD)
+                .path(ComponentKindLayout.manifestCountField(kind)).asLong();
     }
 
     private long countComponentDirs(final Path kindDir) {

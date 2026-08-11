@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.kb.render;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 
 /**
  * Renders a component's lossless {@code component.json}. The record has exactly three top-level
@@ -46,14 +47,14 @@ public final class ComponentJsonRenderer {
      */
     public byte[] render(final ComponentRecord record) {
         final ObjectNode root = json.mapper().createObjectNode();
-        root.set("documentedType", record.documentedType());
-        root.set("definition", record.definition());
+        root.set(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD, record.documentedType());
+        root.set(KnowledgeBaseFormat.DEFINITION_FIELD, record.definition());
 
         final AdditionalDocumentationState state = record.additionalDocumentation();
-        final ObjectNode additional = root.putObject("additionalDocumentation");
-        additional.put("advertised", state.isAdvertised());
-        additional.put("requested", state.isRequested());
-        additional.put("available", state.isAvailable());
+        final ObjectNode additional = root.putObject(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
+        additional.put(KnowledgeBaseFormat.ADVERTISED_FIELD, state.isAdvertised());
+        additional.put(KnowledgeBaseFormat.REQUESTED_FIELD, state.isRequested());
+        additional.put(KnowledgeBaseFormat.AVAILABLE_FIELD, state.isAvailable());
         state.path().ifPresent(path -> additional.put("path", path));
 
         return json.toBytes(root);

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.util.List;
@@ -33,8 +34,6 @@ import java.util.List;
 public final class IndexRenderer {
 
     private static final String LF = "\n";
-    private static final String COMPONENT_MD = "component.md";
-
     private final JsonOutput json;
 
     /**
@@ -68,20 +67,21 @@ public final class IndexRenderer {
         entry.put("group", identity.getGroup());
         entry.put("artifact", identity.getArtifact());
         entry.put("version", identity.getVersion());
-        entry.put("type", identity.getType());
+        entry.put(ComponentFields.TYPE, identity.getType());
 
-        final ArrayNode tags = entry.putArray("tags");
-        final JsonNode sourceTags = documented.get("tags");
+        final ArrayNode tags = entry.putArray(ComponentFields.TAGS);
+        final JsonNode sourceTags = documented.get(ComponentFields.TAGS);
         if (sourceTags != null && sourceTags.isArray()) {
             sourceTags.forEach(tag -> tags.add(tag.asText()));
         }
-        entry.put("deprecated", documented.path("deprecationReason").asText("").isBlank()
-                ? documented.path("deprecated").asBoolean(false) : true);
+        entry.put(ComponentFields.DEPRECATED, documented.path(ComponentFields.DEPRECATION_REASON)
+                .asText("").isBlank() ? documented.path(ComponentFields.DEPRECATED).asBoolean(false) : true);
 
-        final ArrayNode apis = entry.putArray("controllerServiceApis");
-        final JsonNode sourceApis = documented.get("controllerServiceApis");
+        final ArrayNode apis = entry.putArray(ComponentFields.CONTROLLER_SERVICE_APIS);
+        final JsonNode sourceApis = documented.get(ComponentFields.CONTROLLER_SERVICE_APIS);
         if (sourceApis != null && sourceApis.isArray()) {
-            sourceApis.forEach(api -> apis.add(api.has("type") ? api.get("type").asText() : api.asText()));
+            sourceApis.forEach(api -> apis.add(api.has(ComponentFields.TYPE)
+                    ? api.get(ComponentFields.TYPE).asText() : api.asText()));
         }
 
         entry.put("path", ComponentSorting.directoryPath(identity));
@@ -116,7 +116,8 @@ public final class IndexRenderer {
                     currentBundle = bundle;
                 }
                 md.append("- [").append(identity.simpleName()).append("](")
-                        .append(ComponentSorting.relativePath(identity, COMPONENT_MD)).append(')').append(LF);
+                        .append(ComponentSorting.relativePath(identity,
+                                KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE)).append(')').append(LF);
             }
             md.append(LF);
         }

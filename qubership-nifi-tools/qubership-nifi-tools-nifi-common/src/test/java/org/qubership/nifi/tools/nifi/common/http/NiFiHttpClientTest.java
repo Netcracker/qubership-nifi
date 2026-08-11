@@ -38,6 +38,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class NiFiHttpClientTest {
 
+    private static final String ABOUT_PATH = "/nifi-api/flow/about";
+
     private MockWebServer server;
     private NiFiUriResolver resolver;
     private CloseableHttpClient transport;
@@ -60,23 +62,24 @@ class NiFiHttpClientTest {
         return new NiFiHttpClient(transport, resolver, auth, config);
     }
 
+    private NiFiHttpResponse getAbout(final NiFiRequestAuthenticator auth, final NiFiHttpClient.Config config) {
+        return client(auth, config).get(resolver.resolve(ABOUT_PATH), NiFiHttpClient.APPLICATION_JSON);
+    }
+
     @Test
     void getReturnsBodyAndContentType() {
         server.enqueue(new MockResponse().setResponseCode(200)
                 .setHeader("Content-Type", "application/json").setBody("{\"ok\":true}"));
-        final NiFiHttpResponse response =
-                client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults())
-                        .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        final NiFiHttpResponse response = getAbout(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults());
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.contentType()).contains("application/json");
+        assertThat(response.contentType()).contains(NiFiHttpClient.APPLICATION_JSON);
         assertThat(response.bodyAsText()).contains("ok");
     }
 
     @Test
     void appliesBearerHeader() throws InterruptedException {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
-        client(new BearerTokenAuthenticator("secret-token"), NiFiHttpClient.Config.defaults())
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        getAbout(new BearerTokenAuthenticator("secret-token"), NiFiHttpClient.Config.defaults());
         final RecordedRequest recorded = server.takeRequest();
         assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer secret-token");
     }
@@ -84,8 +87,7 @@ class NiFiHttpClientTest {
     @Test
     void appliesAuthorizationBearerCookie() throws InterruptedException {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
-        client(new AuthorizationBearerCookieAuthenticator("secret-cookie"), NiFiHttpClient.Config.defaults())
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        getAbout(new AuthorizationBearerCookieAuthenticator("secret-cookie"), NiFiHttpClient.Config.defaults());
         final RecordedRequest recorded = server.takeRequest();
         assertThat(recorded.getHeader("Cookie"))
                 .isEqualTo("__Secure-Authorization-Bearer=secret-cookie");
@@ -94,7 +96,7 @@ class NiFiHttpClientTest {
     @Test
     void rejectsCrossOriginRequest() {
         assertThatThrownBy(() -> client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults())
-                .get(URI.create("http://other.example.com/nifi-api/flow/about"), "application/json"))
+                .get(URI.create("http://other.example.com/nifi-api/flow/about"), NiFiHttpClient.APPLICATION_JSON))
                 .isInstanceOf(NiFiApiException.class)
                 .hasMessageContaining("permitted NiFi origin");
     }
@@ -105,8 +107,7 @@ class NiFiHttpClientTest {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
         final NiFiHttpClient.Config fastRetry = new NiFiHttpClient.Config(
                 Duration.ofSeconds(5), 1024, 3, Duration.ofMillis(1), Duration.ofMillis(5), 3);
-        final NiFiHttpResponse response = client(NoAuthentication.INSTANCE, fastRetry)
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        final NiFiHttpResponse response = getAbout(NoAuthentication.INSTANCE, fastRetry);
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(server.getRequestCount()).isEqualTo(2);
     }
@@ -116,8 +117,7 @@ class NiFiHttpClientTest {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("x".repeat(2000)));
         final NiFiHttpClient.Config tinyBody = new NiFiHttpClient.Config(
                 Duration.ofSeconds(5), 100, 0, Duration.ofMillis(1), Duration.ofMillis(5), 3);
-        assertThatThrownBy(() -> client(NoAuthentication.INSTANCE, tinyBody)
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json"))
+        assertThatThrownBy(() -> getAbout(NoAuthentication.INSTANCE, tinyBody))
                 .isInstanceOf(NiFiApiException.class);
     }
 
@@ -125,8 +125,7 @@ class NiFiHttpClientTest {
     void rejectsCrossOriginRedirect() {
         server.enqueue(new MockResponse().setResponseCode(302)
                 .setHeader("Location", "https://evil.example.com/steal"));
-        assertThatThrownBy(() -> client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults())
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json"))
+        assertThatThrownBy(() -> getAbout(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults()))
                 .isInstanceOf(NiFiApiException.class)
                 .hasMessageContaining("Rejected redirect");
     }
@@ -138,8 +137,7 @@ class NiFiHttpClientTest {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
         final NiFiHttpClient.Config cappedBackoff = new NiFiHttpClient.Config(
                 Duration.ofSeconds(5), 1024, 3, Duration.ofMillis(1), Duration.ofMillis(5), 3);
-        final NiFiHttpResponse response = client(NoAuthentication.INSTANCE, cappedBackoff)
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        final NiFiHttpResponse response = getAbout(NoAuthentication.INSTANCE, cappedBackoff);
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(server.getRequestCount()).isEqualTo(2);
     }
@@ -147,8 +145,7 @@ class NiFiHttpClientTest {
     @Test
     void doesNotNegotiateContentEncoding() throws InterruptedException {
         server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
-        client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults())
-                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        getAbout(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults());
         assertThat(server.takeRequest().getHeader("Accept-Encoding")).isNull();
     }
 

@@ -29,6 +29,7 @@ import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.GuidesResult;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 import org.qubership.nifi.tools.kb.model.KnowledgeBaseProvenance;
 import org.qubership.nifi.tools.kb.render.JsonOutput;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
@@ -85,37 +86,34 @@ class KnowledgeBaseWriterTest {
     @Test
     void writesAndValidatesSkipModeKnowledgeBase() {
         final GuidesResult guides = new GuidesResult(GuideMode.SKIP, List.of());
-        final KnowledgeBase kb = new KnowledgeBase(
-                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
-                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
-                List.of(processor(true)), guides);
+        final KnowledgeBase kb = knowledgeBase(guides);
 
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
         assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
 
-        assertThat(Files.exists(temp.resolve("manifest.json"))).isTrue();
-        assertThat(Files.exists(temp.resolve("guides"))).isFalse();
+        assertThat(Files.exists(temp.resolve(KnowledgeBaseFormat.MANIFEST_FILE))).isTrue();
+        assertThat(Files.exists(temp.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY))).isFalse();
         assertThat(Files.exists(temp.resolve("README.md"))).isFalse();
     }
 
     @Test
     void componentJsonHasExactlyThreeTopLevelObjects() throws Exception {
-        final KnowledgeBase kb = new KnowledgeBase(
-                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
-                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
-                List.of(processor(true)), new GuidesResult(GuideMode.SKIP, List.of()));
+        final KnowledgeBase kb = knowledgeBase(new GuidesResult(GuideMode.SKIP, List.of()));
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
 
         final Path componentJson;
         try (var stream = Files.walk(temp)) {
-            componentJson = stream.filter(p -> p.getFileName().toString().equals("component.json"))
+            componentJson = stream.filter(p -> p.getFileName().toString()
+                            .equals(KnowledgeBaseFormat.COMPONENT_JSON_FILE))
                     .findFirst().orElseThrow();
         }
         final JsonNode record = MAPPER.readTree(Files.readAllBytes(componentJson));
         assertThat(record.fieldNames()).toIterable()
-                .containsExactlyInAnyOrder("documentedType", "definition", "additionalDocumentation");
-        assertThat(record.path("additionalDocumentation").path("available").asBoolean()).isTrue();
-        assertThat(Files.exists(componentJson.resolveSibling("additionalDetails.md"))).isTrue();
+                .containsExactlyInAnyOrder(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD,
+                        KnowledgeBaseFormat.DEFINITION_FIELD, KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
+        assertThat(record.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)
+                .path(KnowledgeBaseFormat.AVAILABLE_FIELD).asBoolean()).isTrue();
+        assertThat(Files.exists(componentJson.resolveSibling(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE))).isTrue();
     }
 
     @Test
@@ -127,14 +125,19 @@ class KnowledgeBaseWriterTest {
                         "text/html", List.of()),
                 new GuideDocument(GuideType.DEVELOPER, "# Dev\n", "https://nifi.example.com/z",
                         "text/html", List.of("NiFi Components"))));
-        final KnowledgeBase kb = new KnowledgeBase(
-                new KnowledgeBaseProvenance("qubership-nifi-kb-builder-tool", "2.6.4",
-                        Instant.parse("2026-07-18T00:00:00Z"), "2.5.0", "2.5.0", "https://nifi.example.com"),
-                List.of(processor(true)), guides);
+        final KnowledgeBase kb = knowledgeBase(guides);
 
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
         assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
-        assertThat(Files.exists(temp.resolve("guides/index.json"))).isTrue();
-        assertThat(Files.exists(temp.resolve("guides/developer-guide.md"))).isTrue();
+        final Path guidesDirectory = temp.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
+        assertThat(Files.exists(guidesDirectory.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE))).isTrue();
+        assertThat(Files.exists(guidesDirectory.resolve("developer-guide.md"))).isTrue();
+    }
+
+    private KnowledgeBase knowledgeBase(final GuidesResult guides) {
+        final KnowledgeBaseProvenance provenance = new KnowledgeBaseProvenance(
+                "qubership-nifi-kb-builder-tool", "2.6.4", Instant.parse("2026-07-18T00:00:00Z"),
+                "2.5.0", "2.5.0", "https://nifi.example.com");
+        return new KnowledgeBase(provenance, List.of(processor(true)), guides);
     }
 }

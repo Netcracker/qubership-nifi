@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuidesResult;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 
 /**
  * Renders {@code guides/index.json}: guide provenance and, for the Developer's Guide, the selected
@@ -47,14 +48,14 @@ public final class GuideIndexRenderer {
      */
     public byte[] render(final GuidesResult guides) {
         final ObjectNode root = json.mapper().createObjectNode();
-        final ArrayNode array = root.putArray("guides");
+        final ArrayNode array = root.putArray(KnowledgeBaseFormat.GUIDES_FIELD);
         for (final GuideDocument document : guides.documents()) {
             final ObjectNode node = array.addObject();
             node.put("guide", document.type().getManifestKey());
             node.put("title", document.type().getTitle());
             node.put("sourceUrl", document.sourceUrl());
             node.put("contentType", document.contentType());
-            node.put("outputPath", document.type().getOutputPath());
+            node.put(KnowledgeBaseFormat.OUTPUT_PATH_FIELD, document.type().getOutputPath());
             final ArrayNode headings = node.putArray("selectedHeadings");
             document.selectedHeadings().forEach(headings::add);
         }

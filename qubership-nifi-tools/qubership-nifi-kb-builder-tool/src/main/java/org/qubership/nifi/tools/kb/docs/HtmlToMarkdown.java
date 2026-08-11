@@ -21,6 +21,7 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 
 /**
  * Converts a sanitized HTML content element to Markdown, preserving headings, paragraphs, lists,
@@ -63,29 +64,24 @@ public final class HtmlToMarkdown {
                 final int level = Math.min(tag.charAt(1) - '0', MAX_HEADING_LEVEL);
                 out.append("#".repeat(level)).append(' ').append(inline(element).strip()).append("\n\n");
             }
-            case "p" -> appendParagraph(element, out);
+            case "p" -> appendInlineBlock(element, out, UnaryOperator.identity());
             case "ul" -> appendList(element, out, false);
             case "ol" -> appendList(element, out, true);
             case "pre" -> out.append("```\n").append(element.wholeText().stripTrailing()).append("\n```\n\n");
-            case "blockquote" -> appendBlockquote(element, out);
+            case "blockquote" -> appendInlineBlock(element, out,
+                    text -> "> " + text.replace("\n", "\n> "));
             case "table" -> appendTable(element, out);
             case "img" -> { }
             case "div", "section", "article", "main", "span" -> convertBlockChildren(element, out);
-            default -> appendParagraph(element, out);
+            default -> appendInlineBlock(element, out, UnaryOperator.identity());
         }
     }
 
-    private void appendParagraph(final Element element, final StringBuilder out) {
+    private void appendInlineBlock(final Element element, final StringBuilder out,
+                                   final UnaryOperator<String> formatter) {
         final String text = inline(element).strip();
         if (!text.isEmpty()) {
-            out.append(text).append("\n\n");
-        }
-    }
-
-    private void appendBlockquote(final Element element, final StringBuilder out) {
-        final String text = inline(element).strip();
-        if (!text.isEmpty()) {
-            out.append("> ").append(text.replace("\n", "\n> ")).append("\n\n");
+            out.append(formatter.apply(text)).append("\n\n");
         }
     }
 

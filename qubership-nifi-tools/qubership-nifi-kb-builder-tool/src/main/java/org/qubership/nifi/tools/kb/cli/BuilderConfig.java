@@ -113,27 +113,15 @@ public final class BuilderConfig {
 
     private static void resolveTokenMode(final BuildCommand command, final Environment environment,
                                          final Builder builder) {
-        if (command.certificateFile() != null) {
-            throw new ConfigurationException("--certificate-file is not allowed in token mode");
-        }
-        final String value = environment.get(Environment.NIFI_ACCESS_TOKEN);
-        if (value == null || value.isBlank()) {
-            throw new ConfigurationException(Environment.NIFI_ACCESS_TOKEN + " must be set in token mode");
-        }
-        builder.token = value;
+        rejectCertificateFile(command, AuthMode.TOKEN);
+        builder.token = requireEnvironment(environment, Environment.NIFI_ACCESS_TOKEN, AuthMode.TOKEN);
     }
 
     private static void resolveCookieMode(final BuildCommand command, final Environment environment,
                                           final Builder builder) {
-        if (command.certificateFile() != null) {
-            throw new ConfigurationException("--certificate-file is not allowed in cookie mode");
-        }
-        final String value = environment.get(Environment.NIFI_AUTHORIZATION_BEARER_COOKIE);
-        if (value == null || value.isBlank()) {
-            throw new ConfigurationException(
-                    Environment.NIFI_AUTHORIZATION_BEARER_COOKIE + " must be set in cookie mode");
-        }
-        builder.authorizationBearerCookie = value;
+        rejectCertificateFile(command, AuthMode.COOKIE);
+        builder.authorizationBearerCookie = requireEnvironment(environment,
+                Environment.NIFI_AUTHORIZATION_BEARER_COOKIE, AuthMode.COOKIE);
     }
 
     private static void resolveCertificateMode(final BuildCommand command, final Environment environment,
@@ -145,12 +133,24 @@ public final class BuilderConfig {
         if (!Files.isReadable(certPath)) {
             throw new ConfigurationException("--certificate-file is missing or unreadable: " + certPath);
         }
-        final String value = environment.get(Environment.NIFI_PKCS12_PASSWORD);
-        if (value == null || value.isBlank()) {
-            throw new ConfigurationException(Environment.NIFI_PKCS12_PASSWORD + " must be set in certificate mode");
-        }
         builder.certificateFile = certPath;
-        builder.certificatePassword = value.toCharArray();
+        builder.certificatePassword = requireEnvironment(environment, Environment.NIFI_PKCS12_PASSWORD,
+                AuthMode.CERTIFICATE).toCharArray();
+    }
+
+    private static void rejectCertificateFile(final BuildCommand command, final AuthMode mode) {
+        if (command.certificateFile() != null) {
+            throw new ConfigurationException("--certificate-file is not allowed in " + mode.optionValue() + " mode");
+        }
+    }
+
+    private static String requireEnvironment(final Environment environment, final String variable,
+                                             final AuthMode mode) {
+        final String value = environment.get(variable);
+        if (value == null || value.isBlank()) {
+            throw new ConfigurationException(variable + " must be set in " + mode.optionValue() + " mode");
+        }
+        return value;
     }
 
     private static void validateOutputOverlap(final Builder builder) {

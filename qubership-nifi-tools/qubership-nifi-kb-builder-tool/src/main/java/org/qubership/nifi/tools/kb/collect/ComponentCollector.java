@@ -73,11 +73,9 @@ public final class ComponentCollector {
                                        final JsonNode typeEntry) {
         final String type = requireText(typeEntry, "type", "typeEntry is missing a type");
         final JsonNode bundle = typeEntry.path("bundle");
-        final String group = requireText(bundle, "group", "typeEntry " + type + " is missing bundle group");
-        final String artifact = requireText(bundle, "artifact",
-                "typeEntry " + type + " is missing bundle artifact");
-        final String version = requireText(bundle, "version",
-                "typeEntry " + type + " is missing bundle version");
+        final String group = requireBundleText(bundle, type, "group");
+        final String artifact = requireBundleText(bundle, type, "artifact");
+        final String version = requireBundleText(bundle, type, "version");
 
         final ComponentIdentity identity = new ComponentIdentity(kind, group, artifact, version, type);
         final JsonNode definition = catalog.getDefinition(kind, group, artifact, version, type);
@@ -124,6 +122,10 @@ public final class ComponentCollector {
             throw new CollectionException(failure);
         }
         return value;
+    }
+
+    private static String requireBundleText(final JsonNode bundle, final String type, final String field) {
+        return requireText(bundle, field, "typeEntry " + type + " is missing bundle " + field);
     }
 
     private record AdditionalDetailsOutcome(AdditionalDocumentationState state, String content) {

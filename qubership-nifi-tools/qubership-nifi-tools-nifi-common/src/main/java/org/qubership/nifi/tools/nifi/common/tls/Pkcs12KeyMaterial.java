@@ -19,8 +19,6 @@ package org.qubership.nifi.tools.nifi.common.tls;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -31,16 +29,10 @@ import java.util.Enumeration;
  * private-key entry with its certificate chain; startup fails on multiple usable entries rather
  * than relying on provider-dependent alias selection.
  */
-public final class Pkcs12KeyMaterial implements ClientKeyMaterial {
-
-    private static final String PKCS12 = "PKCS12";
-
-    private final byte[] storeBytes;
-    private final char[] storePassword;
+public final class Pkcs12KeyMaterial extends AbstractPkcs12Material implements ClientKeyMaterial {
 
     private Pkcs12KeyMaterial(final byte[] bytes, final char[] password) {
-        this.storeBytes = bytes.clone();
-        this.storePassword = password.clone();
+        super(bytes, password);
     }
 
     /**
@@ -52,24 +44,18 @@ public final class Pkcs12KeyMaterial implements ClientKeyMaterial {
      * @throws TlsMaterialException when the file is missing or unreadable
      */
     public static Pkcs12KeyMaterial fromFile(final Path pkcs12File, final char[] password) {
-        try {
-            return new Pkcs12KeyMaterial(Files.readAllBytes(pkcs12File), password);
-        } catch (final IOException e) {
-            throw new TlsMaterialException("PKCS#12 certificate file could not be read", e);
-        }
+        return new Pkcs12KeyMaterial(TlsMaterialUtils.readAllBytes(pkcs12File,
+                "PKCS#12 certificate file could not be read"), password);
     }
 
     @Override
     public KeyManager[] keyManagers() {
         try {
-            final KeyStore keyStore = KeyStore.getInstance(PKCS12);
-            try (InputStream in = new java.io.ByteArrayInputStream(storeBytes)) {
-                keyStore.load(in, storePassword);
-            }
+            final KeyStore keyStore = loadKeyStore();
             requireSinglePrivateKeyEntry(keyStore);
             final KeyManagerFactory kmf =
                     KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            kmf.init(keyStore, storePassword);
+            kmf.init(keyStore, password());
             return kmf.getKeyManagers();
         } catch (final GeneralSecurityException | IOException e) {
             throw new TlsMaterialException("PKCS#12 certificate file could not be loaded", e);
@@ -94,10 +80,4 @@ public final class Pkcs12KeyMaterial implements ClientKeyMaterial {
         }
     }
 
-    /**
-     * Clears the retained password characters. Call after the SSL context has been initialized.
-     */
-    public void clearPassword() {
-        java.util.Arrays.fill(storePassword, '\0');
-    }
 }

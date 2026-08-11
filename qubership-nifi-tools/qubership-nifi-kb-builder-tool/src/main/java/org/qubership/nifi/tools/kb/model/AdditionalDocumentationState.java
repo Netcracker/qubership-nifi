@@ -26,7 +26,7 @@ import java.util.Optional;
 public final class AdditionalDocumentationState {
 
     /** The relative file name used for a component's verbatim additional documentation. */
-    public static final String ADDITIONAL_DETAILS_FILE = "additionalDetails.md";
+    public static final String ADDITIONAL_DETAILS_FILE = KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE;
 
     private final boolean advertised;
     private final boolean requested;

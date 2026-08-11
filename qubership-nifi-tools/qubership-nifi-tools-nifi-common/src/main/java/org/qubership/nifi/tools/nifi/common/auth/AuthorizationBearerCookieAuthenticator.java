@@ -17,7 +17,6 @@
 package org.qubership.nifi.tools.nifi.common.auth;
 
 import org.apache.hc.core5.http.HttpRequest;
-import java.util.Objects;
 
 /**
  * Adds Apache NiFi's {@code __Secure-Authorization-Bearer} session cookie. The cookie value is held only
@@ -47,8 +46,7 @@ public final class AuthorizationBearerCookieAuthenticator implements NiFiRequest
 
     @Override
     public void apply(final HttpRequest request) {
-        Objects.requireNonNull(request, "request");
-        request.setHeader(COOKIE_HEADER, COOKIE_NAME + "=" + value);
+        RequestAuthenticationUtils.setHeader(request, COOKIE_HEADER, COOKIE_NAME + "=" + value);
     }
 
     @Override

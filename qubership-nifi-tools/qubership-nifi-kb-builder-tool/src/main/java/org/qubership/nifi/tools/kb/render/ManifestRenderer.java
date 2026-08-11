@@ -17,10 +17,12 @@
 package org.qubership.nifi.tools.kb.render;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
+import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.util.List;
@@ -58,7 +60,7 @@ public final class ManifestRenderer {
      */
     public byte[] render(final KnowledgeBase kb, final String fingerprint) {
         final ObjectNode root = json.mapper().createObjectNode();
-        root.put("schemaVersion", SCHEMA_VERSION);
+        root.put(KnowledgeBaseFormat.SCHEMA_VERSION_FIELD, SCHEMA_VERSION);
 
         final ObjectNode builder = root.putObject("builder");
         builder.put("name", kb.provenance().builderName());
@@ -71,7 +73,7 @@ public final class ManifestRenderer {
         nifi.put("minimumSupportedVersion", kb.provenance().minimumSupportedVersion());
         nifi.put("baseUrl", kb.provenance().baseUrl());
 
-        root.put("fingerprint", fingerprint);
+        root.put(KnowledgeBaseFormat.FINGERPRINT_FIELD, fingerprint);
 
         appendCounts(root, kb.components());
         appendGuides(root, kb);
@@ -80,23 +82,23 @@ public final class ManifestRenderer {
     }
 
     private void appendCounts(final ObjectNode root, final List<ComponentRecord> components) {
-        final ObjectNode counts = root.putObject("counts");
-        counts.put("processors", countKind(components, NiFiComponentKind.PROCESSOR));
-        counts.put("controllerServices", countKind(components, NiFiComponentKind.CONTROLLER_SERVICE));
-        counts.put("reportingTasks", countKind(components, NiFiComponentKind.REPORTING_TASK));
+        final ObjectNode counts = root.putObject(KnowledgeBaseFormat.COUNTS_FIELD);
+        for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
+            counts.put(ComponentKindLayout.manifestCountField(kind), countKind(components, kind));
+        }
         counts.put("componentsWithAdditionalDocumentation",
                 (int) components.stream().filter(c -> c.additionalDocumentation().isAvailable()).count());
     }
 
     private void appendGuides(final ObjectNode root, final KnowledgeBase kb) {
-        final ObjectNode guides = root.putObject("guides");
+        final ObjectNode guides = root.putObject(KnowledgeBaseFormat.GUIDES_FIELD);
         guides.put("mode", kb.guides().mode().manifestMode());
         for (final GuideType type : GuideType.values()) {
             final ObjectNode guideNode = guides.putObject(type.getManifestKey());
-            guideNode.put("status", kb.guides().mode().manifestStatus());
+            guideNode.put(KnowledgeBaseFormat.STATUS_FIELD, kb.guides().mode().manifestStatus());
             if (kb.guides().mode() == GuideMode.REQUIRED) {
                 guideNode.put("sourcePath", type.getSourcePath());
-                guideNode.put("outputPath", type.getOutputPath());
+                guideNode.put(KnowledgeBaseFormat.OUTPUT_PATH_FIELD, type.getOutputPath());
             }
         }
     }

@@ -17,28 +17,18 @@
 package org.qubership.nifi.tools.nifi.common.tls;
 
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.util.Arrays;
 
 /**
  * Trust material backed by a PKCS#12 trust store supplied as raw bytes rather than as a file path,
  * for a store that is only available in memory.
  */
-public final class Pkcs12TrustMaterial implements TrustMaterial {
-
-    private static final String PKCS12 = "PKCS12";
-
-    private final byte[] storeBytes;
-    private final char[] storePassword;
+public final class Pkcs12TrustMaterial extends AbstractPkcs12Material implements TrustMaterial {
 
     private Pkcs12TrustMaterial(final byte[] bytes, final char[] password) {
-        this.storeBytes = bytes.clone();
-        this.storePassword = password.clone();
+        super(bytes, password);
     }
 
     /**
@@ -56,23 +46,10 @@ public final class Pkcs12TrustMaterial implements TrustMaterial {
     @Override
     public TrustManager[] trustManagers() {
         try {
-            final KeyStore trustStore = KeyStore.getInstance(PKCS12);
-            try (InputStream in = new ByteArrayInputStream(storeBytes)) {
-                trustStore.load(in, storePassword);
-            }
-            final TrustManagerFactory tmf =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-            return tmf.getTrustManagers();
+            final KeyStore trustStore = loadKeyStore();
+            return TlsMaterialUtils.createTrustManagers(trustStore);
         } catch (final GeneralSecurityException | IOException e) {
             throw new TlsMaterialException("PKCS#12 trust store could not be loaded", e);
         }
-    }
-
-    /**
-     * Clears the retained password characters. Call after the SSL context has been initialized.
-     */
-    public void clearPassword() {
-        Arrays.fill(storePassword, '\0');
     }
 }

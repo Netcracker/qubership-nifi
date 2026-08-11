@@ -22,13 +22,19 @@ package org.qubership.nifi.tools.kb.cli;
 public enum AuthMode {
 
     /** Bearer access token from {@code NIFI_ACCESS_TOKEN}. */
-    TOKEN,
+    TOKEN("token"),
 
     /** NiFi authorization bearer cookie from {@code NIFI_AUTHORIZATION_BEARER_COOKIE}. */
-    COOKIE,
+    COOKIE("cookie"),
 
     /** Mutual TLS with a PKCS#12 client certificate. */
-    CERTIFICATE;
+    CERTIFICATE("certificate");
+
+    private final String optionValue;
+
+    AuthMode(final String value) {
+        this.optionValue = value;
+    }
 
     /**
      * Parses the authentication mode from its command-line value.
@@ -38,16 +44,21 @@ public enum AuthMode {
      * @throws ConfigurationException when the value is not a known mode
      */
     public static AuthMode parse(final String value) {
-        if ("token".equals(value)) {
-            return TOKEN;
-        }
-        if ("cookie".equals(value)) {
-            return COOKIE;
-        }
-        if ("certificate".equals(value)) {
-            return CERTIFICATE;
+        for (final AuthMode mode : values()) {
+            if (mode.optionValue.equals(value)) {
+                return mode;
+            }
         }
         throw new ConfigurationException(
                 "--auth must be 'token', 'cookie', or 'certificate', but was: " + value);
+    }
+
+    /**
+     * Returns the lower-case {@code --auth} option value.
+     *
+     * @return the option value
+     */
+    public String optionValue() {
+        return optionValue;
     }
 }

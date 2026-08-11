@@ -62,6 +62,9 @@ import java.util.Set;
  */
 public final class NiFiHttpClient implements Closeable {
 
+    /** JSON media type used by NiFi REST endpoints. */
+    public static final String APPLICATION_JSON = "application/json";
+
     private static final Logger LOG = LoggerFactory.getLogger(NiFiHttpClient.class);
 
     private static final int REDIRECT_LOW = 300;
@@ -179,7 +182,7 @@ public final class NiFiHttpClient implements Closeable {
      */
     public NiFiHttpResponse delete(final URI uri) {
         requireSameOrigin(uri);
-        return executeOnce("DELETE", uri, prepare(new HttpDelete(uri), "application/json")).response();
+        return executeOnce("DELETE", uri, prepare(new HttpDelete(uri), APPLICATION_JSON)).response();
     }
 
     /**

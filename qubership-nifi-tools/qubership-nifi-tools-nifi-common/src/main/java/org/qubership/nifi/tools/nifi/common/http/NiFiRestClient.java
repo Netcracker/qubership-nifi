@@ -34,7 +34,8 @@ import java.util.Optional;
  */
 public final class NiFiRestClient implements Closeable {
 
-    private static final String ACCEPT_JSON = "application/json";
+    private static final String GET_METHOD = "GET";
+    private static final String POST_METHOD = "POST";
     private static final int NOT_FOUND = 404;
 
     private final NiFiHttpClient httpClient;
@@ -76,11 +77,8 @@ public final class NiFiRestClient implements Closeable {
      * @throws NiFiApiException when the response is not a 2xx JSON response
      */
     public JsonNode getJson(final URI uri) {
-        final NiFiHttpResponse response = httpClient.get(uri, ACCEPT_JSON);
-        if (!response.isSuccess()) {
-            throw error(uri, response, "GET request did not succeed");
-        }
-        return parse(uri, response);
+        final NiFiHttpResponse response = httpClient.get(uri, NiFiHttpClient.APPLICATION_JSON);
+        return requireSuccessJson(GET_METHOD, uri, response);
     }
 
     /**
@@ -91,14 +89,11 @@ public final class NiFiRestClient implements Closeable {
      * @throws NiFiApiException when the response is neither 2xx JSON nor {@code 404}
      */
     public Optional<JsonNode> getJsonAllowingNotFound(final URI uri) {
-        final NiFiHttpResponse response = httpClient.get(uri, ACCEPT_JSON);
+        final NiFiHttpResponse response = httpClient.get(uri, NiFiHttpClient.APPLICATION_JSON);
         if (response.statusCode() == NOT_FOUND) {
             return Optional.empty();
         }
-        if (!response.isSuccess()) {
-            throw error(uri, response, "GET request did not succeed");
-        }
-        return Optional.of(parse(uri, response));
+        return Optional.of(requireSuccessJson(GET_METHOD, uri, response));
     }
 
     /**
@@ -110,29 +105,34 @@ public final class NiFiRestClient implements Closeable {
      * @throws NiFiApiException when the response is not a 2xx JSON response
      */
     public JsonNode postJson(final URI uri, final String body) {
-        final NiFiHttpResponse response = httpClient.post(uri, body, ACCEPT_JSON, ACCEPT_JSON);
-        if (!response.isSuccess()) {
-            throw new NiFiApiException("POST", NiFiHttpClient.redact(uri), response.statusCode(),
-                    NiFiHttpClient.excerpt(response.bodyAsText()),
-                    "POST request did not succeed (status " + response.statusCode() + ")");
-        }
-        return parse(uri, response);
+        final NiFiHttpResponse response = httpClient.post(uri, body,
+                NiFiHttpClient.APPLICATION_JSON, NiFiHttpClient.APPLICATION_JSON);
+        return requireSuccessJson(POST_METHOD, uri, response);
     }
 
-    private JsonNode parse(final URI uri, final NiFiHttpResponse response) {
+    private JsonNode requireSuccessJson(final String method, final URI uri, final NiFiHttpResponse response) {
+        if (!response.isSuccess()) {
+            throw error(method, uri, response, method + " request did not succeed");
+        }
+        return parse(method, uri, response);
+    }
+
+    private JsonNode parse(final String method, final URI uri, final NiFiHttpResponse response) {
         final Optional<String> contentType = response.contentType();
         if (contentType.isPresent() && !contentType.get().toLowerCase(java.util.Locale.ROOT).contains("json")) {
-            throw error(uri, response, "Expected a JSON response but received content type " + contentType.get());
+            throw error(method, uri, response,
+                    "Expected a JSON response but received content type " + contentType.get());
         }
         try {
             return mapper.readTree(response.body());
         } catch (final IOException e) {
-            throw error(uri, response, "Response body is not valid JSON");
+            throw error(method, uri, response, "Response body is not valid JSON");
         }
     }
 
-    private static NiFiApiException error(final URI uri, final NiFiHttpResponse response, final String reason) {
-        return new NiFiApiException("GET", NiFiHttpClient.redact(uri), response.statusCode(),
+    private static NiFiApiException error(final String method, final URI uri,
+                                          final NiFiHttpResponse response, final String reason) {
+        return new NiFiApiException(method, NiFiHttpClient.redact(uri), response.statusCode(),
                 NiFiHttpClient.excerpt(response.bodyAsText()), reason + " (status " + response.statusCode() + ")");
     }
 }

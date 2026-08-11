@@ -45,6 +45,7 @@ public final class GuideCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuideCollector.class);
     private static final String ACCEPT_HTML = "text/html";
+    private static final String GUIDE_PREFIX = "Guide ";
     private static final String LF = "\n";
 
     private final HtmlToMarkdown htmlToMarkdown;
@@ -92,12 +93,12 @@ public final class GuideCollector {
         if (!response.isSuccess()) {
             throw new NiFiApiException("GET", NiFiHttpClient.redact(uri), response.statusCode(),
                     NiFiHttpClient.excerpt(response.bodyAsText()),
-                    "Guide " + type.getTitle() + " request did not succeed (status "
+                    GUIDE_PREFIX + type.getTitle() + " request did not succeed (status "
                             + response.statusCode() + ")");
         }
         final String contentType = response.contentType().orElse("");
         if (!contentType.toLowerCase(Locale.ROOT).contains("html")) {
-            throw new GuideException("Guide " + type.getTitle() + " returned non-HTML content type: "
+            throw new GuideException(GUIDE_PREFIX + type.getTitle() + " returned non-HTML content type: "
                     + contentType);
         }
         final Document document = Jsoup.parse(response.bodyAsText(), uri.toString());

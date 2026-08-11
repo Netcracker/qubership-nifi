@@ -40,8 +40,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class NiFiComponentCatalogClientTest {
 
-    private static final String JSON = "application/json";
-
     private MockWebServer server;
     private NiFiRestClient rest;
     private NiFiComponentCatalogClient catalog;
@@ -67,15 +65,13 @@ class NiFiComponentCatalogClientTest {
 
     @Test
     void readsAndParsesVersion() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"about\":{\"version\":\"2.5.0\"}}"));
+        enqueueJson("{\"about\":{\"version\":\"2.5.0\"}}");
         assertThat(about.readVersion().orElseThrow().getMinor()).isEqualTo(5);
     }
 
     @Test
     void listsTypesArray() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"processorTypes\":[{\"type\":\"org.Foo\"}]}"));
+        enqueueJson("{\"processorTypes\":[{\"type\":\"org.Foo\"}]}");
         final JsonNode types = catalog.listTypes(NiFiComponentKind.PROCESSOR);
         assertThat(types.isArray()).isTrue();
         assertThat(types.get(0).path("type").asText()).isEqualTo("org.Foo");
@@ -83,8 +79,7 @@ class NiFiComponentCatalogClientTest {
 
     @Test
     void failsWhenListArrayMissing() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"unexpected\":true}"));
+        enqueueJson("{\"unexpected\":true}");
         assertThatThrownBy(() -> catalog.listTypes(NiFiComponentKind.PROCESSOR))
                 .isInstanceOf(NiFiApiException.class)
                 .hasMessageContaining("processorTypes");
@@ -92,8 +87,7 @@ class NiFiComponentCatalogClientTest {
 
     @Test
     void retainsUnknownDefinitionFields() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"type\":\"org.Foo\",\"futureField\":{\"nested\":1},\"additionalDetails\":true}"));
+        enqueueJson("{\"type\":\"org.Foo\",\"futureField\":{\"nested\":1},\"additionalDetails\":true}");
         final JsonNode def = catalog.getDefinition(NiFiComponentKind.PROCESSOR,
                 "g", "a", "1.0", "org.Foo");
         assertThat(def.path("futureField").path("nested").asInt()).isEqualTo(1);
@@ -102,8 +96,7 @@ class NiFiComponentCatalogClientTest {
 
     @Test
     void returnsAdditionalDetailsString() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"additionalDetails\":\"# Title\\nBody\"}"));
+        enqueueJson("{\"additionalDetails\":\"# Title\\nBody\"}");
         final Optional<String> details = catalog.getAdditionalDetails(NiFiComponentKind.PROCESSOR,
                 "g", "a", "1.0", "org.Foo");
         assertThat(details).contains("# Title\nBody");
@@ -118,8 +111,7 @@ class NiFiComponentCatalogClientTest {
 
     @Test
     void failsWhenAdditionalDetailsFieldNotString() {
-        server.enqueue(new MockResponse().setResponseCode(200).setHeader("Content-Type", JSON)
-                .setBody("{\"additionalDetails\":123}"));
+        enqueueJson("{\"additionalDetails\":123}");
         assertThatThrownBy(() -> catalog.getAdditionalDetails(NiFiComponentKind.PROCESSOR,
                 "g", "a", "1.0", "org.Foo"))
                 .isInstanceOf(NiFiApiException.class)
@@ -132,5 +124,10 @@ class NiFiComponentCatalogClientTest {
         assertThatThrownBy(() -> catalog.listTypes(NiFiComponentKind.CONTROLLER_SERVICE))
                 .isInstanceOfSatisfying(NiFiApiException.class,
                         ex -> assertThat(ex.getStatusCode()).isEqualTo(401));
+    }
+
+    private void enqueueJson(final String body) {
+        server.enqueue(new MockResponse().setResponseCode(200)
+                .setHeader("Content-Type", NiFiHttpClient.APPLICATION_JSON).setBody(body));
     }
 }
