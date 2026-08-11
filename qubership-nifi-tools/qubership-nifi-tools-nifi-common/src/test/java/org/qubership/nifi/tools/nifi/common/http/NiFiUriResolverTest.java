@@ -130,4 +130,31 @@ class NiFiUriResolverTest {
         assertThat(resolver.isSameOrigin(URI.create("https://nifi.example.com/nifi-api/flow/about"))).isFalse();
         assertThat(resolver.isSameOrigin(URI.create("https://evil.example.com:9443/x"))).isFalse();
     }
+
+    @Test
+    void rejectsMissingAndStructurallyInvalidBaseUrls() {
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl(null, false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl("  ", false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl("https://bad host", false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("valid URI");
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl("relative/path", false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("absolute");
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl("ftp://nifi.example.com", false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("http or https");
+        assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl("https:///missing-host", false))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("host");
+    }
+
+    @Test
+    void rejectsInvalidResourcePathsAndIncompleteOrigins() {
+        final NiFiUriResolver resolver = NiFiUriResolver.fromBaseUrl("https://nifi.example.com");
+
+        assertThatThrownBy(() -> resolver.resolve(null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> resolver.resolve("relative")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(resolver.isSameOrigin(null)).isFalse();
+        assertThat(resolver.isSameOrigin(URI.create("/relative"))).isFalse();
+        assertThat(resolver.isSameOrigin(URI.create("https:///missing-host"))).isFalse();
+    }
 }

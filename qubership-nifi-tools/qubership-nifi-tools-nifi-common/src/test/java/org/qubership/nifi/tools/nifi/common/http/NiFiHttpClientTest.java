@@ -157,4 +157,24 @@ class NiFiHttpClientTest {
         assertThat(NiFiHttpClient.excerpt("  a\n b  ")).isEqualTo("a b");
         assertThat(NiFiHttpClient.excerpt(null)).isEmpty();
     }
+
+    @Test
+    void rejectsBlankAuthenticationCredentials() {
+        assertThatThrownBy(() -> new BearerTokenAuthenticator(null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new BearerTokenAuthenticator("  "))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AuthorizationBearerCookieAuthenticator(null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new AuthorizationBearerCookieAuthenticator("  "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void classifiesSuccessStatusBoundaries() {
+        assertThat(new NiFiHttpResponse(199, null, new byte[0]).isSuccess()).isFalse();
+        assertThat(new NiFiHttpResponse(200, null, new byte[0]).isSuccess()).isTrue();
+        assertThat(new NiFiHttpResponse(299, null, new byte[0]).isSuccess()).isTrue();
+        assertThat(new NiFiHttpResponse(300, null, new byte[0]).isSuccess()).isFalse();
+    }
 }

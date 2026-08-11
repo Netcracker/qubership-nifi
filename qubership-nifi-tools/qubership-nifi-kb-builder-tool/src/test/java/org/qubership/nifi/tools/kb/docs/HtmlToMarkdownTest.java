@@ -69,4 +69,46 @@ class HtmlToMarkdownTest {
         final String md = convert("<p>Use <code>${now()}</code> here.</p>");
         assertThat(md).contains("`${now()}`");
     }
+
+    @Test
+    void convertsRemainingBlockAndInlineElements() {
+        final String md = convert("""
+                Text before blocks
+                <h1>One</h1><h3>Three</h3><h4>Four</h4><h5>Five</h5><h6>Six</h6>
+                <ol><div>ignored</div><li>First</li><li>Second</li></ol>
+                <pre>line 1\nline 2\n</pre>
+                <blockquote>quoted<br>line</blockquote>
+                <div><section><article><main><span>Nested</span></main></article></section></div>
+                <custom><strong>Bold</strong> <em>emphasis</em> <b>B</b> <i>I</i></custom>
+                """);
+
+        assertThat(md)
+                .contains("Text before blocks")
+                .contains("# One")
+                .contains("### Three")
+                .contains("#### Four")
+                .contains("##### Five")
+                .contains("###### Six")
+                .contains("1. First")
+                .contains("2. Second")
+                .contains("```\nline 1\nline 2\n```")
+                .contains("> quoted\n> line")
+                .contains("Nested")
+                .contains("**Bold** *emphasis* **B** *I*");
+    }
+
+    @Test
+    void omitsEmptyBlocksTablesRowsAndAnchors() {
+        final String md = convert("""
+                <p> </p><blockquote> </blockquote><img src="ignored.png">
+                <table></table><table><tr></tr><tr><td>A|B</td><td>Value</td></tr></table>
+                <p>before<a href="#self"></a>after<img src="ignored-inline.png"></p>
+                """);
+
+        assertThat(md)
+                .contains("| A\\|B | Value |")
+                .contains("beforeafter")
+                .doesNotContain("ignored.png")
+                .doesNotContain("ignored-inline.png");
+    }
 }

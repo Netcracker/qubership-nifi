@@ -70,6 +70,10 @@ public final class ComponentMarkdownRenderer {
 
     private void appendDescriptionAndTags(final StringBuilder md, final JsonNode definition,
                                           final JsonNode documented) {
+        if (definition == null) {
+            //skip if null
+            return;
+        }
         final String description = firstNonBlank(text(definition, "description"), text(documented, "description"));
         if (!description.isBlank()) {
             md.append("## Description").append(LF).append(LF)
@@ -90,6 +94,10 @@ public final class ComponentMarkdownRenderer {
 
     private void appendDeprecationAndRestrictions(final StringBuilder md, final JsonNode definition,
                                                   final JsonNode documented) {
+        if (definition == null) {
+            //skip if null
+            return;
+        }
         final String deprecationReason = firstNonBlank(text(definition, "deprecationReason"),
                 text(documented, "deprecationReason"));
         final boolean restricted = definition.path("restricted").asBoolean(documented.path("restricted").asBoolean());
@@ -106,6 +114,10 @@ public final class ComponentMarkdownRenderer {
     }
 
     private void appendInputAndRelationships(final StringBuilder md, final JsonNode definition) {
+        if (definition == null) {
+            //skip if null
+            return;
+        }
         final String inputRequirement = text(definition, "inputRequirement");
         final JsonNode relationships = definition.get("supportedRelationships");
         if (inputRequirement.isBlank() && (relationships == null || !relationships.isArray())) {
@@ -129,6 +141,10 @@ public final class ComponentMarkdownRenderer {
     }
 
     private void appendProperties(final StringBuilder md, final JsonNode definition) {
+        if (definition == null) {
+            //skip if null
+            return;
+        }
         final JsonNode properties = definition.get("propertyDescriptors");
         if (properties == null || !properties.isObject() || properties.isEmpty()) {
             return;

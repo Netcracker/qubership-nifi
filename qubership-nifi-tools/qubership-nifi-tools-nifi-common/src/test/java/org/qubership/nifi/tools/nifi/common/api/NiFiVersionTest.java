@@ -38,6 +38,7 @@ class NiFiVersionTest {
     void rejectsMalformedVersion() {
         assertThat(NiFiVersion.parse("not-a-version")).isEmpty();
         assertThat(NiFiVersion.parse("2.5")).isEmpty();
+        assertThat(NiFiVersion.parse("999999999999999999999.5.0")).isEmpty();
         assertThat(NiFiVersion.parse(null)).isEmpty();
     }
 
@@ -52,5 +53,21 @@ class NiFiVersionTest {
         assertThat(NiFiVersion.of(2, 5, 0).isWithin(LOWER, UPPER)).isTrue();
         assertThat(NiFiVersion.of(2, 10, 0).isWithin(LOWER, UPPER)).isTrue();
         assertThat(NiFiVersion.of(3, 0, 0).isWithin(LOWER, UPPER)).isFalse();
+    }
+
+    @Test
+    void comparesEqualityByNumericTuple() {
+        final NiFiVersion version = NiFiVersion.of(2, 5, 1);
+        final NiFiVersion equalWithSuffix = NiFiVersion.parse("2.5.1-SNAPSHOT").orElseThrow();
+
+        assertThat(version).isEqualTo(version).isEqualTo(equalWithSuffix);
+        assertThat(version.hashCode()).isEqualTo(equalWithSuffix.hashCode());
+        assertThat(version.toString()).isEqualTo("2.5.1");
+        assertThat(version)
+                .isNotEqualTo(null)
+                .isNotEqualTo("2.5.1")
+                .isNotEqualTo(NiFiVersion.of(3, 5, 1))
+                .isNotEqualTo(NiFiVersion.of(2, 6, 1))
+                .isNotEqualTo(NiFiVersion.of(2, 5, 2));
     }
 }
