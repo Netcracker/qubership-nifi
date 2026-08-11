@@ -5,21 +5,19 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.qubership.nifi.maven.flowdiff.flow.FlowParseException;
-import org.qubership.nifi.maven.flowdiff.io.Candidate;
-import org.qubership.nifi.maven.flowdiff.io.FlowClassifier;
-import org.qubership.nifi.maven.flowdiff.io.GitSource;
-import org.qubership.nifi.maven.flowdiff.report.DiffModelBuilder;
-import org.qubership.nifi.maven.flowdiff.report.ReportModel;
+import org.qubership.nifi.flowdiff.error.FlowDiffExecutionException;
+import org.qubership.nifi.flowdiff.error.FlowDiffInputException;
+import org.qubership.nifi.flowdiff.error.FlowParseException;
+import org.qubership.nifi.flowdiff.report.ReportModel;
+import org.qubership.nifi.flowdiff.service.FlowDiffService;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * The {@code nifi-flow-diff:git-diff} goal: compares the working tree against a committed baseline read through JGit.
- * The baseline is the tip of {@code HEAD} or of {@code branch}; the target is the working copy. Comparing against the
- * branch tip (not the merge-base) answers what a replace would introduce, matching how NiFi flows are integrated.
+ * The baseline is the commit that {@code branch} resolves to (defaulting to {@code HEAD}); the target is the working
+ * copy. For a branch, the baseline is its tip, not the merge-base, which answers what a replace would introduce,
+ * matching how NiFi flows are integrated.
  */
 @Mojo(name = "git-diff", defaultPhase = LifecyclePhase.NONE, requiresProject = false, threadSafe = true)
 public final class GitDiffMojo extends AbstractFlowDiffMojo {
@@ -31,20 +29,22 @@ public final class GitDiffMojo extends AbstractFlowDiffMojo {
     @Parameter(property = "path", required = true)
     private String path;
 
-    /** The branch whose tip is the baseline; defaults to {@code HEAD}. */
+    /**
+     * The baseline revision, resolved by JGit: {@code HEAD}, a complete or abbreviated SHA-1, a complete reference
+     * name ({@code refs/...}), or a short branch, tag, or remote name. Defaults to {@code HEAD}.
+     */
     @Parameter(property = "branch", defaultValue = "HEAD")
     private String branch;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        FlowClassifier classifier = new FlowClassifier(isSkipMalformed(), MAPPER, getLog());
-        try (GitSource git = new GitSource(getBasedir(), new File(path), classifier)) {
-            Map<String, Candidate> committed = git.discoverCommitted(branch);
-            Map<String, Candidate> working = git.discoverWorking();
-            ReportModel model = new DiffModelBuilder(getLog()).build(committed, working, true);
+        try {
+            ReportModel model = new FlowDiffService().gitDiff(getBasedir(), path, branch, isSkipMalformed());
             emit(model);
-        } catch (FlowParseException e) {
+        } catch (FlowDiffInputException | FlowParseException e) {
             throw new MojoFailureException(e.getMessage(), e);
+        } catch (FlowDiffExecutionException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         } catch (IOException e) {
             throw new MojoExecutionException("I/O error while reading flows from Git", e);
         }

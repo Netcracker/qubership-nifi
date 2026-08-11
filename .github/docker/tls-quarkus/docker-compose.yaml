@@ -4,7 +4,7 @@ services:
     image: apache/nifi-toolkit:1.28.1
     depends_on:
       consul:
-        condition: service_started
+        condition: service_healthy
     container_name: nifi-toolkit
     entrypoint: /bin/bash
     command: /tmp/tls-scripts/nifi-gen-certs.sh
@@ -27,6 +27,8 @@ services:
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
+      - tls-cert-pwd:/tmp/cert-pwd
+      - nifi-sens-key:/tmp/nifi-sens-key
     ports:
       - 127.0.0.1:8080:8080
     environment:
@@ -35,17 +37,29 @@ services:
       - CONSUL_URL=http://consul:8500
       - NIFI_CONSUL_INT_FRAMEWORK=quarkus
       - AUTH=tls
-      - NIFI_NEW_SENSITIVE_KEY=${NIFI_SENSITIVE_KEY}
       - NIFI_WEB_HTTPS_PORT=8080
       - KEYSTORE_PATH=/tmp/tls-certs/keystore.p12
       - KEYSTORE_TYPE=PKCS12
-      - KEYSTORE_PASSWORD=${KEYSTORE_PASSWORD_NIFI}
       - TRUSTSTORE_PATH=/tmp/tls-certs/truststore.p12
       - TRUSTSTORE_TYPE=PKCS12
-      - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
       - CONSUL_ACL_TOKEN=${CONSUL_TOKEN}
+      - NIFI_KEYSTORE_PASSWORD_PATH=/tmp/cert-pwd/keystore-nifi.pass
+      - NIFI_TRUSTSTORE_PASSWORD_PATH=/tmp/cert-pwd/truststore.pass
+      - NIFI_SENSITIVE_KEY_PATH=/tmp/nifi-sens-key/key
     container_name: local-nifi
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 10
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi:8080/nifi-api/controller/config > /dev/null
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
     hostname: nifi
   nifi-registry:
@@ -68,8 +82,31 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry
     hostname: nifi-registry
+    #Uncomment after fix for auth=TLS support in ready.sh is delivered:
+    #healthcheck:
+    #  test:
+    #    - CMD
+    #    - bash
+    #    - /opt/nifi-registry/scripts/ready.sh
+    #  interval: 5s
+    #  timeout: 5s
+    #  retries: 15
+    #  start_period: 15s
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 5
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi-registry:18080/nifi-registry-api/config > /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
   consul:
     image: hashicorp/consul:1.20
     volumes:
@@ -77,6 +114,14 @@ services:
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 12
 volumes:
   tls-scripts:
     driver: local
@@ -96,6 +141,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/tls-cert/nifi/
+  tls-cert-pwd:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/temp-vol/tls-cert/pwd/
   tls-cert-reg:
     driver: local
     driver_opts:
@@ -108,6 +159,12 @@ volumes:
       o: bind
       type: none
       device: $BASE_DIR/temp-vol/nifi/per-conf/
+  nifi-sens-key:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: $BASE_DIR/nifi-sens-key/
   consul-conf:
     driver: local
     driver_opts:

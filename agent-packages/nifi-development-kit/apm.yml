@@ -1,0 +1,4 @@
+name: nifi-development-kit
+version: 1.0.0
+description: Conventions and correctness rules for writing or reviewing custom Apache NiFi components (Processors, Controller Services, Reporting Tasks) and Apache NiFi Flows.
+author: Qubership

@@ -215,9 +215,35 @@ if [ -n "${X_JAVA_ARGS}" ]; then
     done
 fi
 
+validate_jvm_args(){
+    local paramName="$1"
+    shift
+    local javaArgsCheckOutput
+    if ! javaArgsCheckOutput=$("$JAVA_HOME"/bin/java "$@" -version 2>&1); then
+        error "ERROR: Invalid JVM arguments in $paramName: $*"
+        error "$javaArgsCheckOutput"
+        sleep 5
+        exit 3
+    fi
+}
+
+jvmArgsToValidate=()
+# shellcheck disable=SC2086
+for jvmArg in $NIFI_ADDITIONAL_JVM_ARGS $X_JAVA_ARGS; do
+    case "$jvmArg" in
+        -XX:+Use*GC|-XX:-Use*GC|-XX:+UnlockExperimentalVMOptions)
+            jvmArgsToValidate+=("$jvmArg")
+            ;;
+    esac
+done
+
+if [ "${#jvmArgsToValidate[@]}" -gt 0 ]; then
+    validate_jvm_args "NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS" "${jvmArgsToValidate[@]}"
+fi
+
 # Setup NiFi to use Python
 uncomment "nifi.python.command" "${nifi_props_file}"
-prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/python_extensions"
+prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/persistent_conf/python_extensions"
 # Use ./extensions for new NARs
 # Setup NiFi to scan for new NARs in nar_extensions
 # prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
@@ -269,6 +295,10 @@ mkdir -p "${NIFI_HOME}/persistent_conf/conf"
 mkdir -p "${NIFI_HOME}/persistent_conf/conf-restore"
 mkdir -p "${NIFI_HOME}/provenance_repository/provenance_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/database_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/connector_assets"
+mkdir -p "${NIFI_HOME}/persistent_conf/nar_repository"
+mkdir -p "${NIFI_HOME}/persistent_conf/python_extensions"
 
 bash "${scripts_dir}/restore_nifi_configurations.sh"
 
@@ -536,6 +566,7 @@ case ${AUTH} in
         ;;
     tls)
         info 'Enabling Two-Way SSL user authentication'
+        . "${scripts_dir}/qubership_secure.sh"
         . "${scripts_dir}/secure.sh"
         ;;
     ldap)
@@ -543,6 +574,7 @@ case ${AUTH} in
         # Reference ldap-provider in properties
         export NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER="ldap-provider"
 
+        . "${scripts_dir}/qubership_secure.sh"
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
         ;;

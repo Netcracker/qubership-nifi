@@ -49,6 +49,68 @@ def test_save_json_indent(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# save_json format preservation
+#
+# These assert on read_text(), not bytes: line endings are out of scope - git
+# normalizes them - so the on-disk ending is platform-dependent by design.
+# ---------------------------------------------------------------------------
+
+def test_save_json_preserves_two_space_indent(tmp_path):
+    p = tmp_path / "flow.json"
+    original = '{\n  "a": 1,\n  "b": 2\n}\n'
+    p.write_text(original, encoding="utf-8")
+    save_json(p, load_json(p))
+    assert p.read_text(encoding="utf-8") == original
+
+
+def test_save_json_preserves_tab_indent(tmp_path):
+    p = tmp_path / "flow.json"
+    original = '{\n\t"a": 1,\n\t"b": 2\n}\n'
+    p.write_text(original, encoding="utf-8")
+    save_json(p, load_json(p))
+    assert p.read_text(encoding="utf-8") == original
+
+
+def test_save_json_preserves_compact_layout(tmp_path):
+    p = tmp_path / "flow.json"
+    original = '{"a":1,"b":[1,2]}'
+    p.write_text(original, encoding="utf-8")
+    save_json(p, load_json(p))
+    assert p.read_text(encoding="utf-8") == original
+
+
+def test_save_json_keeps_edits_while_preserving_format(tmp_path):
+    p = tmp_path / "flow.json"
+    p.write_text('{\n  "a": 1\n}\n', encoding="utf-8")
+    data = load_json(p)
+    data["a"] = 2
+    save_json(p, data)
+    assert p.read_text(encoding="utf-8") == '{\n  "a": 2\n}\n'
+
+
+def test_save_json_restores_trailing_newline(tmp_path):
+    p = tmp_path / "flow.json"
+    p.write_text('{\n    "a": 1\n}\n', encoding="utf-8")
+    save_json(p, load_json(p))
+    assert p.read_text(encoding="utf-8").endswith("}\n")
+
+
+def test_save_json_defaults_for_never_loaded_path(tmp_path):
+    p = tmp_path / "fresh.json"
+    save_json(p, {"a": 1})
+    assert p.read_text(encoding="utf-8") == '{\n    "a": 1\n}\n'
+
+
+def test_load_json_warns_about_unreproducible_layout(tmp_path, capsys):
+    p = tmp_path / "flow.json"
+    p.write_text('{"a":{ }}', encoding="utf-8")
+    load_json(p)
+    out = capsys.readouterr().out
+    assert "[WARN]" in out
+    assert "flow.json" in out
+
+
+# ---------------------------------------------------------------------------
 # find_component
 # ---------------------------------------------------------------------------
 

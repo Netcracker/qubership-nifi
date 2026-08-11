@@ -41,8 +41,8 @@ on:
       java-version:
         required: false
         type: string
-        default: "21"
-        description: 'Java version (e.g., 21)'
+        default: "25"
+        description: 'Java version (e.g., 25)'
       upload-artifact:
         required: false
         type: boolean
@@ -68,7 +68,7 @@ on:
       java-version:
         required: false
         type: string
-        default: "21"
+        default: "25"
       upload-artifact:
         required: false
         type: boolean
@@ -99,7 +99,7 @@ jobs:
         run: |
           echo "Java version: ${JAVA_VERSION}" >> $GITHUB_STEP_SUMMARY
         env:
-          JAVA_VERSION: "${{ github.event.inputs.java-version || '21' }}"
+          JAVA_VERSION: "${{ github.event.inputs.java-version || '25' }}"
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -116,7 +116,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
         with:
-          java-version: ${{ inputs.java-version || '21' }}
+          java-version: ${{ inputs.java-version || '25' }}
           distribution: 'temurin'
           server-id: github
           server-username: GITHUB_ACTOR
@@ -159,7 +159,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test results
         if: failure() || cancelled()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: maven-unit-test-logs
           path: |
@@ -169,7 +169,7 @@ jobs:
           retention-days: 2
       - name: Upload all Maven target directories
         if: ${{ inputs.upload-artifact }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ inputs.artifact-id }}
           path: '**/target'

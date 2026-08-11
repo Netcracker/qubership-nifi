@@ -336,6 +336,7 @@ Summarise:
 | `ConvertJSONToSQL`                                | `apply_csv_transforms` - migrates linear ConvertJSONToSQL/PutSQL only; extra PutSQL feeders or a connected `original` output are flagged manual                                                                             |
 | Kafka version upgrades (1_0/2_0 to 2_6)           | `apply_csv_transforms` - type rename only                                                                                                                                                                                   |
 | Azure Storage to _v12                             | `apply_csv_transforms` - type rename + property renames; **credentials service flagged as manual**                                                                                                                          |
+| `Scheduling strategy = Event driven`              | `apply_csv_transforms` - switches the processor to `TIMER_DRIVEN`; a non-zero Run Schedule is reset to `0 sec` and flagged; Concurrent Tasks is raised from 0 to 4 and flagged for review, any other value is kept          |
 | Level = Error                                     | Always manual - report the solution from the CSV                                                                                                                                                                            |
 | `ConvertExcelToCSVProcessor`, `ConvertAvroToJSON` | Manual - complex restructuring needed                                                                                                                                                                                       |
 | Cross-file CS `#{param}` references               | Steps 2b + 3 - `apply_parent_contexts` assigns / creates wrapper / extends inheritance; ambiguous cases flagged as manual                                                                                                   |
@@ -345,7 +346,8 @@ Summarise:
 ## Notes
 
 - The library never overwrites a file unless it was actually modified.
-- JSON files are written with `indent=4`, key order preserved.
+- JSON files preserve detected indentation, separator spacing, trailing newline, and key order.
+  Files without a detected format use four-space indentation.
 - If a processor UUID from the CSV is not found in the flow JSON, a `[WARN]` is logged and
   the row is skipped (does not abort the run).
 - `apply_variable_contexts` replaces `${varName}` with `#{varName}` **only** for variable names

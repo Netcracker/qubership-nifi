@@ -9,7 +9,7 @@ and NiFi 2.x are supported.
 
 ## Prerequisites
 
-- JDK 17 or 21
+- JDK 21+
 - Maven 3.x
 - Docker (accessible to the current user)
 

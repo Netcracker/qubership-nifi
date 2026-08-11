@@ -13,7 +13,7 @@ Modified OpenAPI specification is saved into a local file `openapi.json` located
 
 ## Prerequisites
 
-- JDK 21
+- JDK 21+
 - Maven 3.x
 
 ## Usage

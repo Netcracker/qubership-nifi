@@ -39,7 +39,9 @@ jobs:
           - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false }
           # Apache NiFi 2.7.2
           - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.5.4', build-local: false }
-          # Apache NiFi 2.9.0 (current), add more versions to this after upgrades
+          # Apache NiFi 2.9.0
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.6.3', build-local: false }
+          # Apache NiFi 2.10.0 (current), add more versions to this after upgrades
           - { image: 'local-nifi', tag: 'test', build-local: true }
     runs-on: ubuntu-latest
     steps:
@@ -49,10 +51,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
           server-id: github
@@ -80,21 +82,12 @@ jobs:
           echo "NIFI_IMAGE=${{ matrix.nifi.image }}" >> ./docker.env
           echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}" >> ./docker.env
 
-      - name: Start NiFi environment
+      - name: Start NiFi environment and wait for health
         run: |
           NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
           export NIFI_SENSITIVE_KEY
-          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env up -d
-
-      - name: Wait for NiFi to start
-        run: |
-          . .github/workflows/sh/nifi-lib.sh
-          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
-          wait_nifi_container "15" "150" "localhost" "8080" "true" \
-            ".github/docker/oidc/docker-compose.yaml" "oidc" \
-            "./temp-vol/tls-cert/nifi/nifi-cert.pem" \
-            "./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.p12" \
-            "$NIFI_CLIENT_PASSWORD"
+          docker compose -f .github/docker/oidc/docker-compose.yaml --env-file ./docker.env \
+            up -d --wait --wait-timeout 180
 
       - name: Determine compose network name
         id: network
@@ -107,7 +100,7 @@ jobs:
           NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
           export NIFI_CLIENT_PASSWORD
           WORKDIR=$(pwd)
-          mvn verify -pl dev-tools-integration-tests \
+          mvn verify -pl dev-tools-integration-tests -P update-scripts-tests \
             -DskipUnitTests=true -Dgpg.skip=true -DskipITs=false \
             "-Dnifi.cert.dir=$WORKDIR/temp-vol/tls-cert/nifi" \
             "-Dscripts.docker.network=$NETWORK_NAME"
@@ -122,7 +115,7 @@ jobs:
 
       - name: Upload test results and logs
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: dev-tools-it-${{ matrix.nifi.tag }}-results
           path: |

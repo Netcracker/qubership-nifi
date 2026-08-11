@@ -1,4 +1,63 @@
-# Utilities — wait-for-workflow, custom-event, store-input-params
+# Utilities — apm-packages-update, wait-for-workflow, custom-event, store-input-params
+
+## apm-packages-update
+
+Runs `apm update --yes` in the current repository and opens a pull request with the
+resulting changes. Designed to be placed in each consumer repository and triggered on a
+schedule or manually.
+
+### When to use
+
+- A repository uses APM-managed skill packages and needs periodic updates.
+- You want to automate APM package bumps without touching the repository manually.
+
+### Prerequisites
+
+- `apm.yml` must exist at the repository root.
+- The specified `target` must be configured in `apm.yml` (the action adds it automatically
+  if missing).
+
+### Permissions
+
+```yaml
+permissions:
+  contents: read
+```
+
+The `token` input must have permission to push branches and open pull requests.
+Use the org-level secret `APM_UPDATE_TOKEN`.
+
+### Inputs
+
+| Input | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `branch` | No | `main` | Target branch to update |
+| `target` | No | `claude` | APM target name in `apm.yml` |
+| `token` | Yes | — | Use `secrets.APM_UPDATE_TOKEN` |
+
+### Usage pattern
+
+```yaml
+name: Update APM packages
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Update APM packages
+        uses: netcracker/qubership-workflow-hub/actions/apm-packages-update@<resolved-sha>  # <resolved-tag>
+        with:
+          token: ${{ secrets.APM_UPDATE_TOKEN }}
+```
+
+---
 
 ## wait-for-workflow
 
@@ -62,7 +121,7 @@ jobs:
       contents: read
     steps:
       - name: Dispatch downstream workflow
-        uses: netcracker/qubership-workflow-hub/actions/custom-event@e64a1ee2fc2f68ab44a4ef416c27d83ce36ba8e1  # v2.2.1
+        uses: netcracker/qubership-workflow-hub/actions/custom-event@cabbb90e9471163cfac84bd50ff0296b2803b44c  # v2.3.0
         with:
           event-type: run-integration-tests
           client-payload: '{"ref": "${{ github.sha }}"}'
@@ -76,7 +135,7 @@ jobs:
       actions: read
     steps:
       - name: Wait for integration tests
-        uses: netcracker/qubership-workflow-hub/actions/wait-for-workflow@e64a1ee2fc2f68ab44a4ef416c27d83ce36ba8e1  # v2.2.1
+        uses: netcracker/qubership-workflow-hub/actions/wait-for-workflow@cabbb90e9471163cfac84bd50ff0296b2803b44c  # v2.3.0
         with:
           workflow: integration-tests.yml
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -139,7 +198,7 @@ jobs:
 ### Same-repo dispatch
 
 ```yaml
-- uses: netcracker/qubership-workflow-hub/actions/custom-event@e64a1ee2fc2f68ab44a4ef416c27d83ce36ba8e1  # v2.2.1
+- uses: netcracker/qubership-workflow-hub/actions/custom-event@cabbb90e9471163cfac84bd50ff0296b2803b44c  # v2.3.0
   with:
     event-type: deploy-staging
     client-payload: '{"version": "1.2.3", "environment": "staging"}'
@@ -149,7 +208,7 @@ jobs:
 ### Cross-repo dispatch
 
 ```yaml
-- uses: netcracker/qubership-workflow-hub/actions/custom-event@e64a1ee2fc2f68ab44a4ef416c27d83ce36ba8e1  # v2.2.1
+- uses: netcracker/qubership-workflow-hub/actions/custom-event@cabbb90e9471163cfac84bd50ff0296b2803b44c  # v2.3.0
   with:
     event-type: deploy-staging
     client-payload: '{"version": "1.2.3"}'
@@ -200,7 +259,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: netcracker/qubership-workflow-hub/actions/store-input-params@e64a1ee2fc2f68ab44a4ef416c27d83ce36ba8e1  # v2.2.1
+      - uses: netcracker/qubership-workflow-hub/actions/store-input-params@cabbb90e9471163cfac84bd50ff0296b2803b44c  # v2.3.0
         with:
           input: ${{ toJSON(inputs) }}
 ```
