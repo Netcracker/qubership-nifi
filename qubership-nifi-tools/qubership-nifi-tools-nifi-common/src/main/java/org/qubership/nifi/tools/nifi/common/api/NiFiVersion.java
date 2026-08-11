@@ -26,12 +26,12 @@ import java.util.regex.Pattern;
  * retained in {@link #getRaw()} for provenance but does not affect numeric comparison.
  *
  * <p>Comparison is performed on the numeric tuple only, so {@code 2.10.0} is greater than
- * {@code 2.9.0} even though a lexicographic string comparison would disagree.</p>
+ * {@code 2.9.0}.</p>
  */
 public final class NiFiVersion implements Comparable<NiFiVersion> {
 
     private static final Pattern LEADING_TUPLE =
-            Pattern.compile("^\\s*(\\d+)\\.(\\d+)\\.(\\d+)(.*)$");
+            Pattern.compile("^\\s*(\\d+)\\.(\\d+)\\.(\\d+)(|-[A-Za-z0-9]+)$");
 
     private static final int RADIX_BASE = 31;
 

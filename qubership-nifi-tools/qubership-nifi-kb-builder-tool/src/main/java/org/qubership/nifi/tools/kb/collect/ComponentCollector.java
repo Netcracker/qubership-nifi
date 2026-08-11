@@ -71,11 +71,13 @@ public final class ComponentCollector {
 
     private ComponentRecord collectOne(final NiFiComponentCatalogClient catalog, final NiFiComponentKind kind,
                                        final JsonNode typeEntry) {
-        final String type = requireText(typeEntry, "type", "list typeEntry is missing a type");
+        final String type = requireText(typeEntry, "type", "typeEntry is missing a type");
         final JsonNode bundle = typeEntry.path("bundle");
-        final String group = requireText(bundle, "group", "list typeEntry " + type + " is missing bundle group");
-        final String artifact = requireText(bundle, "artifact", "list typeEntry " + type + " is missing bundle artifact");
-        final String version = requireText(bundle, "version", "list typeEntry " + type + " is missing bundle version");
+        final String group = requireText(bundle, "group", "typeEntry " + type + " is missing bundle group");
+        final String artifact = requireText(bundle, "artifact",
+                "typeEntry " + type + " is missing bundle artifact");
+        final String version = requireText(bundle, "version",
+                "typeEntry " + type + " is missing bundle version");
 
         final ComponentIdentity identity = new ComponentIdentity(kind, group, artifact, version, type);
         final JsonNode definition = catalog.getDefinition(kind, group, artifact, version, type);

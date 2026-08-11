@@ -102,7 +102,8 @@ public final class ComponentMarkdownRenderer {
         }
         final String deprecationReason = firstNonBlank(text(definition, "deprecationReason"),
                 text(componentType, "deprecationReason"));
-        final boolean restricted = definition.path("restricted").asBoolean(componentType.path("restricted").asBoolean());
+        final boolean restricted = definition.path("restricted").
+                asBoolean(componentType.path("restricted").asBoolean());
         if (!deprecationReason.isBlank() || restricted) {
             md.append("## Deprecation and restrictions").append(LF).append(LF);
             if (!deprecationReason.isBlank()) {
