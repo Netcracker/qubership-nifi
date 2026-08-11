@@ -91,9 +91,9 @@ class NiFiUriResolverTest {
     @Test
     void preservesEncodedNonAsciiCharactersInProxyPrefix() {
         final NiFiUriResolver resolver =
-                NiFiUriResolver.fromBaseUrl("https://gateway.example.com/caf%C3%A9/nifi");
+                NiFiUriResolver.fromBaseUrl("https://gateway.example.com/test%C3%A9/nifi");
 
-        assertThat(resolver.baseUrl()).isEqualTo("https://gateway.example.com/caf%C3%A9");
+        assertThat(resolver.baseUrl()).isEqualTo("https://gateway.example.com/test%C3%A9");
     }
 
     @Test

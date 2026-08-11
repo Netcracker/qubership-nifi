@@ -104,13 +104,15 @@ java -cp "lib/*" org.qubership.nifi.tools.kb.cli.KnowledgeBaseBuilderApplication
 | Argument                              | Required         | Description                                                                                    |
 |---------------------------------------|------------------|------------------------------------------------------------------------------------------------|
 | `--nifi-url <url>`                    | Yes              | NiFi deployment or UI URL. HTTPS is required. A trailing `/nifi` or `/nifi-api` is normalized. |
-| `--auth token\|cookie\|certificate` | Yes              | Selects the authentication mode explicitly.                                                    |
+| `--auth token\|cookie\|certificate`   | Yes              | Selects the authentication mode explicitly.                                                    |
 | `--certificate-file <path>`           | Certificate mode | PKCS#12 file with one private-key entry and its certificate chain.                             |
 | `--ca-file <path>`                    | No               | PEM file with one or more trusted CA certificates. Omit to use the JVM trust store.            |
 | `--skip-guides`                       | No               | Builds the component catalog without requesting or processing the guides.                      |
-| `--output-dir <path>`                 | Yes              | Destination directory. It must not be a file or contain the working directory, certificate, or CA file. An existing directory is replaced only after a validated build. |
+| `--output-dir <path>`                 | Yes              | Destination directory. Existing content is replaced only after validation.                     |
 | `-h`, `--help`                        | No               | Prints usage without reading secrets or making requests.                                       |
 | `-V`, `--version`                     | No               | Prints the builder version.                                                                    |
+
+The output directory must not be a file or contain the working directory, certificate file, or CA file.
 
 No option accepts a token, cookie, or password. Token mode reads `NIFI_ACCESS_TOKEN`, cookie mode
 reads `NIFI_AUTHORIZATION_BEARER_COOKIE`, and certificate mode reads `NIFI_PKCS12_PASSWORD`.
