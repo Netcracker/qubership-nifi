@@ -42,8 +42,6 @@ public final class ComponentSorting {
 
     /**
      * Returns the relative path (from the {@code components/} directory) to a component's directory.
-     * The directory always holds {@code component.json} and {@code component.md}, and optionally
-     * {@code additionalDetails.md}.
      *
      * @param identity the component identity
      * @return the relative directory path

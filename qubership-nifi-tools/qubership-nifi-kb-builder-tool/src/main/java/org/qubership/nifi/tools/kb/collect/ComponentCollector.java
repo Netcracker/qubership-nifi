@@ -36,9 +36,8 @@ import java.util.Set;
  * For each component it retains the full list entry and definition, then applies the
  * advertised/requested/available tri-state for optional additional documentation.
  *
- * <p>Any missing type, incomplete bundle coordinates, mismatched definition identity, duplicate
- * identity, or malformed {@code additionalDetails} field fails the whole build rather than producing
- * a silently incomplete catalog.</p>
+ * <p>A component that violates the NiFi API contract fails the whole build rather than producing a
+ * silently incomplete catalog; {@link CollectionException} names the violations.</p>
  */
 public final class ComponentCollector {
 
@@ -49,7 +48,8 @@ public final class ComponentCollector {
      * Collects all components of all three kinds.
      *
      * @param catalog the component catalog client bound to the current run
-     * @return the collected component records
+     * @return the collected component records, in the order the catalog listed each kind
+     * @throws CollectionException when any component violates the NiFi API contract
      */
     public List<ComponentRecord> collectAll(final NiFiComponentCatalogClient catalog) {
         final List<ComponentRecord> records = new ArrayList<>();

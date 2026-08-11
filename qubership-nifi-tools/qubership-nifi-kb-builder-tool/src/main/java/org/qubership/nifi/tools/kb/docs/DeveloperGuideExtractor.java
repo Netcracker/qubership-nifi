@@ -43,6 +43,7 @@ public final class DeveloperGuideExtractor {
      *
      * @param markdown the full converted guide Markdown
      * @return the extracted sections and the list of selected heading titles
+     * @throws GuideException when a required heading is missing or occurs more than once
      */
     public ExtractResult extract(final String markdown) {
         final String[] lines = markdown.split("\n", -1);

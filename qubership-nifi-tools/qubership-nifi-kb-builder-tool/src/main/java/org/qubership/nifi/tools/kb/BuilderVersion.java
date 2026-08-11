@@ -50,6 +50,7 @@ public final class BuilderVersion {
      * @return the builder identity
      * @throws IllegalStateException when the resource is missing or incomplete, which means the jar was
      *                               assembled without the filtered resource
+     * @throws UncheckedIOException  when the resource exists but cannot be read
      */
     public static BuilderVersion load() {
         final Properties properties = new Properties();

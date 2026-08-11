@@ -81,6 +81,7 @@ public final class KnowledgeBaseWriter {
      *
      * @param root the staging root directory
      * @param kb   the Knowledge Base to render
+     * @throws OutputException when any part of the tree cannot be written
      */
     public void writeTo(final Path root, final KnowledgeBase kb) {
         try {

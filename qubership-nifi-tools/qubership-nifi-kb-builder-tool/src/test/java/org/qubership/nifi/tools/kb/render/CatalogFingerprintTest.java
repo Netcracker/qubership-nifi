@@ -27,6 +27,16 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Fails when the catalog fingerprint stops depending on exactly the covered content and nothing
+ * else.
+ *
+ * <p>The fingerprint is published in {@code manifest.json} and consumers compare it across builds,
+ * so two builds of the same catalog must produce the same value whatever the checkout's line
+ * endings and whatever order the caller lists the paths in, and any change to covered content must
+ * produce a different one. If this goes red, the digest input has gained or lost a normalization
+ * step; fix {@link CatalogFingerprint} rather than the expected value here.
+ */
 class CatalogFingerprintTest {
 
     @TempDir

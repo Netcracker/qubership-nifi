@@ -62,13 +62,13 @@ public final class KnowledgeBaseBuilder {
     /**
      * Creates the builder.
      *
-     * @param version           the builder identity recorded in the provenance
-     * @param transport         the transport factory
-     * @param components        the component catalog collector
-     * @param guides            the guide collector
-     * @param knowledgeBaseWriter the staging writer
+     * @param version                the builder identity recorded in the provenance
+     * @param transport              the transport factory
+     * @param components             the component catalog collector
+     * @param guides                 the guide collector
+     * @param knowledgeBaseWriter    the staging writer
      * @param knowledgeBaseValidator the staging validator
-     * @param outputReplacer    the output replacer
+     * @param outputReplacer         the output replacer
      */
     public KnowledgeBaseBuilder(final BuilderVersion version,
                                 final TransportFactory transport,
@@ -87,9 +87,16 @@ public final class KnowledgeBaseBuilder {
     }
 
     /**
-     * Executes the build.
+     * Executes the build. The destination is replaced only once the staged output has been written,
+     * validated, and scanned for secrets, so a failed run leaves any previous Knowledge Base intact
+     * and removes its own staging directory.
+     *
+     * <p>Every failure is unchecked and propagates to the caller, which is expected to turn it into
+     * an exit code through
+     * {@link org.qubership.nifi.tools.kb.cli.FailureClassifier FailureClassifier}.
      *
      * @param config the resolved configuration for this run
+     * @throws UnsupportedTargetException when the target NiFi version is outside [2.5.0, 3.0.0)
      */
     public void run(final BuilderConfig config) {
         final KnowledgeBase kb;

@@ -28,7 +28,10 @@ import java.util.List;
 /**
  * Renders {@code manifest.json}, the completion marker and machine-readable root of the Knowledge
  * Base. It records the schema version, provenance, component counts, guide statuses, and the
- * aggregate catalog fingerprint. It is written last.
+ * aggregate catalog fingerprint.
+ *
+ * <p>Its presence marks a complete Knowledge Base, so it must be written only after every other
+ * output file.
  */
 public final class ManifestRenderer {
 

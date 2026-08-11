@@ -54,7 +54,7 @@ public final class KnowledgeBase {
     /**
      * Returns the collected components.
      *
-     * @return the components
+     * @return the components, as an immutable list in the order they were collected
      */
     public List<ComponentRecord> components() {
         return components;

@@ -40,8 +40,10 @@ public final class SecretScanner {
      * Scans all regular files under the given root for any of the supplied secrets.
      *
      * @param root    the staging root
-     * @param secrets the secret byte sequences
-     * @throws OutputException when a secret is found in any file
+     * @param secrets the secret byte sequences; entries shorter than {@link #MIN_SECRET_LENGTH}
+     *                bytes are ignored
+     * @throws OutputException      when a secret is found in any file
+     * @throws UncheckedIOException when the staged tree cannot be read
      */
     public static void scan(final Path root, final List<byte[]> secrets) {
         final List<byte[]> scannable = secrets.stream().filter(s -> s.length >= MIN_SECRET_LENGTH).toList();

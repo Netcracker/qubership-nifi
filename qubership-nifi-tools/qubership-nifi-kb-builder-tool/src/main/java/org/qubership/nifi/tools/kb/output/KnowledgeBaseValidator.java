@@ -31,10 +31,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
- * Validates a staged Knowledge Base before it replaces the destination. It checks required files,
- * the manifest schema version, the guide mode and per-guide file presence, per-component file
- * presence and the additional-documentation tri-state, the component counts, and the fingerprint
- * format.
+ * Validates a staged Knowledge Base before it replaces the destination, rejecting anything the
+ * output contract does not allow a consumer to encounter: a file the contract requires but the
+ * staging tree lacks, a recorded value that contradicts what was written, or a value in a format a
+ * consumer cannot parse.
  */
 public final class KnowledgeBaseValidator {
 

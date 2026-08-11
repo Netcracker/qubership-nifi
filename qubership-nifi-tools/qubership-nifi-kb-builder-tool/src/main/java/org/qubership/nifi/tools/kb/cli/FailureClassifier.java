@@ -40,7 +40,8 @@ public final class FailureClassifier {
      * Classifies a failure into an exit code.
      *
      * @param failure the failure to classify
-     * @return the exit code
+     * @return the matching {@link ExitCodes} constant, or {@link ExitCodes#COLLECTION} when the
+     *         failure matches no other category
      */
     public static int classify(final Throwable failure) {
         if (failure instanceof ConfigurationException || failure instanceof IllegalArgumentException) {

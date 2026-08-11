@@ -98,9 +98,11 @@ public final class OutputReplacer {
     }
 
     /**
-     * Deletes a directory tree without following symbolic links.
+     * Deletes a directory tree, best effort, without following symbolic links. A missing root is not
+     * an error, and a file that cannot be deleted is logged rather than thrown, so a caller unwinding
+     * from an earlier failure can clean up without masking it.
      *
-     * @param root the directory to delete
+     * @param root the directory to delete; need not exist
      */
     public void deleteRecursively(final Path root) {
         if (!Files.exists(root)) {

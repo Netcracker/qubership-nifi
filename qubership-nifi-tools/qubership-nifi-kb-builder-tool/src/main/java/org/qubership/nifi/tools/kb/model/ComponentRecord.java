@@ -23,6 +23,9 @@ import java.util.Optional;
 /**
  * A single collected component: its identity, the lossless list-entry and definition trees, the
  * derived additional-documentation state, and the verbatim additional-details content when present.
+ *
+ * <p>The two JSON trees are held and handed back by reference rather than copied, so a caller that
+ * mutates one changes what every other holder of this record sees. Treat them as read-only.
  */
 public final class ComponentRecord {
 

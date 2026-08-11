@@ -56,6 +56,8 @@ public final class CatalogFingerprint {
      * @param root          the staging root directory
      * @param relativePaths the covered relative paths (using {@code /} separators)
      * @return the {@code sha256:}-prefixed fingerprint
+     * @throws UncheckedIOException  when a covered file cannot be read
+     * @throws IllegalStateException when SHA-256 is unavailable in this JVM
      */
     public static String compute(final Path root, final List<String> relativePaths) {
         final List<String> sorted = new ArrayList<>(relativePaths);

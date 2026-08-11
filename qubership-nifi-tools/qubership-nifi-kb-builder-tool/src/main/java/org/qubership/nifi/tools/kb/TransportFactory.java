@@ -49,8 +49,13 @@ public final class TransportFactory {
     /**
      * Creates the REST client for the given configuration.
      *
-     * @param config the resolved configuration
-     * @return the REST client
+     * <p>Consumes the configuration's secrets: once the TLS context and the authenticator hold what
+     * they need, this calls {@link BuilderConfig#clearSecrets()}, so the certificate password is no
+     * longer readable from {@code config} after this returns.
+     *
+     * @param config the resolved configuration; its retained certificate password is cleared before
+     *               this returns
+     * @return the REST client, with a 30-second connect timeout
      */
     public NiFiRestClient create(final BuilderConfig config) {
         final SSLContext sslContext = buildSslContext(config);

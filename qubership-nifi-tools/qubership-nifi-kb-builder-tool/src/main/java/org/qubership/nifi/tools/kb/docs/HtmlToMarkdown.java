@@ -21,17 +21,17 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * Converts a sanitized HTML content element to Markdown, preserving headings, paragraphs, lists,
- * tables, block quotes, links, inline code, and code blocks in source order. Images are omitted and
- * their sources are never requested. Unsafe link schemes are dropped to plain text. Output uses LF
- * line endings.
+ * tables, block quotes, inline code, and code blocks in source order. Output uses LF line endings.
+ *
+ * <p>Images are omitted and their sources are never requested. Anchors are flattened to their link
+ * text, whatever the scheme, so no URL from the source document reaches the output. An anchor with
+ * no text is dropped entirely.
  */
 public final class HtmlToMarkdown {
 
-    private static final Set<String> UNSAFE_SCHEMES = Set.of("javascript", "data", "vbscript", "file");
     private static final int MAX_HEADING_LEVEL = 6;
 
     /**

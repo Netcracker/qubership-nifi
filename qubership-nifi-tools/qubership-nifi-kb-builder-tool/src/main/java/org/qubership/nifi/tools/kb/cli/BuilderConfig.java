@@ -219,7 +219,8 @@ public final class BuilderConfig {
     /**
      * Returns a copy of the certificate password in certificate mode.
      *
-     * @return the optional password characters
+     * @return the optional password characters; the caller owns the array and should zero it after
+     *         use
      */
     public Optional<char[]> certificatePassword() {
         return certificatePassword == null ? Optional.empty() : Optional.of(certificatePassword.clone());
@@ -255,7 +256,11 @@ public final class BuilderConfig {
     /**
      * Returns the secret byte sequences to scan generated output for, as defense in depth.
      *
-     * @return the secrets to scan
+     * <p>Covers the secrets that are transmitted to NiFi: the bearer token and the cookie value. The
+     * certificate password is not scanned for, because it never leaves this process and
+     * {@link #clearSecrets()} zeroes it before any output is written.
+     *
+     * @return the secrets to scan, empty when the run holds neither a token nor a cookie
      */
     public List<byte[]> secretsForScan() {
         final List<byte[]> secrets = new ArrayList<>();
@@ -265,14 +270,14 @@ public final class BuilderConfig {
         if (authorizationBearerCookie != null) {
             secrets.add(authorizationBearerCookie.getBytes(StandardCharsets.UTF_8));
         }
-        if (certificatePassword != null) {
-            secrets.add(new String(certificatePassword).getBytes(StandardCharsets.UTF_8));
-        }
         return secrets;
     }
 
     /**
-     * Clears retained mutable secret material after the SSL context has consumed it.
+     * Zeroes the retained certificate password once the SSL context has consumed it, invalidating
+     * the copy every later {@link #certificatePassword()} call would return. The bearer token and
+     * the cookie value are immutable strings and cannot be cleared, so they survive this call and
+     * {@link #secretsForScan()} still reports them.
      */
     public void clearSecrets() {
         if (certificatePassword != null) {

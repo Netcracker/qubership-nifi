@@ -41,6 +41,16 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+/**
+ * Fails when a written Knowledge Base no longer satisfies the validator that guards the output
+ * contract.
+ *
+ * <p>The writer and the validator have to agree in both guide modes, and {@code component.json}
+ * must carry exactly the three documented top-level fields: a consumer reads them by name, so an
+ * added field is a silent contract change rather than a harmless extra. If this goes red because a
+ * field was added deliberately, update the output contract in the module README and
+ * {@link KnowledgeBaseValidator} together, not just this assertion.
+ */
 class KnowledgeBaseWriterTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

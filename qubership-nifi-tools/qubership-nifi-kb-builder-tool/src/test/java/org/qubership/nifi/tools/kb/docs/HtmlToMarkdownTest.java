@@ -47,7 +47,7 @@ class HtmlToMarkdownTest {
     }
 
     @Test
-    void omitsImagesAndKeepsSafeLinks() {
+    void omitsImagesAndFlattensLinksToText() {
         final String md = convert("<p><img src=\"logo.png\"/><a href=\"page.html\">Page111</a></p>");
         assertThat(md).doesNotContain("logo.png");
         assertThat(md).doesNotContain("[Page111]");

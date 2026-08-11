@@ -20,7 +20,8 @@ package org.qubership.nifi.tools.kb.docs;
  * Signals a guide collection or processing failure: an inaccessible guide, an unexpected page that
  * is not a guide, or a missing or ambiguous required Developer's Guide heading.
  */
-public class GuideException extends RuntimeException {
+public class
+GuideException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

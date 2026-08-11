@@ -51,7 +51,7 @@ public final class GuidesResult {
     /**
      * Returns the collected guide documents.
      *
-     * @return the documents (empty in skip mode)
+     * @return the documents, as an immutable list, empty in skip mode
      */
     public List<GuideDocument> documents() {
         return documents;

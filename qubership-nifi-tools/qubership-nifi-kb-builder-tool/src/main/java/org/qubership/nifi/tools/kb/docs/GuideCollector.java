@@ -67,7 +67,9 @@ public final class GuideCollector {
      * @param resolver    the URI resolver bound to the current run
      * @param mode        the guide mode
      * @param nifiVersion the detected NiFi version, used in the generated provenance header
-     * @return the guides result
+     * @return the guides result, empty in skip mode
+     * @throws GuideException when a guide cannot be fetched, fails the sentinel check, or is missing
+     *                        a required section
      */
     public GuidesResult collect(final NiFiHttpClient httpClient, final NiFiUriResolver resolver,
                                 final GuideMode mode, final String nifiVersion) {

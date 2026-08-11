@@ -127,10 +127,10 @@ public final class ComponentIdentity {
     }
 
     /**
-     * Returns the first {@value #HASH_PREFIX_LENGTH} lowercase hexadecimal characters of the SHA-256
-     * digest of the canonical identity.
+     * Returns the first 12 lowercase hexadecimal characters of the SHA-256 digest of the canonical
+     * identity.
      *
-     * @return the identity hash
+     * @return the identity hash, always 12 characters
      */
     public String identityHash() {
         final byte[] digest = sha256(canonical().getBytes(StandardCharsets.UTF_8));
@@ -144,8 +144,9 @@ public final class ComponentIdentity {
     }
 
     /**
-     * Returns the readable, collision-safe directory name for this component:
-     * a sanitized simple class name followed by the identity hash.
+     * Returns the readable, collision-safe directory name for this component: the simple class name
+     * followed by a hyphen and the identity hash. Any character outside {@code [A-Za-z0-9._-]} is
+     * replaced with an underscore, and a name that sanitizes to nothing becomes {@code component}.
      *
      * @return the directory name
      */

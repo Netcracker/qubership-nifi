@@ -17,8 +17,8 @@
 package org.qubership.nifi.tools.kb.render;
 
 /**
- * Small helpers for producing safe generated Markdown: escaping inline text and table cells and
- * collapsing whitespace. Generated Markdown never embeds active HTML.
+ * Escaping helpers for generated Markdown: table cells and inline text. Both collapse runs of
+ * whitespace to a single space, so neither is suitable for text whose line structure matters.
  */
 public final class Markdown {
 

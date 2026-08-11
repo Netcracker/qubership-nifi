@@ -75,6 +75,7 @@ public final class JsonOutput {
      *
      * @param node the JSON tree
      * @return the serialized bytes
+     * @throws UncheckedIOException when the tree cannot be serialized
      */
     public byte[] toBytes(final JsonNode node) {
         try {
