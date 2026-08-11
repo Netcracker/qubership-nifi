@@ -18,21 +18,22 @@ package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpClient;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpResponse;
-import org.qubership.nifi.tools.nifi.common.NiFiRequestAuthenticator;
-import org.qubership.nifi.tools.nifi.common.NiFiRestClient;
-import org.qubership.nifi.tools.nifi.common.NiFiUriResolver;
-import org.qubership.nifi.tools.nifi.common.Pkcs12TrustMaterial;
-import org.qubership.nifi.tools.nifi.common.TlsContextFactory;
-import org.qubership.nifi.tools.nifi.common.TrustMaterial;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.core5.http.HttpRequest;
+import org.qubership.nifi.tools.nifi.common.auth.NiFiRequestAuthenticator;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpResponse;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
+import org.qubership.nifi.tools.nifi.common.tls.Pkcs12TrustMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
+import org.qubership.nifi.tools.nifi.common.tls.TrustMaterial;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.io.Closeable;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
@@ -43,7 +44,7 @@ import java.util.Optional;
  * {@code qubership-nifi-tools-nifi-common} library while preserving this tool's username/password
  * token acquisition and its GET/POST/DELETE surface.
  */
-public class NiFiApiClient {
+public class NiFiApiClient implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(NiFiApiClient.class);
 
@@ -72,13 +73,13 @@ public class NiFiApiClient {
         this.username = user;
         this.password = pass;
         this.resolver = NiFiUriResolver.fromBaseUrl(url, false);
-        final HttpClient jdkClient = buildTruststoreHttpClient(truststoreData);
-        this.httpClient = new NiFiHttpClient(jdkClient, resolver, authenticator);
+        final CloseableHttpClient transport = buildTruststoreHttpClient(truststoreData);
+        this.httpClient = new NiFiHttpClient(transport, resolver, authenticator);
         this.restClient = new NiFiRestClient(httpClient, mapper);
     }
 
     NiFiApiClient(final String url, final String user, final String pass,
-                  final HttpClient client) {
+                  final CloseableHttpClient client) {
         this.username = user;
         this.password = pass;
         this.resolver = NiFiUriResolver.fromBaseUrl(url, false);
@@ -86,13 +87,14 @@ public class NiFiApiClient {
         this.restClient = new NiFiRestClient(httpClient, mapper);
     }
 
-    private static HttpClient buildTruststoreHttpClient(
+    private static CloseableHttpClient buildTruststoreHttpClient(
             final NiFiContainerManager.TruststoreData ts) {
         final char[] storePassword = ts.getPassword().toCharArray();
         try {
             final TrustMaterial trust = Pkcs12TrustMaterial.fromBytes(ts.getBytes(), storePassword);
             final SSLContext sslContext = TlsContextFactory.create(Optional.empty(), Optional.of(trust));
-            return NiFiHttpClient.newHttpClient(sslContext, Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
+            return NiFiHttpClient.newHttpClient(sslContext,
+                    Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
         } finally {
             Arrays.fill(storePassword, '\0');
         }
@@ -152,6 +154,14 @@ public class NiFiApiClient {
     }
 
     /**
+     * Closes the underlying HTTP client and its connection pool.
+     */
+    @Override
+    public void close() {
+        restClient.close();
+    }
+
+    /**
      * A bearer authenticator whose token is populated after the username/password exchange. It
      * applies the {@code Authorization} header only once a token is available.
      */
@@ -164,10 +174,10 @@ public class NiFiApiClient {
         }
 
         @Override
-        public void apply(final HttpRequest.Builder builder) {
+        public void apply(final HttpRequest request) {
             final String current = token;
             if (current != null && !current.isBlank()) {
-                builder.header("Authorization", "Bearer " + current);
+                request.setHeader("Authorization", "Bearer " + current);
             }
         }
     }

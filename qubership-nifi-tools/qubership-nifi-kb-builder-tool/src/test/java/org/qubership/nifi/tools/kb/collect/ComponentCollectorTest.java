@@ -24,14 +24,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentCatalogClient;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpClient;
-import org.qubership.nifi.tools.nifi.common.NiFiRestClient;
-import org.qubership.nifi.tools.nifi.common.NiFiUriResolver;
-import org.qubership.nifi.tools.nifi.common.NoAuthentication;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentCatalogClient;
+import org.qubership.nifi.tools.nifi.common.auth.NoAuthentication;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 
 import java.io.IOException;
-import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.List;
 
@@ -45,6 +46,7 @@ class ComponentCollectorTest {
             "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"2.5.0\"}";
 
     private MockWebServer server;
+    private NiFiRestClient rest;
     private NiFiComponentCatalogClient catalog;
     private ComponentCollector collector;
 
@@ -53,15 +55,16 @@ class ComponentCollectorTest {
         server = new MockWebServer();
         server.start();
         final NiFiUriResolver resolver = NiFiUriResolver.fromBaseUrl(server.url("/").toString(), false);
-        final HttpClient jdk = NiFiHttpClient.newHttpClient(null, Duration.ofSeconds(5));
-        final NiFiHttpClient http = new NiFiHttpClient(jdk, resolver, NoAuthentication.INSTANCE);
-        final NiFiRestClient rest = new NiFiRestClient(http, new ObjectMapper());
+        final CloseableHttpClient transport = NiFiHttpClient.newHttpClient(null, Duration.ofSeconds(5));
+        final NiFiHttpClient http = new NiFiHttpClient(transport, resolver, NoAuthentication.INSTANCE);
+        rest = new NiFiRestClient(http, new ObjectMapper());
         catalog = new NiFiComponentCatalogClient(rest, resolver);
         collector = new ComponentCollector();
     }
 
     @AfterEach
     void tearDown() throws IOException {
+        rest.close();
         server.shutdown();
     }
 

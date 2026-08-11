@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.tls;
 
-import javax.net.ssl.TrustManager;
+import javax.net.ssl.KeyManager;
 
 /**
- * Supplies the trust managers that decide which server certificates the client accepts.
+ * Supplies the key managers that present a client certificate during a mutual-TLS handshake.
  */
-public interface TrustMaterial {
+public interface ClientKeyMaterial {
 
     /**
-     * Builds the trust managers for this material.
+     * Builds the key managers for this material.
      *
-     * @return the trust managers
-     * @throws TlsMaterialException when the trust material cannot be loaded
+     * @return the key managers
+     * @throws TlsMaterialException when the key material cannot be loaded
      */
-    TrustManager[] trustManagers();
+    KeyManager[] keyManagers();
 }

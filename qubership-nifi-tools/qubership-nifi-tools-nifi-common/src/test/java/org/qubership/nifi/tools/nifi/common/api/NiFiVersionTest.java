@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.api;
 
 import org.junit.jupiter.api.Test;
 

@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
+
+import org.apache.hc.core5.net.URIBuilder;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 
 /**
  * Normalizes a NiFi deployment or UI URL and safely resolves API and documentation paths against
@@ -29,9 +31,8 @@ import java.nio.charset.StandardCharsets;
  * information, a query, or a fragment, and (when required) URLs that are not HTTPS. Every resolved
  * request URL retains the normalized base's scheme, host, port, and path prefix.</p>
  *
- * <p>Definition and additional-details path segments are percent-encoded individually as RFC 3986
- * path segments. Bundle coordinates and fully qualified type names are never concatenated into a
- * URI without encoding.</p>
+ * <p>Bundle coordinates and fully qualified type names are appended as individual path segments and
+ * percent-encoded, so a separator or a space inside a coordinate cannot escape its segment.</p>
  */
 public final class NiFiUriResolver {
 
@@ -39,23 +40,16 @@ public final class NiFiUriResolver {
     private static final String NIFI_SUFFIX = "/nifi";
     private static final String SEGMENT = "/";
 
-    private static final char[] HEX_DIGITS = "0123456789ABCDEF".toCharArray();
-    private static final int BYTE_MASK = 0xFF;
-    private static final int NIBBLE_MASK = 0x0F;
-    private static final int HIGH_NIBBLE_SHIFT = 4;
-
     private final String scheme;
     private final String host;
     private final int port;
-    private final String pathPrefix;
     private final String baseUrl;
 
     private NiFiUriResolver(final String uriScheme, final String uriHost, final int uriPort,
-                            final String prefix, final String base) {
+                            final String base) {
         this.scheme = uriScheme;
         this.host = uriHost;
         this.port = uriPort;
-        this.pathPrefix = prefix;
         this.baseUrl = base;
     }
 
@@ -119,7 +113,7 @@ public final class NiFiUriResolver {
             base.append(':').append(uri.getPort());
         }
         base.append(normalizedPrefix);
-        return new NiFiUriResolver(uriScheme, uri.getHost(), uri.getPort(), normalizedPrefix, base.toString());
+        return new NiFiUriResolver(uriScheme, uri.getHost(), uri.getPort(), base.toString());
     }
 
     private static String trimTrailingSlash(final String path) {
@@ -214,12 +208,13 @@ public final class NiFiUriResolver {
 
     private URI resolveCoordinatePath(final String prefix, final String group, final String artifact,
                                       final String version, final String type) {
-        final String path = prefix
-                + SEGMENT + encodeSegment(group)
-                + SEGMENT + encodeSegment(artifact)
-                + SEGMENT + encodeSegment(version)
-                + SEGMENT + encodeSegment(type);
-        return URI.create(baseUrl + path);
+        try {
+            return new URIBuilder(resolve(prefix))
+                    .appendPathSegments(group, artifact, version, type)
+                    .build();
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Component URI could not be built: " + e.getReason(), e);
+        }
     }
 
     /**
@@ -238,36 +233,4 @@ public final class NiFiUriResolver {
         return sameScheme && sameHost && samePort;
     }
 
-    /**
-     * Percent-encodes a single path segment per RFC 3986, preserving only unreserved characters
-     * ({@code ALPHA / DIGIT / "-" / "." / "_" / "~"}).
-     *
-     * @param segment the raw segment value
-     * @return the encoded segment
-     */
-    public static String encodeSegment(final String segment) {
-        if (segment == null) {
-            throw new IllegalArgumentException("Path segment must not be null");
-        }
-        final byte[] bytes = segment.getBytes(StandardCharsets.UTF_8);
-        final StringBuilder sb = new StringBuilder(bytes.length);
-        for (final byte b : bytes) {
-            final int value = b & BYTE_MASK;
-            if (isUnreserved(value)) {
-                sb.append((char) value);
-            } else {
-                sb.append('%');
-                sb.append(HEX_DIGITS[(value >> HIGH_NIBBLE_SHIFT) & NIBBLE_MASK]);
-                sb.append(HEX_DIGITS[value & NIBBLE_MASK]);
-            }
-        }
-        return sb.toString();
-    }
-
-    private static boolean isUnreserved(final int value) {
-        final char c = (char) value;
-        final boolean alpha = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        final boolean digit = c >= '0' && c <= '9';
-        return alpha || digit || c == '-' || c == '.' || c == '_' || c == '~';
-    }
 }

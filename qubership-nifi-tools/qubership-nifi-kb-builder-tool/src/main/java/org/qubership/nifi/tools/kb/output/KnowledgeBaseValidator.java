@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.GuideType;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

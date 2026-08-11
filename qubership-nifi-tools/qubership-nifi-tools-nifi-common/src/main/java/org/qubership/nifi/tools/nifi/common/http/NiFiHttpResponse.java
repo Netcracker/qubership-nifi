@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;

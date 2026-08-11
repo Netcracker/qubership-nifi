@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.api;
 
 import java.util.Optional;
 import java.util.regex.Matcher;

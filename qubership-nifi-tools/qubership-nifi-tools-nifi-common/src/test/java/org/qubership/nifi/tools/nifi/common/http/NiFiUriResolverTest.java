@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.net.URI;
 
@@ -89,9 +90,12 @@ class NiFiUriResolverTest {
     }
 
     @Test
-    void encodeSegmentPreservesUnreservedCharacters() {
-        assertThat(NiFiUriResolver.encodeSegment("aZ0-._~")).isEqualTo("aZ0-._~");
-        assertThat(NiFiUriResolver.encodeSegment("a/b c")).isEqualTo("a%2Fb%20c");
+    void encodesSeparatorsAndSpacesWithinASingleSegment() {
+        final NiFiUriResolver resolver = NiFiUriResolver.fromBaseUrl("https://nifi.example.com");
+        final URI uri = resolver.resolveDefinition(NiFiComponentKind.CONTROLLER_SERVICE,
+                "org.apache.nifi", "nifi-standard-nar", "2.5.0", "a/b c");
+        assertThat(uri.getRawPath()).endsWith("/a%2Fb%20c");
+        assertThat(uri.getPath()).endsWith("/a/b c");
     }
 
     @Test

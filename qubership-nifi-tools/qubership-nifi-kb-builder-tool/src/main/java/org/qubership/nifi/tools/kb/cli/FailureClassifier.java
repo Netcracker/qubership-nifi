@@ -18,8 +18,8 @@ package org.qubership.nifi.tools.kb.cli;
 
 import org.qubership.nifi.tools.kb.collect.UnsupportedTargetException;
 import org.qubership.nifi.tools.kb.output.OutputException;
-import org.qubership.nifi.tools.nifi.common.NiFiApiException;
-import org.qubership.nifi.tools.nifi.common.TlsMaterialException;
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
+import org.qubership.nifi.tools.nifi.common.tls.TlsMaterialException;
 
 import javax.net.ssl.SSLException;
 

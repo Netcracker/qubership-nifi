@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -22,10 +22,15 @@ import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.qubership.nifi.tools.nifi.common.auth.AuthorizationBearerCookieAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.BearerTokenAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.NiFiRequestAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.NoAuthentication;
+
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,23 +40,24 @@ class NiFiHttpClientTest {
 
     private MockWebServer server;
     private NiFiUriResolver resolver;
-    private HttpClient jdkClient;
+    private CloseableHttpClient transport;
 
     @BeforeEach
     void setUp() throws IOException {
         server = new MockWebServer();
         server.start();
         resolver = NiFiUriResolver.fromBaseUrl(server.url("/").toString(), false);
-        jdkClient = NiFiHttpClient.newHttpClient(null, Duration.ofSeconds(5));
+        transport = NiFiHttpClient.newHttpClient(null, Duration.ofSeconds(5));
     }
 
     @AfterEach
     void tearDown() throws IOException {
+        transport.close();
         server.shutdown();
     }
 
     private NiFiHttpClient client(final NiFiRequestAuthenticator auth, final NiFiHttpClient.Config config) {
-        return new NiFiHttpClient(jdkClient, resolver, auth, config);
+        return new NiFiHttpClient(transport, resolver, auth, config);
     }
 
     @Test
@@ -123,6 +129,27 @@ class NiFiHttpClientTest {
                 .get(resolver.resolve("/nifi-api/flow/about"), "application/json"))
                 .isInstanceOf(NiFiApiException.class)
                 .hasMessageContaining("Rejected redirect");
+    }
+
+    @Test
+    void honorsRetryAfterHeaderWithinTheBackoffCeiling() {
+        server.enqueue(new MockResponse().setResponseCode(429)
+                .setHeader("Retry-After", "1").setBody("slow down"));
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+        final NiFiHttpClient.Config cappedBackoff = new NiFiHttpClient.Config(
+                Duration.ofSeconds(5), 1024, 3, Duration.ofMillis(1), Duration.ofMillis(5), 3);
+        final NiFiHttpResponse response = client(NoAuthentication.INSTANCE, cappedBackoff)
+                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(server.getRequestCount()).isEqualTo(2);
+    }
+
+    @Test
+    void doesNotNegotiateContentEncoding() throws InterruptedException {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+        client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults())
+                .get(resolver.resolve("/nifi-api/flow/about"), "application/json");
+        assertThat(server.takeRequest().getHeader("Accept-Encoding")).isNull();
     }
 
     @Test

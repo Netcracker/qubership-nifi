@@ -27,11 +27,11 @@ import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
+import org.qubership.nifi.tools.kb.model.GuidesResult;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
 import org.qubership.nifi.tools.kb.model.KnowledgeBaseProvenance;
-import org.qubership.nifi.tools.kb.model.GuidesResult;
 import org.qubership.nifi.tools.kb.render.JsonOutput;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

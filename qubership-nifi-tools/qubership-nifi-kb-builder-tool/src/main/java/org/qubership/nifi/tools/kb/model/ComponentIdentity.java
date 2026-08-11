@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.tools.kb.model;
 
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

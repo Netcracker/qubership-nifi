@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.tls;
 
 /**
  * Signals that TLS key or trust material is missing, unreadable, malformed, or otherwise unusable.

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.auth;
 
-import java.net.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequest;
 import java.util.Objects;
 
 /**
@@ -43,9 +43,9 @@ public final class BearerTokenAuthenticator implements NiFiRequestAuthenticator 
     }
 
     @Override
-    public void apply(final HttpRequest.Builder builder) {
-        Objects.requireNonNull(builder, "builder");
-        builder.header(AUTHORIZATION_HEADER, "Bearer " + token);
+    public void apply(final HttpRequest request) {
+        Objects.requireNonNull(request, "request");
+        request.setHeader(AUTHORIZATION_HEADER, "Bearer " + token);
     }
 
     @Override

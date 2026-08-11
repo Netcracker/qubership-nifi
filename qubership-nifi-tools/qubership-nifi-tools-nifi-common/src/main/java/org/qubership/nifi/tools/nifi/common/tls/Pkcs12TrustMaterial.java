@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.tls;
 
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -25,8 +25,8 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
 /**
- * Trust material backed by a PKCS#12 trust store supplied as raw bytes and a password. This
- * supports the container-provided truststore: callers extract the bytes and password and pass them here.
+ * Trust material backed by a PKCS#12 trust store supplied as raw bytes rather than as a file path,
+ * for a store that is only available in memory.
  */
 public final class Pkcs12TrustMaterial implements TrustMaterial {
 

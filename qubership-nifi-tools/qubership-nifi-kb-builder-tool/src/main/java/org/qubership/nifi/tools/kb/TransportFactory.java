@@ -19,20 +19,19 @@ package org.qubership.nifi.tools.kb;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.qubership.nifi.tools.kb.cli.AuthMode;
 import org.qubership.nifi.tools.kb.cli.BuilderConfig;
-import org.qubership.nifi.tools.nifi.common.AuthorizationBearerCookieAuthenticator;
-import org.qubership.nifi.tools.nifi.common.BearerTokenAuthenticator;
-import org.qubership.nifi.tools.nifi.common.ClientKeyMaterial;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpClient;
-import org.qubership.nifi.tools.nifi.common.NiFiRequestAuthenticator;
-import org.qubership.nifi.tools.nifi.common.NiFiRestClient;
-import org.qubership.nifi.tools.nifi.common.NoAuthentication;
-import org.qubership.nifi.tools.nifi.common.PemTrustMaterial;
-import org.qubership.nifi.tools.nifi.common.Pkcs12KeyMaterial;
-import org.qubership.nifi.tools.nifi.common.TlsContextFactory;
-import org.qubership.nifi.tools.nifi.common.TrustMaterial;
+import org.qubership.nifi.tools.nifi.common.auth.AuthorizationBearerCookieAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.BearerTokenAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.NiFiRequestAuthenticator;
+import org.qubership.nifi.tools.nifi.common.auth.NoAuthentication;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.tls.ClientKeyMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.PemTrustMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.Pkcs12KeyMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
+import org.qubership.nifi.tools.nifi.common.tls.TrustMaterial;
 
 import javax.net.ssl.SSLContext;
-import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
@@ -57,9 +56,9 @@ public final class TransportFactory {
         final SSLContext sslContext = buildSslContext(config);
         final NiFiRequestAuthenticator authenticator = buildAuthenticator(config);
         config.clearSecrets();
-        final HttpClient jdkClient =
-                NiFiHttpClient.newHttpClient(sslContext, Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS));
-        final NiFiHttpClient httpClient = new NiFiHttpClient(jdkClient, config.resolver(), authenticator);
+        final NiFiHttpClient httpClient = new NiFiHttpClient(
+                NiFiHttpClient.newHttpClient(sslContext, Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS)),
+                config.resolver(), authenticator);
         return new NiFiRestClient(httpClient, new ObjectMapper());
     }
 

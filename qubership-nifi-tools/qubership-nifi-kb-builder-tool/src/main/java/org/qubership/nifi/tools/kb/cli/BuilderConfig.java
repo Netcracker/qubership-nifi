@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.tools.kb.cli;
 
-import org.qubership.nifi.tools.nifi.common.NiFiUriResolver;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

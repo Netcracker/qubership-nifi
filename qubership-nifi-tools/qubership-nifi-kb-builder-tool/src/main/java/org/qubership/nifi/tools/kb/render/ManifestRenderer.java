@@ -21,7 +21,7 @@ import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.util.List;
 

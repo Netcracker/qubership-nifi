@@ -14,21 +14,25 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 
 /**
- * Sends JSON GET, POST, and DELETE requests over a {@link NiFiHttpClient} and maps non-success
- * responses to {@link NiFiApiException}. It accepts JSON only from API endpoints and preserves the
- * complete response tree without discarding unknown fields.
+ * Sends JSON GET and POST requests over a {@link NiFiHttpClient} and maps non-success responses to
+ * {@link NiFiApiException}. A response whose content type is not JSON is rejected, and the parsed
+ * tree keeps every field the server sent. Callers needing another method or media type take the
+ * underlying client from {@link #httpClient()}.
+ *
+ * <p>Closing this client closes the underlying {@link NiFiHttpClient}.</p>
  */
-public final class NiFiRestClient {
+public final class NiFiRestClient implements Closeable {
 
     private static final String ACCEPT_JSON = "application/json";
     private static final int NOT_FOUND = 404;
@@ -54,6 +58,14 @@ public final class NiFiRestClient {
      */
     public NiFiHttpClient httpClient() {
         return httpClient;
+    }
+
+    /**
+     * Closes the underlying HTTP client and its connection pool.
+     */
+    @Override
+    public void close() {
+        httpClient.close();
     }
 
     /**

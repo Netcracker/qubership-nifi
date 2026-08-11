@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.auth;
 
-import java.net.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequest;
 import java.util.Objects;
 
 /**
@@ -46,9 +46,9 @@ public final class AuthorizationBearerCookieAuthenticator implements NiFiRequest
     }
 
     @Override
-    public void apply(final HttpRequest.Builder builder) {
-        Objects.requireNonNull(builder, "builder");
-        builder.header(COOKIE_HEADER, COOKIE_NAME + "=" + value);
+    public void apply(final HttpRequest request) {
+        Objects.requireNonNull(request, "request");
+        request.setHeader(COOKIE_HEADER, COOKIE_NAME + "=" + value);
     }
 
     @Override

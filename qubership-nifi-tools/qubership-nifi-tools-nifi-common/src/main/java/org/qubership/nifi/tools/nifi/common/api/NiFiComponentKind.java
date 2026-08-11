@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.api;
 
 /**
  * The three NiFi component kinds that expose type-list and definition endpoints. Each constant

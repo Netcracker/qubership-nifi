@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.tools.kb.model;
 
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 /**
  * Maps a {@link NiFiComponentKind} to its Knowledge Base output directory name and display label.

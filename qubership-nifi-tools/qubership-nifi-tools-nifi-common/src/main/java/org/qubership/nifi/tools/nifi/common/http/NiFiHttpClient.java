@@ -14,37 +14,53 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
+import org.apache.hc.client5.http.classic.methods.HttpDelete;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.util.Timeout;
+import org.qubership.nifi.tools.nifi.common.auth.NiFiRequestAuthenticator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.Flow;
 
 /**
  * Sends bounded HTTP requests to a single NiFi origin. It applies authentication, enforces that
  * every request and redirect stays on the resolver's origin, bounds response sizes, and retries
  * idempotent GET requests on transient failures with bounded exponential backoff.
  *
- * <p>The wrapped {@link HttpClient} should be created with {@link #newHttpClient(SSLContext, Duration)}
- * (or an equivalent builder that never auto-follows redirects) so that redirect origin enforcement
- * happens here rather than inside the JDK client.</p>
+ * <p>The wrapped {@link CloseableHttpClient} should be created with
+ * {@link #newHttpClient(SSLContext, Duration)} (or an equivalent builder that never auto-follows
+ * redirects) so that redirect origin enforcement happens here rather than inside the transport.</p>
+ *
+ * <p>This client takes ownership of the wrapped client: {@link #close()} shuts down the underlying
+ * connection pool, so each instance must be closed when it is no longer needed.</p>
  */
-public final class NiFiHttpClient {
+public final class NiFiHttpClient implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(NiFiHttpClient.class);
 
@@ -53,8 +69,9 @@ public final class NiFiHttpClient {
     private static final Set<Integer> RETRYABLE_STATUSES = Set.of(429, 502, 503, 504);
     private static final int EXCERPT_LIMIT = 512;
     private static final long BACKOFF_MULTIPLIER = 2L;
+    private static final String RETRY_AFTER_HEADER = "Retry-After";
 
-    private final HttpClient httpClient;
+    private final CloseableHttpClient httpClient;
     private final NiFiUriResolver resolver;
     private final NiFiRequestAuthenticator authenticator;
     private final Config config;
@@ -62,11 +79,11 @@ public final class NiFiHttpClient {
     /**
      * Creates a NiFi HTTP client with default transport settings.
      *
-     * @param client        the underlying JDK HTTP client (should not auto-follow redirects)
+     * @param client        the underlying HTTP client (should not auto-follow redirects)
      * @param uriResolver   the resolver defining the permitted origin
      * @param requestAuth   the authenticator applied to every request
      */
-    public NiFiHttpClient(final HttpClient client, final NiFiUriResolver uriResolver,
+    public NiFiHttpClient(final CloseableHttpClient client, final NiFiUriResolver uriResolver,
                           final NiFiRequestAuthenticator requestAuth) {
         this(client, uriResolver, requestAuth, Config.defaults());
     }
@@ -74,12 +91,12 @@ public final class NiFiHttpClient {
     /**
      * Creates a NiFi HTTP client with explicit transport settings.
      *
-     * @param client        the underlying JDK HTTP client (should not auto-follow redirects)
+     * @param client        the underlying HTTP client (should not auto-follow redirects)
      * @param uriResolver   the resolver defining the permitted origin
      * @param requestAuth   the authenticator applied to every request
      * @param transport     the transport configuration
      */
-    public NiFiHttpClient(final HttpClient client, final NiFiUriResolver uriResolver,
+    public NiFiHttpClient(final CloseableHttpClient client, final NiFiUriResolver uriResolver,
                           final NiFiRequestAuthenticator requestAuth, final Config transport) {
         this.httpClient = client;
         this.resolver = uriResolver;
@@ -88,21 +105,40 @@ public final class NiFiHttpClient {
     }
 
     /**
-     * Builds a JDK HTTP client suitable for use with this wrapper: a finite connect timeout and a
-     * redirect policy that never auto-follows, so redirect origin enforcement stays in this class.
+     * Builds an HTTP client suitable for use with this wrapper: a finite connect timeout, and no
+     * automatic redirect, retry, cookie, or content-encoding handling.
      *
-     * @param sslContext     the SSL context, or {@code null} to use the JVM default
+     * <p>Redirect and retry handling stay in this class. Cookie handling is off so that the only
+     * {@code Cookie} header sent is the one an authenticator sets, and content encoding is declined
+     * so that the response size bound applies to the bytes on the wire rather than to a decompressed
+     * body.</p>
+     *
+     * @param sslContext     the SSL context, or {@code null} to use the JVM default trust material
      * @param connectTimeout the connection timeout
-     * @return the configured HTTP client
+     * @return the configured HTTP client, which the caller passes to this class to own
      */
-    public static HttpClient newHttpClient(final SSLContext sslContext, final Duration connectTimeout) {
-        final HttpClient.Builder builder = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.NEVER)
-                .connectTimeout(connectTimeout);
+    public static CloseableHttpClient newHttpClient(final SSLContext sslContext, final Duration connectTimeout) {
+        final Timeout timeout = Timeout.of(connectTimeout);
+        final PoolingHttpClientConnectionManagerBuilder connectionManager =
+                PoolingHttpClientConnectionManagerBuilder.create()
+                        .setDefaultConnectionConfig(ConnectionConfig.custom()
+                                .setConnectTimeout(timeout)
+                                .build());
         if (sslContext != null) {
-            builder.sslContext(sslContext);
+            connectionManager.setTlsSocketStrategy(new DefaultClientTlsStrategy(sslContext));
         }
-        return builder.build();
+        return HttpClientBuilder.create()
+                .setConnectionManager(connectionManager.build())
+                .setDefaultRequestConfig(RequestConfig.custom()
+                        .setConnectionRequestTimeout(timeout)
+                        .setRedirectsEnabled(false)
+                        .build())
+                .disableRedirectHandling()
+                .disableAutomaticRetries()
+                .disableCookieManagement()
+                .disableContentCompression()
+                .disableAuthCaching()
+                .build();
     }
 
     /**
@@ -129,10 +165,10 @@ public final class NiFiHttpClient {
     public NiFiHttpResponse post(final URI uri, final String body, final String contentType,
                                  final String acceptHeader) {
         requireSameOrigin(uri);
-        final HttpRequest.Builder builder = baseRequest(uri, acceptHeader)
-                .header("Content-Type", contentType)
-                .POST(HttpRequest.BodyPublishers.ofString(body));
-        return executeOnce("POST", uri, builder);
+        final HttpPost request = new HttpPost(uri);
+        request.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8),
+                ContentType.parse(contentType)));
+        return executeOnce("POST", uri, prepare(request, acceptHeader)).response();
     }
 
     /**
@@ -143,8 +179,15 @@ public final class NiFiHttpClient {
      */
     public NiFiHttpResponse delete(final URI uri) {
         requireSameOrigin(uri);
-        final HttpRequest.Builder builder = baseRequest(uri, "application/json").DELETE();
-        return executeOnce("DELETE", uri, builder);
+        return executeOnce("DELETE", uri, prepare(new HttpDelete(uri), "application/json")).response();
+    }
+
+    /**
+     * Closes the underlying HTTP client and its connection pool.
+     */
+    @Override
+    public void close() {
+        httpClient.close(CloseMode.GRACEFUL);
     }
 
     private void requireSameOrigin(final URI uri) {
@@ -154,72 +197,65 @@ public final class NiFiHttpClient {
         }
     }
 
-    private HttpRequest.Builder baseRequest(final URI uri, final String acceptHeader) {
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(uri)
-                .timeout(config.requestTimeout())
-                .header("Accept", acceptHeader);
-        authenticator.apply(builder);
-        return builder;
+    private HttpUriRequestBase prepare(final HttpUriRequestBase request, final String acceptHeader) {
+        final Timeout timeout = Timeout.of(config.requestTimeout());
+        request.setConfig(RequestConfig.custom()
+                .setConnectionRequestTimeout(timeout)
+                .setResponseTimeout(timeout)
+                .setRedirectsEnabled(false)
+                .build());
+        request.setHeader(HttpHeaders.ACCEPT, acceptHeader);
+        authenticator.apply(request);
+        return request;
     }
 
     private NiFiHttpResponse executeWithRetry(final String method, final URI uri, final String acceptHeader) {
         int attempt = 0;
         while (true) {
             try {
-                final HttpResponse<byte[]> raw = sendRawFollowingSameOriginRedirects(method, uri, acceptHeader);
-                if (RETRYABLE_STATUSES.contains(raw.statusCode()) && attempt < config.maxRetries()) {
-                    backoff(attempt, retryAfterMillis(raw));
+                final Exchange exchange = sendFollowingSameOriginRedirects(method, uri, acceptHeader);
+                if (RETRYABLE_STATUSES.contains(exchange.response().statusCode()) && attempt < config.maxRetries()) {
+                    backoff(method, uri, attempt, retryAfterMillis(exchange));
                     attempt++;
                     continue;
                 }
-                return toResponse(raw);
+                return exchange.response();
             } catch (final IOException e) {
                 if (attempt < config.maxRetries()) {
                     LOG.debug("Retrying {} after transport failure (attempt {})", redact(uri), attempt, e);
-                    backoff(attempt, -1L);
+                    backoff(method, uri, attempt, -1L);
                     attempt++;
                     continue;
                 }
                 throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
                         "Request failed after retries: " + e.getMessage(), e);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
-                        "Request was interrupted", e);
             }
         }
     }
 
-    private NiFiHttpResponse executeOnce(final String method, final URI uri, final HttpRequest.Builder builder) {
+    private Exchange executeOnce(final String method, final URI uri, final HttpUriRequestBase request) {
         try {
-            final HttpResponse<byte[]> raw = send(builder);
-            return toResponse(raw);
+            return httpClient.execute(request, new BoundedResponseHandler(config.maxBodyBytes()));
         } catch (final IOException e) {
             throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
                     "Request failed: " + e.getMessage(), e);
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
-                    "Request was interrupted", e);
         }
     }
 
-    private HttpResponse<byte[]> sendRawFollowingSameOriginRedirects(final String method, final URI initialUri,
-                                                                     final String acceptHeader)
-            throws IOException, InterruptedException {
+    private Exchange sendFollowingSameOriginRedirects(final String method, final URI initialUri,
+                                                      final String acceptHeader) throws IOException {
         URI currentUri = initialUri;
         int redirects = 0;
         while (true) {
-            final HttpResponse<byte[]> raw = send(baseRequest(currentUri, acceptHeader).GET());
-            final int status = raw.statusCode();
+            final Exchange exchange = httpClient.execute(prepare(new HttpGet(currentUri), acceptHeader),
+                    new BoundedResponseHandler(config.maxBodyBytes()));
+            final int status = exchange.response().statusCode();
             if (status >= REDIRECT_LOW && status < REDIRECT_HIGH) {
-                final Optional<String> location = raw.headers().firstValue("Location");
-                if (location.isEmpty()) {
+                if (exchange.location() == null) {
                     throw new NiFiApiException(method, redact(currentUri), status, "",
                             "Redirect response is missing a Location header");
                 }
-                final URI target = currentUri.resolve(location.get());
+                final URI target = currentUri.resolve(exchange.location());
                 if (!resolver.isSameOrigin(target) || redirects >= config.maxRedirects()) {
                     throw new NiFiApiException(method, redact(currentUri), status, "",
                             "Rejected redirect to " + redact(target));
@@ -228,34 +264,23 @@ public final class NiFiHttpClient {
                 currentUri = target;
                 continue;
             }
-            return raw;
+            return exchange;
         }
     }
 
-    private HttpResponse<byte[]> send(final HttpRequest.Builder builder) throws IOException, InterruptedException {
-        return httpClient.send(builder.build(),
-                responseInfo -> new BoundedBodySubscriber(config.maxBodyBytes()));
-    }
-
-    private static NiFiHttpResponse toResponse(final HttpResponse<byte[]> raw) {
-        final String contentType = raw.headers().firstValue("Content-Type").orElse(null);
-        return new NiFiHttpResponse(raw.statusCode(), contentType, raw.body());
-    }
-
-    private static long retryAfterMillis(final HttpResponse<byte[]> raw) {
-        final Optional<String> header = raw.headers().firstValue("Retry-After");
-        if (header.isEmpty()) {
+    private static long retryAfterMillis(final Exchange exchange) {
+        if (exchange.retryAfter() == null) {
             return -1L;
         }
         try {
             final long millisPerSecond = 1000L;
-            return Long.parseLong(header.get().trim()) * millisPerSecond;
+            return Long.parseLong(exchange.retryAfter().trim()) * millisPerSecond;
         } catch (final NumberFormatException e) {
             return -1L;
         }
     }
 
-    private void backoff(final int attempt, final long retryAfterMillis) {
+    private void backoff(final String method, final URI uri, final int attempt, final long retryAfterMillis) {
         long delay = config.baseBackoff().toMillis();
         for (int i = 0; i < attempt; i++) {
             delay *= BACKOFF_MULTIPLIER;
@@ -268,6 +293,8 @@ public final class NiFiHttpClient {
             Thread.sleep(delay);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
+                    "Request was interrupted", e);
         }
     }
 
@@ -307,63 +334,49 @@ public final class NiFiHttpClient {
     }
 
     /**
-     * A response body subscriber that accumulates bytes up to a maximum and cancels the exchange
+     * The outcome of a single HTTP exchange: the bounded response, plus the two header values the
+     * retry and redirect loops need after the response has been consumed and closed.
+     *
+     * @param response   the bounded response
+     * @param location   the {@code Location} header value, or {@code null} when absent
+     * @param retryAfter the {@code Retry-After} header value, or {@code null} when absent
+     */
+    private record Exchange(NiFiHttpResponse response, String location, String retryAfter) {
+    }
+
+    /**
+     * A response handler that reads at most a maximum number of body bytes and fails the exchange
      * when the limit is exceeded, so an unexpected large response cannot exhaust memory.
      */
-    private static final class BoundedBodySubscriber implements HttpResponse.BodySubscriber<byte[]> {
+    private static final class BoundedResponseHandler implements HttpClientResponseHandler<Exchange> {
 
         private final int maxBytes;
-        private final CompletableFuture<byte[]> result = new CompletableFuture<>();
-        private final List<byte[]> chunks = new ArrayList<>();
-        private Flow.Subscription subscription;
-        private int total;
 
-        BoundedBodySubscriber(final int limit) {
+        BoundedResponseHandler(final int limit) {
             this.maxBytes = limit;
         }
 
         @Override
-        public CompletionStage<byte[]> getBody() {
-            return result;
-        }
-
-        @Override
-        public void onSubscribe(final Flow.Subscription sub) {
-            this.subscription = sub;
-            sub.request(Long.MAX_VALUE);
-        }
-
-        @Override
-        public void onNext(final List<ByteBuffer> item) {
-            for (final ByteBuffer buffer : item) {
-                final int remaining = buffer.remaining();
-                if (total + remaining > maxBytes) {
-                    subscription.cancel();
-                    result.completeExceptionally(
-                            new IOException("Response body exceeds the " + maxBytes + " byte limit"));
-                    return;
+        public Exchange handleResponse(final ClassicHttpResponse response) throws IOException {
+            final HttpEntity entity = response.getEntity();
+            byte[] body = new byte[0];
+            if (entity != null) {
+                try (InputStream content = entity.getContent()) {
+                    body = content.readNBytes(maxBytes + 1);
                 }
-                final byte[] copy = new byte[remaining];
-                buffer.get(copy);
-                chunks.add(copy);
-                total += remaining;
+                if (body.length > maxBytes) {
+                    throw new IOException("Response body exceeds the " + maxBytes + " byte limit");
+                }
             }
+            return new Exchange(
+                    new NiFiHttpResponse(response.getCode(), headerValue(response, HttpHeaders.CONTENT_TYPE), body),
+                    headerValue(response, HttpHeaders.LOCATION),
+                    headerValue(response, RETRY_AFTER_HEADER));
         }
 
-        @Override
-        public void onError(final Throwable throwable) {
-            result.completeExceptionally(throwable);
-        }
-
-        @Override
-        public void onComplete() {
-            final byte[] out = new byte[total];
-            int position = 0;
-            for (final byte[] chunk : chunks) {
-                System.arraycopy(chunk, 0, out, position, chunk.length);
-                position += chunk.length;
-            }
-            result.complete(out);
+        private static String headerValue(final ClassicHttpResponse response, final String name) {
+            final Header header = response.getFirstHeader(name);
+            return header == null ? null : header.getValue();
         }
     }
 
@@ -371,7 +384,7 @@ public final class NiFiHttpClient {
      * Transport configuration for {@link NiFiHttpClient}: request timeout, response size bound,
      * retry count, backoff bounds, and the same-origin redirect budget.
      *
-     * @param requestTimeout the per-request timeout
+     * @param requestTimeout the per-request timeout, applied per socket read
      * @param maxBodyBytes   the maximum response body size in bytes
      * @param maxRetries     the maximum number of retries for idempotent GET requests
      * @param baseBackoff    the base backoff delay

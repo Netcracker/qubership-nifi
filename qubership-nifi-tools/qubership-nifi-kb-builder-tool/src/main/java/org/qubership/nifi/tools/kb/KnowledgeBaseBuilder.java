@@ -29,10 +29,10 @@ import org.qubership.nifi.tools.kb.output.KnowledgeBaseValidator;
 import org.qubership.nifi.tools.kb.output.KnowledgeBaseWriter;
 import org.qubership.nifi.tools.kb.output.OutputReplacer;
 import org.qubership.nifi.tools.kb.output.SecretScanner;
-import org.qubership.nifi.tools.nifi.common.NiFiAboutClient;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentCatalogClient;
-import org.qubership.nifi.tools.nifi.common.NiFiRestClient;
-import org.qubership.nifi.tools.nifi.common.NiFiVersion;
+import org.qubership.nifi.tools.nifi.common.api.NiFiAboutClient;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentCatalogClient;
+import org.qubership.nifi.tools.nifi.common.api.NiFiVersion;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,16 +92,18 @@ public final class KnowledgeBaseBuilder {
      * @param config the resolved configuration for this run
      */
     public void run(final BuilderConfig config) {
-        final NiFiRestClient rest = transportFactory.create(config);
-        final String nifiVersion = gateVersion(new NiFiAboutClient(rest, config.resolver()));
+        final KnowledgeBase kb;
+        try (NiFiRestClient rest = transportFactory.create(config)) {
+            final String nifiVersion = gateVersion(new NiFiAboutClient(rest, config.resolver()));
 
-        final List<ComponentRecord> components =
-                componentCollector.collectAll(new NiFiComponentCatalogClient(rest, config.resolver()));
-        final GuideMode guideMode = config.skipGuides() ? GuideMode.SKIP : GuideMode.REQUIRED;
-        final GuidesResult guides =
-                guideCollector.collect(rest.httpClient(), config.resolver(), guideMode, nifiVersion);
+            final List<ComponentRecord> components =
+                    componentCollector.collectAll(new NiFiComponentCatalogClient(rest, config.resolver()));
+            final GuideMode guideMode = config.skipGuides() ? GuideMode.SKIP : GuideMode.REQUIRED;
+            final GuidesResult guides =
+                    guideCollector.collect(rest.httpClient(), config.resolver(), guideMode, nifiVersion);
 
-        final KnowledgeBase kb = assemble(config, nifiVersion, components, guides);
+            kb = assemble(config, nifiVersion, components, guides);
+        }
         writeAndReplace(config, kb);
         LOG.info("Knowledge Base written to {}", config.outputDir());
     }

@@ -25,9 +25,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.tools.export.NiFiContainerManager;
 import org.qubership.nifi.tools.kb.cli.Environment;
-import org.qubership.nifi.tools.nifi.common.Pkcs12TrustMaterial;
-import org.qubership.nifi.tools.nifi.common.TlsContextFactory;
-import org.qubership.nifi.tools.nifi.common.TrustMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.Pkcs12TrustMaterial;
+import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
+import org.qubership.nifi.tools.nifi.common.tls.TrustMaterial;
 
 import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;

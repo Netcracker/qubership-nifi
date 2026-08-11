@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.tls;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;

@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 
 import java.net.URI;
 import java.util.Optional;

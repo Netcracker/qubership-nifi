@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.auth;
 
-import java.net.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequest;
 
 /**
  * Adds request authentication to outgoing NiFi requests without coupling the transport layer to a
@@ -26,9 +26,9 @@ import java.net.http.HttpRequest;
 public interface NiFiRequestAuthenticator {
 
     /**
-     * Applies authentication headers to the given request builder.
+     * Applies authentication headers to the given request.
      *
-     * @param builder the request builder to mutate
+     * @param request the request to mutate
      */
-    void apply(HttpRequest.Builder builder);
+    void apply(HttpRequest request);
 }

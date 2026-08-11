@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.auth;
 
-import java.net.http.HttpRequest;
+import org.apache.hc.core5.http.HttpRequest;
 
 /**
- * A no-op authenticator that leaves HTTP authentication headers unset. It is used for mutual-TLS
- * authentication, where the client certificate carries identity, and for unauthenticated bootstrap
- * requests such as username/password token acquisition.
+ * Leaves HTTP authentication headers unset. Use it when the transport already carries identity, as
+ * mutual TLS does through the client certificate, or when the endpoint accepts no credentials.
  */
 public final class NoAuthentication implements NiFiRequestAuthenticator {
 
@@ -36,7 +35,7 @@ public final class NoAuthentication implements NiFiRequestAuthenticator {
     }
 
     @Override
-    public void apply(final HttpRequest.Builder builder) {
+    public void apply(final HttpRequest request) {
         // Intentionally leaves authentication headers unset.
     }
 }

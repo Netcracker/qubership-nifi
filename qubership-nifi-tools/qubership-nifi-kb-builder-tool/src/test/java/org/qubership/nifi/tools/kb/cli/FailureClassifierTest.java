@@ -21,8 +21,8 @@ import org.qubership.nifi.tools.kb.collect.CollectionException;
 import org.qubership.nifi.tools.kb.collect.UnsupportedTargetException;
 import org.qubership.nifi.tools.kb.docs.GuideException;
 import org.qubership.nifi.tools.kb.output.OutputException;
-import org.qubership.nifi.tools.nifi.common.NiFiApiException;
-import org.qubership.nifi.tools.nifi.common.TlsMaterialException;
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
+import org.qubership.nifi.tools.nifi.common.tls.TlsMaterialException;
 
 import javax.net.ssl.SSLHandshakeException;
 import java.io.IOException;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.http;
 
 /**
  * Signals a failed NiFi REST API interaction. Carries the request method, a redacted request URI,

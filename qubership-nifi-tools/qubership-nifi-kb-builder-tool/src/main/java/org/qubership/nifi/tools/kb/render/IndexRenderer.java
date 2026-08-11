@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
-import org.qubership.nifi.tools.nifi.common.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.util.List;
 

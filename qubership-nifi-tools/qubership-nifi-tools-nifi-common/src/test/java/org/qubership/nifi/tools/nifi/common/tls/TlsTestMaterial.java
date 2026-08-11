@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.qubership.nifi.tools.nifi.common;
+package org.qubership.nifi.tools.nifi.common.tls;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

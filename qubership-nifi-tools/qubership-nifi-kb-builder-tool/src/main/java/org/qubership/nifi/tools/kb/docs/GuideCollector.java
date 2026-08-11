@@ -23,9 +23,9 @@ import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.GuidesResult;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpClient;
-import org.qubership.nifi.tools.nifi.common.NiFiHttpResponse;
-import org.qubership.nifi.tools.nifi.common.NiFiUriResolver;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpResponse;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
