@@ -57,8 +57,8 @@ public final class ComponentCollector {
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             LOG.info("Collecting {} components", kind);
             final JsonNode types = catalog.listTypes(kind);
-            for (final JsonNode entry : types) {
-                final ComponentRecord record = collectOne(catalog, kind, entry);
+            for (final JsonNode type : types) {
+                final ComponentRecord record = collectOne(catalog, kind, type);
                 if (!seen.add(record.identity())) {
                     throw new CollectionException("Duplicate component identity: " + record.identity());
                 }
@@ -70,19 +70,19 @@ public final class ComponentCollector {
     }
 
     private ComponentRecord collectOne(final NiFiComponentCatalogClient catalog, final NiFiComponentKind kind,
-                                       final JsonNode entry) {
-        final String type = requireText(entry, "type", "list entry is missing a type");
-        final JsonNode bundle = entry.path("bundle");
-        final String group = requireText(bundle, "group", "list entry " + type + " is missing bundle group");
-        final String artifact = requireText(bundle, "artifact", "list entry " + type + " is missing bundle artifact");
-        final String version = requireText(bundle, "version", "list entry " + type + " is missing bundle version");
+                                       final JsonNode typeEntry) {
+        final String type = requireText(typeEntry, "type", "list typeEntry is missing a type");
+        final JsonNode bundle = typeEntry.path("bundle");
+        final String group = requireText(bundle, "group", "list typeEntry " + type + " is missing bundle group");
+        final String artifact = requireText(bundle, "artifact", "list typeEntry " + type + " is missing bundle artifact");
+        final String version = requireText(bundle, "version", "list typeEntry " + type + " is missing bundle version");
 
         final ComponentIdentity identity = new ComponentIdentity(kind, group, artifact, version, type);
         final JsonNode definition = catalog.getDefinition(kind, group, artifact, version, type);
         verifyDefinitionIdentity(identity, definition);
 
         final AdditionalDetailsOutcome outcome = resolveAdditionalDetails(catalog, kind, identity, definition);
-        return new ComponentRecord(identity, entry, definition, outcome.state(), outcome.content());
+        return new ComponentRecord(identity, typeEntry, definition, outcome.state(), outcome.content());
     }
 
     private void verifyDefinitionIdentity(final ComponentIdentity identity, final JsonNode definition) {

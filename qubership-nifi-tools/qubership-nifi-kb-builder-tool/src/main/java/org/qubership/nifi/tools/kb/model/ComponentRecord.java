@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Optional;
 
 /**
- * A single collected component: its identity, the lossless list-entry and definition trees, the
+ * A single collected component: its identity, the type and definition trees, the
  * derived additional-documentation state, and the verbatim additional-details content when present.
  *
  * <p>The two JSON trees are held and handed back by reference rather than copied, so a caller that
@@ -39,7 +39,7 @@ public final class ComponentRecord {
      * Creates a new component record.
      *
      * @param componentIdentity       the canonical identity
-     * @param documentedTypeNode      the complete list-entry tree
+     * @param documentedTypeNode      the complete type tree
      * @param definitionNode          the complete definition tree
      * @param additionalDocState      the derived additional-documentation state
      * @param additionalDetailsText   the verbatim additional-details content, or {@code null}
@@ -64,9 +64,9 @@ public final class ComponentRecord {
     }
 
     /**
-     * Returns the complete list-entry tree.
+     * Returns the type tree.
      *
-     * @return the documented-type tree
+     * @return the type tree
      */
     public JsonNode documentedType() {
         return documentedType;

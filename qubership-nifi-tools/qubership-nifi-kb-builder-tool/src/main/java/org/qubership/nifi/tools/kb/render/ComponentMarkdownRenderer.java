@@ -43,17 +43,17 @@ public final class ComponentMarkdownRenderer {
     public String render(final ComponentRecord record) {
         final ComponentIdentity identity = record.identity();
         final JsonNode definition = record.definition();
-        final JsonNode documented = record.documentedType();
+        final JsonNode componentType = record.documentedType();
         final StringBuilder md = new StringBuilder();
 
         md.append("# ").append(identity.simpleName()).append(LF).append(LF);
 
         appendIdentity(md, identity);
-        appendDescriptionAndTags(md, definition, documented);
-        appendDeprecationAndRestrictions(md, definition, documented);
+        appendDescriptionAndTags(md, definition, componentType);
+        appendDeprecationAndRestrictions(md, definition, componentType);
         appendInputAndRelationships(md, definition);
         appendProperties(md, definition);
-        appendControllerServiceApis(md, documented, definition);
+        appendControllerServiceApis(md, componentType, definition);
         appendAttributes(md, definition);
         appendLinks(md, record);
 
@@ -69,17 +69,18 @@ public final class ComponentMarkdownRenderer {
     }
 
     private void appendDescriptionAndTags(final StringBuilder md, final JsonNode definition,
-                                          final JsonNode documented) {
-        if (definition == null) {
-            //skip if null
+                                          final JsonNode componentType) {
+        if (definition == null || componentType == null) {
+            //skip if either definition or componentType are null
+            //they should never be nulls
             return;
         }
-        final String description = firstNonBlank(text(definition, "description"), text(documented, "description"));
+        final String description = firstNonBlank(text(definition, "description"), text(componentType, "description"));
         if (!description.isBlank()) {
             md.append("## Description").append(LF).append(LF)
                     .append(Markdown.inline(description)).append(LF).append(LF);
         }
-        final JsonNode tags = definition.has("tags") ? definition.get("tags") : documented.get("tags");
+        final JsonNode tags = definition.has("tags") ? definition.get("tags") : componentType.get("tags");
         if (tags != null && tags.isArray() && !tags.isEmpty()) {
             md.append("Tags: ");
             for (int i = 0; i < tags.size(); i++) {
@@ -93,14 +94,15 @@ public final class ComponentMarkdownRenderer {
     }
 
     private void appendDeprecationAndRestrictions(final StringBuilder md, final JsonNode definition,
-                                                  final JsonNode documented) {
-        if (definition == null) {
-            //skip if null
+                                                  final JsonNode componentType) {
+        if (definition == null || componentType == null) {
+            //skip if either definition or componentType are null
+            //they should never be nulls
             return;
         }
         final String deprecationReason = firstNonBlank(text(definition, "deprecationReason"),
-                text(documented, "deprecationReason"));
-        final boolean restricted = definition.path("restricted").asBoolean(documented.path("restricted").asBoolean());
+                text(componentType, "deprecationReason"));
+        final boolean restricted = definition.path("restricted").asBoolean(componentType.path("restricted").asBoolean());
         if (!deprecationReason.isBlank() || restricted) {
             md.append("## Deprecation and restrictions").append(LF).append(LF);
             if (!deprecationReason.isBlank()) {
@@ -169,10 +171,15 @@ public final class ComponentMarkdownRenderer {
         md.append(LF);
     }
 
-    private void appendControllerServiceApis(final StringBuilder md, final JsonNode documented,
+    private void appendControllerServiceApis(final StringBuilder md, final JsonNode componentType,
                                              final JsonNode definition) {
-        final JsonNode apis = documented.has("controllerServiceApis")
-                ? documented.get("controllerServiceApis")
+        if (definition == null || componentType == null) {
+            //skip if either definition or componentType are null
+            //they should never be nulls
+            return;
+        }
+        final JsonNode apis = componentType.has("controllerServiceApis")
+                ? componentType.get("controllerServiceApis")
                 : definition.get("providedApiImplementations");
         if (apis == null || !apis.isArray() || apis.isEmpty()) {
             return;
