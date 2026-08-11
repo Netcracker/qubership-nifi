@@ -19,9 +19,7 @@ package org.qubership.nifi.tools.nifi.common;
 /**
  * The three NiFi component kinds that expose type-list and definition endpoints. Each constant
  * carries the list path, the JSON key holding the type array in the list response, the definition
- * path prefix, and the additional-details path prefix. Definition and additional-details paths are
- * completed with per-segment RFC 3986 encoding by {@link NiFiUriResolver}; the raw bundle
- * coordinates and type must never be concatenated into a URI directly.
+ * path prefix, and the additional-details path prefix.
  */
 public enum NiFiComponentKind {
 

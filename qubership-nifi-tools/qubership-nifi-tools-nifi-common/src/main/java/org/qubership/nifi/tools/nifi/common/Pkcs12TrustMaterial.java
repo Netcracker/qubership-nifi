@@ -26,8 +26,7 @@ import java.security.KeyStore;
 
 /**
  * Trust material backed by a PKCS#12 trust store supplied as raw bytes and a password. This
- * supports the export tool's container-provided truststore, keeping Testcontainers out of this
- * shared module: callers extract the bytes and password and pass them here.
+ * supports the container-provided truststore: callers extract the bytes and password and pass them here.
  */
 public final class Pkcs12TrustMaterial implements TrustMaterial {
 

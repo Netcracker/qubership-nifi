@@ -19,9 +19,7 @@ package org.qubership.nifi.tools.nifi.common;
 import javax.net.ssl.TrustManager;
 
 /**
- * Supplies the trust managers that decide which server certificates the client accepts. An
- * implementation that supplies a custom trust set replaces the JVM default trust anchors for the
- * client it configures.
+ * Supplies the trust managers that decide which server certificates the client accepts.
  */
 public interface TrustMaterial {
 

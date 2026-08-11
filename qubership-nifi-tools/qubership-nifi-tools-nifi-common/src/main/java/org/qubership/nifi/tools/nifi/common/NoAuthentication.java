@@ -21,7 +21,7 @@ import java.net.http.HttpRequest;
 /**
  * A no-op authenticator that leaves HTTP authentication headers unset. It is used for mutual-TLS
  * authentication, where the client certificate carries identity, and for unauthenticated bootstrap
- * requests such as the export tool's username/password token acquisition.
+ * requests such as username/password token acquisition.
  */
 public final class NoAuthentication implements NiFiRequestAuthenticator {
 

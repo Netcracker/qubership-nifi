@@ -22,9 +22,8 @@ import java.net.URI;
 import java.util.Optional;
 
 /**
- * Retrieves NiFi component catalog data through read-only endpoints: type lists, complete
- * (lossless) component definitions, and optional additional component documentation. Callers retain
- * the returned Jackson trees without discarding unknown fields.
+ * Retrieves NiFi component catalog data through read-only endpoints: type lists, component definitions,
+ * and optional additional component documentation.
  */
 public final class NiFiComponentCatalogClient {
 

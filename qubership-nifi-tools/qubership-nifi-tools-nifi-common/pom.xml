@@ -98,8 +98,6 @@
 
     <build>
         <plugins>
-            <!-- Published because qubership-nifi-kb-builder-tool is deployed as a jar that bundles nothing:
-                 without this library on the same repository, its dependencies cannot be resolved. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>

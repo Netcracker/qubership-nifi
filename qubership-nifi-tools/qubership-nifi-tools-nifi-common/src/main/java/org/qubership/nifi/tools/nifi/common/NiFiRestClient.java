@@ -48,8 +48,7 @@ public final class NiFiRestClient {
     }
 
     /**
-     * Returns the underlying HTTP client for callers that need non-JSON transport (for example the
-     * export tool's form-encoded token request).
+     * Returns the underlying HTTP client for callers that need non-JSON transport.
      *
      * @return the underlying HTTP client
      */

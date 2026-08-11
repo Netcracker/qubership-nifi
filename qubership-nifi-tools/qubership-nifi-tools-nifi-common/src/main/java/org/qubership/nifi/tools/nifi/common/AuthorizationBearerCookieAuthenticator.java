@@ -20,7 +20,7 @@ import java.net.http.HttpRequest;
 import java.util.Objects;
 
 /**
- * Adds NiFi's {@code __Secure-Authorization-Bearer} session cookie. The cookie value is held only
+ * Adds Apache NiFi's {@code __Secure-Authorization-Bearer} session cookie. The cookie value is held only
  * in memory and is never included in {@link #toString()} or any diagnostic output.
  */
 public final class AuthorizationBearerCookieAuthenticator implements NiFiRequestAuthenticator {
@@ -28,7 +28,7 @@ public final class AuthorizationBearerCookieAuthenticator implements NiFiRequest
     /** The name of the HTTP header carrying cookies. */
     public static final String COOKIE_HEADER = "Cookie";
 
-    /** The name of NiFi's authorization bearer cookie. */
+    /** The name of Apache NiFi's authorization bearer cookie. */
     public static final String COOKIE_NAME = "__Secure-Authorization-Bearer";
 
     private final String value;
