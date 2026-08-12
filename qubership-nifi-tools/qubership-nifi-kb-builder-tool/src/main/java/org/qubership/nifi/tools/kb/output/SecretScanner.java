@@ -17,7 +17,6 @@
 package org.qubership.nifi.tools.kb.output;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -42,8 +41,8 @@ public final class SecretScanner {
      * @param root    the staging root
      * @param secrets the secret byte sequences; entries shorter than {@link #MIN_SECRET_LENGTH}
      *                bytes are ignored
-     * @throws OutputException      when a secret is found in any file
-     * @throws UncheckedIOException when the staged tree cannot be read
+     * @throws OutputException when a secret is found in any file, or when the staged tree cannot
+     *                         be read
      */
     public static void scan(final Path root, final List<byte[]> secrets) {
         final List<byte[]> scannable = secrets.stream().filter(s -> s.length >= MIN_SECRET_LENGTH).toList();
@@ -53,7 +52,7 @@ public final class SecretScanner {
         try (Stream<Path> paths = Files.walk(root)) {
             paths.filter(Files::isRegularFile).forEach(file -> scanFile(file, scannable));
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed to scan staged output for secrets", e);
+            throw new OutputException("Failed to scan staged output for secrets", e);
         }
     }
 
@@ -62,7 +61,7 @@ public final class SecretScanner {
         try {
             content = Files.readAllBytes(file);
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed to read staged file for secret scan: " + file, e);
+            throw new OutputException("Failed to read staged file for secret scan: " + file, e);
         }
         for (final byte[] secret : secrets) {
             if (contains(content, secret)) {

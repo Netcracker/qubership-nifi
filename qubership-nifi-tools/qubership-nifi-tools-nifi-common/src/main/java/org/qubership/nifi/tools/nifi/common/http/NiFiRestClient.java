@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.nifi.common.http;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.hc.core5.http.Method;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -34,8 +35,6 @@ import java.util.Optional;
  */
 public final class NiFiRestClient implements Closeable {
 
-    private static final String GET_METHOD = "GET";
-    private static final String POST_METHOD = "POST";
     private static final int NOT_FOUND = 404;
 
     private final NiFiHttpClient httpClient;
@@ -78,7 +77,7 @@ public final class NiFiRestClient implements Closeable {
      */
     public JsonNode getJson(final URI uri) {
         final NiFiHttpResponse response = httpClient.get(uri, NiFiHttpClient.APPLICATION_JSON);
-        return requireSuccessJson(GET_METHOD, uri, response);
+        return requireSuccessJson(Method.GET, uri, response);
     }
 
     /**
@@ -93,7 +92,7 @@ public final class NiFiRestClient implements Closeable {
         if (response.statusCode() == NOT_FOUND) {
             return Optional.empty();
         }
-        return Optional.of(requireSuccessJson(GET_METHOD, uri, response));
+        return Optional.of(requireSuccessJson(Method.GET, uri, response));
     }
 
     /**
@@ -107,17 +106,17 @@ public final class NiFiRestClient implements Closeable {
     public JsonNode postJson(final URI uri, final String body) {
         final NiFiHttpResponse response = httpClient.post(uri, body,
                 NiFiHttpClient.APPLICATION_JSON, NiFiHttpClient.APPLICATION_JSON);
-        return requireSuccessJson(POST_METHOD, uri, response);
+        return requireSuccessJson(Method.POST, uri, response);
     }
 
-    private JsonNode requireSuccessJson(final String method, final URI uri, final NiFiHttpResponse response) {
+    private JsonNode requireSuccessJson(final Method method, final URI uri, final NiFiHttpResponse response) {
         if (!response.isSuccess()) {
-            throw error(method, uri, response, method + " request did not succeed");
+            throw error(method, uri, response, method.name() + " request did not succeed");
         }
         return parse(method, uri, response);
     }
 
-    private JsonNode parse(final String method, final URI uri, final NiFiHttpResponse response) {
+    private JsonNode parse(final Method method, final URI uri, final NiFiHttpResponse response) {
         final Optional<String> contentType = response.contentType();
         if (contentType.isPresent() && !contentType.get().toLowerCase(java.util.Locale.ROOT).contains("json")) {
             throw error(method, uri, response,
@@ -130,9 +129,9 @@ public final class NiFiRestClient implements Closeable {
         }
     }
 
-    private static NiFiApiException error(final String method, final URI uri,
+    private static NiFiApiException error(final Method method, final URI uri,
                                           final NiFiHttpResponse response, final String reason) {
-        return new NiFiApiException(method, NiFiHttpClient.redact(uri), response.statusCode(),
+        return new NiFiApiException(method.name(), NiFiHttpClient.redact(uri), response.statusCode(),
                 NiFiHttpClient.excerpt(response.bodyAsText()), reason + " (status " + response.statusCode() + ")");
     }
 }

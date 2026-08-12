@@ -39,6 +39,8 @@ public final class NiFiUriResolver {
     private static final String NIFI_API_SUFFIX = "/nifi-api";
     private static final String NIFI_SUFFIX = "/nifi";
     private static final String SEGMENT = "/";
+    private static final int HTTPS_PORT = 443;
+    private static final int HTTP_PORT = 80;
 
     private final String scheme;
     private final String host;
@@ -220,6 +222,10 @@ public final class NiFiUriResolver {
     /**
      * Reports whether the given URI shares this resolver's origin (scheme, host, and port).
      *
+     * <p>A URI that omits the port is treated as carrying its scheme's default port, so
+     * {@code https://nifi.example.com} and {@code https://nifi.example.com:443} share an origin.
+     * Servers behind a reverse proxy routinely redirect between the two forms.</p>
+     *
      * @param uri the URI to test
      * @return {@code true} when the URI has the same origin
      */
@@ -229,8 +235,15 @@ public final class NiFiUriResolver {
         }
         final boolean sameScheme = scheme.equalsIgnoreCase(uri.getScheme());
         final boolean sameHost = host.equalsIgnoreCase(uri.getHost());
-        final boolean samePort = port == uri.getPort();
+        final boolean samePort = effectivePort(scheme, port) == effectivePort(uri.getScheme(), uri.getPort());
         return sameScheme && sameHost && samePort;
+    }
+
+    private static int effectivePort(final String uriScheme, final int uriPort) {
+        if (uriPort != -1) {
+            return uriPort;
+        }
+        return "https".equalsIgnoreCase(uriScheme) ? HTTPS_PORT : HTTP_PORT;
     }
 
 }

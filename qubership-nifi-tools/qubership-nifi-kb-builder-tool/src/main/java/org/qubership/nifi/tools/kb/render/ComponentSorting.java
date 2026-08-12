@@ -37,6 +37,23 @@ public final class ComponentSorting {
                     .thenComparing(componentRecord -> componentRecord.identity().getVersion())
                     .thenComparing(componentRecord -> componentRecord.identity().getType());
 
+    /**
+     * Groups components by bundle before ordering them by name: by kind, bundle group, artifact,
+     * version, simple type name, and fully qualified type.
+     *
+     * <p>Renderers that emit a heading per bundle need this order. {@link #BY_IDENTITY} sorts by
+     * simple name first, so consecutive components there usually come from different bundles and a
+     * heading emitted on every bundle change would repeat.</p>
+     */
+    public static final Comparator<ComponentRecord> BY_BUNDLE =
+            Comparator.comparingInt((ComponentRecord componentRecord) ->
+                            componentRecord.identity().getKind().ordinal())
+                    .thenComparing(componentRecord -> componentRecord.identity().getGroup())
+                    .thenComparing(componentRecord -> componentRecord.identity().getArtifact())
+                    .thenComparing(componentRecord -> componentRecord.identity().getVersion())
+                    .thenComparing(componentRecord -> componentRecord.identity().simpleName())
+                    .thenComparing(componentRecord -> componentRecord.identity().getType());
+
     private ComponentSorting() {
         // utility class
     }

@@ -199,6 +199,10 @@ public final class ComponentMarkdownRenderer {
     }
 
     private void appendAttributes(final StringBuilder md, final JsonNode definition) {
+        if (definition == null) {
+            //skip if null
+            return;
+        }
         appendAttributeTable(md, definition.get("readsAttributes"), "FlowFile attributes read");
         appendAttributeTable(md, definition.get("writesAttributes"), "FlowFile attributes written");
     }

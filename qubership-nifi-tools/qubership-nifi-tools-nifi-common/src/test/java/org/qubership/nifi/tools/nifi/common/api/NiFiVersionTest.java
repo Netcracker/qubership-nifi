@@ -43,6 +43,16 @@ class NiFiVersionTest {
     }
 
     @Test
+    void acceptsOnlyTheDocumentedQualifierShape() {
+        assertThat(NiFiVersion.parse("  2.5.0")).isPresent();
+        assertThat(NiFiVersion.parse("2.5.0-RC1")).isPresent();
+        assertThat(NiFiVersion.parse("2.5.0 ")).isEmpty();
+        assertThat(NiFiVersion.parse("2.7.2.1")).isEmpty();
+        assertThat(NiFiVersion.parse("2.6.0-RC.1")).isEmpty();
+        assertThat(NiFiVersion.parse("2.5.0-SNAPSHOT-1")).isEmpty();
+    }
+
+    @Test
     void comparesNumericallyNotLexicographically() {
         assertThat(NiFiVersion.of(2, 10, 0)).isGreaterThan(NiFiVersion.of(2, 9, 0));
     }

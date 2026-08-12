@@ -39,8 +39,24 @@ public final class ExitCodeExceptionHandler implements CommandLine.IExecutionExc
     @Override
     public int handleExecutionException(final Exception ex, final CommandLine commandLine,
                                         final CommandLine.ParseResult parseResult) {
-        commandLine.getErr().println(ex.getMessage() + " The previous output, if any, was left unchanged.");
+        commandLine.getErr().println(reason(ex) + " The previous output, if any, was left unchanged.");
         LOG.debug("Build failed", ex);
         return FailureClassifier.classify(ex);
+    }
+
+    /**
+     * Describes the failure for the error stream. A failure that carries no message, such as a
+     * {@link NullPointerException}, falls back to its class name so that the diagnostic never
+     * begins with {@code null}.
+     *
+     * @param ex the failure
+     * @return the reason to report
+     */
+    private static String reason(final Exception ex) {
+        final String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            return ex.getClass().getName() + " was raised without a message.";
+        }
+        return message;
     }
 }

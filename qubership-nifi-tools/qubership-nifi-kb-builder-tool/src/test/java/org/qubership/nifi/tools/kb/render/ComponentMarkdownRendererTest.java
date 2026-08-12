@@ -155,6 +155,18 @@ class ComponentMarkdownRendererTest {
                 .doesNotContain("FlowFile attributes");
     }
 
+    @Test
+    void degradesToIdentityAndReferencesWhenSourceTreesAreAbsent() {
+        final String markdown = new ComponentMarkdownRenderer().render(componentRecord(
+                null, null, AdditionalDocumentationState.notAdvertised()));
+
+        assertThat(markdown)
+                .contains("## Identity")
+                .contains("# TestProcessor")
+                .contains("## References")
+                .doesNotContain("FlowFile attributes");
+    }
+
     private static ComponentRecord componentRecord(final JsonNode documented, final JsonNode definition,
                                                    final AdditionalDocumentationState state) {
         return new ComponentRecord(IDENTITY, documented, definition, state, null);

@@ -27,7 +27,6 @@ import org.qubership.nifi.tools.kb.render.ManifestRenderer;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -121,7 +120,7 @@ public final class KnowledgeBaseValidator {
         try (Stream<Path> dirs = Files.list(kindDir)) {
             dirs.filter(Files::isDirectory).forEach(this::validateComponentDir);
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed to list component directories: " + kindDir, e);
+            throw new OutputException("Failed to list component directories: " + kindDir, e);
         }
     }
 
@@ -163,7 +162,7 @@ public final class KnowledgeBaseValidator {
         try (Stream<Path> dirs = Files.list(kindDir)) {
             return dirs.filter(Files::isDirectory).count();
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed to count component directories: " + kindDir, e);
+            throw new OutputException("Failed to count component directories: " + kindDir, e);
         }
     }
 

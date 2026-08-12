@@ -32,6 +32,7 @@ import org.qubership.nifi.tools.kb.render.JsonOutput;
 import org.qubership.nifi.tools.kb.render.ManifestRenderer;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -74,6 +75,10 @@ public final class KnowledgeBaseWriter {
     /**
      * Writes the complete Knowledge Base into the given staging root.
      *
+     * <p>The renderers report I/O trouble as {@link UncheckedIOException} because they know nothing
+     * about the output stage. Staging is that stage, so both forms surface as an
+     * {@link OutputException} and carry the output exit code.</p>
+     *
      * @param root the staging root directory
      * @param kb   the Knowledge Base to render
      * @throws OutputException when any part of the tree cannot be written
@@ -81,7 +86,7 @@ public final class KnowledgeBaseWriter {
     public void writeTo(final Path root, final KnowledgeBase kb) {
         try {
             doWrite(root, kb);
-        } catch (final IOException e) {
+        } catch (final IOException | UncheckedIOException e) {
             throw new OutputException("Failed to write Knowledge Base to staging", e);
         }
     }

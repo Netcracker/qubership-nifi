@@ -19,7 +19,6 @@ package org.qubership.nifi.tools.kb.output;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,8 +31,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Fails when output scanning misses an exact secret or reports an ineligible value.
  *
  * <p>The scanner must ignore secrets below its minimum length, inspect regular files recursively,
- * reject an exact scannable byte sequence at any offset, and surface traversal failures. Preserve
- * exact byte matching and the minimum-length rule when changing the scanning algorithm.</p>
+ * reject an exact scannable byte sequence at any offset, and surface traversal failures as output
+ * failures so that they carry the output exit code. Preserve exact byte matching and the
+ * minimum-length rule when changing the scanning algorithm.</p>
  */
 class SecretScannerTest {
 
@@ -71,10 +71,10 @@ class SecretScannerTest {
     }
 
     @Test
-    void reportsMissingScanRoot() {
+    void reportsMissingScanRootAsAnOutputFailure() {
         assertThatThrownBy(() -> SecretScanner.scan(temp.resolve("missing"),
                 List.of("secret-value".getBytes(StandardCharsets.UTF_8))))
-                .isInstanceOf(UncheckedIOException.class)
+                .isInstanceOf(OutputException.class)
                 .hasMessageContaining("Failed to scan staged output");
     }
 }

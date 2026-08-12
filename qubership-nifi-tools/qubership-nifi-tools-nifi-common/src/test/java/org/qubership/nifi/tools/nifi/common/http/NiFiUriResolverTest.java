@@ -132,6 +132,20 @@ class NiFiUriResolverTest {
     }
 
     @Test
+    void sameOriginTreatsAnOmittedPortAsTheSchemeDefault() {
+        final NiFiUriResolver https = NiFiUriResolver.fromBaseUrl("https://nifi.example.com/nifi");
+        assertThat(https.isSameOrigin(URI.create("https://nifi.example.com:443/nifi-api/flow/about"))).isTrue();
+        assertThat(https.isSameOrigin(URI.create("https://nifi.example.com:8443/nifi-api/flow/about"))).isFalse();
+
+        final NiFiUriResolver explicit = NiFiUriResolver.fromBaseUrl("https://nifi.example.com:443/nifi");
+        assertThat(explicit.isSameOrigin(URI.create("https://nifi.example.com/nifi-api/flow/about"))).isTrue();
+
+        final NiFiUriResolver http = NiFiUriResolver.fromBaseUrl("http://nifi.example.com/nifi", false);
+        assertThat(http.isSameOrigin(URI.create("http://nifi.example.com:80/nifi-api/flow/about"))).isTrue();
+        assertThat(http.isSameOrigin(URI.create("http://nifi.example.com:443/nifi-api/flow/about"))).isFalse();
+    }
+
+    @Test
     void rejectsMissingAndStructurallyInvalidBaseUrls() {
         assertThatThrownBy(() -> NiFiUriResolver.fromBaseUrl(null, false))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("blank");

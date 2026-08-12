@@ -22,8 +22,14 @@ import java.util.regex.Pattern;
 
 /**
  * A parsed NiFi version. Holds the numeric {@code major.minor.patch} tuple and the original raw
- * string. Any suffix after the patch number (for example {@code -SNAPSHOT} or a qualifier) is
- * retained in {@link #getRaw()} for provenance but does not affect numeric comparison.
+ * string.
+ *
+ * <p>An accepted string is exactly three dot-separated numbers, optionally preceded by whitespace
+ * and optionally followed by a single hyphen and one qualifier of letters and digits, so
+ * {@code 2.5.0} and {@code 2.5.0-SNAPSHOT} both parse. Anything else does not: a four-part version
+ * ({@code 2.7.2.1}), a qualifier carrying a dot, an underscore, or a second hyphen
+ * ({@code 2.6.0-RC.1}, {@code 2.5.0-SNAPSHOT-1}), and trailing whitespace. The qualifier is
+ * retained in {@link #getRaw()} for provenance but does not affect numeric comparison.</p>
  *
  * <p>Comparison is performed on the numeric tuple only, so {@code 2.10.0} is greater than
  * {@code 2.9.0}.</p>
@@ -48,11 +54,11 @@ public final class NiFiVersion implements Comparable<NiFiVersion> {
     }
 
     /**
-     * Parses a version string that starts with a numeric {@code major.minor.patch} tuple.
+     * Parses a version string in the form this class accepts.
      *
      * @param text the raw version string
-     * @return the parsed version, or an empty optional when the leading numeric tuple is missing
-     *         or malformed
+     * @return the parsed version, or an empty optional when the string is not a
+     *         {@code major.minor.patch} tuple with an optional single alphanumeric qualifier
      */
     public static Optional<NiFiVersion> parse(final String text) {
         if (text == null) {
@@ -100,7 +106,7 @@ public final class NiFiVersion implements Comparable<NiFiVersion> {
     }
 
     /**
-     * Returns the original raw version string, including any suffix after the patch number.
+     * Returns the raw version string as supplied, trimmed, including any qualifier.
      *
      * @return the raw version string
      */

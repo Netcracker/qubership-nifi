@@ -122,6 +122,33 @@ class NiFiHttpClientTest {
     }
 
     @Test
+    void doesNotRetryAnOversizedResponse() {
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("x".repeat(2000)));
+        final NiFiHttpClient.Config tinyBodyWithRetries = new NiFiHttpClient.Config(
+                Duration.ofSeconds(5), 100, 3, Duration.ofMillis(1), Duration.ofMillis(5), 3);
+
+        assertThatThrownBy(() -> getAbout(NoAuthentication.INSTANCE, tinyBodyWithRetries))
+                .isInstanceOf(NiFiApiException.class)
+                .hasMessageContaining("Response body exceeds the 100 byte limit")
+                .hasMessageNotContaining("after retries");
+        assertThat(server.getRequestCount()).isEqualTo(1);
+    }
+
+    @Test
+    void reportsTheRequestMethodOfARejectedCrossOriginRequest() {
+        final NiFiHttpClient client = client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults());
+        final URI foreign = URI.create("http://other.example.com/nifi-api/flow/about");
+
+        assertThatThrownBy(() -> client.post(foreign, "{}", NiFiHttpClient.APPLICATION_JSON,
+                NiFiHttpClient.APPLICATION_JSON))
+                .isInstanceOf(NiFiApiException.class)
+                .extracting(failure -> ((NiFiApiException) failure).getMethod()).isEqualTo("POST");
+        assertThatThrownBy(() -> client.delete(foreign))
+                .isInstanceOf(NiFiApiException.class)
+                .extracting(failure -> ((NiFiApiException) failure).getMethod()).isEqualTo("DELETE");
+    }
+
+    @Test
     void rejectsCrossOriginRedirect() {
         server.enqueue(new MockResponse().setResponseCode(302)
                 .setHeader("Location", "https://evil.example.com/steal"));

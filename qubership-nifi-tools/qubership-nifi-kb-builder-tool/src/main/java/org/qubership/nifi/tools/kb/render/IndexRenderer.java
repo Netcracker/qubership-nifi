@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.kb.render;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
@@ -61,7 +62,8 @@ public final class IndexRenderer {
 
     private ObjectNode compactEntry(final ComponentRecord componentRecord) {
         final ComponentIdentity identity = componentRecord.identity();
-        final JsonNode documented = componentRecord.documentedType();
+        final JsonNode documented = componentRecord.documentedType() == null
+                ? MissingNode.getInstance() : componentRecord.documentedType();
         final ObjectNode entry = json.mapper().createObjectNode();
         entry.put("kind", identity.getKind().name());
         entry.put("group", identity.getGroup());
@@ -93,6 +95,9 @@ public final class IndexRenderer {
     /**
      * Renders {@code components/index.md}, grouping components by kind and bundle.
      *
+     * <p>Each kind is re-ordered with {@link ComponentSorting#BY_BUNDLE} so that every bundle
+     * contributes a single heading, whatever order the caller supplied.</p>
+     *
      * @param sortedComponents the components in canonical order
      * @return the Markdown content
      */
@@ -101,7 +106,8 @@ public final class IndexRenderer {
         md.append("# Component index").append(LF).append(LF);
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             final List<ComponentRecord> ofKind = sortedComponents.stream()
-                    .filter(componentRecord -> componentRecord.identity().getKind() == kind).toList();
+                    .filter(componentRecord -> componentRecord.identity().getKind() == kind)
+                    .sorted(ComponentSorting.BY_BUNDLE).toList();
             if (ofKind.isEmpty()) {
                 continue;
             }

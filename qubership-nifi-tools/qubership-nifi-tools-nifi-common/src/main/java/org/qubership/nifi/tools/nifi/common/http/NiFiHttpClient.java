@@ -31,6 +31,7 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.io.CloseMode;
@@ -40,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +53,8 @@ import java.util.Set;
 /**
  * Sends bounded HTTP requests to a single NiFi origin. It applies authentication, enforces that
  * every request and redirect stays on the resolver's origin, bounds response sizes, and retries
- * idempotent GET requests on transient failures with bounded exponential backoff.
+ * idempotent GET requests on transient failures with bounded exponential backoff. A TLS failure or
+ * a response that breaches the size bound is not transient and fails on the first attempt.
  *
  * <p>The wrapped {@link CloseableHttpClient} should be created with
  * {@link #newHttpClient(SSLContext, Duration)} (or an equivalent builder that never auto-follows
@@ -152,8 +155,8 @@ public final class NiFiHttpClient implements Closeable {
      * @return the bounded response
      */
     public NiFiHttpResponse get(final URI uri, final String acceptHeader) {
-        requireSameOrigin(uri);
-        return executeWithRetry("GET", uri, acceptHeader);
+        requireSameOrigin(Method.GET, uri);
+        return executeWithRetry(Method.GET, uri, acceptHeader);
     }
 
     /**
@@ -167,11 +170,11 @@ public final class NiFiHttpClient implements Closeable {
      */
     public NiFiHttpResponse post(final URI uri, final String body, final String contentType,
                                  final String acceptHeader) {
-        requireSameOrigin(uri);
+        requireSameOrigin(Method.POST, uri);
         final HttpPost request = new HttpPost(uri);
         request.setEntity(new ByteArrayEntity(body.getBytes(StandardCharsets.UTF_8),
                 ContentType.parse(contentType)));
-        return executeOnce("POST", uri, prepare(request, acceptHeader)).response();
+        return executeOnce(Method.POST, uri, prepare(request, acceptHeader)).response();
     }
 
     /**
@@ -181,8 +184,8 @@ public final class NiFiHttpClient implements Closeable {
      * @return the bounded response
      */
     public NiFiHttpResponse delete(final URI uri) {
-        requireSameOrigin(uri);
-        return executeOnce("DELETE", uri, prepare(new HttpDelete(uri), APPLICATION_JSON)).response();
+        requireSameOrigin(Method.DELETE, uri);
+        return executeOnce(Method.DELETE, uri, prepare(new HttpDelete(uri), APPLICATION_JSON)).response();
     }
 
     /**
@@ -193,9 +196,9 @@ public final class NiFiHttpClient implements Closeable {
         httpClient.close(CloseMode.GRACEFUL);
     }
 
-    private void requireSameOrigin(final URI uri) {
+    private void requireSameOrigin(final Method method, final URI uri) {
         if (!resolver.isSameOrigin(uri)) {
-            throw new NiFiApiException("GET", redact(uri), NiFiApiException.NO_STATUS, "",
+            throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
                     "Request URI is not on the permitted NiFi origin " + resolver.origin());
         }
     }
@@ -212,7 +215,7 @@ public final class NiFiHttpClient implements Closeable {
         return request;
     }
 
-    private NiFiHttpResponse executeWithRetry(final String method, final URI uri, final String acceptHeader) {
+    private NiFiHttpResponse executeWithRetry(final Method method, final URI uri, final String acceptHeader) {
         int attempt = 0;
         while (true) {
             try {
@@ -224,28 +227,45 @@ public final class NiFiHttpClient implements Closeable {
                 }
                 return exchange.response();
             } catch (final IOException e) {
-                if (attempt < config.maxRetries()) {
+                if (isTransient(e) && attempt < config.maxRetries()) {
                     LOG.debug("Retrying {} after transport failure (attempt {})", redact(uri), attempt, e);
                     backoff(method, uri, attempt, -1L);
                     attempt++;
                     continue;
                 }
-                throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
-                        "Request failed after retries: " + e.getMessage(), e);
+                throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
+                        failureMessage(e, isTransient(e)), e);
             }
         }
     }
 
-    private Exchange executeOnce(final String method, final URI uri, final HttpUriRequestBase request) {
+    /**
+     * Reports whether a transport failure could plausibly succeed on a later attempt. A TLS failure
+     * means the peer is not trusted and an oversized body means the response is too large for this
+     * client; repeating either only delays the same outcome.
+     *
+     * @param failure the transport failure
+     * @return {@code true} when the request is worth retrying
+     */
+    private static boolean isTransient(final IOException failure) {
+        return !(failure instanceof SSLException) && !(failure instanceof ResponseTooLargeException);
+    }
+
+    private static String failureMessage(final IOException failure, final boolean retried) {
+        final String prefix = retried ? "Request failed after retries: " : "Request failed: ";
+        return prefix + failure.getMessage();
+    }
+
+    private Exchange executeOnce(final Method method, final URI uri, final HttpUriRequestBase request) {
         try {
             return httpClient.execute(request, new BoundedResponseHandler(config.maxBodyBytes()));
         } catch (final IOException e) {
-            throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
+            throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
                     "Request failed: " + e.getMessage(), e);
         }
     }
 
-    private Exchange sendFollowingSameOriginRedirects(final String method, final URI initialUri,
+    private Exchange sendFollowingSameOriginRedirects(final Method method, final URI initialUri,
                                                       final String acceptHeader) throws IOException {
         URI currentUri = initialUri;
         int redirects = 0;
@@ -255,12 +275,12 @@ public final class NiFiHttpClient implements Closeable {
             final int status = exchange.response().statusCode();
             if (status >= REDIRECT_LOW && status < REDIRECT_HIGH) {
                 if (exchange.location() == null) {
-                    throw new NiFiApiException(method, redact(currentUri), status, "",
+                    throw new NiFiApiException(method.name(), redact(currentUri), status, "",
                             "Redirect response is missing a Location header");
                 }
                 final URI target = currentUri.resolve(exchange.location());
                 if (!resolver.isSameOrigin(target) || redirects >= config.maxRedirects()) {
-                    throw new NiFiApiException(method, redact(currentUri), status, "",
+                    throw new NiFiApiException(method.name(), redact(currentUri), status, "",
                             "Rejected redirect to " + redact(target));
                 }
                 redirects++;
@@ -283,7 +303,7 @@ public final class NiFiHttpClient implements Closeable {
         }
     }
 
-    private void backoff(final String method, final URI uri, final int attempt, final long retryAfterMillis) {
+    private void backoff(final Method method, final URI uri, final int attempt, final long retryAfterMillis) {
         long delay = config.baseBackoff().toMillis();
         for (int i = 0; i < attempt; i++) {
             delay *= BACKOFF_MULTIPLIER;
@@ -296,7 +316,7 @@ public final class NiFiHttpClient implements Closeable {
             Thread.sleep(delay);
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new NiFiApiException(method, redact(uri), NiFiApiException.NO_STATUS, "",
+            throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
                     "Request was interrupted", e);
         }
     }
@@ -348,6 +368,20 @@ public final class NiFiHttpClient implements Closeable {
     }
 
     /**
+     * Signals that a response body exceeded the configured size bound. It is distinct from a
+     * transport failure so that the retry loop can leave it alone and the caller sees the real
+     * reason rather than a retry-exhausted message.
+     */
+    private static final class ResponseTooLargeException extends IOException {
+
+        private static final long serialVersionUID = 1L;
+
+        ResponseTooLargeException(final String message) {
+            super(message);
+        }
+    }
+
+    /**
      * A response handler that reads at most a maximum number of body bytes and fails the exchange
      * when the limit is exceeded, so an unexpected large response cannot exhaust memory.
      */
@@ -368,7 +402,7 @@ public final class NiFiHttpClient implements Closeable {
                     body = content.readNBytes(maxBytes + 1);
                 }
                 if (body.length > maxBytes) {
-                    throw new IOException("Response body exceeds the " + maxBytes + " byte limit");
+                    throw new ResponseTooLargeException("Response body exceeds the " + maxBytes + " byte limit");
                 }
             }
             return new Exchange(

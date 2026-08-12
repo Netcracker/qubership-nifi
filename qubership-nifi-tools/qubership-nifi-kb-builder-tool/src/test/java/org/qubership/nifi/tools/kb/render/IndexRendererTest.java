@@ -24,6 +24,7 @@ import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Fails when component indexes lose metadata, canonical grouping, or navigable paths.
  *
  * <p>The JSON index must retain searchable source metadata and derived availability state. The
- * Markdown index must group every component by kind and bundle while linking its component page.
+ * Markdown index must group every component by kind and bundle while linking its component page,
+ * emitting one heading per bundle even though the canonical order sorts by simple name first.
  * Update these expectations only with an intentional index-contract change.</p>
  */
 class IndexRendererTest {
@@ -95,6 +97,42 @@ class IndexRendererTest {
     }
 
     @Test
+    void rendersEntryWithoutSourceMetadataToJson() throws Exception {
+        final ComponentRecord withoutType = componentRecord(
+                NiFiComponentKind.PROCESSOR, "Bare", null, false);
+
+        final JsonNode index = MAPPER.readTree(
+                new IndexRenderer(new JsonOutput(MAPPER)).renderJson(List.of(withoutType)));
+
+        assertThat(index.get(0).path("type").asText()).isEqualTo("org.example.Bare");
+        assertThat(index.get(0).path("tags").isEmpty()).isTrue();
+        assertThat(index.get(0).path("controllerServiceApis").isEmpty()).isTrue();
+        assertThat(index.get(0).path("deprecated").asBoolean()).isFalse();
+    }
+
+    @Test
+    void emitsOneHeadingPerBundleWhenNamesInterleaveBundles() throws Exception {
+        final List<ComponentRecord> canonical = new ArrayList<>(List.of(
+                componentRecord(NiFiComponentKind.PROCESSOR, "alpha-nar", "Alpha", MAPPER.readTree("{}"), false),
+                componentRecord(NiFiComponentKind.PROCESSOR, "beta-nar", "Beta", MAPPER.readTree("{}"), false),
+                componentRecord(NiFiComponentKind.PROCESSOR, "alpha-nar", "Gamma", MAPPER.readTree("{}"), false),
+                componentRecord(NiFiComponentKind.PROCESSOR, "beta-nar", "Delta", MAPPER.readTree("{}"), false)));
+        canonical.sort(ComponentSorting.BY_IDENTITY);
+
+        final String markdown = new IndexRenderer(new JsonOutput(MAPPER)).renderMarkdown(canonical);
+
+        assertThat(markdown.split("### `org\\.example:alpha-nar:1\\.0`", -1)).hasSize(2);
+        assertThat(markdown.split("### `org\\.example:beta-nar:1\\.0`", -1)).hasSize(2);
+        final int alphaHeading = markdown.indexOf("### `org.example:alpha-nar:1.0`");
+        final int betaHeading = markdown.indexOf("### `org.example:beta-nar:1.0`");
+        assertThat(alphaHeading).isLessThan(betaHeading);
+        assertThat(markdown.indexOf("[Alpha]")).isBetween(alphaHeading, betaHeading);
+        assertThat(markdown.indexOf("[Gamma]")).isBetween(alphaHeading, betaHeading);
+        assertThat(markdown.indexOf("[Beta]")).isGreaterThan(betaHeading);
+        assertThat(markdown.indexOf("[Delta]")).isGreaterThan(betaHeading);
+    }
+
+    @Test
     void rendersEmptyMarkdownIndex() {
         final String markdown = new IndexRenderer(new JsonOutput(MAPPER)).renderMarkdown(List.of());
 
@@ -104,7 +142,13 @@ class IndexRendererTest {
     private static ComponentRecord componentRecord(final NiFiComponentKind kind, final String simpleName,
                                                    final JsonNode documented, final boolean withDetails)
             throws Exception {
-        final ComponentIdentity identity = new ComponentIdentity(kind, "org.example", "example-nar", "1.0",
+        return componentRecord(kind, "example-nar", simpleName, documented, withDetails);
+    }
+
+    private static ComponentRecord componentRecord(final NiFiComponentKind kind, final String artifact,
+                                                   final String simpleName, final JsonNode documented,
+                                                   final boolean withDetails) throws Exception {
+        final ComponentIdentity identity = new ComponentIdentity(kind, "org.example", artifact, "1.0",
                 "org.example." + simpleName);
         final AdditionalDocumentationState state = withDetails
                 ? AdditionalDocumentationState.advertisedAvailable()
