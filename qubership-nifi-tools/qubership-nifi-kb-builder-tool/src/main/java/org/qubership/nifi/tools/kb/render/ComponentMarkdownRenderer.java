@@ -78,6 +78,9 @@ public final class ComponentMarkdownRenderer {
 
     private void appendDescriptionAndTags(final StringBuilder md, final JsonNode definition,
                                           final JsonNode componentType) {
+        if (isMissingMetadata(definition, componentType)) {
+            return;
+        }
         final String description = firstNonBlank(text(definition, ComponentFields.DESCRIPTION),
                 text(componentType, ComponentFields.DESCRIPTION));
         if (!description.isBlank()) {
@@ -100,6 +103,9 @@ public final class ComponentMarkdownRenderer {
 
     private void appendDeprecationAndRestrictions(final StringBuilder md, final JsonNode definition,
                                                   final JsonNode componentType) {
+        if (isMissingMetadata(definition, componentType)) {
+            return;
+        }
         final String deprecationReason = firstNonBlank(text(definition, ComponentFields.DEPRECATION_REASON),
                 text(componentType, ComponentFields.DEPRECATION_REASON));
         final boolean restricted = definition.path(ComponentFields.RESTRICTED)

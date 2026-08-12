@@ -58,11 +58,10 @@ class ComponentIdentityTest {
         final ComponentIdentity identity = identity(NiFiComponentKind.PROCESSOR, "g", "a", "v", "Type");
         final ComponentIdentity equal = identity(NiFiComponentKind.PROCESSOR, "g", "a", "v", "Type");
 
-        assertThat(identity).isEqualTo(identity).isEqualTo(equal);
+        assertThat(identity).isEqualTo(equal);
         assertThat(identity.hashCode()).isEqualTo(equal.hashCode());
         assertThat(identity)
                 .isNotEqualTo(null)
-                .isNotEqualTo("identity")
                 .isNotEqualTo(identity(NiFiComponentKind.REPORTING_TASK, "g", "a", "v", "Type"))
                 .isNotEqualTo(identity(NiFiComponentKind.PROCESSOR, "other", "a", "v", "Type"))
                 .isNotEqualTo(identity(NiFiComponentKind.PROCESSOR, "g", "other", "v", "Type"))

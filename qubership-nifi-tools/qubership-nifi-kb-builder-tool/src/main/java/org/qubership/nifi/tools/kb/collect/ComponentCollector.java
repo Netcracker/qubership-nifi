@@ -58,11 +58,11 @@ public final class ComponentCollector {
             LOG.info("Collecting {} components", kind);
             final JsonNode types = catalog.listTypes(kind);
             for (final JsonNode type : types) {
-                final ComponentRecord record = collectOne(catalog, kind, type);
-                if (!seen.add(record.identity())) {
-                    throw new CollectionException("Duplicate component identity: " + record.identity());
+                final ComponentRecord componentRecord = collectOne(catalog, kind, type);
+                if (!seen.add(componentRecord.identity())) {
+                    throw new CollectionException("Duplicate component identity: " + componentRecord.identity());
                 }
-                records.add(record);
+                records.add(componentRecord);
             }
             LOG.info("Collected {} {} components", types.size(), kind);
         }

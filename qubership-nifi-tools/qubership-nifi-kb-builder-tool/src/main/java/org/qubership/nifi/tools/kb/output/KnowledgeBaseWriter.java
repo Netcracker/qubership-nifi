@@ -96,8 +96,8 @@ public final class KnowledgeBaseWriter {
 
         final List<String> catalogPaths = new ArrayList<>();
 
-        for (final ComponentRecord record : sorted) {
-            writeComponent(componentsDir, record, catalogPaths);
+        for (final ComponentRecord componentRecord : sorted) {
+            writeComponent(componentsDir, componentRecord, catalogPaths);
         }
 
         writeBytes(componentsDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), index.renderJson(sorted));
@@ -114,24 +114,24 @@ public final class KnowledgeBaseWriter {
         writeBytes(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
     }
 
-    private void writeComponent(final Path componentsDir, final ComponentRecord record,
+    private void writeComponent(final Path componentsDir, final ComponentRecord componentRecord,
                                 final List<String> catalogPaths) throws IOException {
-        final String kindDir = ComponentKindLayout.directoryName(record.identity().getKind());
-        final Path dir = componentsDir.resolve(kindDir).resolve(record.identity().directoryName());
+        final String kindDir = ComponentKindLayout.directoryName(componentRecord.identity().getKind());
+        final Path dir = componentsDir.resolve(kindDir).resolve(componentRecord.identity().directoryName());
         Files.createDirectories(dir);
 
-        writeBytes(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(record));
-        writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE), componentMarkdown.render(record));
-        catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+        writeBytes(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(componentRecord));
+        writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE),
+                componentMarkdown.render(componentRecord));
+        catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_JSON_FILE)));
-        catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+        catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE)));
 
-        if (record.additionalDocumentation().isAvailable()) {
-            final byte[] verbatim = record.additionalDetailsContent().orElse("")
-                    .getBytes(StandardCharsets.UTF_8);
-            Files.write(dir.resolve(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE), verbatim);
-            catalogPaths.add(componentPath(ComponentSorting.relativePath(record.identity(),
+        if (componentRecord.additionalDocumentation().isAvailable()) {
+            Files.writeString(dir.resolve(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE),
+                    componentRecord.additionalDetailsContent().orElse(""));
+            catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                     KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE)));
         }
     }
@@ -154,6 +154,6 @@ public final class KnowledgeBaseWriter {
     }
 
     private static void writeString(final Path file, final String content) throws IOException {
-        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(file, content);
     }
 }

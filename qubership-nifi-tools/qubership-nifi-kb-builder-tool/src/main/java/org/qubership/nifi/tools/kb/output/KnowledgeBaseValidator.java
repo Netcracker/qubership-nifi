@@ -128,14 +128,14 @@ public final class KnowledgeBaseValidator {
     private void validateComponentDir(final Path dir) {
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE));
-        final JsonNode record = read(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
-        if (record.size() != TOP_LEVEL_FIELD_COUNT || !record.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
-                || !record.has(KnowledgeBaseFormat.DEFINITION_FIELD)
-                || !record.has(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)) {
+        final JsonNode componentRecord = read(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
+        if (componentRecord.size() != TOP_LEVEL_FIELD_COUNT || !componentRecord.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
+                || !componentRecord.has(KnowledgeBaseFormat.DEFINITION_FIELD)
+                || !componentRecord.has(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)) {
             throw new OutputException("component.json must contain exactly documentedType, definition, and "
                     + "additionalDocumentation: " + dir.getFileName());
         }
-        final JsonNode state = record.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
+        final JsonNode state = componentRecord.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
         final boolean available = state.path(KnowledgeBaseFormat.AVAILABLE_FIELD).asBoolean();
         final Path detailsFile = dir.resolve(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE);
         if (available) {
