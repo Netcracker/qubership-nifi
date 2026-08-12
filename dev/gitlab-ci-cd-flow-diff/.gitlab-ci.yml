@@ -1,0 +1,77 @@
+stages:
+  - flow-diff
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+variables:
+  FLOW_DIFF_PATH: "nifi/versioned-flow"
+  GIT_DEPTH: "0"
+
+flow-diff:
+  stage: flow-diff
+  image:
+    name: flow-diff-cli:local
+    pull_policy: [if-not-present]
+  resource_group: "flow-diff-$CI_MERGE_REQUEST_IID"
+  interruptible: true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - "$FLOW_DIFF_PATH/**/*"
+  script:
+    - set -euo pipefail
+    - MARKER="<!-- nifi-flow-diff -->"
+
+    - git config --global --add safe.directory "${CI_PROJECT_DIR}"
+
+    - BASE_SHA="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
+    - |
+      if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+        git fetch --no-tags origin "${BASE_SHA}"
+      fi
+
+    - |
+      REPORT_JSON="$(nifi-flow-diff git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
+        --branch "${BASE_SHA}" --format json --output /dev/stdout)"
+      REPORT_MD="$(nifi-flow-diff git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
+        --branch "${BASE_SHA}" --format md --output /dev/stdout)"
+
+    - |
+      sum="$(jq -e '
+            [.totals.significant, .totals.environmental, .totals.addedFlows, .totals.removedFlows]
+            | if any(type != "number") then null else add end
+          ' <<< "${REPORT_JSON}")"
+      if [ "${sum}" -gt 0 ]; then
+        COMMENT="$(printf '%s\n## NiFi flow diff\n\nSignificant and environmental changes to the NiFi flows modified in this MR:\n\n%s\n' \
+          "${MARKER}" "${REPORT_MD}")"
+      else
+        COMMENT="$(printf '%s\n## NiFi flow diff\n\nNo significant NiFi flow changes detected.\n' "${MARKER}")"
+      fi
+
+    - |
+      LIMIT=990000
+      if [ "$(printf '%s' "${COMMENT}" | wc -c)" -gt "${LIMIT}" ]; then
+        TRUNCATED="$(printf '%s' "${COMMENT}" | head -c "${LIMIT}")"
+        fences="$(printf '%s' "${TRUNCATED}" | grep -c '^```' || true)"
+        if [ $((fences % 2)) -ne 0 ]; then
+          TRUNCATED="$(printf '%s\n```' "${TRUNCATED}")"
+        fi
+        COMMENT="$(printf '%s\n\n---\n_Report truncated to fit GitLab'"'"'s comment size limit (1,000,000 characters)._' "${TRUNCATED}")"
+      fi
+
+    - |
+      NOTES_URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
+      EXISTING_ID="$(curl -sf --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "${NOTES_URL}?per_page=100" \
+        | jq -r --arg marker "${MARKER}" '[.[] | select(.body | startswith($marker))][0].id // empty')"
+      BODY="$(jq -Rs '.' <<< "${COMMENT}")"
+      if [ -n "${EXISTING_ID}" ]; then
+        curl -sf --request PUT --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": ${BODY}}" "${NOTES_URL}/${EXISTING_ID}" > /dev/null
+      else
+        curl -sf --request POST --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data "{\"body\": ${BODY}}" "${NOTES_URL}" > /dev/null
+      fi
