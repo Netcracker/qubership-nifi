@@ -24,8 +24,9 @@ import static org.qubership.nifi.flowdiff.compare.Difference.REMOVED;
 /**
  * Compares the non-{@code flowContents} sibling sections of two exports: {@code flowEncodingVersion} (environmental),
  * {@code parameterContexts} and their {@code parameters} (matched by name), {@code parameterProviders} and
- * {@code externalControllerServices} (matched by identifier). {@code snapshotMetadata} is dropped. Every difference is
- * flagged as an {@code other attributes} record so the human renderers bundle it under one header.
+ * {@code externalControllerServices} (matched by identifier). {@code snapshotMetadata}, {@code latest}, {@code flow}
+ * and {@code bucket} are dropped: they record where and when the flow was stored, not what it contains. Every
+ * difference is flagged as an {@code other attributes} record so the human renderers bundle it under one header.
  */
 public final class SiblingComparator {
 

@@ -70,6 +70,25 @@ class SiblingComparatorTest {
     }
 
     @Test
+    void flowAndBucketSiblingsAreAcceptedAndIgnored() {
+        String template = """
+                {"flowContents":{"identifier":"root","name":"R","componentType":"PROCESS_GROUP"},
+                 "bucket":{"identifier":"my-bucket","name":"%1$s","description":"%1$s bucket",
+                   "createdTimestamp":%2$s,"permissions":{"canRead":true,"canWrite":true,"canDelete":false}},
+                 "flow":{"identifier":"my-flow","name":"%1$s","description":"%1$s flow",
+                   "bucketIdentifier":"my-bucket","bucketName":"%1$s","createdTimestamp":%2$s,
+                   "lastModifiedTimestamp":%2$s,"versionCount":%3$s,"versionInfo":{"version":%3$s}}}""";
+        JsonNode baseline = root(template.formatted("Old", "1749000000000", "3"));
+        JsonNode target = root(template.formatted("New", "1749600000000", "4"));
+        // Git-based flow storage carries top-level 'flow' and 'bucket' sections; the closed sibling set must accept
+        // them.
+        assertDoesNotThrow(() -> FlowExport.of("baseline.json", baseline));
+        assertDoesNotThrow(() -> FlowExport.of("target.json", target));
+        // Both sections record where the flow is stored, so differences there produce no diff.
+        assertTrue(comparator.compare(baseline, target).isEmpty());
+    }
+
+    @Test
     void providerBundleVersionEnvironmentalAndNameSignificant() {
         String template = """
                 {"parameterProviders":{"id1":{"identifier":"id1","name":"%s","type":"T",

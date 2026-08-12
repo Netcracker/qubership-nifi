@@ -79,6 +79,10 @@ public final class FlowFields {
     public static final String PARAMETERS = "parameters";
     /** The top-level {@code latest} field in NiFi downloaded flows. */
     public static final String LATEST = "latest";
+    /** The top-level {@code flow} section, written by Git-based flow storage. */
+    public static final String FLOW = "flow";
+    /** The top-level {@code bucket} section, written by Git-based flow storage. */
+    public static final String BUCKET = "bucket";
 
     private FlowFields() {
     }

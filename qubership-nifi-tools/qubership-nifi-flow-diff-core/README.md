@@ -20,18 +20,18 @@ run it: the Maven plugin inside a build, the command-line tool anywhere else.
 
 Table below describes categories used when comparing two flow versions.
 
-| Field / location                                               | Category      |
-|----------------------------------------------------------------|---------------|
-| `propertyDescriptors`, `snapshotMetadata`, `latest`            | Ignored       |
-| `instanceIdentifier` of a component                            | Technical     |
-| `instanceIdentifier` of a connection endpoint (`id` unchanged) | Technical     |
-| `groupId` of a connection endpoint that back-references root   | Technical     |
-| `identifier` of the root process group                         | Technical     |
-| `groupIdentifier` of a direct child of the root                | Technical     |
-| `bundle.version` of a NiFi bundle object                       | Environmental |
-| `controllerServiceApis` of a controller service                | Environmental |
-| `flowEncodingVersion` top-level scalar                         | Environmental |
-| everything else                                                | Significant   |
+| Field / location                                                        | Category      |
+|-------------------------------------------------------------------------|---------------|
+| `propertyDescriptors`, `snapshotMetadata`, `latest`, `flow`, `bucket`   | Ignored       |
+| `instanceIdentifier` of a component                                     | Technical     |
+| `instanceIdentifier` of a connection endpoint (`id` unchanged)          | Technical     |
+| `groupId` of a connection endpoint that back-references root            | Technical     |
+| `identifier` of the root process group                                  | Technical     |
+| `groupIdentifier` of a direct child of the root                         | Technical     |
+| `bundle.version` of a NiFi bundle object                                | Environmental |
+| `controllerServiceApis` of a controller service                         | Environmental |
+| `flowEncodingVersion` top-level scalar                                  | Environmental |
+| everything else                                                         | Significant   |
 
 - **Technical** - a NiFi-generated identifier change with no functional meaning;
   counted, and the only category reverted.
@@ -54,6 +54,10 @@ the connection points to a different component, so every endpoint field, `instan
 
 Dynamic properties definitions stored in `propertyDescriptors` are ignored for simplicity. Only property values are
 compared both for regular and dynamic properties.
+
+The `flow` and `bucket` sections are written by Git-based flow storage. They record where the flow is stored, along
+with registry-generated timestamps, version counters and permissions, so they are accepted and ignored rather than
+compared.
 
 ## Output formats
 
