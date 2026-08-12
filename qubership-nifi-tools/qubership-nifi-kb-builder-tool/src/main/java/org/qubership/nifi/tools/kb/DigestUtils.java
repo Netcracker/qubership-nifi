@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.kb;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 /**
  * Creates SHA-256 digests and renders digest bytes as lowercase hexadecimal text.
@@ -25,10 +26,7 @@ import java.security.NoSuchAlgorithmException;
 public final class DigestUtils {
 
     private static final String SHA_256 = "SHA-256";
-    private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
-    private static final int BYTE_MASK = 0xFF;
-    private static final int NIBBLE_MASK = 0x0F;
-    private static final int HIGH_NIBBLE_SHIFT = 4;
+    private static final HexFormat LOWER_HEX = HexFormat.of();
 
     private DigestUtils() {
         // utility class
@@ -65,12 +63,6 @@ public final class DigestUtils {
      * @return two hexadecimal characters per input byte
      */
     public static String toLowerHex(final byte[] bytes) {
-        final StringBuilder hex = new StringBuilder(bytes.length * 2);
-        for (final byte current : bytes) {
-            final int value = current & BYTE_MASK;
-            hex.append(HEX_DIGITS[(value >> HIGH_NIBBLE_SHIFT) & NIBBLE_MASK]);
-            hex.append(HEX_DIGITS[value & NIBBLE_MASK]);
-        }
-        return hex.toString();
+        return LOWER_HEX.formatHex(bytes);
     }
 }
