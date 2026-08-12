@@ -41,17 +41,18 @@ class IndexRendererTest {
 
     @Test
     void rendersSourceMetadataVariantsToJson() throws Exception {
-        final ComponentRecord first = record(NiFiComponentKind.PROCESSOR, "First", MAPPER.readTree("""
+        final ComponentRecord first = componentRecord(NiFiComponentKind.PROCESSOR, "First", MAPPER.readTree("""
                 {
                   "tags": ["one", "two"],
                   "deprecated": true,
                   "controllerServiceApis": [{"type": "org.example.Service"}, "org.example.OtherService"]
                 }
                 """), true);
-        final ComponentRecord second = record(NiFiComponentKind.PROCESSOR, "Second", MAPPER.readTree("""
+        final ComponentRecord second = componentRecord(NiFiComponentKind.PROCESSOR, "Second", MAPPER.readTree("""
                 {"deprecationReason": "Use a replacement"}
                 """), false);
-        final ComponentRecord third = record(NiFiComponentKind.REPORTING_TASK, "Third", MAPPER.readTree("""
+        final ComponentRecord third = componentRecord(NiFiComponentKind.REPORTING_TASK, "Third",
+                MAPPER.readTree("""
                 {"tags": "not-an-array", "controllerServiceApis": "not-an-array"}
                 """), false);
         final IndexRenderer renderer = new IndexRenderer(new JsonOutput(MAPPER));
@@ -70,11 +71,13 @@ class IndexRendererTest {
 
     @Test
     void groupsMarkdownByKindAndBundle() throws Exception {
-        final ComponentRecord first = record(NiFiComponentKind.PROCESSOR, "First", MAPPER.readTree("{}"), false);
-        final ComponentRecord second = record(NiFiComponentKind.PROCESSOR, "Second", MAPPER.readTree("{}"), false);
-        final ComponentRecord service = record(
+        final ComponentRecord first = componentRecord(
+                NiFiComponentKind.PROCESSOR, "First", MAPPER.readTree("{}"), false);
+        final ComponentRecord second = componentRecord(
+                NiFiComponentKind.PROCESSOR, "Second", MAPPER.readTree("{}"), false);
+        final ComponentRecord service = componentRecord(
                 NiFiComponentKind.CONTROLLER_SERVICE, "Service", MAPPER.readTree("{}"), false);
-        final ComponentRecord task = record(
+        final ComponentRecord task = componentRecord(
                 NiFiComponentKind.REPORTING_TASK, "Task", MAPPER.readTree("{}"), false);
 
         final String markdown = new IndexRenderer(new JsonOutput(MAPPER))
@@ -98,8 +101,9 @@ class IndexRendererTest {
         assertThat(markdown).isEqualTo("# Component index\n\n");
     }
 
-    private static ComponentRecord record(final NiFiComponentKind kind, final String simpleName,
-                                          final JsonNode documented, final boolean withDetails) throws Exception {
+    private static ComponentRecord componentRecord(final NiFiComponentKind kind, final String simpleName,
+                                                   final JsonNode documented, final boolean withDetails)
+            throws Exception {
         final ComponentIdentity identity = new ComponentIdentity(kind, "org.example", "example-nar", "1.0",
                 "org.example." + simpleName);
         final AdditionalDocumentationState state = withDetails

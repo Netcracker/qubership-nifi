@@ -42,15 +42,15 @@ public final class ComponentJsonRenderer {
     /**
      * Renders the given component to {@code component.json} bytes.
      *
-     * @param record the component record
+     * @param componentRecord the component record
      * @return the serialized bytes
      */
-    public byte[] render(final ComponentRecord record) {
+    public byte[] render(final ComponentRecord componentRecord) {
         final ObjectNode root = json.mapper().createObjectNode();
-        root.set(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD, record.documentedType());
-        root.set(KnowledgeBaseFormat.DEFINITION_FIELD, record.definition());
+        root.set(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD, componentRecord.documentedType());
+        root.set(KnowledgeBaseFormat.DEFINITION_FIELD, componentRecord.definition());
 
-        final AdditionalDocumentationState state = record.additionalDocumentation();
+        final AdditionalDocumentationState state = componentRecord.additionalDocumentation();
         final ObjectNode additional = root.putObject(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
         additional.put(KnowledgeBaseFormat.ADVERTISED_FIELD, state.isAdvertised());
         additional.put(KnowledgeBaseFormat.REQUESTED_FIELD, state.isRequested());

@@ -129,7 +129,8 @@ public final class KnowledgeBaseValidator {
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE));
         final JsonNode componentRecord = read(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
-        if (componentRecord.size() != TOP_LEVEL_FIELD_COUNT || !componentRecord.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
+        if (componentRecord.size() != TOP_LEVEL_FIELD_COUNT
+                || !componentRecord.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
                 || !componentRecord.has(KnowledgeBaseFormat.DEFINITION_FIELD)
                 || !componentRecord.has(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)) {
             throw new OutputException("component.json must contain exactly documentedType, definition, and "

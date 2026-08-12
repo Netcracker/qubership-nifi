@@ -80,7 +80,7 @@ class ComponentMarkdownRendererTest {
                 }
                 """);
 
-        final String markdown = new ComponentMarkdownRenderer().render(record(
+        final String markdown = new ComponentMarkdownRenderer().render(componentRecord(
                 documented, definition, AdditionalDocumentationState.advertisedAvailable()));
 
         assertThat(markdown)
@@ -126,7 +126,7 @@ class ComponentMarkdownRendererTest {
                 }
                 """);
 
-        final String markdown = new ComponentMarkdownRenderer().render(record(
+        final String markdown = new ComponentMarkdownRenderer().render(componentRecord(
                 documented, definition, AdditionalDocumentationState.advertisedUnavailable()));
 
         assertThat(markdown)
@@ -141,7 +141,7 @@ class ComponentMarkdownRendererTest {
 
     @Test
     void omitsOptionalSectionsWhenSourceDataIsMissing() throws Exception {
-        final String markdown = new ComponentMarkdownRenderer().render(record(
+        final String markdown = new ComponentMarkdownRenderer().render(componentRecord(
                 MAPPER.readTree("{}"), MAPPER.readTree("{}"), AdditionalDocumentationState.notAdvertised()));
 
         assertThat(markdown)
@@ -155,8 +155,8 @@ class ComponentMarkdownRendererTest {
                 .doesNotContain("FlowFile attributes");
     }
 
-    private static ComponentRecord record(final JsonNode documented, final JsonNode definition,
-                                          final AdditionalDocumentationState state) {
+    private static ComponentRecord componentRecord(final JsonNode documented, final JsonNode definition,
+                                                   final AdditionalDocumentationState state) {
         return new ComponentRecord(IDENTITY, documented, definition, state, null);
     }
 }

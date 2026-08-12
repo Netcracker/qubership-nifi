@@ -38,13 +38,13 @@ public final class ComponentMarkdownRenderer {
     /**
      * Renders the given component to Markdown.
      *
-     * @param record the component record
+     * @param componentRecord the component record
      * @return the Markdown content
      */
-    public String render(final ComponentRecord record) {
-        final ComponentIdentity identity = record.identity();
-        final JsonNode definition = record.definition();
-        final JsonNode componentType = record.documentedType();
+    public String render(final ComponentRecord componentRecord) {
+        final ComponentIdentity identity = componentRecord.identity();
+        final JsonNode definition = componentRecord.definition();
+        final JsonNode componentType = componentRecord.documentedType();
         final StringBuilder md = new StringBuilder();
 
         md.append("# ").append(identity.simpleName()).append(LF).append(LF);
@@ -55,7 +55,7 @@ public final class ComponentMarkdownRenderer {
         appendProperties(md, definition);
         appendControllerServiceApis(md, componentType, definition);
         appendAttributes(md, definition);
-        appendLinks(md, record);
+        appendLinks(md, componentRecord);
 
         return md.toString();
     }
@@ -218,9 +218,9 @@ public final class ComponentMarkdownRenderer {
         md.append(LF);
     }
 
-    private void appendLinks(final StringBuilder md, final ComponentRecord record) {
+    private void appendLinks(final StringBuilder md, final ComponentRecord componentRecord) {
         md.append("## References").append(LF).append(LF);
-        final AdditionalDocumentationState state = record.additionalDocumentation();
+        final AdditionalDocumentationState state = componentRecord.additionalDocumentation();
         if (state.isAvailable()) {
             md.append("- Additional component documentation: [")
                     .append(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE).append("](")

@@ -107,11 +107,11 @@ class KnowledgeBaseWriterTest {
                             .equals(KnowledgeBaseFormat.COMPONENT_JSON_FILE))
                     .findFirst().orElseThrow();
         }
-        final JsonNode record = MAPPER.readTree(Files.readAllBytes(componentJson));
-        assertThat(record.fieldNames()).toIterable()
+        final JsonNode componentNode = MAPPER.readTree(Files.readAllBytes(componentJson));
+        assertThat(componentNode.fieldNames()).toIterable()
                 .containsExactlyInAnyOrder(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD,
                         KnowledgeBaseFormat.DEFINITION_FIELD, KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
-        assertThat(record.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)
+        assertThat(componentNode.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)
                 .path(KnowledgeBaseFormat.AVAILABLE_FIELD).asBoolean()).isTrue();
         assertThat(Files.exists(componentJson.resolveSibling(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE))).isTrue();
     }

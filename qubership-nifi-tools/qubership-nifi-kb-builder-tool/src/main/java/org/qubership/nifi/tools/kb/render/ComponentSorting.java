@@ -29,12 +29,13 @@ public final class ComponentSorting {
 
     /** The canonical component comparator. */
     public static final Comparator<ComponentRecord> BY_IDENTITY =
-            Comparator.comparingInt((ComponentRecord record) -> record.identity().getKind().ordinal())
-                    .thenComparing(record -> record.identity().simpleName())
-                    .thenComparing(record -> record.identity().getGroup())
-                    .thenComparing(record -> record.identity().getArtifact())
-                    .thenComparing(record -> record.identity().getVersion())
-                    .thenComparing(record -> record.identity().getType());
+            Comparator.comparingInt((ComponentRecord componentRecord) ->
+                            componentRecord.identity().getKind().ordinal())
+                    .thenComparing(componentRecord -> componentRecord.identity().simpleName())
+                    .thenComparing(componentRecord -> componentRecord.identity().getGroup())
+                    .thenComparing(componentRecord -> componentRecord.identity().getArtifact())
+                    .thenComparing(componentRecord -> componentRecord.identity().getVersion())
+                    .thenComparing(componentRecord -> componentRecord.identity().getType());
 
     private ComponentSorting() {
         // utility class

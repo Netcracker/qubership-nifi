@@ -32,7 +32,6 @@ import org.qubership.nifi.tools.kb.render.JsonOutput;
 import org.qubership.nifi.tools.kb.render.ManifestRenderer;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -100,8 +99,9 @@ public final class KnowledgeBaseWriter {
             writeComponent(componentsDir, componentRecord, catalogPaths);
         }
 
-        writeBytes(componentsDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), index.renderJson(sorted));
-        writeString(componentsDir.resolve(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE), index.renderMarkdown(sorted));
+        Files.write(componentsDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), index.renderJson(sorted));
+        Files.writeString(componentsDir.resolve(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE),
+                index.renderMarkdown(sorted));
         catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_JSON_FILE));
         catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE));
 
@@ -111,7 +111,7 @@ public final class KnowledgeBaseWriter {
             writeGuides(root, kb);
         }
 
-        writeBytes(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
+        Files.write(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
     }
 
     private void writeComponent(final Path componentsDir, final ComponentRecord componentRecord,
@@ -120,8 +120,8 @@ public final class KnowledgeBaseWriter {
         final Path dir = componentsDir.resolve(kindDir).resolve(componentRecord.identity().directoryName());
         Files.createDirectories(dir);
 
-        writeBytes(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(componentRecord));
-        writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE),
+        Files.write(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(componentRecord));
+        Files.writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE),
                 componentMarkdown.render(componentRecord));
         catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_JSON_FILE)));
@@ -140,20 +140,12 @@ public final class KnowledgeBaseWriter {
         final Path guidesDir = root.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
         Files.createDirectories(guidesDir);
         for (final GuideDocument document : kb.guides().documents()) {
-            writeString(guidesDir.resolve(document.type().getOutputFileName()), document.markdown());
+            Files.writeString(guidesDir.resolve(document.type().getOutputFileName()), document.markdown());
         }
-        writeBytes(guidesDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), guideIndex.render(kb.guides()));
+        Files.write(guidesDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), guideIndex.render(kb.guides()));
     }
 
     private static String componentPath(final String relativePath) {
         return KnowledgeBaseFormat.COMPONENTS_DIRECTORY + '/' + relativePath;
-    }
-
-    private static void writeBytes(final Path file, final byte[] content) throws IOException {
-        Files.write(file, content);
-    }
-
-    private static void writeString(final Path file, final String content) throws IOException {
-        Files.writeString(file, content);
     }
 }

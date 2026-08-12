@@ -53,15 +53,15 @@ public final class IndexRenderer {
      */
     public byte[] renderJson(final List<ComponentRecord> sortedComponents) {
         final ArrayNode array = json.mapper().createArrayNode();
-        for (final ComponentRecord record : sortedComponents) {
-            array.add(compactEntry(record));
+        for (final ComponentRecord componentRecord : sortedComponents) {
+            array.add(compactEntry(componentRecord));
         }
         return json.toBytes(array);
     }
 
-    private ObjectNode compactEntry(final ComponentRecord record) {
-        final ComponentIdentity identity = record.identity();
-        final JsonNode documented = record.documentedType();
+    private ObjectNode compactEntry(final ComponentRecord componentRecord) {
+        final ComponentIdentity identity = componentRecord.identity();
+        final JsonNode documented = componentRecord.documentedType();
         final ObjectNode entry = json.mapper().createObjectNode();
         entry.put("kind", identity.getKind().name());
         entry.put("group", identity.getGroup());
@@ -86,7 +86,7 @@ public final class IndexRenderer {
 
         entry.put("path", ComponentSorting.directoryPath(identity));
 
-        entry.put("additionalDetailsAvailable", record.additionalDocumentation().isAvailable());
+        entry.put("additionalDetailsAvailable", componentRecord.additionalDocumentation().isAvailable());
         return entry;
     }
 
@@ -101,14 +101,14 @@ public final class IndexRenderer {
         md.append("# Component index").append(LF).append(LF);
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             final List<ComponentRecord> ofKind = sortedComponents.stream()
-                    .filter(record -> record.identity().getKind() == kind).toList();
+                    .filter(componentRecord -> componentRecord.identity().getKind() == kind).toList();
             if (ofKind.isEmpty()) {
                 continue;
             }
             md.append("## ").append(ComponentKindLayout.displayLabel(kind)).append(LF).append(LF);
             String currentBundle = null;
-            for (final ComponentRecord record : ofKind) {
-                final ComponentIdentity identity = record.identity();
+            for (final ComponentRecord componentRecord : ofKind) {
+                final ComponentIdentity identity = componentRecord.identity();
                 final String bundle = identity.getGroup() + ':' + identity.getArtifact()
                         + ':' + identity.getVersion();
                 if (!bundle.equals(currentBundle)) {
