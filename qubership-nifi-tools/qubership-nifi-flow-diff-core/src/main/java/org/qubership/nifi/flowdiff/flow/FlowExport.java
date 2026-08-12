@@ -6,7 +6,9 @@ import org.qubership.nifi.flowdiff.error.FlowParseException;
 import java.util.Iterator;
 import java.util.Set;
 
+import static org.qubership.nifi.flowdiff.flow.FlowFields.BUCKET;
 import static org.qubership.nifi.flowdiff.flow.FlowFields.EXTERNAL_CONTROLLER_SERVICES;
+import static org.qubership.nifi.flowdiff.flow.FlowFields.FLOW;
 import static org.qubership.nifi.flowdiff.flow.FlowFields.FLOW_CONTENTS;
 import static org.qubership.nifi.flowdiff.flow.FlowFields.FLOW_ENCODING_VERSION;
 import static org.qubership.nifi.flowdiff.flow.FlowFields.PARAMETER_CONTEXTS;
@@ -29,7 +31,9 @@ public final class FlowExport {
             PARAMETER_PROVIDERS,
             EXTERNAL_CONTROLLER_SERVICES,
             SNAPSHOT_METADATA,
-            LATEST);
+            LATEST,
+            FLOW,
+            BUCKET);
 
     private final String displayPath;
     private final JsonNode root;

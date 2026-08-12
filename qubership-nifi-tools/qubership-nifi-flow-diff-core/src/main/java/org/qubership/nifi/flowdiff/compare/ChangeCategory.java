@@ -7,7 +7,10 @@ package org.qubership.nifi.flowdiff.compare;
  */
 public enum ChangeCategory {
 
-    /** Not tracked: {@code propertyDescriptors} and {@code snapshotMetadata}. */
+    /**
+     * Not tracked: {@code propertyDescriptors}, {@code snapshotMetadata}, {@code latest}, {@code flow} and
+     * {@code bucket}.
+     */
     IGNORED("ignored"),
     /** A NiFi-generated identifier change with no functional meaning; the only reverted category. */
     TECHNICAL("technical"),
