@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.kb.docs;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
+import org.jsoup.select.Elements;
 
 import java.util.Locale;
 import java.util.function.UnaryOperator;
@@ -27,6 +28,10 @@ import java.util.function.UnaryOperator;
  * Converts a sanitized HTML content element to Markdown, preserving headings, paragraphs, lists,
  * tables, block quotes, inline code, and code blocks in source order. Output uses LF line endings.
  *
+ * <p>A nested list keeps its structure: each level is indented two spaces and keeps its own markers,
+ * so the rules and examples the guides express as nested lists reach the reader with their item
+ * boundaries intact.</p>
+ *
  * <p>Images are omitted and their sources are never requested. Anchors are flattened to their link
  * text, whatever the scheme, so no URL from the source document reaches the output. An anchor with
  * no text is dropped entirely.
@@ -34,6 +39,7 @@ import java.util.function.UnaryOperator;
 public final class HtmlToMarkdown {
 
     private static final int MAX_HEADING_LEVEL = 6;
+    private static final String LIST_INDENT = "  ";
 
     /**
      * Converts the given content element to Markdown.
@@ -86,21 +92,64 @@ public final class HtmlToMarkdown {
     }
 
     private void appendList(final Element list, final StringBuilder out, final boolean ordered) {
+        appendList(list, out, ordered, 0);
+    }
+
+    private void appendList(final Element list, final StringBuilder out, final boolean ordered,
+                            final int depth) {
         int index = 1;
         for (final Element item : list.children()) {
             if (!"li".equalsIgnoreCase(item.tagName())) {
                 continue;
             }
             final String marker = ordered ? (index + ". ") : "- ";
-            out.append(marker).append(inline(item).strip()).append('\n');
+            final String text = inline(item).strip();
+            if (text.isEmpty()) {
+                // An item with no text of its own only wraps a nested list; rendering an empty bullet
+                // above it would add a level of nesting the source document does not have.
+                appendNestedLists(item, out, depth);
+            } else {
+                out.append(LIST_INDENT.repeat(depth)).append(marker).append(text).append('\n');
+                appendNestedLists(item, out, depth + 1);
+            }
             index++;
         }
-        out.append('\n');
+        if (depth == 0) {
+            out.append('\n');
+        }
+    }
+
+    /**
+     * Renders the lists nested inside a list item, indented one level deeper. Nested lists are found
+     * through any wrapper element, because Asciidoctor wraps a nested list in a {@code div} rather
+     * than making it a direct child of the item.
+     *
+     * @param parent the element to search for nested lists
+     * @param out    the output being built
+     * @param depth  the indentation depth for the nested items
+     */
+    private void appendNestedLists(final Element parent, final StringBuilder out, final int depth) {
+        for (final Element child : parent.children()) {
+            final String tag = child.tagName().toLowerCase(Locale.ROOT);
+            if ("ul".equals(tag) || "ol".equals(tag)) {
+                appendList(child, out, "ol".equals(tag), depth);
+            } else {
+                appendNestedLists(child, out, depth);
+            }
+        }
     }
 
     private void appendTable(final Element table, final StringBuilder out) {
-        final var rows = table.select("tr");
+        final Elements rows = table.select("tr");
         if (rows.isEmpty()) {
+            return;
+        }
+        // The separator row fixes the column count for the whole table, so it is sized from the
+        // widest row rather than the first one: a header cell spanning several body columns is
+        // common in the guides, and a separator narrower than the body stops Markdown from
+        // rendering the block as a table at all.
+        final int width = widestRow(rows);
+        if (width == 0) {
             return;
         }
         boolean headerWritten = false;
@@ -113,15 +162,24 @@ public final class HtmlToMarkdown {
             for (final Element cell : cells) {
                 out.append(inline(cell).replace("\n", " ").replace("|", "\\|").strip()).append(" | ");
             }
+            out.append(" | ".repeat(width - cells.size()));
             out.append('\n');
             if (!headerWritten) {
                 out.append("|");
-                out.append(" --- |".repeat(cells.size()));
+                out.append(" --- |".repeat(width));
                 out.append('\n');
                 headerWritten = true;
             }
         }
         out.append('\n');
+    }
+
+    private int widestRow(final Elements rows) {
+        int width = 0;
+        for (final Element row : rows) {
+            width = Math.max(width, row.select("th, td").size());
+        }
+        return width;
     }
 
     private String inline(final Element element) {
@@ -147,6 +205,9 @@ public final class HtmlToMarkdown {
             case "strong", "b" -> sb.append("**").append(inline(element)).append("**");
             case "em", "i" -> sb.append('*').append(inline(element)).append('*');
             case "br" -> sb.append('\n');
+            // A list is block content: appendList renders it with markers and indentation, so
+            // flattening it into the surrounding inline text here would lose its item boundaries.
+            case "ul", "ol" -> { }
             case "img" -> { }
             default -> sb.append(inline(element));
         }

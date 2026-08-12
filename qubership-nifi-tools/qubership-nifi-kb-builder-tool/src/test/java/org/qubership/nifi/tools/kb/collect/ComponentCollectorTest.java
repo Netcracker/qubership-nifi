@@ -116,6 +116,26 @@ class ComponentCollectorTest {
     }
 
     @Test
+    void treatsBlankAdvertisedDetailsAsUnavailable() {
+        enqueueOneProcessor("{\"type\":\"org.P\",\"additionalDetails\":true}");
+        json("{\"additionalDetails\":\"   \"}");
+        enqueueEmptyRemaining();
+
+        final List<ComponentRecord> records = collector.collectAll(catalog);
+        assertThat(records.get(0).additionalDocumentation().isAdvertised()).isTrue();
+        assertThat(records.get(0).additionalDocumentation().isAvailable()).isFalse();
+        assertThat(records.get(0).additionalDetailsContent()).isEmpty();
+    }
+
+    @Test
+    void failsWhenTheDefinitionCarriesNoType() {
+        enqueueOneProcessor("{}");
+
+        assertThatThrownBy(() -> collector.collectAll(catalog))
+                .isInstanceOf(CollectionException.class).hasMessageContaining("carries no type");
+    }
+
+    @Test
     void failsOnNonBooleanAdditionalDetails() {
         enqueueOneProcessor("{\"type\":\"org.P\",\"additionalDetails\":\"yes\"}");
         assertThatThrownBy(() -> collector.collectAll(catalog))

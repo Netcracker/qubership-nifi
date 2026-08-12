@@ -28,6 +28,12 @@ import java.util.regex.Pattern;
  * included until the next heading at the same or a higher level. A missing or ambiguous required
  * heading fails the build so that an incompatible documentation layout is visible instead of
  * silently incomplete.
+ *
+ * <p>Required sections overlap in the published guide layout: several of them are nested inside
+ * {@code NiFi Components}. A section that its ancestor already emitted is not emitted again, so the
+ * output carries each part of the guide once. Every required heading still appears in
+ * {@link ExtractResult#selectedHeadings()}, which records what was selected rather than how the
+ * selections nest.</p>
  */
 public final class DeveloperGuideExtractor {
 
@@ -49,12 +55,19 @@ public final class DeveloperGuideExtractor {
         final String[] lines = markdown.split("\n", -1);
         final List<Heading> headings = collectHeadings(lines);
 
-        final StringBuilder out = new StringBuilder();
+        final List<Section> sections = new ArrayList<>();
         final List<String> selected = new ArrayList<>();
-        for (final String section : REQUIRED_SECTIONS) {
-            final Heading heading = requireSingle(section, headings);
+        for (final String required : REQUIRED_SECTIONS) {
+            final Heading heading = requireSingle(required, headings);
             selected.add(heading.title());
-            appendSection(lines, headings, heading, out);
+            sections.add(new Section(heading, endLine(lines, headings, heading)));
+        }
+
+        final StringBuilder out = new StringBuilder();
+        for (final Section section : sections) {
+            if (!nestedInAnother(section, sections)) {
+                appendSection(lines, section, out);
+            }
         }
         return new ExtractResult(out.toString().strip() + "\n", selected);
     }
@@ -85,16 +98,40 @@ public final class DeveloperGuideExtractor {
         return matches.get(0);
     }
 
-    private void appendSection(final String[] lines, final List<Heading> headings, final Heading start,
-                               final StringBuilder out) {
-        int endLine = lines.length;
+    /**
+     * Returns the exclusive end line of a heading's subtree: the next heading at the same or a higher
+     * level, or the end of the guide.
+     *
+     * @param lines    the guide lines
+     * @param headings all headings, in document order
+     * @param start    the heading whose subtree ends
+     * @return the exclusive end line
+     */
+    private int endLine(final String[] lines, final List<Heading> headings, final Heading start) {
         for (final Heading heading : headings) {
             if (heading.line() > start.line() && heading.level() <= start.level()) {
-                endLine = heading.line();
-                break;
+                return heading.line();
             }
         }
-        for (int i = start.line(); i < endLine; i++) {
+        return lines.length;
+    }
+
+    /**
+     * Reports whether another selected section already contains this one. A section is a heading
+     * subtree, so any two sections are either disjoint or one contains the other; a duplicate
+     * heading, which is the only way two sections could start on the same line, is rejected earlier.
+     *
+     * @param section  the section to test
+     * @param sections all selected sections
+     * @return {@code true} when an enclosing section will emit this one
+     */
+    private static boolean nestedInAnother(final Section section, final List<Section> sections) {
+        return sections.stream().anyMatch(other -> other.start().line() < section.start().line()
+                && other.end() >= section.end());
+    }
+
+    private void appendSection(final String[] lines, final Section section, final StringBuilder out) {
+        for (int i = section.start().line(); i < section.end(); i++) {
             out.append(lines[i]).append('\n');
         }
         out.append('\n');
@@ -105,6 +142,15 @@ public final class DeveloperGuideExtractor {
     }
 
     private record Heading(int level, String title, int line) {
+    }
+
+    /**
+     * A selected heading and the exclusive end line of its subtree.
+     *
+     * @param start the selected heading
+     * @param end   the exclusive end line of the heading's subtree
+     */
+    private record Section(Heading start, int end) {
     }
 
     /**

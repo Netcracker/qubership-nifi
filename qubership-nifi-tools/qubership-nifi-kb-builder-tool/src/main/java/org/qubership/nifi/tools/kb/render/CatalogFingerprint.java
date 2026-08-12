@@ -30,10 +30,11 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Computes the aggregate catalog fingerprint: a lowercase SHA-256 digest, prefixed with
- * {@code sha256:}, over the normalized (LF) content of the covered catalog files. Paths are sorted
- * by their UTF-8 byte sequence and each path/content pair is framed with unambiguous eight-byte
- * big-endian length prefixes so path and content boundaries cannot collide.
+ * Computes the aggregate Knowledge Base fingerprint: a lowercase SHA-256 digest, prefixed with
+ * {@code sha256:}, over the normalized (LF) content of the covered files, which are the component
+ * output and, in a full build, the guides. Paths are sorted by their UTF-8 byte sequence and each
+ * path/content pair is framed with unambiguous eight-byte big-endian length prefixes so path and
+ * content boundaries cannot collide.
  *
  * <p>Line endings are normalized to LF only in the digest input; the on-disk bytes of verbatim
  * files are never rewritten.</p>

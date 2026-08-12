@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
+import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideDocument;
 import org.qubership.nifi.tools.kb.model.GuideMode;
@@ -85,8 +86,7 @@ class KnowledgeBaseWriterTest {
 
     @Test
     void writesAndValidatesSkipModeKnowledgeBase() {
-        final GuidesResult guides = new GuidesResult(GuideMode.SKIP, List.of());
-        final KnowledgeBase kb = knowledgeBase(guides);
+        final KnowledgeBase kb = knowledgeBase(skipGuides());
 
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
         assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
@@ -98,7 +98,7 @@ class KnowledgeBaseWriterTest {
 
     @Test
     void componentJsonHasExactlyThreeTopLevelObjects() throws Exception {
-        final KnowledgeBase kb = knowledgeBase(new GuidesResult(GuideMode.SKIP, List.of()));
+        final KnowledgeBase kb = knowledgeBase(skipGuides());
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
 
         final Path componentJson;
@@ -118,20 +118,55 @@ class KnowledgeBaseWriterTest {
 
     @Test
     void writesAndValidatesRequiredGuideMode() {
-        final GuidesResult guides = new GuidesResult(GuideMode.REQUIRED, List.of(
-                new GuideDocument(GuideType.EXPRESSION_LANGUAGE, "# EL\n", "https://nifi.example.com/x",
-                        "text/html", List.of()),
-                new GuideDocument(GuideType.RECORD_PATH, "# RP\n", "https://nifi.example.com/y",
-                        "text/html", List.of()),
-                new GuideDocument(GuideType.DEVELOPER, "# Dev\n", "https://nifi.example.com/z",
-                        "text/html", List.of("NiFi Components"))));
-        final KnowledgeBase kb = knowledgeBase(guides);
+        final KnowledgeBase kb = knowledgeBase(fullGuides());
 
         new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, kb);
         assertThatCode(() -> new KnowledgeBaseValidator().validate(temp)).doesNotThrowAnyException();
         final Path guidesDirectory = temp.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
         assertThat(Files.exists(guidesDirectory.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE))).isTrue();
         assertThat(Files.exists(guidesDirectory.resolve("developer-guide.md"))).isTrue();
+    }
+
+    @Test
+    void createsADirectoryForEveryComponentKind() {
+        new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp, knowledgeBase(skipGuides()));
+
+        final Path componentsDir = temp.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY);
+        for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
+            assertThat(componentsDir.resolve(ComponentKindLayout.directoryName(kind)))
+                    .as("directory for %s", kind)
+                    .isDirectory();
+        }
+    }
+
+    @Test
+    void fingerprintsTheGuidesAlongsideTheCatalog(@TempDir final Path catalogOnly) throws Exception {
+        final KnowledgeBaseWriter writer = new KnowledgeBaseWriter(new JsonOutput(MAPPER));
+        writer.writeTo(temp, knowledgeBase(fullGuides()));
+        writer.writeTo(catalogOnly, knowledgeBase(skipGuides()));
+
+        // The two builds share every component file, so a catalog-only fingerprint would collide and
+        // a consumer caching on it would serve a Knowledge Base with no guides.
+        assertThat(fingerprintOf(temp)).isNotEqualTo(fingerprintOf(catalogOnly));
+    }
+
+    private String fingerprintOf(final Path root) throws Exception {
+        return MAPPER.readTree(Files.readAllBytes(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE)))
+                .path(KnowledgeBaseFormat.FINGERPRINT_FIELD).asText();
+    }
+
+    private GuidesResult skipGuides() {
+        return new GuidesResult(GuideMode.SKIP, List.of());
+    }
+
+    private GuidesResult fullGuides() {
+        return new GuidesResult(GuideMode.REQUIRED, List.of(
+                new GuideDocument(GuideType.EXPRESSION_LANGUAGE, "# EL\n", "https://nifi.example.com/x",
+                        "text/html", List.of()),
+                new GuideDocument(GuideType.RECORD_PATH, "# RP\n", "https://nifi.example.com/y",
+                        "text/html", List.of()),
+                new GuideDocument(GuideType.DEVELOPER, "# Dev\n", "https://nifi.example.com/z",
+                        "text/html", List.of("NiFi Components"))));
     }
 
     private KnowledgeBase knowledgeBase(final GuidesResult guides) {

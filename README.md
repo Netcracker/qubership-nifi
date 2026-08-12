@@ -63,6 +63,9 @@ usage details. The main tools are:
 - **qubership-nifi-flow-diff-tool** and **qubership-nifi-flow-diff-cli** - classify
   differences between flow exports and revert NiFi-generated technical identifiers, as a
   Maven plugin and as a command-line tool over the same library.
+- **qubership-nifi-kb-builder-tool** - builds a portable NiFi Knowledge Base from a running
+  NiFi instance: the component catalog plus the Expression Language, RecordPath, and
+  Developer's guides.
 
 See [`qubership-nifi-tools`](qubership-nifi-tools/README.md) for the complete list,
 including shared libraries and integration-test modules.

@@ -64,7 +64,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class KnowledgeBaseBuilderIT {
 
-    private static final String NIFI_IMAGE = "apache/nifi:2.7.2";
+    private static final String NIFI_IMAGE = "apache/nifi:2.10.0";
     private static final String USERNAME = "admin";
     private static final int HOST_PORT = 19443;
     private static final int STARTUP_TIMEOUT_SECONDS = 240;

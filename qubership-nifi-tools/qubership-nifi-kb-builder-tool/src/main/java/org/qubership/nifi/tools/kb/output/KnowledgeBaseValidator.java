@@ -104,15 +104,16 @@ public final class KnowledgeBaseValidator {
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             final Path kindDir = root.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY)
                     .resolve(ComponentKindLayout.directoryName(kind));
+            if (!Files.isDirectory(kindDir)) {
+                throw new OutputException("Required Knowledge Base directory is missing: " + kindDir);
+            }
             final long dirs = countComponentDirs(kindDir);
             final long expected = manifestCount(manifest, kind);
             if (dirs != expected) {
                 throw new OutputException("Component count mismatch for " + kind + ": manifest " + expected
                         + " but found " + dirs + " directories");
             }
-            if (Files.isDirectory(kindDir)) {
-                validateComponentDirs(kindDir);
-            }
+            validateComponentDirs(kindDir);
         }
     }
 
@@ -156,9 +157,6 @@ public final class KnowledgeBaseValidator {
     }
 
     private long countComponentDirs(final Path kindDir) {
-        if (!Files.isDirectory(kindDir)) {
-            return 0;
-        }
         try (Stream<Path> dirs = Files.list(kindDir)) {
             return dirs.filter(Files::isDirectory).count();
         } catch (final IOException e) {

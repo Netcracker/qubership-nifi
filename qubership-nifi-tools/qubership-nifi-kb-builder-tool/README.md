@@ -203,8 +203,13 @@ The tool writes a portable directory:
 `component.json` holds the lossless NiFi list entry and definition plus the derived
 `additionalDocumentation` state. `component.md` is a concise, searchable summary. `additionalDetails.md`
 is verbatim, untrusted component-supplied Markdown, written only when NiFi advertised it and returned
-it. `manifest.json` records provenance, component counts, guide statuses, and a single aggregate
-`sha256:` catalog fingerprint.
+content for it. All three kind directories are always present, empty if the target NiFi exposes no
+component of that kind. `manifest.json` records provenance, component counts, guide statuses, and a
+single aggregate `sha256:` fingerprint.
+
+The fingerprint covers the component output and, in a full build, the guides, so it identifies the
+whole Knowledge Base and is safe to use as a cache key: a `--skip-guides` build and a full build of
+the same NiFi never share one.
 
 ## Exit codes
 
@@ -237,11 +242,12 @@ A failed run leaves the previous output directory unchanged.
 
 ```shell
 # Unit tests (no NiFi required)
-mvn test -pl qubership-nifi-tools/qubership-nifi-kb-builder-tool
+mvn test -pl qubership-nifi-tools/qubership-nifi-kb-builder-tool -am
 
 # Integration tests (Docker required)
 mvn verify -pl qubership-nifi-tools/qubership-nifi-kb-builder-tool-it -am -Ptools-integration-tests -DskipUnitTests=true
 ```
 
-The integration tests start a real NiFi container and launch the packaged jar in its own process, so
-`-am` is required: it packages the tool module before the tests run.
+Both commands need `-am`. The tool depends on the `qubership-nifi-tools-nifi-common` snapshot, which a
+clean checkout has not installed yet, and the integration tests launch the packaged jar in its own
+process, so the tool module has to be packaged before they run.

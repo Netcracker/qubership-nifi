@@ -85,9 +85,22 @@ public final class ComponentCollector {
         return new ComponentRecord(identity, typeEntry, definition, outcome.state(), outcome.content());
     }
 
+    /**
+     * Verifies that a definition describes the component that was requested. An absent type is a
+     * violation in its own right: an empty or truncated body parses into a node with no {@code type},
+     * and accepting it would write a component with no properties and no relationships, which is the
+     * silently incomplete catalog this class exists to prevent.
+     *
+     * @param identity   the requested component identity
+     * @param definition the definition the endpoint returned
+     */
     private void verifyDefinitionIdentity(final ComponentIdentity identity, final JsonNode definition) {
         final String definitionType = definition.path("type").asText("");
-        if (!definitionType.isBlank() && !definitionType.equals(identity.getType())) {
+        if (definitionType.isBlank()) {
+            throw new CollectionException("Definition for " + identity.getType()
+                    + " carries no type, so it cannot be verified against the requested identity");
+        }
+        if (!definitionType.equals(identity.getType())) {
             throw new CollectionException("Definition identity " + definitionType
                     + " disagrees with requested identity " + identity.getType());
         }
@@ -110,7 +123,10 @@ public final class ComponentCollector {
         }
         final Optional<String> content = catalog.getAdditionalDetails(kind, identity.getGroup(),
                 identity.getArtifact(), identity.getVersion(), identity.getType());
-        if (content.isEmpty()) {
+        // Blank content is the same outcome as a 404: there is nothing to write, and calling it
+        // available would publish an empty additionalDetails.md that a consumer has to open to
+        // discover is worthless.
+        if (content.isEmpty() || content.get().isBlank()) {
             return new AdditionalDetailsOutcome(AdditionalDocumentationState.advertisedUnavailable(), null);
         }
         return new AdditionalDetailsOutcome(AdditionalDocumentationState.advertisedAvailable(), content.get());

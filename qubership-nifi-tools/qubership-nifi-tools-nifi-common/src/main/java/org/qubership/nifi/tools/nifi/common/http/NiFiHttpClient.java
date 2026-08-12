@@ -234,7 +234,7 @@ public final class NiFiHttpClient implements Closeable {
                     continue;
                 }
                 throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
-                        failureMessage(e, isTransient(e)), e);
+                        failureMessage(e, attempt > 0), e);
             }
         }
     }
@@ -251,6 +251,16 @@ public final class NiFiHttpClient implements Closeable {
         return !(failure instanceof SSLException) && !(failure instanceof ResponseTooLargeException);
     }
 
+    /**
+     * Describes a transport failure. The prefix reports whether the request was actually retried, not
+     * whether it was retryable: with retries configured off, a transient failure fails on its first
+     * attempt and reporting it as retry-exhausted would send the reader looking for retries that
+     * never happened.
+     *
+     * @param failure the transport failure
+     * @param retried whether at least one retry was attempted before this failure
+     * @return the message describing the failure
+     */
     private static String failureMessage(final IOException failure, final boolean retried) {
         final String prefix = retried ? "Request failed after retries: " : "Request failed: ";
         return prefix + failure.getMessage();
@@ -322,8 +332,10 @@ public final class NiFiHttpClient implements Closeable {
     }
 
     /**
-     * Produces a redacted string form of a URI for diagnostics. The URI never carries credentials
-     * by construction, but user-info is stripped defensively.
+     * Produces a redacted string form of a URI for diagnostics: origin and path only. A NiFi API URI
+     * carries everything a reader needs in its path segments, while user-info, a query, and a
+     * fragment can all carry a credential, so all three are dropped. The result is therefore safe to
+     * put in a message, a log line, or a generated file.
      *
      * @param uri the URI
      * @return a redacted URI string
@@ -332,11 +344,13 @@ public final class NiFiHttpClient implements Closeable {
         if (uri == null) {
             return "<none>";
         }
-        if (uri.getUserInfo() == null) {
-            return uri.toString();
+        final String path = uri.getRawPath() == null ? "" : uri.getRawPath();
+        if (uri.getScheme() == null || uri.getHost() == null) {
+            // A relative or opaque URI has no origin to report; its path is all that is safe to keep.
+            return path.isEmpty() ? "<unknown>" : path;
         }
         return uri.getScheme() + "://" + uri.getHost()
-                + (uri.getPort() == -1 ? "" : ":" + uri.getPort()) + uri.getRawPath();
+                + (uri.getPort() == -1 ? "" : ":" + uri.getPort()) + path;
     }
 
     /**

@@ -32,6 +32,7 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +40,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class NiFiHttpClientTest {
 
     private static final String ABOUT_PATH = "/nifi-api/flow/about";
+    private static final long REQUEST_TIMEOUT_MILLIS = 200L;
+    private static final long SLOW_RESPONSE_MILLIS = 3000L;
 
     private MockWebServer server;
     private NiFiUriResolver resolver;
@@ -180,6 +183,47 @@ class NiFiHttpClientTest {
     void excerptCollapsesAndBounds() {
         assertThat(NiFiHttpClient.excerpt("  a\n b  ")).isEqualTo("a b");
         assertThat(NiFiHttpClient.excerpt(null)).isEmpty();
+    }
+
+    @Test
+    void redactKeepsTheOriginAndPathOnly() {
+        assertThat(NiFiHttpClient.redact(
+                URI.create("https://nifi.example.com:8443/nifi-api/flow/about?token=secret#top")))
+                .isEqualTo("https://nifi.example.com:8443/nifi-api/flow/about");
+        assertThat(NiFiHttpClient.redact(URI.create("/nifi-api/flow/about"))).isEqualTo("/nifi-api/flow/about");
+        assertThat(NiFiHttpClient.redact(null)).isEqualTo("<none>");
+    }
+
+    @Test
+    void doesNotClaimRetriesForAFailureThatWasNeverRetried() {
+        server.enqueue(slowResponse());
+
+        assertThatThrownBy(() -> getAbout(NoAuthentication.INSTANCE, impatient(0)))
+                .isInstanceOf(NiFiApiException.class)
+                .hasMessageContaining("Request failed:")
+                .hasMessageNotContaining("after retries");
+    }
+
+    @Test
+    void reportsRetryExhaustionOnlyWhenARetryWasAttempted() {
+        server.enqueue(slowResponse());
+        server.enqueue(slowResponse());
+
+        assertThatThrownBy(() -> getAbout(NoAuthentication.INSTANCE, impatient(1)))
+                .isInstanceOf(NiFiApiException.class)
+                .hasMessageContaining("Request failed after retries:");
+    }
+
+    // A response that arrives later than the configured timeout, which fails the attempt with a
+    // transient transport failure rather than an HTTP status.
+    private static MockResponse slowResponse() {
+        return new MockResponse().setResponseCode(200).setBody("{}")
+                .setHeadersDelay(SLOW_RESPONSE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    private static NiFiHttpClient.Config impatient(final int maxRetries) {
+        return new NiFiHttpClient.Config(Duration.ofMillis(REQUEST_TIMEOUT_MILLIS), 1024, maxRetries,
+                Duration.ofMillis(1), Duration.ofMillis(5), 3);
     }
 
     @Test

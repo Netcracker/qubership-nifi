@@ -47,6 +47,39 @@ class HtmlToMarkdownTest {
     }
 
     @Test
+    void sizesTheSeparatorRowFromTheWidestRow() {
+        final String md = convert("<table><thead><tr><th colspan=\"3\">Spanning header</th></tr></thead>"
+                + "<tbody><tr><td>1</td><td>2</td><td>3</td></tr></tbody></table>");
+
+        assertThat(md).contains("| --- | --- | --- |");
+        assertThat(md).contains("| 1 | 2 | 3 |");
+    }
+
+    @Test
+    void keepsNestedListItemBoundaries() {
+        final String md = convert("<ul><li>Parent<ul><li>Child one</li><li>Child two</li></ul></li>"
+                + "<li>Sibling</li></ul>");
+
+        assertThat(md).contains("- Parent\n  - Child one\n  - Child two\n- Sibling");
+    }
+
+    @Test
+    void keepsNestedListItemBoundariesThroughAWrapperDiv() {
+        // Asciidoctor wraps a nested list in a div rather than making it a child of the item.
+        final String md = convert("<ol><li><p>Step</p><div class=\"ulist\"><ul><li>Detail</li></ul></div></li></ol>");
+
+        assertThat(md).contains("1. Step\n  - Detail");
+    }
+
+    @Test
+    void doesNotEmitAnEmptyBulletForAnItemThatOnlyWrapsAList() {
+        final String md = convert("<ul><li><ul><li>Only child</li></ul></li></ul>");
+
+        assertThat(md).contains("- Only child");
+        assertThat(md).doesNotContain("- \n");
+    }
+
+    @Test
     void omitsImagesAndFlattensLinksToText() {
         final String md = convert("<p><img src=\"logo.png\"/><a href=\"page.html\">Page111</a></p>");
         assertThat(md).doesNotContain("logo.png");

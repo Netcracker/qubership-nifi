@@ -53,7 +53,8 @@ This is a multi-module Maven project that extends Apache NiFi 2.x with custom pr
 - **`qubership-nifi-tools/`** - various tools to automate nifi-related activities: docs generator plugin,
   api-export-tool, openapi-spec-enricher, component-comparator-tool, flow-diff-core (classifies differences between
   flow exports and reverts NiFi-generated technical identifiers) with its two frontends, flow-diff-tool (Maven
-  plugin) and flow-diff-cli (command line).
+  plugin) and flow-diff-cli (command line), kb-builder-tool (builds a portable NiFi Knowledge Base for an AI
+  agent from a running NiFi instance) over tools-nifi-common (shared NiFi REST, TLS, and HTTP library).
 
 ### NiFi Component Pattern
 

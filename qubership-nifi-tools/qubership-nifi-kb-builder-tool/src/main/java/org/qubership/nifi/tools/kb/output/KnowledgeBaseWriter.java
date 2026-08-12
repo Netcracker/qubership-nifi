@@ -30,6 +30,7 @@ import org.qubership.nifi.tools.kb.render.GuideIndexRenderer;
 import org.qubership.nifi.tools.kb.render.IndexRenderer;
 import org.qubership.nifi.tools.kb.render.JsonOutput;
 import org.qubership.nifi.tools.kb.render.ManifestRenderer;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,8 +41,12 @@ import java.util.List;
 
 /**
  * Renders a complete Knowledge Base into a staging directory in the deterministic order required by
- * the output contract: component files and indexes first, then the aggregate catalog fingerprint,
- * then guides, and finally the manifest.
+ * the output contract: component files and indexes first, then guides, then the aggregate fingerprint
+ * over everything written, and finally the manifest.
+ *
+ * <p>The fingerprint covers the guides as well as the catalog because consumers use it as a cache
+ * key. A catalog-only build and a full build of the same NiFi hold different content, so they must
+ * not share a fingerprint.</p>
  */
 public final class KnowledgeBaseWriter {
 
@@ -96,31 +101,46 @@ public final class KnowledgeBaseWriter {
         sorted.sort(ComponentSorting.BY_IDENTITY);
 
         final Path componentsDir = root.resolve(KnowledgeBaseFormat.COMPONENTS_DIRECTORY);
-        Files.createDirectories(componentsDir);
+        createKindDirectories(componentsDir);
 
-        final List<String> catalogPaths = new ArrayList<>();
+        final List<String> coveredPaths = new ArrayList<>();
 
         for (final ComponentRecord componentRecord : sorted) {
-            writeComponent(componentsDir, componentRecord, catalogPaths);
+            writeComponent(componentsDir, componentRecord, coveredPaths);
         }
 
         Files.write(componentsDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), index.renderJson(sorted));
         Files.writeString(componentsDir.resolve(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE),
                 index.renderMarkdown(sorted));
-        catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_JSON_FILE));
-        catalogPaths.add(componentPath(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE));
-
-        final String fingerprint = CatalogFingerprint.compute(root, catalogPaths);
+        coveredPaths.add(componentPath(KnowledgeBaseFormat.INDEX_JSON_FILE));
+        coveredPaths.add(componentPath(KnowledgeBaseFormat.INDEX_MARKDOWN_FILE));
 
         if (kb.guides().mode() == GuideMode.REQUIRED) {
-            writeGuides(root, kb);
+            writeGuides(root, kb, coveredPaths);
         }
+
+        final String fingerprint = CatalogFingerprint.compute(root, coveredPaths);
 
         Files.write(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
     }
 
+    /**
+     * Creates the components directory and one directory per component kind. A kind the target NiFi
+     * exposes none of still gets its directory: the layout is part of the output contract, so a
+     * consumer walking it finds an empty directory rather than a missing path.
+     *
+     * @param componentsDir the components directory
+     * @throws IOException when a directory cannot be created
+     */
+    private void createKindDirectories(final Path componentsDir) throws IOException {
+        Files.createDirectories(componentsDir);
+        for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
+            Files.createDirectories(componentsDir.resolve(ComponentKindLayout.directoryName(kind)));
+        }
+    }
+
     private void writeComponent(final Path componentsDir, final ComponentRecord componentRecord,
-                                final List<String> catalogPaths) throws IOException {
+                                final List<String> coveredPaths) throws IOException {
         final String kindDir = ComponentKindLayout.directoryName(componentRecord.identity().getKind());
         final Path dir = componentsDir.resolve(kindDir).resolve(componentRecord.identity().directoryName());
         Files.createDirectories(dir);
@@ -128,26 +148,29 @@ public final class KnowledgeBaseWriter {
         Files.write(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(componentRecord));
         Files.writeString(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE),
                 componentMarkdown.render(componentRecord));
-        catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
+        coveredPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_JSON_FILE)));
-        catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
+        coveredPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE)));
 
         if (componentRecord.additionalDocumentation().isAvailable()) {
             Files.writeString(dir.resolve(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE),
                     componentRecord.additionalDetailsContent().orElse(""));
-            catalogPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
+            coveredPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                     KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE)));
         }
     }
 
-    private void writeGuides(final Path root, final KnowledgeBase kb) throws IOException {
+    private void writeGuides(final Path root, final KnowledgeBase kb, final List<String> coveredPaths)
+            throws IOException {
         final Path guidesDir = root.resolve(KnowledgeBaseFormat.GUIDES_DIRECTORY);
         Files.createDirectories(guidesDir);
         for (final GuideDocument document : kb.guides().documents()) {
             Files.writeString(guidesDir.resolve(document.type().getOutputFileName()), document.markdown());
+            coveredPaths.add(document.type().getOutputPath());
         }
         Files.write(guidesDir.resolve(KnowledgeBaseFormat.INDEX_JSON_FILE), guideIndex.render(kb.guides()));
+        coveredPaths.add(KnowledgeBaseFormat.GUIDES_DIRECTORY + '/' + KnowledgeBaseFormat.INDEX_JSON_FILE);
     }
 
     private static String componentPath(final String relativePath) {
