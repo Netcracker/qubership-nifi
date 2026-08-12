@@ -70,3 +70,8 @@ Controller services follow the same pattern with interface and implementation sp
 - The `docs/openapi/openapi.json` is generated: edit `qubership-nifi-tools/qubership-nifi-openapi-enricher` to change.
 - Use ASCII characters only in source code and documentation. Avoid Unicode punctuation such as em-dashes,
   smart quotes, and arrows; use the ASCII equivalents (`-`, `->`, straight quotes) instead.
+- Prefer a JDK standard-library API over a hand-rolled equivalent. The baseline is Java 21, and the root pom
+  compiles with `--release 25`, so pre-Java-17 idioms are never required: use `HexFormat` rather than a nibble
+  loop, `StandardCharsets` rather than `"UTF-8"` literals, `List.of` / `Map.of` for immutable constants,
+  `Files.readString` / `Files.writeString` for text files, and `Stream.toList()` rather than
+  `collect(Collectors.toList())`. Write the loop by hand only when the JDK has no equivalent.
