@@ -34,7 +34,8 @@ no pipeline artifacts are produced. The MR comment is the only output.
 ### 1. Prerequisites
 
 - Maven 3.x, to fetch the `qubership-nifi-flow-diff-cli` jar and its runtime dependencies.
-- Docker, to build `flow-diff-cli:local`.
+- Docker, to build the image.
+- A container registry your GitLab runner can pull from, to publish the image you build in step 3.
 
 ### 2. Pin the CLI version
 
@@ -43,21 +44,34 @@ want. See
 `qubership-nifi-tools/qubership-nifi-flow-diff-cli/README.md` ("Getting the jars", "Option 2:
 helper pom") for background on this file.
 
-### 3. Build the Docker image
+### 3. Build and push the Docker image
 
 ```bash
-./build-image.sh
-# or: ./build-image.sh my-custom-tag
+./build-image.sh registry.example.com/flow-diff-cli:X.Y.Z
+docker push registry.example.com/flow-diff-cli:X.Y.Z
 ```
 
-This runs `mvn -f flowdiff-pom.xml dependency:copy-dependencies` to fetch the jar and its runtime
-dependencies into `lib/`, then builds `flow-diff-cli:local` (default tag) from `Dockerfile`.
-Re-run this whenever you bump `flow.diff.version` in `flowdiff-pom.xml`.
+`build-image.sh` runs `mvn -f flowdiff-pom.xml dependency:copy-dependencies` to fetch the jar and
+its runtime dependencies into `lib/`, then builds the given tag (`flow-diff-cli:local` if you omit
+it) from `Dockerfile`. Re-run both commands whenever you bump `flow.diff.version` in
+`flowdiff-pom.xml`.
+
+The image must end up in a registry your runner can pull from: an unqualified, locally-built tag
+(the `./build-image.sh` default) only exists on the machine that ran Docker, and a GitLab runner's
+Docker executor almost never is that machine (shared, autoscaled, and Kubernetes runners each use
+their own, separate Docker engine). Pointing `image:` at such a tag will fail as soon as the job
+lands on a runner that never built it.
 
 ### 4. Point the pipeline at your image
 
-In `.gitlab-ci.yml`, set `image:` to the image you produced in step 3 (`flow-diff-cli:local` by
-default). If you tag it differently or push it to a registry, adjust `image:` accordingly.
+In `.gitlab-ci.yml`, set `image: name:` to the fully qualified tag you pushed in step 3 - ideally
+pinned by digest (`docker inspect --format='{{index .RepoDigests 0}}' <tag>` after the push) so the
+pipeline is immune to the tag being overwritten later.
+
+If you intentionally want to skip the registry and rely on a runner-local image instead, that only
+works when every runner eligible for this job builds the image itself (so it's actually present
+locally when the job starts), and even then the job needs `pull_policy: [if-not-present]`, which
+GitLab rejects unless the runner's `config.toml` explicitly lists it in `allowed_pull_policies`.
 
 ### 5. Create the GitLab API token
 
@@ -66,7 +80,8 @@ Project or Group Access Token (`api` scope).
 
 1. In the target GitLab project: **Settings -> Access Tokens** (or a Group Access Token if you
    want it shared across several projects).
-2. Create a token with the `api` scope and a role of at least `Developer`.
+2. Create a token with the `api` scope and no higher than the `Developer` role (GitLab's Notes
+   API requires the `api` scope; there is no narrower scope for posting/updating notes).
 3. In **Settings -> CI/CD -> Variables**, add a variable:
    - Key: `GITLAB_API_TOKEN`
    - Value: the token from step 2
@@ -78,6 +93,12 @@ The "Protect variable: off" part is important and easy to get wrong: merge reque
 on a merge ref (`refs/merge-requests/<iid>/merge`), not on a protected branch, so a variable
 marked "Protected" would silently not be available to the job (it would show up empty). Masking
 is safe to enable independently and recommended, so the token never appears in job logs.
+
+Because the variable must stay unprotected, it is available to every merge request pipeline in
+this project, including ones whose own branch modifies `.gitlab-ci.yml` or this job's scripts. In
+other words, anyone who can open a merge request here (and, if fork pipelines are enabled for this
+project, anyone with a fork) can read or exfiltrate this `api`-scope token. Only add this pipeline
+to repositories where every merge request author is already trusted with that level of API access.
 
 ### 6. Copy the pipeline into the target repository
 
