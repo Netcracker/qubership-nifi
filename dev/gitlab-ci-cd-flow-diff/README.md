@@ -18,7 +18,7 @@ the pipeline:
 Everything happens inside one job, in shell variables - no report files are written to disk and
 no pipeline artifacts are produced. The MR comment is the only output.
 
-**Status:** prototype. It has been exercised end-to-end against a local GitLab.
+**Status:** prototype.
 
 ## Files in this directory
 
@@ -26,25 +26,22 @@ no pipeline artifacts are produced. The MR comment is the only output.
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `.gitlab-ci.yml`        | The pipeline itself. Copy this into the target repository's root and adjust the `variables:` block.                        |
 | `Dockerfile`            | The image used in the pipeline.                                                                                             |
-| `build-image.sh`        | Script that builds the image.                                                                                               |
-| `nifi-flow-diff.sh`     | Launcher script baked into the image at `/usr/local/bin/nifi-flow-diff`, so the pipeline can call the CLI by name.          |
+| `build-image.sh`        | Fetches the CLI jar and its dependencies via Maven, then builds the image.                                                  |
+| `flowdiff-pom.xml`      | Pins the `qubership-nifi-flow-diff-cli` version; drives the Maven fetch in `build-image.sh`.                                |
 
 ## Setup walkthrough
 
 ### 1. Prerequisites
 
-- The `qubership-nifi-flow-diff-cli` jar and its runtime dependency jars (see step 2).
+- Maven 3.x, to fetch the `qubership-nifi-flow-diff-cli` jar and its runtime dependencies.
 - Docker, to build `flow-diff-cli:local`.
 
-### 2. Place the CLI jar and its dependencies into `lib/`
+### 2. Pin the CLI version
 
-Put `qubership-nifi-flow-diff-cli-<version>.jar`, together with its runtime dependency jars, into
-`lib/` in your directory. How you obtain them is up to you - see
-`qubership-nifi-tools/qubership-nifi-flow-diff-cli/README.md` ("Getting the jars") for ways to
-fetch a released version without a local checkout or build of this repository, e.g. the
-[helper pom](https://github.com/Netcracker/qubership-nifi/tree/main/qubership-nifi-tools/qubership-nifi-flow-diff-cli#option-2-helper-pom)
-option, which pins the version and output directory in a small `flowdiff-pom.xml` instead of
-passing them on the command line.
+Edit `flow.diff.version` in `flowdiff-pom.xml` to the `qubership-nifi-flow-diff-cli` release you
+want. See
+`qubership-nifi-tools/qubership-nifi-flow-diff-cli/README.md` ("Getting the jars", "Option 2:
+helper pom") for background on this file.
 
 ### 3. Build the Docker image
 
@@ -53,8 +50,9 @@ passing them on the command line.
 # or: ./build-image.sh my-custom-tag
 ```
 
-This builds `flow-diff-cli:local` (default tag) from `Dockerfile`, baking in whatever is
-currently in `./lib`. Re-run this whenever you fetch a new CLI version into `lib/`.
+This runs `mvn -f flowdiff-pom.xml dependency:copy-dependencies` to fetch the jar and its runtime
+dependencies into `lib/`, then builds `flow-diff-cli:local` (default tag) from `Dockerfile`.
+Re-run this whenever you bump `flow.diff.version` in `flowdiff-pom.xml`.
 
 ### 4. Point the pipeline at your image
 
@@ -95,11 +93,17 @@ variables:
 
 ### 7. Test it
 
-1. Push a change under `FLOW_DIFF_PATH` on a branch and open a merge request.
-2. Watch the `flow-diff` job in the pipeline.
-3. Check the merge request for the `<!-- nifi-flow-diff -->` sticky comment.
-4. Push another change and confirm the same comment gets updated in place rather than
+1. Push a change under `FLOW_DIFF_PATH` on a branch, open a merge request, and check it for the
+   `<!-- nifi-flow-diff -->` sticky comment.
+2. Push another change and confirm the same comment gets updated in place rather than
    duplicated.
+
+## Existing comment lookup
+
+The pipeline finds the existing sticky comment by listing notes with `?per_page=100` and looking
+for the `<!-- nifi-flow-diff -->` marker. This assumes the merge request has fewer than 100 notes;
+beyond that, pagination would be needed to find an older sticky comment, which this prototype does
+not implement.
 
 ## Comment size limit
 
