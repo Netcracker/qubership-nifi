@@ -60,6 +60,10 @@ import java.util.Set;
  * {@link #newHttpClient(SSLContext, Duration)} (or an equivalent builder that never auto-follows
  * redirects) so that redirect origin enforcement happens here rather than inside the transport.</p>
  *
+ * <p>Redirects are followed for GET only. Re-issuing a POST or a DELETE against a redirect target
+ * would either repeat a side effect or quietly downgrade the verb, so {@link #post} and
+ * {@link #delete} hand a 3xx response back to the caller unchanged.</p>
+ *
  * <p>This client takes ownership of the wrapped client: {@link #close()} shuts down the underlying
  * connection pool, so each instance must be closed when it is no longer needed.</p>
  */
@@ -156,7 +160,7 @@ public final class NiFiHttpClient implements Closeable {
      */
     public NiFiHttpResponse get(final URI uri, final String acceptHeader) {
         requireSameOrigin(Method.GET, uri);
-        return executeWithRetry(Method.GET, uri, acceptHeader);
+        return executeWithRetry(uri, acceptHeader);
     }
 
     /**
@@ -215,13 +219,21 @@ public final class NiFiHttpClient implements Closeable {
         return request;
     }
 
-    private NiFiHttpResponse executeWithRetry(final Method method, final URI uri, final String acceptHeader) {
+    /**
+     * Sends a GET request, retrying transient failures. Only GET takes this path: of the three verbs
+     * this client offers it is the one that is idempotent, so replaying it cannot repeat a side effect.
+     *
+     * @param uri          the request URI
+     * @param acceptHeader the value of the {@code Accept} header
+     * @return the bounded response
+     */
+    private NiFiHttpResponse executeWithRetry(final URI uri, final String acceptHeader) {
         int attempt = 0;
         while (true) {
             try {
-                final Exchange exchange = sendFollowingSameOriginRedirects(method, uri, acceptHeader);
+                final Exchange exchange = sendGetFollowingSameOriginRedirects(uri, acceptHeader);
                 if (RETRYABLE_STATUSES.contains(exchange.response().statusCode()) && attempt < config.maxRetries()) {
-                    backoff(method, uri, attempt, retryAfterMillis(exchange));
+                    backoff(Method.GET, uri, attempt, retryAfterMillis(exchange));
                     attempt++;
                     continue;
                 }
@@ -229,11 +241,11 @@ public final class NiFiHttpClient implements Closeable {
             } catch (final IOException e) {
                 if (isTransient(e) && attempt < config.maxRetries()) {
                     LOG.debug("Retrying {} after transport failure (attempt {})", redact(uri), attempt, e);
-                    backoff(method, uri, attempt, -1L);
+                    backoff(Method.GET, uri, attempt, -1L);
                     attempt++;
                     continue;
                 }
-                throw new NiFiApiException(method.name(), redact(uri), NiFiApiException.NO_STATUS, "",
+                throw new NiFiApiException(Method.GET.name(), redact(uri), NiFiApiException.NO_STATUS, "",
                         failureMessage(e, attempt > 0), e);
             }
         }
@@ -275,8 +287,18 @@ public final class NiFiHttpClient implements Closeable {
         }
     }
 
-    private Exchange sendFollowingSameOriginRedirects(final Method method, final URI initialUri,
-                                                      final String acceptHeader) throws IOException {
+    /**
+     * Issues a GET and follows any same-origin redirect it answers with. Redirect following is GET-only
+     * by design: this client sends POST and DELETE through {@link #executeOnce}, which hands a 3xx back
+     * to the caller verbatim rather than re-issuing the request against the redirect target.
+     *
+     * @param initialUri   the first URI to request
+     * @param acceptHeader the value of the {@code Accept} header
+     * @return the exchange that ended the redirect chain
+     * @throws IOException on a transport failure
+     */
+    private Exchange sendGetFollowingSameOriginRedirects(final URI initialUri,
+                                                         final String acceptHeader) throws IOException {
         URI currentUri = initialUri;
         int redirects = 0;
         while (true) {
@@ -285,12 +307,12 @@ public final class NiFiHttpClient implements Closeable {
             final int status = exchange.response().statusCode();
             if (status >= REDIRECT_LOW && status < REDIRECT_HIGH) {
                 if (exchange.location() == null) {
-                    throw new NiFiApiException(method.name(), redact(currentUri), status, "",
+                    throw new NiFiApiException(Method.GET.name(), redact(currentUri), status, "",
                             "Redirect response is missing a Location header");
                 }
                 final URI target = currentUri.resolve(exchange.location());
                 if (!resolver.isSameOrigin(target) || redirects >= config.maxRedirects()) {
-                    throw new NiFiApiException(method.name(), redact(currentUri), status, "",
+                    throw new NiFiApiException(Method.GET.name(), redact(currentUri), status, "",
                             "Rejected redirect to " + redact(target));
                 }
                 redirects++;

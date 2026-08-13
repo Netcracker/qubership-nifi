@@ -161,6 +161,39 @@ class NiFiHttpClientTest {
     }
 
     @Test
+    void followsASameOriginRedirectAsAGet() throws InterruptedException {
+        server.enqueue(new MockResponse().setResponseCode(302)
+                .setHeader("Location", "/nifi-api/flow/about-moved"));
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("{\"ok\":true}"));
+
+        final NiFiHttpResponse response = getAbout(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.bodyAsText()).contains("ok");
+        assertThat(server.getRequestCount()).isEqualTo(2);
+        assertThat(server.takeRequest().getMethod()).isEqualTo("GET");
+        final RecordedRequest followed = server.takeRequest();
+        assertThat(followed.getMethod()).isEqualTo("GET");
+        assertThat(followed.getPath()).isEqualTo("/nifi-api/flow/about-moved");
+    }
+
+    @Test
+    void returnsARedirectOnPostAndDeleteWithoutFollowingIt() throws InterruptedException {
+        final NiFiHttpClient client = client(NoAuthentication.INSTANCE, NiFiHttpClient.Config.defaults());
+        final URI uri = resolver.resolve(ABOUT_PATH);
+        server.enqueue(new MockResponse().setResponseCode(302).setHeader("Location", "/moved"));
+        server.enqueue(new MockResponse().setResponseCode(302).setHeader("Location", "/moved"));
+
+        assertThat(client.post(uri, "{}", NiFiHttpClient.APPLICATION_JSON, NiFiHttpClient.APPLICATION_JSON)
+                .statusCode()).isEqualTo(302);
+        assertThat(client.delete(uri).statusCode()).isEqualTo(302);
+
+        assertThat(server.getRequestCount()).isEqualTo(2);
+        assertThat(server.takeRequest().getMethod()).isEqualTo("POST");
+        assertThat(server.takeRequest().getMethod()).isEqualTo("DELETE");
+    }
+
+    @Test
     void honorsRetryAfterHeaderWithinTheBackoffCeiling() {
         server.enqueue(new MockResponse().setResponseCode(429)
                 .setHeader("Retry-After", "1").setBody("slow down"));

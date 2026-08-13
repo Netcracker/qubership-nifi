@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.core5.http.HttpRequest;
 import org.qubership.nifi.tools.nifi.common.auth.NiFiRequestAuthenticator;
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
 import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
 import org.qubership.nifi.tools.nifi.common.http.NiFiHttpResponse;
 import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
@@ -32,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.Closeable;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -111,10 +113,15 @@ public class NiFiApiClient implements Closeable {
     public void authenticate() throws Exception {
         final String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
                 + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
-        final NiFiHttpResponse response = httpClient.post(resolver.resolve(TOKEN_PATH), body,
+        final URI tokenUri = resolver.resolve(TOKEN_PATH);
+        final NiFiHttpResponse response = httpClient.post(tokenUri, body,
                 "application/x-www-form-urlencoded", "text/plain");
         if (!response.isSuccess()) {
-            throw new RuntimeException("Authentication failed with status " + response.statusCode());
+            // The token endpoint reports why it rejected the login in the response body, so the
+            // excerpt is the only part of the failure a user can act on.
+            throw new NiFiApiException("POST", NiFiHttpClient.redact(tokenUri), response.statusCode(),
+                    NiFiHttpClient.excerpt(response.bodyAsText()),
+                    "Authentication failed (status " + response.statusCode() + ")");
         }
         authenticator.setToken(response.bodyAsText().trim());
         LOG.info("Authentication successful");

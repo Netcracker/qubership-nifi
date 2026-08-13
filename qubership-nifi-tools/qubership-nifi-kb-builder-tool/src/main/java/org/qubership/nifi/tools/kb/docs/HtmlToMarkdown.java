@@ -20,8 +20,12 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 /**
@@ -35,11 +39,23 @@ import java.util.function.UnaryOperator;
  * <p>Images are omitted and their sources are never requested. Anchors are flattened to their link
  * text, whatever the scheme, so no URL from the source document reaches the output. An anchor with
  * no text is dropped entirely.
+ *
+ * <p>A tag outside the recognized set is treated as a wrapper when it holds block content, so that
+ * content keeps its own structure. Every such tag is reported once per instance: a guide that
+ * degrades because NiFi started emitting markup this converter does not model must leave a trace.
  */
 public final class HtmlToMarkdown {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HtmlToMarkdown.class);
+
     private static final int MAX_HEADING_LEVEL = 6;
     private static final String LIST_INDENT = "  ";
+
+    /** The tags {@code convertBlock} renders as blocks, used to decide whether a wrapper holds any. */
+    private static final String BLOCK_CONTENT_SELECTOR =
+            "h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,table,hr,div,section,article,main";
+
+    private final Set<String> reportedUnknownTags = new HashSet<>();
 
     /**
      * Converts the given content element to Markdown.
@@ -77,9 +93,32 @@ public final class HtmlToMarkdown {
             case "blockquote" -> appendInlineBlock(element, out,
                     text -> "> " + text.replace("\n", "\n> "));
             case "table" -> appendTable(element, out);
+            case "hr" -> out.append("---\n\n");
             case "img" -> { }
             case "div", "section", "article", "main", "span" -> convertBlockChildren(element, out);
-            default -> appendInlineBlock(element, out, UnaryOperator.identity());
+            default -> convertUnknownBlock(element, out, tag);
+        }
+    }
+
+    /**
+     * Renders a tag this converter does not model. An element holding block content is treated as a
+     * wrapper so that content keeps its own structure: flattening it to inline text would merge its
+     * paragraphs into one run-on line, strip the markers off its headings, and drop any list inside
+     * it outright, since the inline pass deliberately skips lists. An element holding only inline
+     * content is still flattened, which keeps its emphasis and code spans.
+     *
+     * @param element the unrecognized element
+     * @param out     the output being built
+     * @param tag     the lower-case tag name
+     */
+    private void convertUnknownBlock(final Element element, final StringBuilder out, final String tag) {
+        if (reportedUnknownTags.add(tag)) {
+            LOG.warn("Unrecognized HTML tag <{}> in guide content; rendering its content generically", tag);
+        }
+        if (element.select(BLOCK_CONTENT_SELECTOR).isEmpty()) {
+            appendInlineBlock(element, out, UnaryOperator.identity());
+        } else {
+            convertBlockChildren(element, out);
         }
     }
 

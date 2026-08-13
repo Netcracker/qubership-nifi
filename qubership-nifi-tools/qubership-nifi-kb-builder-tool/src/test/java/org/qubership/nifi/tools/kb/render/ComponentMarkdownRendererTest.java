@@ -145,6 +145,7 @@ class ComponentMarkdownRendererTest {
                 MAPPER.readTree("{}"), MAPPER.readTree("{}"), AdditionalDocumentationState.notAdvertised()));
 
         assertThat(markdown)
+                .contains("# TestProcessor")
                 .contains("## Identity")
                 .contains("## References")
                 .doesNotContain("## Description")
@@ -152,18 +153,6 @@ class ComponentMarkdownRendererTest {
                 .doesNotContain("## Input and relationships")
                 .doesNotContain("## Properties")
                 .doesNotContain("## Controller service APIs")
-                .doesNotContain("FlowFile attributes");
-    }
-
-    @Test
-    void degradesToIdentityAndReferencesWhenSourceTreesAreAbsent() {
-        final String markdown = new ComponentMarkdownRenderer().render(componentRecord(
-                null, null, AdditionalDocumentationState.notAdvertised()));
-
-        assertThat(markdown)
-                .contains("## Identity")
-                .contains("# TestProcessor")
-                .contains("## References")
                 .doesNotContain("FlowFile attributes");
     }
 

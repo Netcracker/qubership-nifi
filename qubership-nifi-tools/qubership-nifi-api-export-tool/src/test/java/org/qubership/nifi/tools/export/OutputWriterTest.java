@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,7 +44,7 @@ class OutputWriterTest {
     @Test
     void writeCreatesProcessorsSubdirAndJsonFiles() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
-        writer.write(ComponentKind.PROCESSOR, buildComponents("org.foo.Foo", "org.foo.Bar"));
+        writer.write(NiFiComponentKind.PROCESSOR, buildComponents("org.foo.Foo", "org.foo.Bar"));
 
         File dir = new File(tempDir.toFile(), "processors");
         assertTrue(dir.exists() && dir.isDirectory());
@@ -55,9 +57,9 @@ class OutputWriterTest {
         OutputWriter writer = new OutputWriter(tempDir.toString());
         List<Map<String, Object>> one = buildComponents("org.foo.X");
 
-        writer.write(ComponentKind.PROCESSOR, one);
-        writer.write(ComponentKind.CONTROLLER_SERVICE, one);
-        writer.write(ComponentKind.REPORTING_TASK, one);
+        writer.write(NiFiComponentKind.PROCESSOR, one);
+        writer.write(NiFiComponentKind.CONTROLLER_SERVICE, one);
+        writer.write(NiFiComponentKind.REPORTING_TASK, one);
 
         assertTrue(new File(tempDir.toFile(), "processors").isDirectory());
         assertTrue(new File(tempDir.toFile(), "controllerService").isDirectory());
@@ -67,8 +69,8 @@ class OutputWriterTest {
     @Test
     void writeFilenameIsSimpleNameOfFqcn() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
-        writer.write(ComponentKind.PROCESSOR, buildComponents("org.apache.nifi.GenerateFlowFile"));
-        writer.write(ComponentKind.CONTROLLER_SERVICE, buildComponents("SimpleName"));
+        writer.write(NiFiComponentKind.PROCESSOR, buildComponents("org.apache.nifi.GenerateFlowFile"));
+        writer.write(NiFiComponentKind.CONTROLLER_SERVICE, buildComponents("SimpleName"));
 
         assertTrue(new File(tempDir.toFile(), "processors/GenerateFlowFile.json").exists());
         assertTrue(new File(tempDir.toFile(), "controllerService/SimpleName.json").exists());
@@ -82,7 +84,7 @@ class OutputWriterTest {
         Map<String, Object> component = new HashMap<>();
         component.put("type", "org.foo.MyProcessor");
         component.put("propertyDescriptors", descriptors);
-        writer.write(ComponentKind.PROCESSOR, List.of(component));
+        writer.write(NiFiComponentKind.PROCESSOR, List.of(component));
 
         File jsonFile = new File(tempDir.toFile(), "processors/MyProcessor.json");
         assertTrue(jsonFile.exists());
@@ -96,7 +98,7 @@ class OutputWriterTest {
     @Test
     void writeEmptyListCreatesDirectoryWithNoFiles() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
-        writer.write(ComponentKind.PROCESSOR, new ArrayList<>());
+        writer.write(NiFiComponentKind.PROCESSOR, new ArrayList<>());
 
         File dir = new File(tempDir.toFile(), "processors");
         assertTrue(dir.exists());
@@ -106,9 +108,9 @@ class OutputWriterTest {
     @Test
     void writeMultipleKindsToSeparateSubdirs() throws Exception {
         OutputWriter writer = new OutputWriter(tempDir.toString());
-        writer.write(ComponentKind.PROCESSOR, buildComponents("org.foo.Proc"));
-        writer.write(ComponentKind.CONTROLLER_SERVICE, buildComponents("org.foo.Svc"));
-        writer.write(ComponentKind.REPORTING_TASK, buildComponents("org.foo.Task"));
+        writer.write(NiFiComponentKind.PROCESSOR, buildComponents("org.foo.Proc"));
+        writer.write(NiFiComponentKind.CONTROLLER_SERVICE, buildComponents("org.foo.Svc"));
+        writer.write(NiFiComponentKind.REPORTING_TASK, buildComponents("org.foo.Task"));
 
         assertTrue(new File(tempDir.toFile(), "processors/Proc.json").exists());
         assertTrue(new File(tempDir.toFile(), "controllerService/Svc.json").exists());

@@ -144,4 +144,32 @@ class HtmlToMarkdownTest {
                 .doesNotContain("ignored.png")
                 .doesNotContain("ignored-inline.png");
     }
+
+    @Test
+    void keepsBlockStructureInsideAnUnrecognizedWrapper() {
+        final String md = convert("""
+                <details><h3>Advanced</h3><p>First paragraph.</p><p>Second paragraph.</p>
+                <ul><li>One</li><li>Two</li></ul></details>
+                """);
+
+        assertThat(md)
+                .contains("### Advanced")
+                .contains("First paragraph.\n\nSecond paragraph.")
+                .contains("- One")
+                .contains("- Two");
+    }
+
+    @Test
+    void keepsInlineMarkupInsideAnUnrecognizedInlineOnlyElement() {
+        final String md = convert("<dl><dt><strong>Term</strong></dt><dd><p>The definition.</p></dd></dl>");
+
+        assertThat(md)
+                .contains("**Term**")
+                .contains("The definition.");
+    }
+
+    @Test
+    void rendersAThematicBreak() {
+        assertThat(convert("<p>Above</p><hr><p>Below</p>")).contains("Above\n\n---\n\nBelow");
+    }
 }

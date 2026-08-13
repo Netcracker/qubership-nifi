@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
 import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
 
 import java.io.IOException;
@@ -81,8 +82,15 @@ class NiFiApiClientTest {
 
     @Test
     void authenticateNon2xxThrows() {
-        server.enqueue(new MockResponse().setResponseCode(403).setBody("Forbidden"));
-        assertThrows(RuntimeException.class, () -> client.authenticate());
+        server.enqueue(new MockResponse().setResponseCode(403)
+                .setBody("Unable to validate the supplied credentials"));
+
+        NiFiApiException failure = assertThrows(NiFiApiException.class, () -> client.authenticate());
+
+        assertEquals(403, failure.getStatusCode());
+        // The rejection reason only ever reaches the user through the response body excerpt.
+        assertTrue(failure.getMessage().contains("Unable to validate the supplied credentials"),
+                "Message must carry the response body: " + failure.getMessage());
     }
 
     @Test

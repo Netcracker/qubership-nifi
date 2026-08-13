@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.kb.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -26,6 +27,10 @@ import java.util.Optional;
  *
  * <p>The two JSON trees are held and handed back by reference rather than copied, so a caller that
  * mutates one changes what every other holder of this record sees. Treat them as read-only.
+ *
+ * <p>Everything but the additional-details content is required, and the constructor rejects a null.
+ * The renderers each read the same trees, so a missing one must fail where it is introduced rather
+ * than reach some outputs as an empty value and others as a literal {@code null}.
  */
 public final class ComponentRecord {
 
@@ -43,14 +48,15 @@ public final class ComponentRecord {
      * @param definitionNode          the complete definition tree
      * @param additionalDocState      the derived additional-documentation state
      * @param additionalDetailsText   the verbatim additional-details content, or {@code null}
+     * @throws NullPointerException if any argument other than {@code additionalDetailsText} is null
      */
     public ComponentRecord(final ComponentIdentity componentIdentity, final JsonNode documentedTypeNode,
                            final JsonNode definitionNode, final AdditionalDocumentationState additionalDocState,
                            final String additionalDetailsText) {
-        this.identity = componentIdentity;
-        this.documentedType = documentedTypeNode;
-        this.definition = definitionNode;
-        this.additionalDocumentation = additionalDocState;
+        this.identity = Objects.requireNonNull(componentIdentity, "componentIdentity");
+        this.documentedType = Objects.requireNonNull(documentedTypeNode, "documentedTypeNode");
+        this.definition = Objects.requireNonNull(definitionNode, "definitionNode");
+        this.additionalDocumentation = Objects.requireNonNull(additionalDocState, "additionalDocState");
         this.additionalDetailsContent = additionalDetailsText;
     }
 

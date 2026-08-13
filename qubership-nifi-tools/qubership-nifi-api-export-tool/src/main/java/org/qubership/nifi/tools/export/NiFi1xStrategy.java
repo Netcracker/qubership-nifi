@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.export;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +48,7 @@ public final class NiFi1xStrategy implements NiFiVersionStrategy {
     }
 
     @Override
-    public List<Map<String, Object>> collect(final ComponentKind kind) throws Exception {
+    public List<Map<String, Object>> collect(final NiFiComponentKind kind) throws Exception {
         List<Map<String, Object>> result = new ArrayList<>();
 
         JsonNode listResponse = apiClient.get(kind.getListPath());
@@ -70,7 +71,7 @@ public final class NiFi1xStrategy implements NiFiVersionStrategy {
         return result;
     }
 
-    private Map<String, Object> collectOne(final ComponentKind kind, final String fqcn) throws Exception {
+    private Map<String, Object> collectOne(final NiFiComponentKind kind, final String fqcn) throws Exception {
         ObjectNode revision = mapper.createObjectNode().put("version", 0);
         ObjectNode component = mapper.createObjectNode().put("type", fqcn);
         ObjectNode createBody = mapper.createObjectNode().set("revision", revision);

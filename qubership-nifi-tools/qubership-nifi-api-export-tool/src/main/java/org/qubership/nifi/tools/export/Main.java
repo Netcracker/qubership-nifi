@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.tools.export;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public final class Main {
                 ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
                 OutputWriter writer = new OutputWriter(outputDir);
 
-                for (ComponentKind kind : ComponentKind.values()) {
+                for (NiFiComponentKind kind : NiFiComponentKind.values()) {
                     LOG.info("Collecting {} descriptors...", kind);
                     List<Map<String, Object>> components = collector.collect(kind);
                     LOG.info("  found {} components for {}", components.size(), kind);

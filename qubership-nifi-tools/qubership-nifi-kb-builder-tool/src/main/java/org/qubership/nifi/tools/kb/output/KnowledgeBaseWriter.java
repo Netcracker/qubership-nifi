@@ -141,8 +141,9 @@ public final class KnowledgeBaseWriter {
 
     private void writeComponent(final Path componentsDir, final ComponentRecord componentRecord,
                                 final List<String> coveredPaths) throws IOException {
-        final String kindDir = ComponentKindLayout.directoryName(componentRecord.identity().getKind());
-        final Path dir = componentsDir.resolve(kindDir).resolve(componentRecord.identity().directoryName());
+        // The same helper that index.json publishes as a component's "path" decides where the files
+        // land, so the recorded location cannot drift away from the written one.
+        final Path dir = componentsDir.resolve(ComponentSorting.directoryPath(componentRecord.identity()));
         Files.createDirectories(dir);
 
         Files.write(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE), componentJson.render(componentRecord));

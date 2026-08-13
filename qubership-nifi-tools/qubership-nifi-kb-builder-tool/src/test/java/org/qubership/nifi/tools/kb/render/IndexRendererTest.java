@@ -99,7 +99,7 @@ class IndexRendererTest {
     @Test
     void rendersEntryWithoutSourceMetadataToJson() throws Exception {
         final ComponentRecord withoutType = componentRecord(
-                NiFiComponentKind.PROCESSOR, "Bare", null, false);
+                NiFiComponentKind.PROCESSOR, "Bare", MAPPER.readTree("{}"), false);
 
         final JsonNode index = MAPPER.readTree(
                 new IndexRenderer(new JsonOutput(MAPPER)).renderJson(List.of(withoutType)));

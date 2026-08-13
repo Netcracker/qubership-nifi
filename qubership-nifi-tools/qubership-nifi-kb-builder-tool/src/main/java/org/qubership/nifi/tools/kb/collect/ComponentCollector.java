@@ -43,6 +43,7 @@ public final class ComponentCollector {
 
     private static final Logger LOG = LoggerFactory.getLogger(ComponentCollector.class);
     private static final String ADDITIONAL_DETAILS = "additionalDetails";
+    private static final int PROGRESS_INTERVAL = 50;
 
     /**
      * Collects all components of all three kinds.
@@ -57,12 +58,19 @@ public final class ComponentCollector {
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             LOG.info("Collecting {} components", kind);
             final JsonNode types = catalog.listTypes(kind);
+            int collected = 0;
             for (final JsonNode type : types) {
                 final ComponentRecord componentRecord = collectOne(catalog, kind, type);
                 if (!seen.add(componentRecord.identity())) {
                     throw new CollectionException("Duplicate component identity: " + componentRecord.identity());
                 }
                 records.add(componentRecord);
+                collected++;
+                // Each component costs one or two round trips and a full catalog runs into the
+                // hundreds, so a run without interim progress looks stalled for minutes at a time.
+                if (collected % PROGRESS_INTERVAL == 0) {
+                    LOG.info("Collected {} of {} {} components", collected, types.size(), kind);
+                }
             }
             LOG.info("Collected {} {} components", types.size(), kind);
         }
