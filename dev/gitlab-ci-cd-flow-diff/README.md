@@ -22,12 +22,12 @@ no pipeline artifacts are produced. The MR comment is the only output.
 
 ## Files in this directory
 
-| File                    | Purpose                                                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `.gitlab-ci.yml`        | The pipeline itself. Copy this into the target repository's root and adjust the `variables:` block.                        |
-| `Dockerfile`            | The image used in the pipeline.                                                                                             |
-| `build-image.sh`        | Fetches the CLI jar and its dependencies via Maven, then builds the image.                                                  |
-| `flowdiff-pom.xml`      | Pins the `qubership-nifi-flow-diff-cli` version; drives the Maven fetch in `build-image.sh`.                                |
+| File               | Purpose                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| `.gitlab-ci.yml`   | The pipeline itself. Copy this into the target repository's root and adjust the `variables:` block. |
+| `Dockerfile`       | The image used in the pipeline.                                                                     |
+| `build-image.sh`   | Fetches the CLI jar and its dependencies via Maven, then builds the image.                          |
+| `flowdiff-pom.xml` | Pins the `qubership-nifi-flow-diff-cli` version; drives the Maven fetch in `build-image.sh`.        |
 
 ## Setup walkthrough
 
@@ -56,7 +56,7 @@ Re-run this whenever you bump `flow.diff.version` in `flowdiff-pom.xml`.
 
 ### 4. Point the pipeline at your image
 
-In `.gitlab-ci.yml`, set `image:` to the image you built in step 3 (`flow-diff-cli:local` by
+In `.gitlab-ci.yml`, set `image:` to the image you produced in step 3 (`flow-diff-cli:local` by
 default). If you tag it differently or push it to a registry, adjust `image:` accordingly.
 
 ### 5. Create the GitLab API token
@@ -110,5 +110,5 @@ not implement.
 GitLab caps a merge request note body at roughly 1,000,000 characters. The script truncates the
 comment at 990,000 bytes (byte count as a conservative proxy for character count - bytes are
 always >= characters for UTF-8, so this never truncates later than the real limit allows), cuts
-on a line boundary, closes a dangling markdown code fence if the cut landed inside one (otherwise
+on a line boundary, closes a dangling Markdown code fence if the cut landed inside one (otherwise
 everything after it would render as code), and appends a truncation notice.
