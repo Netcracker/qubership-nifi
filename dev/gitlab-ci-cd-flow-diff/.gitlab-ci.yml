@@ -7,6 +7,7 @@ workflow:
 
 variables:
   FLOW_DIFF_PATH: "nifi/versioned-flow"
+  FLOW_DIFF_JAR: "/opt/flow-diff/lib/flow-diff-cli.jar"
   GIT_DEPTH: "0"
 
 flow-diff:
@@ -19,7 +20,9 @@ flow-diff:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - "$FLOW_DIFF_PATH/**/*"
+        paths:
+          - "$FLOW_DIFF_PATH/**/*"
+        compare_to: $CI_MERGE_REQUEST_DIFF_BASE_SHA
   script:
     - set -euo pipefail
     - MARKER="<!-- nifi-flow-diff -->"
@@ -33,9 +36,9 @@ flow-diff:
       fi
 
     - |
-      REPORT_JSON="$(nifi-flow-diff git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
+      REPORT_JSON="$(java -jar "${FLOW_DIFF_JAR}" git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
         --branch "${BASE_SHA}" --format json --output /dev/stdout)"
-      REPORT_MD="$(nifi-flow-diff git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
+      REPORT_MD="$(java -jar "${FLOW_DIFF_JAR}" git-diff --basedir . --path "${FLOW_DIFF_PATH}" \
         --branch "${BASE_SHA}" --format md --output /dev/stdout)"
 
     - |
