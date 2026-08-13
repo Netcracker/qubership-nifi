@@ -16,6 +16,8 @@
 
 package org.qubership.nifi.tools.export;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+
 import java.util.List;
 import java.util.Map;
 
@@ -31,5 +33,5 @@ public interface NiFiVersionStrategy {
      * @param kind the component kind (processor, controller service, reporting task)
      * @return list of maps with "type" (String) and "propertyDescriptors" (JsonNode) entries
      */
-    List<Map<String, Object>> collect(ComponentKind kind) throws Exception;
+    List<Map<String, Object>> collect(NiFiComponentKind kind) throws Exception;
 }

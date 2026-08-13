@@ -17,6 +17,7 @@
 package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,7 @@ public final class ComponentDescriptorCollector {
      * @return list of maps with "type" (String) and "propertyDescriptors" (JsonNode) entries
      * @throws Exception if collection fails
      */
-    public List<Map<String, Object>> collect(final ComponentKind kind) throws Exception {
+    public List<Map<String, Object>> collect(final NiFiComponentKind kind) throws Exception {
         return strategy.collect(kind);
     }
 

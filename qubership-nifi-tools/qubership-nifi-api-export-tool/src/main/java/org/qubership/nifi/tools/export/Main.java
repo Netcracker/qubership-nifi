@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.tools.export;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,20 +89,21 @@ public final class Main {
             containerManager.start();
             String baseUrl = containerManager.getBaseUrl();
             NiFiContainerManager.TruststoreData truststoreData = containerManager.readTruststore();
-            NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password, truststoreData);
-            apiClient.authenticate();
+            try (NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password, truststoreData)) {
+                apiClient.authenticate();
 
-            ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-            OutputWriter writer = new OutputWriter(outputDir);
+                ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
+                OutputWriter writer = new OutputWriter(outputDir);
 
-            for (ComponentKind kind : ComponentKind.values()) {
-                LOG.info("Collecting {} descriptors...", kind);
-                List<Map<String, Object>> components = collector.collect(kind);
-                LOG.info("  found {} components for {}", components.size(), kind);
-                writer.write(kind, components);
+                for (NiFiComponentKind kind : NiFiComponentKind.values()) {
+                    LOG.info("Collecting {} descriptors...", kind);
+                    List<Map<String, Object>> components = collector.collect(kind);
+                    LOG.info("  found {} components for {}", components.size(), kind);
+                    writer.write(kind, components);
+                }
+
+                LOG.info("Done. Output written to: {}", outputDir);
             }
-
-            LOG.info("Done. Output written to: {}", outputDir);
         }
     }
 }

@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.export;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +55,9 @@ public final class OutputWriter {
      * @param components list of maps with "type" and "propertyDescriptors" entries
      * @throws IOException if the output directory cannot be created
      */
-    public void write(final ComponentKind kind, final List<Map<String, Object>> components) throws IOException {
-        File dir = new File(outputDir, kind.getOutputDirName());
+    public void write(final NiFiComponentKind kind, final List<Map<String, Object>> components)
+            throws IOException {
+        File dir = new File(outputDir, outputDirName(kind));
         if (!dir.exists() && !dir.mkdirs()) {
             throw new IOException("Failed to create output directory: " + dir.getAbsolutePath());
         }
@@ -81,6 +83,23 @@ public final class OutputWriter {
         }
 
         LOG.info("Wrote {} files to {}", written, dir.getPath());
+    }
+
+    /**
+     * Returns the output sub-directory name for the given component kind. These names are this tool's
+     * own output layout and differ from the ones the Knowledge Base builder writes, so they live here
+     * rather than on the shared {@link NiFiComponentKind}: component-comparator-tool reads exported
+     * descriptors from directories spelled exactly this way.
+     *
+     * @param kind the component kind
+     * @return the sub-directory name under the output directory
+     */
+    private static String outputDirName(final NiFiComponentKind kind) {
+        return switch (kind) {
+            case PROCESSOR -> "processors";
+            case CONTROLLER_SERVICE -> "controllerService";
+            case REPORTING_TASK -> "reportingTask";
+        };
     }
 
     private String simpleName(final String fqcn) {

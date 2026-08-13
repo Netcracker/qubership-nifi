@@ -19,6 +19,8 @@ package org.qubership.nifi.tools.export;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +56,7 @@ class ComponentDescriptorCollectorTest {
                 .thenReturn(MAPPER.readTree("{\"descriptors\":{}}"));
 
         ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-        collector.collect(ComponentKind.PROCESSOR);
+        collector.collect(NiFiComponentKind.PROCESSOR);
 
         verify(apiClient, atLeastOnce()).get(contains("processor-definition"));
         verify(apiClient, never()).post(anyString(), anyString());
@@ -72,7 +74,7 @@ class ComponentDescriptorCollectorTest {
                         "{\"component\":{\"id\":\"x\",\"config\":{\"descriptors\":{}}},\"revision\":{\"version\":0}}"));
 
         ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-        collector.collect(ComponentKind.PROCESSOR);
+        collector.collect(NiFiComponentKind.PROCESSOR);
 
         verify(apiClient, atLeastOnce()).post(eq("/nifi-api/process-groups/root/processors"), anyString());
         verify(apiClient, never()).get(contains("processor-definition"));
@@ -87,7 +89,7 @@ class ComponentDescriptorCollectorTest {
                 .thenReturn(MAPPER.readTree("{\"processorTypes\":[]}"));
 
         ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-        List<Map<String, Object>> result = collector.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = collector.collect(NiFiComponentKind.PROCESSOR);
 
         assertTrue(result.isEmpty());
         verify(apiClient, never()).post(anyString(), anyString());
@@ -102,7 +104,7 @@ class ComponentDescriptorCollectorTest {
                 .thenReturn(MAPPER.readTree("{\"processorTypes\":[]}"));
 
         ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-        List<Map<String, Object>> result = collector.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = collector.collect(NiFiComponentKind.PROCESSOR);
 
         assertTrue(result.isEmpty());
         verify(apiClient, never()).get(contains("processor-definition"));
@@ -121,7 +123,7 @@ class ComponentDescriptorCollectorTest {
                 .thenReturn(MAPPER.readTree("{\"descriptors\":{\"p1\":{}}}"));
 
         ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
-        List<Map<String, Object>> result = collector.collect(ComponentKind.CONTROLLER_SERVICE);
+        List<Map<String, Object>> result = collector.collect(NiFiComponentKind.CONTROLLER_SERVICE);
 
         assertEquals(1, result.size());
         assertEquals("org.foo.Svc", result.get(0).get("type"));

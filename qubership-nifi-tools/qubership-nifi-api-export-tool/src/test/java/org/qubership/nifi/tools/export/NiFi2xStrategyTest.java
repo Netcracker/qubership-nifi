@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+
 import java.util.List;
 import java.util.Map;
 
@@ -51,7 +53,7 @@ class NiFi2xStrategyTest {
         when(apiClient.get("/nifi-api/flow/processor-definition/g/a/1.0/org.foo.Bar")).thenReturn(MAPPER.readTree(
                 "{\"propertyDescriptors\":{\"prop1\":{\"name\":\"prop1\",\"displayName\":\"Prop One\"}}}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
 
         assertEquals(1, result.size());
         assertEquals("org.foo.Bar", result.get(0).get("type"));
@@ -67,7 +69,7 @@ class NiFi2xStrategyTest {
         when(apiClient.get("/nifi-api/flow/controller-service-definition/g/a/2.0/org.foo.Svc"))
                 .thenReturn(MAPPER.readTree("{\"propertyDescriptors\":{}}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.CONTROLLER_SERVICE);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.CONTROLLER_SERVICE);
 
         assertEquals(1, result.size());
         assertEquals("org.foo.Svc", result.get(0).get("type"));
@@ -82,7 +84,7 @@ class NiFi2xStrategyTest {
         when(apiClient.get("/nifi-api/flow/reporting-task-definition/g/a/3.0/org.foo.Task")).thenReturn(MAPPER.readTree(
                 "{\"propertyDescriptors\":{}}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.REPORTING_TASK);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.REPORTING_TASK);
 
         assertEquals(1, result.size());
         assertEquals("org.foo.Task", result.get(0).get("type"));
@@ -101,7 +103,7 @@ class NiFi2xStrategyTest {
         when(apiClient.get("/nifi-api/flow/processor-definition/g/a/1.0/org.foo.B"))
                 .thenReturn(MAPPER.readTree("{\"propertyDescriptors\":{}}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
 
         assertEquals(1, result.size());
         assertEquals("org.foo.B", result.get(0).get("type"));
@@ -111,7 +113,7 @@ class NiFi2xStrategyTest {
     void collectReturnsEmptyWhenResponseKeyMissing() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
 
         assertTrue(result.isEmpty());
     }
@@ -128,7 +130,7 @@ class NiFi2xStrategyTest {
         when(apiClient.get("/nifi-api/flow/processor-definition/g/b/2.0/org.foo.P2"))
                 .thenReturn(MAPPER.readTree("{\"propertyDescriptors\":{}}"));
 
-        List<Map<String, Object>> result = strategy.collect(ComponentKind.PROCESSOR);
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
 
         assertEquals(2, result.size());
     }

@@ -53,7 +53,8 @@ This is a multi-module Maven project that extends Apache NiFi 2.x with custom pr
 - **`qubership-nifi-tools/`** - various tools to automate nifi-related activities: docs generator plugin,
   api-export-tool, openapi-spec-enricher, component-comparator-tool, flow-diff-core (classifies differences between
   flow exports and reverts NiFi-generated technical identifiers) with its two frontends, flow-diff-tool (Maven
-  plugin) and flow-diff-cli (command line).
+  plugin) and flow-diff-cli (command line), kb-builder-tool (builds a portable NiFi Knowledge Base for an AI
+  agent from a running NiFi instance) over tools-nifi-common (shared NiFi REST, TLS, and HTTP library).
 
 ### NiFi Component Pattern
 
@@ -69,3 +70,8 @@ Controller services follow the same pattern with interface and implementation sp
 - The `docs/openapi/openapi.json` is generated: edit `qubership-nifi-tools/qubership-nifi-openapi-enricher` to change.
 - Use ASCII characters only in source code and documentation. Avoid Unicode punctuation such as em-dashes,
   smart quotes, and arrows; use the ASCII equivalents (`-`, `->`, straight quotes) instead.
+- Prefer a JDK standard-library API over a hand-rolled equivalent. The baseline is Java 21, and the root pom
+  compiles with `--release 25`, so pre-Java-17 idioms are never required: use `HexFormat` rather than a nibble
+  loop, `StandardCharsets` rather than `"UTF-8"` literals, `List.of` / `Map.of` for immutable constants,
+  `Files.readString` / `Files.writeString` for text files, and `Stream.toList()` rather than
+  `collect(Collectors.toList())`. Write the loop by hand only when the JDK has no equivalent.

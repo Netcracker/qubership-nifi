@@ -1,0 +1,294 @@
+/*
+ * Copyright 2020-2025 NetCracker Technology Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.qubership.nifi.tools.kb.cli;
+
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * The fully resolved and validated builder configuration. It applies the CLI validation matrix,
+ * reads only the environment variable required by the selected authentication mode, and resolves
+ * and validates all input and output paths without modifying the destination.
+ */
+public final class BuilderConfig {
+
+    private final NiFiUriResolver resolver;
+    private final AuthMode authMode;
+    private final String token;
+    private final String authorizationBearerCookie;
+    private final Path certificateFile;
+    private final char[] certificatePassword;
+    private final Path caFile;
+    private final boolean skipGuides;
+    private final Path outputDir;
+
+    private BuilderConfig(final Builder builder) {
+        this.resolver = builder.resolver;
+        this.authMode = builder.authMode;
+        this.token = builder.token;
+        this.authorizationBearerCookie = builder.authorizationBearerCookie;
+        this.certificateFile = builder.certificateFile;
+        this.certificatePassword = builder.certificatePassword;
+        this.caFile = builder.caFile;
+        this.skipGuides = builder.skipGuides;
+        this.outputDir = builder.outputDir;
+    }
+
+    /**
+     * Resolves and validates the configuration from the parsed command and the environment.
+     *
+     * @param command     the parsed command carrying the option values
+     * @param environment the environment source
+     * @return the resolved configuration
+     * @throws ConfigurationException on any validation failure
+     */
+    public static BuilderConfig resolve(final BuildCommand command, final Environment environment) {
+        final Builder builder = new Builder();
+        builder.resolver = resolveUrl(command.nifiUrl());
+        builder.authMode = command.auth();
+        builder.skipGuides = command.skipGuides();
+        builder.outputDir = resolveOutput(command.outputDir());
+
+        resolveCaFile(command, builder);
+        switch (builder.authMode) {
+            case TOKEN -> resolveTokenMode(command, environment, builder);
+            case COOKIE -> resolveCookieMode(command, environment, builder);
+            case CERTIFICATE -> resolveCertificateMode(command, environment, builder);
+        }
+        validateOutputOverlap(builder);
+        return new BuilderConfig(builder);
+    }
+
+    private static NiFiUriResolver resolveUrl(final String nifiUrl) {
+        try {
+            return NiFiUriResolver.fromBaseUrl(nifiUrl, true);
+        } catch (final IllegalArgumentException e) {
+            throw new ConfigurationException("Invalid --nifi-url: " + e.getMessage(), e);
+        }
+    }
+
+    private static Path resolveOutput(final Path outputDir) {
+        final Path resolved = outputDir.toAbsolutePath().normalize();
+        if (resolved.getParent() == null) {
+            throw new ConfigurationException("--output-dir must not resolve to a filesystem root");
+        }
+        if (Files.exists(resolved) && !Files.isDirectory(resolved)) {
+            throw new ConfigurationException("--output-dir exists and is not a directory: " + resolved);
+        }
+        return resolved;
+    }
+
+    private static void resolveCaFile(final BuildCommand command, final Builder builder) {
+        if (command.caFile() == null) {
+            return;
+        }
+        final Path caPath = command.caFile().toAbsolutePath().normalize();
+        if (!Files.isReadable(caPath)) {
+            throw new ConfigurationException("--ca-file is missing or unreadable: " + caPath);
+        }
+        builder.caFile = caPath;
+    }
+
+    private static void resolveTokenMode(final BuildCommand command, final Environment environment,
+                                         final Builder builder) {
+        rejectCertificateFile(command, AuthMode.TOKEN);
+        builder.token = requireEnvironment(environment, Environment.NIFI_ACCESS_TOKEN, AuthMode.TOKEN);
+    }
+
+    private static void resolveCookieMode(final BuildCommand command, final Environment environment,
+                                          final Builder builder) {
+        rejectCertificateFile(command, AuthMode.COOKIE);
+        builder.authorizationBearerCookie = requireEnvironment(environment,
+                Environment.NIFI_AUTHORIZATION_BEARER_COOKIE, AuthMode.COOKIE);
+    }
+
+    private static void resolveCertificateMode(final BuildCommand command, final Environment environment,
+                                               final Builder builder) {
+        if (command.certificateFile() == null) {
+            throw new ConfigurationException("--certificate-file is required in certificate mode");
+        }
+        final Path certPath = command.certificateFile().toAbsolutePath().normalize();
+        if (!Files.isReadable(certPath)) {
+            throw new ConfigurationException("--certificate-file is missing or unreadable: " + certPath);
+        }
+        builder.certificateFile = certPath;
+        builder.certificatePassword = requireEnvironment(environment, Environment.NIFI_PKCS12_PASSWORD,
+                AuthMode.CERTIFICATE).toCharArray();
+    }
+
+    private static void rejectCertificateFile(final BuildCommand command, final AuthMode mode) {
+        if (command.certificateFile() != null) {
+            throw new ConfigurationException("--certificate-file is not allowed in " + mode.optionValue() + " mode");
+        }
+    }
+
+    private static String requireEnvironment(final Environment environment, final String variable,
+                                             final AuthMode mode) {
+        final String value = environment.get(variable);
+        if (value == null || value.isBlank()) {
+            throw new ConfigurationException(variable + " must be set in " + mode.optionValue() + " mode");
+        }
+        return value;
+    }
+
+    private static void validateOutputOverlap(final Builder builder) {
+        final Path workingDir = Paths.get("").toAbsolutePath().normalize();
+        rejectProtectedPath(builder.outputDir, workingDir, "the process working directory");
+        rejectProtectedPath(builder.outputDir, builder.certificateFile, "the PKCS#12 file");
+        rejectProtectedPath(builder.outputDir, builder.caFile, "the CA file");
+    }
+
+    private static void rejectProtectedPath(final Path outputDir, final Path protectedPath, final String label) {
+        if (protectedPath != null && protectedPath.toAbsolutePath().normalize().startsWith(outputDir)) {
+            throw new ConfigurationException("--output-dir must not contain " + label);
+        }
+    }
+
+    /**
+     * Returns the URI resolver bound to the normalized NiFi base.
+     *
+     * @return the resolver
+     */
+    public NiFiUriResolver resolver() {
+        return resolver;
+    }
+
+    /**
+     * Returns the selected authentication mode.
+     *
+     * @return the auth mode
+     */
+    public AuthMode authMode() {
+        return authMode;
+    }
+
+    /**
+     * Returns the bearer token in token mode.
+     *
+     * @return the optional token
+     */
+    public Optional<String> token() {
+        return Optional.ofNullable(token);
+    }
+
+    /**
+     * Returns the authorization bearer cookie value in cookie mode.
+     *
+     * @return the optional cookie value
+     */
+    public Optional<String> authorizationBearerCookie() {
+        return Optional.ofNullable(authorizationBearerCookie);
+    }
+
+    /**
+     * Returns the PKCS#12 certificate file in certificate mode.
+     *
+     * @return the optional certificate file
+     */
+    public Optional<Path> certificateFile() {
+        return Optional.ofNullable(certificateFile);
+    }
+
+    /**
+     * Returns a copy of the certificate password in certificate mode.
+     *
+     * @return the optional password characters; the caller owns the array and should zero it after
+     *         use
+     */
+    public Optional<char[]> certificatePassword() {
+        return certificatePassword == null ? Optional.empty() : Optional.of(certificatePassword.clone());
+    }
+
+    /**
+     * Returns the optional CA file.
+     *
+     * @return the optional CA file
+     */
+    public Optional<Path> caFile() {
+        return Optional.ofNullable(caFile);
+    }
+
+    /**
+     * Reports whether guide collection is skipped.
+     *
+     * @return {@code true} when guides are skipped
+     */
+    public boolean skipGuides() {
+        return skipGuides;
+    }
+
+    /**
+     * Returns the absolute output directory.
+     *
+     * @return the output directory
+     */
+    public Path outputDir() {
+        return outputDir;
+    }
+
+    /**
+     * Returns the secret byte sequences to scan generated output for, as defense in depth.
+     *
+     * <p>Covers the secrets that are transmitted to NiFi: the bearer token and the cookie value. The
+     * certificate password is not scanned for, because it never leaves this process and
+     * {@link #clearSecrets()} zeroes it before any output is written.
+     *
+     * @return the secrets to scan, empty when the run holds neither a token nor a cookie
+     */
+    public List<byte[]> secretsForScan() {
+        final List<byte[]> secrets = new ArrayList<>();
+        if (token != null) {
+            secrets.add(token.getBytes(StandardCharsets.UTF_8));
+        }
+        if (authorizationBearerCookie != null) {
+            secrets.add(authorizationBearerCookie.getBytes(StandardCharsets.UTF_8));
+        }
+        return secrets;
+    }
+
+    /**
+     * Zeroes the retained certificate password once the SSL context has consumed it, invalidating
+     * the copy every later {@link #certificatePassword()} call would return. The bearer token and
+     * the cookie value are immutable strings and cannot be cleared, so they survive this call and
+     * {@link #secretsForScan()} still reports them.
+     */
+    public void clearSecrets() {
+        if (certificatePassword != null) {
+            Arrays.fill(certificatePassword, '\0');
+        }
+    }
+
+    private static final class Builder {
+        private NiFiUriResolver resolver;
+        private AuthMode authMode;
+        private String token;
+        private String authorizationBearerCookie;
+        private Path certificateFile;
+        private char[] certificatePassword;
+        private Path caFile;
+        private boolean skipGuides;
+        private Path outputDir;
+    }
+}

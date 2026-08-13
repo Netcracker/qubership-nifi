@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public final class NiFi2xStrategy implements NiFiVersionStrategy {
     }
 
     @Override
-    public List<Map<String, Object>> collect(final ComponentKind kind) throws Exception {
+    public List<Map<String, Object>> collect(final NiFiComponentKind kind) throws Exception {
         List<Map<String, Object>> result = new ArrayList<>();
 
         JsonNode listResponse = apiClient.get(kind.getListPath());
