@@ -104,7 +104,7 @@ to repositories where every merge request author is already trusted with that le
 
 Copy `.gitlab-ci.yml` from this directory into the root of the target repository. If that
 repository already has a `.gitlab-ci.yml`, merge only the `flow-diff:` job and the top-level
-`variables:` block (`FLOW_DIFF_PATH`, `FLOW_DIFF_JAR`) into it - do not copy `stages:` or
+`variables:` block (`FLOW_DIFF_PATH`) into it - do not copy `stages:` or
 `workflow:`. Both replace, rather than extend, the target repository's own top-level `stages:` and
 `workflow:rules:`, which would stop every other job's pipeline from being created. They are only
 there so this file works standalone; the `flow-diff:` job's own `rules:` already restricts it to

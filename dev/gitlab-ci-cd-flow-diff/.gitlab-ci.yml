@@ -7,7 +7,6 @@ workflow:
 
 variables:
   FLOW_DIFF_PATH: "nifi/versioned-flow"
-  FLOW_DIFF_JAR: "/opt/flow-diff/lib/flow-diff-cli.jar"
 
 flow-diff:
   stage: flow-diff
@@ -29,6 +28,7 @@ flow-diff:
   script:
     - set -euo pipefail
     - MARKER="<!-- nifi-flow-diff -->"
+    - FLOW_DIFF_JAR="/opt/flow-diff/lib/flow-diff-cli.jar"
 
     - BASE_SHA="$CI_MERGE_REQUEST_DIFF_BASE_SHA"
     - |
