@@ -8,10 +8,6 @@ workflow:
 variables:
   FLOW_DIFF_PATH: "nifi/versioned-flow"
   FLOW_DIFF_JAR: "/opt/flow-diff/lib/flow-diff-cli.jar"
-  GIT_DEPTH: "0"
-  GIT_CONFIG_COUNT: "1"
-  GIT_CONFIG_KEY_0: "safe.directory"
-  GIT_CONFIG_VALUE_0: "$CI_PROJECT_DIR"
 
 flow-diff:
   stage: flow-diff
@@ -19,6 +15,11 @@ flow-diff:
     name: registry.example.com/flow-diff-cli:X.Y.Z
   resource_group: "flow-diff-$CI_MERGE_REQUEST_IID"
   interruptible: true
+  variables:
+    GIT_DEPTH: "0"
+    GIT_CONFIG_COUNT: "1"
+    GIT_CONFIG_KEY_0: "safe.directory"
+    GIT_CONFIG_VALUE_0: "$CI_PROJECT_DIR"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
