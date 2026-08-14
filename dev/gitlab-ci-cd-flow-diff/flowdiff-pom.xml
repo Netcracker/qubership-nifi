@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <flow.diff.version>X.Y.Z</flow.diff.version>
+        <flow.diff.version>2.8.1</flow.diff.version>
         <flow.diff.lib.dir>${project.basedir}/lib</flow.diff.lib.dir>
     </properties>
 

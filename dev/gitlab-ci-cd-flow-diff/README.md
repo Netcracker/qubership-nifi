@@ -39,8 +39,8 @@ no pipeline artifacts are produced. The MR comment is the only output.
 
 ### 2. Pin the CLI version
 
-Edit `flow.diff.version` in `flowdiff-pom.xml` to the `qubership-nifi-flow-diff-cli` release you
-want. See
+`flowdiff-pom.xml` defaults `flow.diff.version` to `2.8.1` (the first `qubership-nifi-flow-diff-cli`
+release). Bump it there when you want a newer release. See
 `qubership-nifi-tools/qubership-nifi-flow-diff-cli/README.md` ("Getting the jars", "Option 2:
 helper pom") for background on this file.
 
@@ -76,12 +76,12 @@ GitLab rejects unless the runner's `config.toml` explicitly lists it in `allowed
 ### 5. Create the GitLab API token
 
 The pipeline posts/updates the MR comment via the GitLab Notes API, authenticated with a
-Project or Group Access Token (`api` scope).
+Project Access Token (`api` scope).
 
-1. In the target GitLab project: **Settings -> Access Tokens** (or a Group Access Token if you
-   want it shared across several projects).
-2. Create a token with the `api` scope and no higher than the `Developer` role (GitLab's Notes
-   API requires the `api` scope; there is no narrower scope for posting/updating notes).
+1. In the target GitLab project: **Settings -> Access Tokens**.
+2. Create a token with the `api` scope and the `Reporter` role (sufficient for posting/updating MR
+   notes; GitLab's Notes API still requires the `api` scope, since there is no narrower scope for
+   posting/updating notes).
 3. In **Settings -> CI/CD -> Variables**, add a variable:
    - Key: `GITLAB_API_TOKEN`
    - Value: the token from step 2
