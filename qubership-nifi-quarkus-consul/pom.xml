@@ -49,7 +49,7 @@
         <!--libraries versions-->
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <quarkus-plugin.version>3.27.2</quarkus-plugin.version>
-        <consul-config-source.version>8.4.1</consul-config-source.version>
+        <core-quarkus-external-bom.version>1.0.9</core-quarkus-external-bom.version>
         <netty.version>4.1.136.Final</netty.version>
         <jackson.version>2.21.4</jackson.version>
         <!--test libraries versions-->
@@ -83,6 +83,13 @@
                 <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-bom</artifactId>
                 <version>${quarkus.platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.netcracker.cloud</groupId>
+                <artifactId>core-quarkus-external-bom</artifactId>
+                <version>${core-quarkus-external-bom.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

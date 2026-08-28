@@ -25,7 +25,7 @@ USER root
 #add jq:
 RUN apk add --no-cache \
     jq=1.8.1-r0 \
-    python3=3.14.7-r0
+    python3=3.14.7-r1
 
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
