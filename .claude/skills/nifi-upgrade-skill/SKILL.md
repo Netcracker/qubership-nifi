@@ -158,3 +158,34 @@ Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
 ```
+
+## 14. Generate releases notes
+
+Fill in the wiki templates from `docs/template/wiki/` with the versions used in
+this upgrade and write the results to `upgrade-temp-data/releases-notes/`.
+
+Versions to substitute:
+
+- `<qubership-nifi.version>` - ask the user for the **planned qubership-nifi
+  release version** (e.g. `2.9.0`). Don't proceed without it.
+- `<nifi.version>` - the target Apache NiFi version (`<TARGET>` from step 1).
+- `<nifi-api.version>` - the `nifi-api.version` property set in `./pom.xml` in step 8.
+
+Steps:
+
+1. Copy `docs/template/wiki/qubership‐nifi-Upgrade-Notes-template.md` to
+   `upgrade-temp-data/releases-notes/qubership‐nifi-<qubership-nifi.version>-Upgrade-Notes.md`.
+   The name uses a Unicode hyphen (U+2010) - keep it verbatim.
+2. Copy `docs/template/wiki/Updating-Custom-Components-to-Apache-NiFi-template.md` to
+   `upgrade-temp-data/releases-notes/Updating-Custom-Components-to-Apache-NiFi-<nifi.version>.md`.
+3. Move `upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.md` (produced in
+   steps 11-12) to
+   `upgrade-temp-data/releases-notes/Apache-NiFi-<nifi.version>-Component-Properties-Delta.md`.
+4. In all three files, replace `<qubership-nifi.version>`, `<nifi-api.version>` and
+   `<nifi.version>` with their values.
+5. Verify no placeholder is left: `grep -rn '<[a-z-]*\.version>' upgrade-temp-data/releases-notes/`
+   must return nothing.
+
+In the final report, list the three generated files and remind the user to publish
+them to the [project wiki](https://github.com/Netcracker/qubership-nifi/wiki) - they
+are not committed to the repo.
