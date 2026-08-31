@@ -3,6 +3,7 @@
 qubership-nifi is a service extending Apache NiFi.
 Apache NiFi is scalable and configurable dataflow platform.
 Compared with Apache NiFi it supports:
+
 1. additional environment variables for configuration
 2. integration with Consul as configuration source for logging levels and other configuration properties
 3. automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
@@ -10,6 +11,7 @@ Compared with Apache NiFi it supports:
 5. reporting tasks for additional monitoring of NiFi processes.
 
 ## Status
+
 [![Build status](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build.yaml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/maven-build.yaml)
 [![Autotests status](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml/badge.svg)](https://github.com/Netcracker/qubership-nifi/actions/workflows/docker-build-and-test.yml)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Netcracker_qubership-nifi&metric=coverage)](https://sonarcloud.io/summary/overall?id=Netcracker_qubership-nifi)
@@ -23,6 +25,7 @@ Compared with Apache NiFi it supports:
 
 qubership-nifi is scalable and configurable dataflow platform.
 Depending on configuration, it relies on:
+
 1. externally provided TLS certificates: TLS is required for security to be enabled, so TLS certificates are need for all configurations, except may be configuration for local development
 2. Consul service: used as property source, as well as for configuring logging levels
 3. Zookeeper service: required for NiFi clustering, if it's enabled
@@ -39,9 +42,11 @@ In clustered configuration each cluster node has its own persistent volumes and 
 qubership-nifi-registry is not clustered and all cluster nodes must connect to the same service.
 
 ## Build
+
 ### Prerequisites
 
 Build process requires the following tools:
+
 1. Java - JDK 17 or JDK 25
 2. Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
 3. Docker - any version of Docker Engine or any compatible Docker container runtime.
@@ -49,11 +54,13 @@ Build process requires the following tools:
 ### Project build
 
 To execute maven build, run:
+
 ```shell
 mvn clean install
 ```
 
 Once maven build is completed, you can execute Docker build. To do that, run:
+
 ```shell
 docker build .
 ```
