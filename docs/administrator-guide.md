@@ -97,25 +97,31 @@ The table below lists these volumes and directories with their descriptions.
 ## Changing logging levels
 
 You can modify logging levels by:
+
 1. Setting the `ROOT_LOG_LEVEL` environment variable. Note that this variable only sets the root logging level.
-2. Setting the logging level for a specific package in Consul. The Consul property name must start with `logger.` followed by the package name. The value should be one of the logging levels supported by Logback: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF. The property should be located in one of the following locations:
+2. Setting the logging level for a specific package in Consul. The Consul property name must start with `logger.` followed by the package name.
+   The value should be one of the logging levels supported by Logback: ALL, TRACE, DEBUG, INFO, WARN, ERROR, OFF.
+   The property should be located in one of the following locations:
     1. config/${NAMESPACE}/application
     2. config/${NAMESPACE}/qubership-nifi
        where `NAMESPACE` is the value of the `NAMESPACE` environment variable, or local if not set.
 
 To change the logging settings:
+
 1. Update the logger properties in Consul as needed.
 2. Wait until the update is propagated to qubership-nifi. This may take up to 1 minute.
 
 ## Changing NiFi configuration properties
 
 NiFi configuration properties can be set in Consul:
+
 1. The property name must start with `nifi.`
 2. The property should be located in one of the following locations:
     1. config/${NAMESPACE}/application
     2. config/${NAMESPACE}/qubership-nifi
 
 To change NiFi properties:
+
 1. Update the NiFi properties in Consul as needed.
 2. Restart the qubership-nifi container.
 
@@ -126,12 +132,14 @@ A detailed description of all supported NiFi properties is available in the Apac
 qubership-nifi supports automated configuration restore from archived versions.
 
 The steps below describe the restore process:
+
 1. Set the version to restore in the Consul parameter `nifi-restore-version` located in `config/${NAMESPACE}/qubership-nifi`.
    The parameter must contain the name of the archived configuration to restore from, using the format `<timestamp>_flow.json.gz` (for example, `20250115T120000+0000_flow.json.gz`).
    The list of archived configuration versions is printed in the logs during service startup. Maximum number of versions listed is controlled by the `NIFI_ARCHIVE_CONF_MAX_LIST` environment variable (default is 50).
 2. Restart the qubership-nifi container.
 
 On startup, qubership-nifi performs the following:
+
 1. Checks if the `nifi-restore-version` parameter is set
 2. If the parameter is set and the specified archive file does not exist, a warning is printed in the logs and normal startup continues using the current configuration.
 3. If the parameter is set and the specified archive file exists, the current configuration is moved to the archive and replaced with the specified archived version.
@@ -144,6 +152,7 @@ Apache NiFi provides one option for starting a cluster: ZooKeeper for leader ele
 ### ZooKeeper-based Cluster Configuration
 
 The following parameters must be set to configure a NiFi cluster using ZooKeeper:
+
 1. environment variable `ZOOKEEPER_ADDRESS` - host and port to access ZooKeeper.
 2. environment variable `NIFI_ZK_ROOT_NODE` - path to the root node on ZooKeeper. Must be defined to avoid conflicts with other applications or NiFi cluster instances.
 3. environment variable `ZOOKEEPER_SSL_ENABLED` - set to `true`, if ZooKeeper access is secured with TLS.
@@ -152,9 +161,11 @@ The following parameters must be set to configure a NiFi cluster using ZooKeeper
 6. environment variable `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD` - password for the keystore specified by `ZOOKEEPER_CLIENT_KEYSTORE`. Set only if ZooKeeper is configured to use x509 authentication and `ZOOKEEPER_SSL_ENABLED = true`.
 
 There are three supported configurations for ZooKeeper:
+
 1. Plain with anonymous access - set `ZOOKEEPER_ADDRESS` and `NIFI_ZK_ROOT_NODE` only.
 2. Secured (TLS) with anonymous access - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`, and add trusted certificates for ZooKeeper into the`Trusted certificates` directory.
-3. secured (TLS) with x509 authentication - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`, `ZOOKEEPER_CLIENT_KEYSTORE`, `ZOOKEEPER_CLIENT_KEYSTORE_TYPE`, `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD`, add trusted certificates for ZooKeeper into the `Trusted certificates` directory, add the keystore referenced by `ZOOKEEPER_CLIENT_KEYSTORE`.
+3. secured (TLS) with x509 authentication - set `ZOOKEEPER_ADDRESS`, `NIFI_ZK_ROOT_NODE`, `ZOOKEEPER_SSL_ENABLED = true`, `ZOOKEEPER_CLIENT_KEYSTORE`, `ZOOKEEPER_CLIENT_KEYSTORE_TYPE`, `ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD`.
+   Also add trusted certificates for ZooKeeper into the `Trusted certificates` directory, and add the keystore referenced by `ZOOKEEPER_CLIENT_KEYSTORE`.
 
 When using ZooKeeper, Apache NiFi creates ZNodes within the path specified by `NIFI_ZK_ROOT_NODE`, o it requires at least Create, Read, and Write privileges for this path if it was created by another application.
 For more information on Apache NiFi behavior regarding ZooKeeper, refer to the [NiFi System Administrator’s Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
