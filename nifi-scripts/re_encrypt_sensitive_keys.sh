@@ -17,12 +17,54 @@
 . /opt/nifi/scripts/logging_api.sh
 
 info "re_encrypt_sensitive_keys.sh start"
+
+### fetch sensitive key from file
+if [[ -z "$NIFI_NEW_SENSITIVE_KEY" ]]; then
+    if [[ -n "$NIFI_SENSITIVE_KEY_PATH" ]]; then
+        if [[ -f "$NIFI_SENSITIVE_KEY_PATH" ]]; then
+            info "Found sensitive key file $NIFI_SENSITIVE_KEY_PATH, fetching data"
+            NIFI_NEW_SENSITIVE_KEY=$(cat "$NIFI_SENSITIVE_KEY_PATH")
+        else
+            warn "NIFI_NEW_SENSITIVE_KEY is not set and sensitive key file $NIFI_SENSITIVE_KEY_PATH does not exist"
+        fi
+    else
+        warn "Neither NIFI_NEW_SENSITIVE_KEY nor NIFI_SENSITIVE_KEY_PATH is set"
+    fi
+fi
+
 if [ -z "${NIFI_NEW_SENSITIVE_KEY}" ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = '<empty>' ] || [ "${NIFI_NEW_SENSITIVE_KEY}" = "" ]
 then
-  error "NIFI_NEW_SENSITIVE_KEY cannot be empty. Terminating start-up..."
+  error "Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH must be non-empty. Terminating start-up..."
   sleep 10
   exit 3;
 fi
+
+### fetch old sensitive keys from files, if they exist:
+if [[ -z "$SENSITIVE_KEY" ]]; then
+    if [[ -n "$SENSITIVE_KEY_PATH" ]]; then
+        if [[ -f "$SENSITIVE_KEY_PATH" ]]; then
+            info "Found sensitive key (SENSITIVE_KEY) file $SENSITIVE_KEY_PATH, fetching data"
+            SENSITIVE_KEY=$(cat "$SENSITIVE_KEY_PATH")
+        else
+            warn "SENSITIVE_KEY is not set and sensitive key file $SENSITIVE_KEY_PATH does not exist"
+        fi
+    else
+        info "Neither SENSITIVE_KEY nor SENSITIVE_KEY_PATH is set"
+    fi
+fi
+if [[ -z "$OLD_SENSITIVE_KEY" ]]; then
+    if [[ -n "$OLD_SENSITIVE_KEY_PATH" ]]; then
+        if [[ -f "$OLD_SENSITIVE_KEY_PATH" ]]; then
+            info "Found sensitive key (OLD_SENSITIVE_KEY) file $OLD_SENSITIVE_KEY_PATH, fetching data"
+            OLD_SENSITIVE_KEY=$(cat "$OLD_SENSITIVE_KEY_PATH")
+        else
+            warn "OLD_SENSITIVE_KEY is not set and sensitive key file $OLD_SENSITIVE_KEY_PATH does not exist"
+        fi
+    else
+        info "Neither OLD_SENSITIVE_KEY nor OLD_SENSITIVE_KEY_PATH is set"
+    fi
+fi
+
 encrypt_scripts_dir='/opt/nifi/nifi-toolkit-current/bin'
 flow_dir="${NIFI_HOME}/persistent_conf/conf"
 newKeyHash="$(echo -n "${NIFI_NEW_SENSITIVE_KEY}" | sha256sum )"
