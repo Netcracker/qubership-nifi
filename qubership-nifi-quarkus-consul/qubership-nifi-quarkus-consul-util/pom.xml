@@ -49,7 +49,7 @@
             <artifactId>slf4j-jboss-logmanager</artifactId>
         </dependency>
 
-        <!-- Consul Config Source (version managed by core-quarkus-external-bom) -->
+        <!-- Consul Config Source -->
         <dependency>
             <groupId>com.netcracker.cloud.quarkus</groupId>
             <artifactId>consul-config-source</artifactId>
