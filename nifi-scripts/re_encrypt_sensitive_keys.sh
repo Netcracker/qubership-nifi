@@ -65,6 +65,19 @@ if [[ -z "$OLD_SENSITIVE_KEY" ]]; then
     fi
 fi
 
+if [[ -z "NIFI_PREVIOUS_SENSITIVE_KEY" ]]; then
+    if [[ -n "$NIFI_PREVIOUS_SENSITIVE_KEY_PATH" ]]; then
+        if [[ -f "$NIFI_PREVIOUS_SENSITIVE_KEY_PATH" ]]; then
+            info "Found sensitive key (NIFI_PREVIOUS_SENSITIVE_KEY) file $NIFI_PREVIOUS_SENSITIVE_KEY_PATH, fetching data"
+            NIFI_PREVIOUS_SENSITIVE_KEY=$(cat "$NIFI_PREVIOUS_SENSITIVE_KEY_PATH")
+        else
+            warn "NIFI_PREVIOUS_SENSITIVE_KEY is not set and sensitive key file $NIFI_PREVIOUS_SENSITIVE_KEY_PATH does not exist"
+        fi
+    else
+        info "Neither NIFI_PREVIOUS_SENSITIVE_KEY nor $NIFI_PREVIOUS_SENSITIVE_KEY_PATH is set"
+    fi
+fi
+
 encrypt_scripts_dir='/opt/nifi/nifi-toolkit-current/bin'
 flow_dir="${NIFI_HOME}/persistent_conf/conf"
 newKeyHash="$(echo -n "${NIFI_NEW_SENSITIVE_KEY}" | sha256sum )"
