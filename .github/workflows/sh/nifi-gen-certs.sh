@@ -40,6 +40,13 @@ generate_nifi_certs() {
     #make files available to all users:
     chmod -R 777 /tmp/tls-certs/nifi-registry
     chmod -R 777 /tmp/tls-certs/nifi
+    #duplicate key/keystore passwords to file path for tests:
+    mkdir -p /tmp/tls-certs/pwd
+    chmod 777 /tmp/tls-certs/pwd
+    echo "$KEYSTORE_PASSWORD_NIFI" > /tmp/tls-certs/pwd/keystore-nifi.pass
+    echo "$KEYSTORE_PASSWORD_NIFI_REG" > /tmp/tls-certs/pwd/keystore-nifi-reg.pass
+    echo "$TRUSTSTORE_PASSWORD" > /tmp/tls-certs/pwd/truststore.pass
+    chmod -R 777 /tmp/tls-certs/pwd
     return 0
 }
 
@@ -108,6 +115,13 @@ generate_nifi_cluster_certs() {
         -destkeystore /tmp/tls-certs/nifi-registry/truststore.p12 -deststorepass "${TRUSTSTORE_PASSWORD}"
     #make files available to all users:
     chmod -R 777 /tmp/tls-certs/nifi-registry
+    #duplicate key/keystore passwords to file path for tests:
+    mkdir -p /tmp/tls-certs/pwd
+    chmod 777 /tmp/tls-certs/pwd
+    echo "$KEYSTORE_PASSWORD_NIFI" > /tmp/tls-certs/pwd/keystore-nifi.pass
+    echo "$KEYSTORE_PASSWORD_NIFI_REG" > /tmp/tls-certs/pwd/keystore-nifi-reg.pass
+    echo "$TRUSTSTORE_PASSWORD" > /tmp/tls-certs/pwd/truststore.pass
+    chmod -R 777 /tmp/tls-certs/pwd
     return 0
 }
 

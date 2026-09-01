@@ -117,6 +117,34 @@ else
     export KEYSTORE_PATH="/tmp/tls-certs/keystore.p12"
 fi
 
+### key password
+if [[ -z "$KEY_PASSWORD" && -n "$NIFI_KEY_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_KEY_PASSWORD_PATH" ]]; then
+        info "Found key password file $NIFI_KEY_PASSWORD_PATH, fetching data"
+        KEY_PASSWORD=$(cat "$NIFI_KEY_PASSWORD_PATH")
+    else
+        warn "Key password file $NIFI_KEY_PASSWORD_PATH does not exist"
+    fi
+fi
+### keystore password
+if [[ -z "$KEYSTORE_PASSWORD" && -n "$NIFI_KEYSTORE_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_KEYSTORE_PASSWORD_PATH" ]]; then
+        info "Found keystore password file $NIFI_KEYSTORE_PASSWORD_PATH, fetching data"
+        KEYSTORE_PASSWORD=$(cat "$NIFI_KEYSTORE_PASSWORD_PATH")
+    else
+        warn "Keystore password file $NIFI_KEYSTORE_PASSWORD_PATH does not exist"
+    fi
+fi
+### truststore password
+if [[ -z "$TRUSTSTORE_PASSWORD" && -n "$NIFI_TRUSTSTORE_PASSWORD_PATH" ]]; then
+    if [[ -f "$NIFI_TRUSTSTORE_PASSWORD_PATH" ]]; then
+        info "Found truststore password file $NIFI_TRUSTSTORE_PASSWORD_PATH, fetching data"
+        TRUSTSTORE_PASSWORD=$(cat "$NIFI_TRUSTSTORE_PASSWORD_PATH")
+    else
+        warn "Truststore password file $NIFI_TRUSTSTORE_PASSWORD_PATH does not exist"
+    fi
+fi
+
 export TRUSTSTORE_TYPE="PKCS12"
 export KEYSTORE_TYPE="PKCS12"
 TRUSTSTORE_PASSWORD="${TRUSTSTORE_PASSWORD//&/\\&}"
@@ -151,8 +179,17 @@ if [[ "$ZOOKEEPER_SSL_ENABLED" == "true" ]]; then
             export ZOOKEEPER_CLIENT_KEYSTORE_TYPE="PKCS12"
         fi
         if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
-            error "Zookeeper client keystore password is not set."
-            exit 1
+            if [[ -f "/tmp/zk-client-keystore/client-keystore-password" ]]; then
+                info "Found zookeeper client keystore password file /tmp/zk-client-keystore/client-keystore-password, fetching data"
+                ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD=$(cat "/tmp/zk-client-keystore/client-keystore-password")
+                if [ -z "${ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD}" ]; then
+                    error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
+                    exit 1
+                fi
+            else
+                error "ZooKeeper client keystore password is not set in either the ZOOKEEPER_CLIENT_KEYSTORE_PASSWORD environment variable or the file /tmp/zk-client-keystore/client-keystore-password."
+                exit 1
+            fi
         fi
         #use keystore specified in environment variables:
         info "Setting zookeeper client keystore = $ZOOKEEPER_CLIENT_KEYSTORE, type = $ZOOKEEPER_CLIENT_KEYSTORE_TYPE"
