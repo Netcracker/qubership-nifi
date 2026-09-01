@@ -65,7 +65,7 @@ if [[ -z "$OLD_SENSITIVE_KEY" ]]; then
     fi
 fi
 
-if [[ -z "NIFI_PREVIOUS_SENSITIVE_KEY" ]]; then
+if [[ -z "$NIFI_PREVIOUS_SENSITIVE_KEY" ]]; then
     if [[ -n "$NIFI_PREVIOUS_SENSITIVE_KEY_PATH" ]]; then
         if [[ -f "$NIFI_PREVIOUS_SENSITIVE_KEY_PATH" ]]; then
             info "Found sensitive key (NIFI_PREVIOUS_SENSITIVE_KEY) file $NIFI_PREVIOUS_SENSITIVE_KEY_PATH, fetching data"
