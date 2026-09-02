@@ -27,7 +27,7 @@
     <artifactId>qubership-nifi-h2-deps-2-1-210</artifactId>
 
     <properties>
-        <h2.2.1.210.version>2.1.210</h2.2.1.210.version>
+        <h2.2.1.210.version>2.2.220</h2.2.1.210.version>
     </properties>
 
     <dependencies>
