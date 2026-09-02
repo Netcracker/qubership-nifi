@@ -1,7 +1,7 @@
 ---
 services:
   nifi-toolkit:
-    image: apache/nifi-toolkit:1.28.1
+    image: apache/nifi-toolkit:1.28.1@sha256:7a43836dcc7ac37c5243dd11792da3aaff1b28a1c0e06b41c23cb16118c42652
     container_name: nifi-toolkit
     entrypoint: /bin/bash
     command: /tmp/tls-scripts/nifi-gen-certs.sh
@@ -112,7 +112,7 @@ services:
         - "/opt/nifi-registry/scripts/ready.sh"
     restart: unless-stopped
   consul:
-    image: hashicorp/consul:1.20
+    image: hashicorp/consul:1.20@sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
@@ -125,7 +125,7 @@ services:
       timeout: 3s
       retries: 12
   keycloak:
-    image: keycloak/keycloak:26.1.4
+    image: keycloak/keycloak:26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761
     hostname: keycloak
     restart: on-failure:3
     depends_on:
@@ -166,7 +166,7 @@ services:
       retries: 24
       start_period: 15s
   postgresql:
-    image: postgres:16.8
+    image: postgres:16.8@sha256:301bcb60b8a3ee4ab7e147932723e3abd1cef53516ce5210b39fd9fe5e3602ae
     ports:
       - "127.0.0.1:5430:5432"
     volumes:
@@ -186,7 +186,7 @@ services:
       timeout: 5s
       retries: 12
   redis:
-    image: redis:8.2.2
+    image: redis:8.2.2@sha256:4521b581dbddea6e7d81f8fe95ede93f5648aaa66a9dacd581611bf6fe7527bd
     ports:
       - "127.0.0.1:26379:6379"
     container_name: redis
@@ -203,7 +203,7 @@ services:
       timeout: 5s
       retries: 12
   kafka:
-    image: apache/kafka:4.1.1
+    image: apache/kafka:4.1.1@sha256:0bc1bb2478f45b6cea78864df86acdc11e8df2c5172477819a4d12942cbe5d40
     container_name: kafka
     hostname: kafka
     environment:
