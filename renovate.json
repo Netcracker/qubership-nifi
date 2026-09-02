@@ -22,6 +22,16 @@
     },
     {
       "description": [
+        "The qubership-nifi-h2-deps-* modules deliberately keep older H2 versions so that databases created by those versions can be checked for errors before an upgrade.",
+        "Each module pins the version it is named after, so the version is part of the module identity and must not move."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.h2database:h2"],
+      "matchFileNames": ["qubership-nifi-deps/**"],
+      "enabled": false
+    },
+    {
+      "description": [
         "Renovate does not regenerate the --hash values in requirements-test.txt, and the python-tests workflow installs it with pip --require-hashes.",
         "A version bump on its own would fail that job."
       ],
@@ -36,5 +46,34 @@
       "matchManagers": ["dockerfile"],
       "enabled": false
     }
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "description": [
+      "Repeat the rules above for security updates. A packageRule that disables a dependency does not reliably stop a vulnerability alert PR, and none of these updates can be applied as Renovate proposes them."
+    ],
+    "packageRules": [
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": [
+          "redis.clients:jedis",
+          "org.springframework.data:spring-data-redis"
+        ],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": ["com.h2database:h2"],
+        "matchFileNames": ["qubership-nifi-deps/**"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["pip_requirements"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["dockerfile"],
+        "enabled": false
+      }
+    ]
+  }
 }
