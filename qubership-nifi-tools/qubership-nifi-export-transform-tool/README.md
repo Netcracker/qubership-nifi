@@ -161,3 +161,102 @@ processorTypes:
 
 A ready-to-use configuration file covering the most common qubership-nifi processor types
 is available at [config/configuration-default.yaml](../../qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
+
+## Extracted file layout
+
+Extract writes the extracted files next to the flow JSON file they came from,
+under a directory named `flowConf_<flowName>`, where `<flowName>` is the name of
+the flow JSON file without its extension.
+
+Inside that directory, Extract creates one directory per process group on the path
+from the root group down to the processor's parent group, then one directory named
+after the processor, then the target file named in the configuration.
+The root group itself contributes no directory.
+
+For an `ExecuteSQL` processor named `Load customers`, placed in group `PutSQL_pg`
+inside group `Extract`, in the flow file `nifi/main-flow.json`:
+
+```text
+nifi/
+  main-flow.json
+  flowConf_main-flow/
+    Extract/
+      PutSQL_pg/
+        Load customers/
+          sql_query.sql
+```
+
+The property value in `main-flow.json` becomes the reference
+`@flowConf_main-flow/Extract/PutSQL_pg/Load customers/sql_query.sql`.
+References always use forward slashes, on every platform.
+
+Because the directory is derived from names alone, the path has to identify the
+processor uniquely. Extract enforces this before it writes anything - see
+[Error scenarios](#error-scenarios).
+
+## Error scenarios
+
+Both goals collect every error they find and report them together at the end,
+rather than stopping at the first one. Each error is logged as a numbered line
+under `Extract completed with <n> error(s):` or `Build completed with <n> error(s):`,
+and the goal then fails with `Extract failed with <n> error(s). See log for details.`
+or `Build failed with <n> error(s). See log for details.`
+
+Failures never leave a half-written flow. Extract skips a flow file that has
+validation errors, and Build does not write back a flow file in which any error
+occurred; other flow files in the same run are still processed and written.
+If Extract hits an I/O error part way through a flow, it deletes every file it has
+already written for that flow. The `-Ddelete=true` cleanup runs only when the whole
+Build finished without errors.
+
+The errors below end the run with `BUILD FAILURE` and the summary message.
+An unexpected I/O error - a missing `exportDir`, an unreadable file, malformed JSON -
+is different: it aborts the run immediately with `BUILD ERROR` and a stack trace.
+
+### Extract errors
+
+| Message | Cause | Fix |
+| ------- | ----- | --- |
+| `Duplicate processor path '<path>': processor '<id>' and processor '<id>' produce the same path. Processors must have unique paths (parent process group names + processor name) within the flow, since the path determines the directory structure during Extract.` | Two processors resolve to the same parent group path plus processor name, so both would write to the same directory. | Rename one of the processors, or move one into a process group with a different name. |
+| `Invalid characters in <flow name \| process group name \| processor name> '<name>'. The following characters are not allowed in file system paths: / \ : * ? " < > \|` | A name that becomes a directory segment - the flow file name, a process group name, or a processor name - contains a character that is not valid in a file system path. | Rename the process group or the processor, or rename the flow JSON file. |
+| `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. The pattern must match exactly one property.` | A `regex:` mapping matched more than one property name on a processor, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
+
+Notes on these checks:
+
+- They all run before Extract writes anything, across every processor of every
+  configured type in the flow. One bad name therefore blocks the whole flow file,
+  not just the offending processor.
+- Path uniqueness is checked across all configured processor types together, not
+  per type. Two different types can map to the same target file name, so two
+  processors sharing a path would still collide.
+- The path is built from process group *names*, not identifiers. Two distinct
+  groups that happen to share a name collide.
+- When more than two processors share a path, one message is reported per extra
+  processor, each pairing it against the first one seen.
+- These checks run for Extract only. Build does not validate paths, and an
+  ambiguous `regex:` mapping silently resolves to the first matching property
+  during Build.
+
+### Build errors
+
+| Message | Cause | Fix |
+| ------- | ----- | --- |
+| `Referenced file '<path>' does not exist for property '<property>' of processor '<name>' (id: <uuid>, group: '<group>', groupId: <uuid>, flow: '<flowFile>'). Run Extract first to generate the configuration files.` | The property holds an `@path` reference, but the file it points to is missing - typically because the extracted files were removed by an earlier `-Ddelete=true` run, or were never committed. | Restore the extracted file, or re-run Extract on a flow export that still holds the inline value. |
+| `Property '<property>' of processor '<name>' has an inline value, but an extracted file already exists at '<path>'. This is ambiguous: remove either the inline value or the extracted file (flow file: '<flowFile>').` | The flow JSON was re-exported from NiFi with a literal value while the extracted file from an earlier Extract is still on disk. Build cannot tell which of the two is current. | Keep one of them: delete the stale extracted file, or replace the inline value with the `@path` reference. |
+| `Reference path '<path>' escapes the export directory. Only paths within the flow directory are allowed.` | An `@path` value resolves outside the directory that holds the flow JSON file, for example because it contains `..`. | Correct the reference so that it stays under the flow directory. |
+
+### Cases that are skipped instead of failing
+
+These produce no error. They explain runs that succeed without changing anything:
+
+- Extract logs a warning and skips a property whose value is already a reference:
+  `Property '<property>' of processor '<name>' already contains a reference (<value>). Skipping.`
+- Properties that are unset or empty are skipped by both goals. A NiFi export
+  contains only explicitly set properties, so a property left at its default is
+  absent from the flow JSON.
+- A `regex:` mapping that matches no property is skipped.
+- JSON files without a `flowContents` node, and anything under a `flowConf_*`
+  directory, are not treated as flow files.
+- A configuration file with no `processorTypes` entries makes the goal log
+  `No processor types defined in config, nothing to extract.` (or `nothing to build.`)
+  and finish successfully.
