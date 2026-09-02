@@ -15,8 +15,8 @@
 ARG NIFI_VERSION='2.10.0'
 ARG NIFI_VERSION_SHA256='sha256:362d7a7caa27f246f2fd8797f906cb216ae71546e15abee5c6b579187c42e28e'
 
-ARG BASE_IMAGE_VERSION='25-alpine-2.3.7'
-ARG BASE_IMAGE_VERSION_SHA256='sha256:577def182c22d770bba27ed663b14fff4621cf1ad99979fa3bf415e2ae756fac'
+ARG BASE_IMAGE_VERSION='25-alpine-2.4.1'
+ARG BASE_IMAGE_VERSION_SHA256='sha256:caaf4118073ca1863cf20ca351e8411981dbcc802ed3f8d4720b7c5fb59f8971'
 
 FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256 AS base
 LABEL org.opencontainers.image.authors="qubership.org"
@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.authors="qubership.org"
 USER root
 #add jq:
 RUN apk add --no-cache \
-    jq=1.8.1-r0 \
+    jq=1.8.2-r0 \
     python3=3.14.7-r1
 
 ENV NIFI_BASE_DIR=/opt/nifi

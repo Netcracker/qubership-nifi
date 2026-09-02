@@ -106,6 +106,8 @@ jobs:
             "-Dscripts.docker.network=$NETWORK_NAME"
         env:
           NETWORK_NAME: ${{ steps.network.outputs.name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Collect Docker logs on failure
         if: failure()
