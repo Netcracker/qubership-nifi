@@ -1,10 +1,10 @@
 # qubership-nifi <qubership-nifi.version> Upgrade Notes
 
-qubership-nifi <qubership-nifi.version> includes an upgrade to Apache NiFi <nifi.version>, which may affect existing deployments. This document outlines the key upgrade notes to help ensure a smooth transition to the new version.
+qubership-nifi <qubership-nifi.version> includes an upgrade to Apache NiFi <nifi.version> and , which may affect existing deployments. This document outlines the key upgrade notes to help ensure a smooth transition to the new version.
 
 ## Updating Custom Components to Apache NiFi <nifi.version>
 
-Refer to recommendations provided on the page [Updating Custom Components to Apache NiFi <nifi.version>](https://github.com/Netcracker/qubership-nifi/wiki/Updating-Custom-Components-to-Apache-NiFi-<nifi.version>).
+Refer to recommendations provided on the page [Updating Custom Components to new Apache NiFi version](https://github.com/Netcracker/qubership-nifi/wiki/Updating-Custom-Components-to-new-Apache-NiFi-version) were ${nifi.version} = <nifi.version> and ${nifi-api.version} = <nifi-api.version>
 
 ## Property changes in Apache NiFi components
 

@@ -173,19 +173,16 @@ Versions to substitute:
 
 Steps:
 
-1. Copy `docs/template/wiki/qubership‐nifi-Upgrade-Notes-template.md` to
-   `upgrade-temp-data/releases-notes/qubership‐nifi-<qubership-nifi.version>-Upgrade-Notes.md`.
-   The name uses a Unicode hyphen (U+2010) - keep it verbatim.
-2. Copy `docs/template/wiki/Updating-Custom-Components-to-Apache-NiFi-template.md` to
-   `upgrade-temp-data/releases-notes/Updating-Custom-Components-to-Apache-NiFi-<nifi.version>.md`.
-3. Move `upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.md` (produced in
+1. Copy `docs/template/wiki/qubership-nifi-Upgrade-Notes-template.md` to
+   `upgrade-temp-data/releases-notes/qubership-nifi-<qubership-nifi.version>-Upgrade-Notes.md`.
+2. Copy `upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.md` (produced in
    steps 11-12) to
    `upgrade-temp-data/releases-notes/Apache-NiFi-<nifi.version>-Component-Properties-Delta.md`.
-4. In all three files, replace `<qubership-nifi.version>`, `<nifi-api.version>` and
+3. In both files, replace `<qubership-nifi.version>`, `<nifi-api.version>` and
    `<nifi.version>` with their values.
-5. Verify no placeholder is left: `grep -rn '<[a-z-]*\.version>' upgrade-temp-data/releases-notes/`
+4. Verify no placeholder is left: `grep -rn '<[a-z-]*\.version>' upgrade-temp-data/releases-notes/`
    must return nothing.
 
-In the final report, list the three generated files and remind the user to publish
+In the final report, list the two generated files and remind the user to publish
 them to the [project wiki](https://github.com/Netcracker/qubership-nifi/wiki) - they
 are not committed to the repo.
