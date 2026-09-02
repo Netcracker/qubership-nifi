@@ -35,6 +35,9 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
 
       # The bash test case runs the advisor straight on the runner, so both tools must be present.
       # They ship with ubuntu-latest. UpgradeAdvisorBashIT fails on its own when one is missing;
@@ -51,6 +54,9 @@ jobs:
         run: |
           mvn --batch-mode verify -pl dev-tools-integration-tests -P upgrade-advisor-tests \
             -DskipITs=false -DskipUnitTests=true -Dgpg.skip=true
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # The suite fails on a missing prerequisite rather than skipping, but that cannot catch a
       # class that was never selected - a renamed class or a broken include pattern still leaves
