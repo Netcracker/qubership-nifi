@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "github>Netcracker/renovate-config:base",
+    "github>Netcracker/renovate-config:github-actions",
+    "github>Netcracker/renovate-config:maven-groupid",
+    "github>Netcracker/renovate-config:netcracker-dependencies",
+    "github>Netcracker/renovate-config:apm"
+  ],
+  "packageRules": [
+    {
+      "description": [
+        "NiFi provides these artifacts at runtime, so their versions must match the ones the NiFi distribution ships.",
+        "They are set through the jedis.version and spring.data.redis.version properties and are updated with the NiFi version, never on their own."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": [
+        "redis.clients:jedis",
+        "org.springframework.data:spring-data-redis"
+      ],
+      "enabled": false
+    },
+    {
+      "description": [
+        "Renovate does not regenerate the --hash values in requirements-test.txt, and the python-tests workflow installs it with pip --require-hashes.",
+        "A version bump on its own would fail that job."
+      ],
+      "matchManagers": ["pip_requirements"],
+      "enabled": false
+    },
+    {
+      "description": [
+        "Each Dockerfile pins its base image through a version ARG and a separate digest ARG, which Renovate cannot update as one dependency.",
+        "Base images are upgraded by hand together with the NiFi version."
+      ],
+      "matchManagers": ["dockerfile"],
+      "enabled": false
+    }
+  ]
+}
