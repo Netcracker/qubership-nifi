@@ -1,7 +1,7 @@
 ---
 services:
   nifi-toolkit:
-    image: apache/nifi-toolkit:1.28.1
+    image: apache/nifi-toolkit:1.28.1@sha256:7a43836dcc7ac37c5243dd11792da3aaff1b28a1c0e06b41c23cb16118c42652
     depends_on:
       consul:
         condition: service_healthy
@@ -106,7 +106,7 @@ services:
       retries: 15
       start_period: 5s
   consul:
-    image: hashicorp/consul:1.20
+    image: hashicorp/consul:1.20@sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d
     volumes:
       - consul-conf:/consul/config
     ports:

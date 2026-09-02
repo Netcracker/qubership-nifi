@@ -1,6 +1,6 @@
 services:
   qubership-nifi-toolkit:
-    image: apache/nifi-toolkit:1.28.1
+    image: apache/nifi-toolkit:1.28.1@sha256:7a43836dcc7ac37c5243dd11792da3aaff1b28a1c0e06b41c23cb16118c42652
     container_name: qubership-nifi-toolkit
     entrypoint: /bin/sh
     command: >
@@ -117,7 +117,7 @@ services:
       start_period: 15s
     restart: unless-stopped
   consul:
-    image: hashicorp/consul:1.20
+    image: hashicorp/consul:1.20@sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d
     ports:
       - 127.0.0.1:18500:8500
     container_name: consul
