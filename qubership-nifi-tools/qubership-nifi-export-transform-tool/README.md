@@ -218,7 +218,7 @@ is different: it aborts the run immediately with `BUILD ERROR` and a stack trace
 | Message | Cause | Fix |
 | ------- | ----- | --- |
 | `Duplicate processor path '<path>': processor '<id>' and processor '<id>' produce the same path. Processors must have unique paths (parent process group names + processor name) within the flow, since the path determines the directory structure during Extract.` | Two processors resolve to the same parent group path plus processor name, so both would write to the same directory. | Rename one of the processors, or move one into a process group with a different name. |
-| `Invalid characters in <flow name \| process group name \| processor name> '<name>'. The following characters are not allowed in file system paths: / \ : * ? " < > \|` | A name that becomes a directory segment - the flow file name, a process group name, or a processor name - contains a character that is not valid in a file system path. | Rename the process group or the processor, or rename the flow JSON file. |
+| `Invalid characters in <flow name \| process group name \| processor name> '<name>'. The following characters are not allowed in file system paths: / \ : * ? " < > \|` | A name that becomes a directory segment - the flow filename, a process group name, or a processor name - contains a character that is not valid in a file system path. | Rename the process group or the processor, or rename the flow JSON file. |
 | `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. The pattern must match exactly one property.` | A `regex:` mapping matched more than one property name on a processor, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
 
 Notes on these checks:
@@ -227,7 +227,7 @@ Notes on these checks:
   configured type in the flow. One bad name therefore blocks the whole flow file,
   not just the offending processor.
 - Path uniqueness is checked across all configured processor types together, not
-  per type. Two different types can map to the same target file name, so two
+  per type. Two different types can map to the same target filename, so two
   processors sharing a path would still collide.
 - The path is built from process group *names*, not identifiers. Two distinct
   groups that happen to share a name collide.
@@ -242,7 +242,7 @@ Notes on these checks:
 | Message | Cause | Fix |
 | ------- | ----- | --- |
 | `Referenced file '<path>' does not exist for property '<property>' of processor '<name>' (id: <uuid>, group: '<group>', groupId: <uuid>, flow: '<flowFile>'). Run Extract first to generate the configuration files.` | The property holds an `@path` reference, but the file it points to is missing - typically because the extracted files were removed by an earlier `-Ddelete=true` run, or were never committed. | Restore the extracted file, or re-run Extract on a flow export that still holds the inline value. |
-| `Property '<property>' of processor '<name>' has an inline value, but an extracted file already exists at '<path>'. This is ambiguous: remove either the inline value or the extracted file (flow file: '<flowFile>').` | The flow JSON was re-exported from NiFi with a literal value while the extracted file from an earlier Extract is still on disk. Build cannot tell which of the two is current. | Keep one of them: delete the stale extracted file, or replace the inline value with the `@path` reference. |
+| `Property '<property>' of processor '<name>' has an inline value, but an extracted file already exists at '<path>'. This is ambiguous: remove either the inline value or the extracted file (flow file: '<flowFile>').` | The flow JSON was exported again from NiFi with a literal value while the extracted file from an earlier Extract is still on disk. Build cannot tell which of the two is current. | Keep one of them: delete the stale extracted file, or replace the inline value with the `@path` reference. |
 | `Reference path '<path>' escapes the export directory. Only paths within the flow directory are allowed.` | An `@path` value resolves outside the directory that holds the flow JSON file, for example because it contains `..`. | Correct the reference so that it stays under the flow directory. |
 
 ### Cases that are skipped instead of failing
