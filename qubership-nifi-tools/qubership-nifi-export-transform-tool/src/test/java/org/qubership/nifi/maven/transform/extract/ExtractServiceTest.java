@@ -274,11 +274,9 @@ class ExtractServiceTest {
         verify(flowWriter).write(flow2);
     }
 
-    /**
-     * End-to-end check with the real ReferenceBuilder and FileSystemService:
-     * a processor whose name contains a character not allowed in file system paths
-     * must still produce a real single directory on disk and a valid reference.
-     */
+    // End-to-end check with the real ReferenceBuilder and FileSystemService:
+    // a processor whose name contains a character not allowed in file system paths
+    // must still produce a real single directory on disk and a valid reference.
     @Test
     void extractCreatesRealDirectoryForProcessorNameWithSpecialChar(@TempDir Path tempDir)
             throws ExtractException, IOException {

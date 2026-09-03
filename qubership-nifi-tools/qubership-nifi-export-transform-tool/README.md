@@ -174,17 +174,17 @@ that are not allowed in file and directory names. Each such character is replace
 with a token in the path and in the reference (the original name in the flow JSON
 is left unchanged):
 
-| Character | Token |
-|-----------|-------|
-| `\`  | `_bs_` |
-| `/`  | `_sl_` |
-| `:`  | `_cl_` |
-| `*`  | `_st_` |
-| `?`  | `_qm_` |
-| `"`  | `_qt_` |
-| `<`  | `_lt_` |
-| `>`  | `_gt_` |
-| `\|` | `_vb_` |
+| Character | Token  |
+|-----------|--------|
+| `\`       | `_bs_` |
+| `/`       | `_sl_` |
+| `:`       | `_cl_` |
+| `*`       | `_st_` |
+| `?`       | `_qm_` |
+| `"`       | `_qt_` |
+| `<`       | `_lt_` |
+| `>`       | `_gt_` |
+| `\|`      | `_vb_` |
 
 For example, a processor named `Get value > 0` is stored under a directory named
 `Get value _gt_ 0`.
