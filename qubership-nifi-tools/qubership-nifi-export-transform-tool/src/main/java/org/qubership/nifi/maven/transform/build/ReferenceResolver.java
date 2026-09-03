@@ -2,6 +2,7 @@ package org.qubership.nifi.maven.transform.build;
 
 import org.qubership.nifi.maven.transform.exception.BuildException;
 import org.qubership.nifi.maven.transform.flow.FlowFile;
+import org.qubership.nifi.maven.transform.flow.PathSegmentEncoder;
 import org.qubership.nifi.maven.transform.flow.Processor;
 import org.qubership.nifi.maven.transform.flow.ProcessorProperty;
 
@@ -102,7 +103,9 @@ public class ReferenceResolver {
 
     /**
      * Builds the expected extracted file path for a given processor and target filename.
-     * Mirrors the path structure built by ReferenceBuilder during Extract.
+     * Mirrors the path structure built by ReferenceBuilder during Extract, including
+     * the PathSegmentEncoder encoding of the flow name; keep this in sync with
+     * ReferenceBuilder.buildRelativePath.
      *
      * @param flow           the flow file whose parent directory is used as the base
      * @param processor      the processor whose parent group path segments are included
@@ -112,7 +115,7 @@ public class ReferenceResolver {
     private Path buildExtractedFilePath(FlowFile flow, Processor processor,
                                         String targetFilename) {
         return flow.getFilePath().getParent()
-                .resolve("flowConf_" + flow.getFlowName())
+                .resolve("flowConf_" + PathSegmentEncoder.encode(flow.getFlowName()))
                 .resolve(processor.getRelativePath())
                 .resolve(targetFilename);
     }

@@ -137,4 +137,19 @@ class ReferenceResolverTest {
                 resolver.checkConflict(flowFile(), nestedProcessor,
                         inlineProperty("SELECT 1"), "query.sql"));
     }
+
+    @Test
+    void checkConflictLooksForExtractedFileUnderEncodedProcessorName() throws IOException {
+        Processor processor = new Processor("Get value>1", TYPE, "id",
+                MAPPER.createObjectNode(), rootGroup());
+
+        Path extractedFile = tempDir.resolve("flowConf_flow")
+                .resolve("Get value_gt_1").resolve("query.sql");
+        Files.createDirectories(extractedFile.getParent());
+        Files.writeString(extractedFile, "SELECT 1");
+
+        assertThrows(BuildException.class, () ->
+                resolver.checkConflict(flowFile(), processor,
+                        inlineProperty("SELECT 1"), "query.sql"));
+    }
 }

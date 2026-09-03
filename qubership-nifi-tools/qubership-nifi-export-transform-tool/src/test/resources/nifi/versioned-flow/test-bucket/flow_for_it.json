@@ -402,6 +402,18 @@
 				"yieldDuration": "1 sec"
 			},
 			{
+				"comments": "",
+				"componentType": "PROCESSOR",
+				"groupIdentifier": "ffd40c9a-0c87-3a8e-8a28-c2f98ddd143a",
+				"identifier": "b7c1e0a2-0000-3000-9000-0000000000ff",
+				"name": "Filter status>0",
+				"properties": {
+					"SQL Query": "SELECT id FROM employees WHERE status > 0 AND name <> ''"
+				},
+				"scheduledState": "ENABLED",
+				"type": "org.apache.nifi.processors.standard.ExecuteSQL"
+			},
+			{
 				"autoTerminatedRelationships": [],
 				"backoffMechanism": "PENALIZE_FLOWFILE",
 				"bulletinLevel": "WARN",

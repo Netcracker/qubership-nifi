@@ -6,6 +6,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.qubership.nifi.maven.transform.config.PluginConfig;
@@ -22,6 +23,7 @@ import org.qubership.nifi.maven.transform.flow.ProcessorProperty;
 import org.qubership.nifi.maven.transform.io.FileSystemService;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -269,5 +272,41 @@ class ExtractServiceTest {
         assertThrows(ExtractException.class, () -> service.extract(config, exportDir));
         verify(flowWriter, never()).write(flow1);
         verify(flowWriter).write(flow2);
+    }
+
+    /**
+     * End-to-end check with the real ReferenceBuilder and FileSystemService:
+     * a processor whose name contains a character not allowed in file system paths
+     * must still produce a real single directory on disk and a valid reference.
+     */
+    @Test
+    void extractCreatesRealDirectoryForProcessorNameWithSpecialChar(@TempDir Path tempDir)
+            throws ExtractException, IOException {
+        ExtractService realIoService = new ExtractService(log, flowReader, flowWriter,
+                flowValidator, new FileSystemService(), propertyResolver, new ReferenceBuilder());
+
+        Path flowPath = tempDir.resolve("my-flow.json");
+        ObjectNode props = MAPPER.createObjectNode();
+        props.put("SQL Query", "SELECT 1");
+        Processor processor = new Processor("Get value>1", TYPE, "id", props, rootGroup());
+        FlowFile flow = new FlowFile(flowPath, MAPPER.createObjectNode(), rootGroup(),
+                Map.of(TYPE, List.of(processor)));
+        PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
+        PluginConfig config = config(mapping);
+        ProcessorProperty property = new ProcessorProperty("SQL Query", props);
+
+        when(flowReader.findFlowPaths(tempDir)).thenReturn(List.of(flowPath));
+        when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
+        when(flowValidator.validate(flow, config)).thenReturn(List.of());
+        when(propertyResolver.resolve(processor, mapping)).thenReturn(Optional.of(property));
+
+        realIoService.extract(config, tempDir);
+
+        Path expectedFile = tempDir.resolve("flowConf_my-flow")
+                .resolve("Get value_gt_1").resolve("query.sql");
+        assertTrue(Files.exists(expectedFile));
+        assertEquals("SELECT 1", Files.readString(expectedFile));
+        assertEquals("@flowConf_my-flow/Get value_gt_1/query.sql", property.getValue());
+        verify(flowWriter).write(flow);
     }
 }

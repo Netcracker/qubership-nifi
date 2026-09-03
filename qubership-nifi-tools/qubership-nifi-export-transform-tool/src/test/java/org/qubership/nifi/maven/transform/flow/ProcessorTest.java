@@ -49,6 +49,28 @@ class ProcessorTest {
     }
 
     @Test
+    void getRelativePathEncodesSpecialCharactersInProcessorName() {
+        Processor p = new Processor("Get value>1", TYPE, "id", MAPPER.createObjectNode(), rootGroup());
+        assertEquals(Path.of("Get value_gt_1"), p.getRelativePath());
+    }
+
+    @Test
+    void getRelativePathEncodesSpecialCharactersInGroupAndProcessorName() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup child = new ProcessGroup("a<b", "child-id", List.of(), List.of(), root, false);
+        Processor p = new Processor("c>d", TYPE, "id", MAPPER.createObjectNode(), child);
+        assertEquals(Path.of("a_lt_b", "c_gt_d"), p.getRelativePath());
+    }
+
+    @Test
+    void getFullPathKeepsSpecialCharactersUnchanged() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup child = new ProcessGroup("a<b", "child-id", List.of(), List.of(), root, false);
+        Processor p = new Processor("c>d", TYPE, "id", MAPPER.createObjectNode(), child);
+        assertEquals("a<b / c>d", p.getFullPath());
+    }
+
+    @Test
     void findPropertyReturnsPropertyWhenPresent() {
         ObjectNode props = MAPPER.createObjectNode();
         props.put("SQL Query", "SELECT 1");

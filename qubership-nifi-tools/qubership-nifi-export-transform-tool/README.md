@@ -161,3 +161,30 @@ processorTypes:
 
 A ready-to-use configuration file covering the most common qubership-nifi processor types
 is available at [config/configuration-default.yaml](../../qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
+
+## Reference path format
+
+Extract writes each extracted value to
+`flowConf_<flowName>/<group>/.../<group>/<processorName>/<targetFilename>`
+and stores a reference to it in the flow JSON as
+`@flowConf_<flowName>/<group>/.../<group>/<processorName>/<targetFilename>`.
+
+Processor and process group names are free-form text and may contain characters
+that are not allowed in file and directory names. Each such character is replaced
+with a token in the path and in the reference (the original name in the flow JSON
+is left unchanged):
+
+| Character | Token |
+|-----------|-------|
+| `\`  | `_bs_` |
+| `/`  | `_sl_` |
+| `:`  | `_cl_` |
+| `*`  | `_st_` |
+| `?`  | `_qm_` |
+| `"`  | `_qt_` |
+| `<`  | `_lt_` |
+| `>`  | `_gt_` |
+| `\|` | `_vb_` |
+
+For example, a processor named `Get value > 0` is stored under a directory named
+`Get value _gt_ 0`.
