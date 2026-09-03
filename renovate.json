@@ -10,8 +10,7 @@
   "packageRules": [
     {
       "description": [
-        "NiFi provides these artifacts at runtime, so their versions must match the ones the NiFi distribution ships.",
-        "They are set through the jedis.version and spring.data.redis.version properties and are updated with the NiFi version, never on their own."
+        "NiFi provides these at runtime, so the versions must match the NiFi distribution and move only with it."
       ],
       "matchManagers": ["maven"],
       "matchPackageNames": [
@@ -22,8 +21,18 @@
     },
     {
       "description": [
-        "The qubership-nifi-h2-deps-* modules deliberately keep older H2 versions so that databases created by those versions can be checked for errors before an upgrade.",
-        "Each module pins the version it is named after, so the version is part of the module identity and must not move."
+        "NiFi upgrades may require adaptation and are done by hand. The NAR plugin versions independently, so it stays enabled."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": [
+        "org.apache.nifi:*",
+        "!org.apache.nifi:nifi-nar-maven-plugin"
+      ],
+      "enabled": false
+    },
+    {
+      "description": [
+        "Each qubership-nifi-h2-deps-* module pins the H2 version it is named after, so that version must not move."
       ],
       "matchManagers": ["maven"],
       "matchPackageNames": ["com.h2database:h2"],
@@ -32,24 +41,30 @@
     },
     {
       "description": [
-        "Renovate does not regenerate the --hash values in requirements-test.txt, and the python-tests workflow installs it with pip --require-hashes.",
-        "A version bump on its own would fail that job."
+        "Renovate does not regenerate the --hash values in requirements-test.txt, so a bump would fail the python-tests job."
       ],
       "matchManagers": ["pip_requirements"],
       "enabled": false
     },
     {
       "description": [
-        "Each Dockerfile pins its base image through a version ARG and a separate digest ARG, which Renovate cannot update as one dependency.",
-        "Base images are upgraded by hand together with the NiFi version."
+        "Each Dockerfile pins its base image through separate version and digest ARGs, which Renovate cannot update as one dependency."
       ],
       "matchManagers": ["dockerfile"],
+      "enabled": false
+    },
+    {
+      "description": [
+        "Certificate generation needs the NiFi 1.x tls-toolkit, and dev/tls/docker-compose.yml hardcodes the 1.28.1 path."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["apache/nifi-toolkit"],
       "enabled": false
     }
   ],
   "vulnerabilityAlerts": {
     "description": [
-      "Repeat the rules above for security updates. A packageRule that disables a dependency does not reliably stop a vulnerability alert PR, and none of these updates can be applied as Renovate proposes them."
+      "Repeat the rules above, because a disabling packageRule does not reliably stop a vulnerability alert PR."
     ],
     "packageRules": [
       {
@@ -57,6 +72,14 @@
         "matchPackageNames": [
           "redis.clients:jedis",
           "org.springframework.data:spring-data-redis"
+        ],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": [
+          "org.apache.nifi:*",
+          "!org.apache.nifi:nifi-nar-maven-plugin"
         ],
         "enabled": false
       },
@@ -72,6 +95,11 @@
       },
       {
         "matchManagers": ["dockerfile"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["docker-compose"],
+        "matchPackageNames": ["apache/nifi-toolkit"],
         "enabled": false
       }
     ]
