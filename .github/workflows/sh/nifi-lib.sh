@@ -122,6 +122,63 @@ test_log_level() {
     fi
 }
 
+check_auxiliary_classpath() {
+    local resultsDir="$1"
+    local containerName="$2"
+    local auxDir="$3"
+    if [ -z "$auxDir" ]; then
+        auxDir='/opt/nifi/nifi-current/auxiliary-cp'
+    fi
+    resultsPath="./test-results/$resultsDir"
+    logFile="$resultsPath/auxiliary_classpath.log"
+    echo "Checking auxiliary classpath in $auxDir of container $containerName..."
+    echo "Results path = $resultsPath"
+    res="0"
+    docker exec "$containerName" sh -c '
+        auxDir="$1"
+        if [ ! -d "$auxDir" ]; then
+            echo "Auxiliary classpath directory $auxDir does not exist"
+            exit 1
+        fi
+        entryCount=0
+        rc=0
+        for entry in "$auxDir"/*; do
+            if [ ! -e "$entry" ] && [ ! -L "$entry" ]; then
+                #directory is empty, the glob stayed unexpanded:
+                break
+            fi
+            entryCount=$((entryCount + 1))
+            target=$(readlink -f "$entry")
+            if [ ! -d "$target" ]; then
+                echo "Broken auxiliary classpath entry: $entry -> $target"
+                rc=1
+                continue
+            fi
+            if ! ls "$target"/*.jar >/dev/null 2>&1; then
+                echo "No JAR files in auxiliary classpath entry: $entry -> $target"
+                rc=1
+                continue
+            fi
+            echo "Valid auxiliary classpath entry: $entry -> $target"
+        done
+        if [ "$entryCount" -eq 0 ]; then
+            echo "Auxiliary classpath directory $auxDir is empty"
+            rc=1
+        fi
+        exit "$rc"
+    ' sh "$auxDir" >"$logFile" 2>&1 || res="1"
+    cat "$logFile"
+    summaryFileName=$(get_next_summary_file_name "$resultsDir")
+    if [ "$res" == "0" ]; then
+        echo "Auxiliary classpath is valid"
+        echo "| Auxiliary classpath validation                 | Success :white_check_mark: |" >"$resultsPath/$summaryFileName"
+    else
+        echo "Auxiliary classpath is invalid"
+        echo "Auxiliary classpath validation failed" >"$resultsPath/failed_auxiliary_classpath.lst"
+        echo "| Auxiliary classpath validation                 | Failed :x:                 |" >"$resultsPath/$summaryFileName"
+    fi
+}
+
 prepare_sens_key() {
     echo "Generating temporary sensitive key..."
     NIFI_SENSITIVE_KEY=$(generate_random_password 12 4 4)
