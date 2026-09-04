@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.maven.transform.exception.BuildException;
+import org.qubership.nifi.maven.transform.extract.ReferenceBuilder;
 import org.qubership.nifi.maven.transform.flow.FlowFile;
 import org.qubership.nifi.maven.transform.flow.ProcessGroup;
 import org.qubership.nifi.maven.transform.flow.Processor;
@@ -45,7 +46,7 @@ class ReferenceResolverTest {
 
     @BeforeEach
     void setUp() {
-        resolver = new ReferenceResolver();
+        resolver = new ReferenceResolver(new ReferenceBuilder());
     }
 
     private ProcessGroup rootGroup() {

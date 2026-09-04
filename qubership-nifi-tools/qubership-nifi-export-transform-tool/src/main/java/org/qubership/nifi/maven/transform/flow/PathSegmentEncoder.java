@@ -3,26 +3,30 @@ package org.qubership.nifi.maven.transform.flow;
 import java.util.Map;
 
 /**
- * Encodes a single name (a processor name or a process group name) into a string
- * that is safe to use as one path segment on every operating system.
+ * Replaces the nine characters that are not allowed in Windows file and directory
+ * names (backslash, slash, colon, asterisk, question mark, double quote, less-than,
+ * greater-than, vertical bar) with short underscore-delimited tokens, so a processor
+ * or process group name can be used as one path segment. For example the greater-than
+ * sign becomes _gt_.
  *
- * NiFi processor and process group names are free-form user text and may contain
- * characters that are not allowed in file and directory names on Windows:
- * {@code \ / : * ? " < > |}. Each such character is replaced with a short
- * underscore-delimited token (for example {@code <} becomes {@code _lt_}).
+ * This does not guarantee that every name can be used as a directory. Names the
+ * platform's own path rules still reject are left untouched and surface as an
+ * error when the export path is built or the directory is created: a NUL
+ * character on any system, and a trailing space or a reserved device name such as
+ * CON on Windows. An empty name is also left untouched - the extracted file then
+ * lands in the parent group's directory instead of its own. None of these are
+ * expected in real NiFi component names.
  *
- * The underscore itself is the token delimiter and is left unchanged.
- *
- * There is no matching decode operation: the encoded form is only ever used as a
- * directory name and inside the {@code @}-reference value, and nothing needs to
- * recover the original name from it.
+ * The underscore is the token delimiter and is left unchanged. There is no decode
+ * operation: the encoded form is only used as a directory name and inside the
+ * reference value, and nothing needs to recover the original name from it.
  */
 public final class PathSegmentEncoder {
 
     /**
-     * Maps each unsafe character to its replacement token.
+     * The replacement token for each unsafe character.
      */
-    private static final Map<Character, String> DICTIONARY = Map.ofEntries(
+    private static final Map<Character, String> REPLACEMENTS = Map.ofEntries(
             Map.entry('\\', "_bs_"),
             Map.entry('/', "_sl_"),
             Map.entry(':', "_cl_"),
@@ -37,19 +41,23 @@ public final class PathSegmentEncoder {
     }
 
     /**
-     * Replaces every unsafe character in the given name with its token.
-     * A name that contains no unsafe characters is returned unchanged in content.
-     * Applying this method to an already encoded string does not change it further,
+     * Replaces every unsafe character in the given name with its token, for example
+     * ">" with "_gt_".
+     *
+     * The mapping is one-way and many-to-one: the tokens are ordinary text, so a
+     * name that literally contains "_gt_" encodes to the same string as a name that
+     * contains ">". Code that must keep such names apart compares the encoded form
+     * (see FlowValidator). Encoding an already encoded string changes nothing,
      * because the tokens contain no unsafe characters.
      *
      * @param segment a single processor or process group name
-     * @return the name with all unsafe characters replaced by tokens
+     * @return the name with every unsafe character replaced by its token
      */
     public static String encode(String segment) {
         StringBuilder result = new StringBuilder(segment.length());
         for (int i = 0; i < segment.length(); i++) {
             char currentChar = segment.charAt(i);
-            String replacement = DICTIONARY.get(currentChar);
+            String replacement = REPLACEMENTS.get(currentChar);
             result.append(replacement != null ? replacement : currentChar);
         }
         return result.toString();

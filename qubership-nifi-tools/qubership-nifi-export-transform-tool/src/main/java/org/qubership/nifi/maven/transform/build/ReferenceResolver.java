@@ -1,8 +1,8 @@
 package org.qubership.nifi.maven.transform.build;
 
 import org.qubership.nifi.maven.transform.exception.BuildException;
+import org.qubership.nifi.maven.transform.extract.ReferenceBuilder;
 import org.qubership.nifi.maven.transform.flow.FlowFile;
-import org.qubership.nifi.maven.transform.flow.PathSegmentEncoder;
 import org.qubership.nifi.maven.transform.flow.Processor;
 import org.qubership.nifi.maven.transform.flow.ProcessorProperty;
 
@@ -13,6 +13,17 @@ import java.nio.file.Path;
  * Resolves file references in processor properties during the Build operation.
  */
 public class ReferenceResolver {
+
+    private final ReferenceBuilder referenceBuilder;
+
+    /**
+     * Constructor for class ReferenceResolver.
+     *
+     * @param referenceBuilderValue builds the export file path, shared with the Extract operation
+     */
+    public ReferenceResolver(final ReferenceBuilder referenceBuilderValue) {
+        this.referenceBuilder = referenceBuilderValue;
+    }
 
     /**
      * Resolves the reference in the given property to an absolute file path.
@@ -64,7 +75,7 @@ public class ReferenceResolver {
                               ProcessorProperty property,
                               String targetFilename) throws BuildException {
 
-        Path extractedFile = buildExtractedFilePath(flow, processor, targetFilename);
+        Path extractedFile = referenceBuilder.buildAbsoluteFilePath(flow, processor, targetFilename);
 
         if (Files.isRegularFile(extractedFile)) {
             throw new BuildException(String.format(
@@ -99,24 +110,5 @@ public class ReferenceResolver {
                     + "' escapes the export directory. Only paths within the flow directory are allowed.");
         }
         return resolved;
-    }
-
-    /**
-     * Builds the expected extracted file path for a given processor and target filename.
-     * Mirrors the path structure built by ReferenceBuilder during Extract, including
-     * the PathSegmentEncoder encoding of the flow name; keep this in sync with
-     * ReferenceBuilder.buildRelativePath.
-     *
-     * @param flow           the flow file whose parent directory is used as the base
-     * @param processor      the processor whose parent group path segments are included
-     * @param targetFilename the filename of the extracted configuration file
-     * @return the absolute Path where the extracted file is expected to reside
-     */
-    private Path buildExtractedFilePath(FlowFile flow, Processor processor,
-                                        String targetFilename) {
-        return flow.getFilePath().getParent()
-                .resolve("flowConf_" + PathSegmentEncoder.encode(flow.getFlowName()))
-                .resolve(processor.getRelativePath())
-                .resolve(targetFilename);
     }
 }

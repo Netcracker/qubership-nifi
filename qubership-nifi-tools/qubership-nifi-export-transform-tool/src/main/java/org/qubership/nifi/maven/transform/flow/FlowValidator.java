@@ -11,12 +11,14 @@ import java.util.Map;
 /**
  * Validates the structural integrity of a flow before the Extract operation.
  *
- * Checks that all target processors have unique full paths within the flow,
+ * Checks that all target processors map to unique export paths within the flow,
  * and that regex property mappings match exactly one property per processor.
  *
  * Characters not allowed in file system paths are not rejected here: processor
  * and group names are passed through PathSegmentEncoder when the export path is
- * built, so any name is accepted.
+ * built, so any name is accepted. The uniqueness check runs on the encoded paths,
+ * so it also catches names that clash only after replacement (for example a group
+ * named "Filter status>0" and a group named "Filter status_gt_0").
  */
 public class FlowValidator {
 
@@ -37,12 +39,16 @@ public class FlowValidator {
         // SQL Query property), so two processors that share a path would write to the same file.
         // Requiring unique paths guarantees that each extracted directory belongs to a single processor
         // and avoids mixing data from two sources, which would confuse users.
-        Map<String, String> seenPaths = new HashMap<>();
+        // The key is the encoded relative path string (Processor.getRelativePath()), the same path
+        // used to lay out the extracted files, so it also reports clashes that appear only after
+        // replacing unsafe characters (a group named "a>b" and a group named "a_gt_b"), as well as a
+        // group literally named "a / b" clashing with the nested pair "a" then "b". Forward slashes
+        // are used so the comparison is identical on every operating system.
+        Map<String, Processor> seenPaths = new HashMap<>();
 
         for (var typeConfig : config.getProcessorTypes()) {
-            String typeFqn = typeConfig.getProcessorTypeFqn();
-            List<Processor> processors = flow.getProcessorsByType(typeFqn);
-            collectDuplicatePaths(processors, typeFqn, errors, seenPaths);
+            List<Processor> processors = flow.getProcessorsByType(typeConfig.getProcessorTypeFqn());
+            collectDuplicatePaths(processors, errors, seenPaths);
         }
 
         collectAmbiguousRegexMappings(flow, config, errors);
@@ -50,21 +56,23 @@ public class FlowValidator {
         return errors;
     }
 
-    private void collectDuplicatePaths(List<Processor> processors, String typeFqn,
-                                       List<String> errors, Map<String, String> seenPaths) {
+    private void collectDuplicatePaths(List<Processor> processors,
+                                       List<String> errors, Map<String, Processor> seenPaths) {
 
         for (Processor processor : processors) {
-            String fullPath = processor.getFullPath();
-            String existingId = seenPaths.putIfAbsent(fullPath, processor.getIdentifier());
+            String exportPath = processor.getRelativePath().toString().replace("\\", "/");
+            Processor existing = seenPaths.putIfAbsent(exportPath, processor);
 
-            if (existingId != null) {
+            if (existing != null) {
                 errors.add(String.format(
-                        "Duplicate processor path '%s': "
-                                + "processor '%s' and processor '%s' produce the same path. "
-                                + "Processors must have unique paths "
-                                + "(parent process group names + processor name) within the flow, "
-                                + "since the path determines the directory structure during Extract.",
-                        fullPath, existingId, processor.getIdentifier()));
+                        "Duplicate processor path '%s': processor '%s' (%s) and processor '%s' (%s) "
+                                + "map to the same export path after replacing characters not allowed "
+                                + "in file system paths. Processors must map to unique paths within "
+                                + "the flow, since the path determines the directory structure "
+                                + "during Extract.",
+                        exportPath,
+                        existing.getFullPath(), existing.getIdentifier(),
+                        processor.getFullPath(), processor.getIdentifier()));
             }
         }
     }

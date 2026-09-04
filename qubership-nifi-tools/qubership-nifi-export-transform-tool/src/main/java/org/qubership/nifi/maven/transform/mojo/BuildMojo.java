@@ -14,6 +14,7 @@ import org.qubership.nifi.maven.transform.exception.BuildException;
 import org.qubership.nifi.maven.transform.flow.FlowReader;
 import org.qubership.nifi.maven.transform.flow.FlowWriter;
 import org.qubership.nifi.maven.transform.extract.PropertyResolver;
+import org.qubership.nifi.maven.transform.extract.ReferenceBuilder;
 import org.qubership.nifi.maven.transform.io.FileSystemService;
 
 import java.io.IOException;
@@ -51,7 +52,7 @@ public final class BuildMojo extends AbstractTransformMojo {
                 new FlowWriter(),
                 new FileSystemService(),
                 new PropertyResolver(getLog()),
-                new ReferenceResolver(),
+                new ReferenceResolver(new ReferenceBuilder()),
                 new CleanupService(new FileSystemService(), getLog()));
 
         try {

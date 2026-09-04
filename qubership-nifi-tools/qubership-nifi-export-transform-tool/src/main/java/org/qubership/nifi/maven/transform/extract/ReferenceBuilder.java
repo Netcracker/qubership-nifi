@@ -43,9 +43,11 @@ public class ReferenceBuilder {
     /**
      * Builds the relative path flowConf_flowName/group1/.../groupN/processorName/targetFilename.
      *
-     * The flow name is passed through PathSegmentEncoder; the group and processor
-     * segments are already encoded by Processor.getRelativePath(). The target
-     * filename comes from the config and is used as is.
+     * The flow name is passed through PathSegmentEncoder too, but only defensively:
+     * it comes from an on-disk file name, so in practice it cannot contain any of
+     * the replaced characters and no test exercises that branch. The group and
+     * processor segments are already encoded by Processor.getRelativePath(). The
+     * target filename comes from the config and is used as is.
      *
      * @param flow           flow containing the processor
      * @param processor      processor whose property is being extracted

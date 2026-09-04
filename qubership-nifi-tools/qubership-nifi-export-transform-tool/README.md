@@ -188,3 +188,8 @@ is left unchanged):
 
 For example, a processor named `Get value > 0` is stored under a directory named
 `Get value _gt_ 0`.
+
+The replacement is one-way and not unique: a name that already contains a token
+spelling, such as `Get value _gt_ 0`, maps to the same directory as `Get value > 0`.
+Extract fails with a validation error if two processors or groups would collide
+this way.
