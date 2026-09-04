@@ -51,6 +51,9 @@ COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/nif
 FROM base
 LABEL org.opencontainers.image.authors="qubership.org"
 
+#make the global build argument available in the scope of this stage:
+ARG NIFI_VERSION
+
 USER 10001
 
 COPY --chown=10001:0 --from=nifi $NIFI_BASE_DIR/ $NIFI_BASE_DIR/
@@ -99,7 +102,12 @@ COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-te
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
     && mkdir -p $NIFI_HOME/auxiliary-cp \
-    && ln -s $NIFI_HOME/work/nar/extensions/nifi-poi-nar-$NIFI_VERSION.nar-unpacked/NAR-INF/bundled-dependencies $NIFI_HOME/auxiliary-cp/nifi-poi-nar-cp
+    && if [ ! -f "$NIFI_HOME/lib/nifi-poi-nar-$NIFI_VERSION.nar" ]; then \
+        echo "ERROR: $NIFI_HOME/lib/nifi-poi-nar-$NIFI_VERSION.nar not found" >&2; \
+        exit 1; \
+    fi \
+    && ln -s $NIFI_HOME/work/nar/extensions/nifi-poi-nar-$NIFI_VERSION.nar-unpacked/NAR-INF/bundled-dependencies \
+        $NIFI_HOME/auxiliary-cp/nifi-poi-nar-cp
 
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ojdbc8-*.jar ${NIFI_HOME}/lib/ojdbc8.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/orai18n-*.jar ${NIFI_HOME}/lib/orai18n.jar
