@@ -242,7 +242,6 @@ a missing `exportDir`, an unreadable file, malformed JSON - instead aborts the r
 | Message | Cause | Fix |
 | ------- | ----- | --- |
 | `Duplicate processor path '<path>': processor '<id>' and processor '<id>' produce the same path. ...` | Two processors resolve to the same parent group path plus processor name, so both would write to the same directory. | Rename one of the processors, or move one into a process group with a different name. |
-| `Invalid characters in <flow name \| process group name \| processor name> '<name>'. ...` | A name that becomes a directory segment contains a character that is not valid in a file system path: `/ \ : * ? " < > \|` | Rename the process group, the processor, or the flow JSON file. |
 | `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. ...` | A `regex:` mapping matched more than one property name, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
 
 These checks run before Extract writes anything, across every configured processor type in the flow,

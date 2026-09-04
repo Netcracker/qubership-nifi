@@ -3,23 +3,17 @@ package org.qubership.nifi.maven.transform.flow;
 import java.util.Map;
 
 /**
- * Replaces the nine characters that are not allowed in Windows file and directory
- * names (backslash, slash, colon, asterisk, question mark, double quote, less-than,
- * greater-than, vertical bar) with short underscore-delimited tokens, so a processor
- * or process group name can be used as one path segment. For example the greater-than
- * sign becomes _gt_.
+ * Replaces the nine characters not allowed in Windows file and directory names
+ * (backslash, slash, colon, asterisk, question mark, double quote, less-than,
+ * greater-than, vertical bar) with underscore-delimited tokens, so a processor or
+ * process group name can be used as one path segment - for example ">" becomes
+ * "_gt_". The underscore itself is left unchanged, and there is no decode: the
+ * encoded form is only used as a directory name and inside the reference value.
  *
- * This does not guarantee that every name can be used as a directory. Names the
- * platform's own path rules still reject are left untouched and surface as an
- * error when the export path is built or the directory is created: a NUL
- * character on any system, and a trailing space or a reserved device name such as
- * CON on Windows. An empty name is also left untouched - the extracted file then
- * lands in the parent group's directory instead of its own. None of these are
- * expected in real NiFi component names.
- *
- * The underscore is the token delimiter and is left unchanged. There is no decode
- * operation: the encoded form is only used as a directory name and inside the
- * reference value, and nothing needs to recover the original name from it.
+ * A few names the platform still rejects (an empty name, a NUL character, or on
+ * Windows a trailing space or a reserved device name such as CON) are left
+ * untouched and fail when the path is built or the directory is created. None of
+ * these are expected in real NiFi component names.
  */
 public final class PathSegmentEncoder {
 
