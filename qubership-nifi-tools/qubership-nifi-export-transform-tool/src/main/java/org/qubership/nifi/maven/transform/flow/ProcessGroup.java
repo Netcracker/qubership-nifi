@@ -72,10 +72,16 @@ public class ProcessGroup {
      * Returns the relative path from the root group to this group as a Path object.
      * Returns an empty path if this is the root group.
      *
-     * @return relative Path from root to this group
+     * Each group name is passed through PathSegmentEncoder so that names
+     * containing characters not allowed in file system paths still produce a valid
+     * single path segment. Use getPathSegments() for the original names.
+     *
+     * @return relative Path from root to this group, with encoded segments
      */
     public Path getRelativePath() {
-        List<String> segments = getPathSegments();
+        List<String> segments = getPathSegments().stream()
+                .map(PathSegmentEncoder::encode)
+                .toList();
         if (segments.isEmpty()) {
             return Paths.get("");
         }

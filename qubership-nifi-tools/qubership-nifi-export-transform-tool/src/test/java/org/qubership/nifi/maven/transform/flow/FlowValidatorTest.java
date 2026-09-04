@@ -127,7 +127,67 @@ class FlowValidatorTest {
     }
 
     @Test
-    void validateReturnsErrorForInvalidCharsInProcessorName() {
+    void validateReturnsErrorWhenGroupNamesClashAfterEncoding() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup withSpecialChar = new ProcessGroup("Filter status>0", "g-1",
+                List.of(), List.of(), root, false);
+        ProcessGroup withToken = new ProcessGroup("Filter status_gt_0", "g-2",
+                List.of(), List.of(), root, false);
+        Processor p1 = new Processor("P", TYPE, "id-1", MAPPER.createObjectNode(), withSpecialChar);
+        Processor p2 = new Processor("P", TYPE, "id-2", MAPPER.createObjectNode(), withToken);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).contains("Filter status>0 / P"));
+        assertTrue(errors.get(0).contains("Filter status_gt_0 / P"));
+        assertTrue(errors.get(0).contains("id-1"));
+        assertTrue(errors.get(0).contains("id-2"));
+    }
+
+    @Test
+    void validateReturnsErrorWhenProcessorNamesClashAfterEncoding() {
+        ProcessGroup root = rootGroup();
+        Processor withSpecialChar = new Processor("Filter a>b", TYPE, "id-1",
+                MAPPER.createObjectNode(), root);
+        Processor withToken = new Processor("Filter a_gt_b", TYPE, "id-2",
+                MAPPER.createObjectNode(), root);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(withSpecialChar, withToken)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).contains("Filter a>b"));
+        assertTrue(errors.get(0).contains("Filter a_gt_b"));
+        assertTrue(errors.get(0).contains("id-1"));
+        assertTrue(errors.get(0).contains("id-2"));
+    }
+
+    @Test
+    void validateNoErrorWhenEncodedGroupNamesRemainDistinct() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup withSpecialChar = new ProcessGroup("Filter status > 0", "g-1",
+                List.of(), List.of(), root, false);
+        ProcessGroup withPlainText = new ProcessGroup("Filter status gt 0", "g-2",
+                List.of(), List.of(), root, false);
+        Processor p1 = new Processor("P", TYPE, "id-1", MAPPER.createObjectNode(), withSpecialChar);
+        Processor p2 = new Processor("P", TYPE, "id-2", MAPPER.createObjectNode(), withPlainText);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertTrue(errors.isEmpty());
+    }
+
+    @Test
+    void validateAcceptsSpecialCharsInProcessorName() {
         ProcessGroup root = rootGroup();
         Processor p = new Processor("My*Processor", TYPE, "id", MAPPER.createObjectNode(), root);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
@@ -136,26 +196,22 @@ class FlowValidatorTest {
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("processor name"));
-        assertTrue(errors.get(0).contains("My*Processor"));
+        assertTrue(errors.isEmpty());
     }
 
     @Test
-    void validateReturnsErrorForInvalidCharsInProcessGroupName() {
+    void validateAcceptsSpecialCharsInProcessGroupName() {
         ProcessGroup root = rootGroup();
-        ProcessGroup invalid = new ProcessGroup("group/name", "g-id",
+        ProcessGroup group = new ProcessGroup("group/name", "g-id",
                 List.of(), List.of(), root, false);
-        Processor p = new Processor("MyProcessor", TYPE, "id", MAPPER.createObjectNode(), invalid);
+        Processor p = new Processor("MyProcessor", TYPE, "id", MAPPER.createObjectNode(), group);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
                 root, Map.of(TYPE, List.of(p)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("process group name"));
-        assertTrue(errors.get(0).contains("group/name"));
+        assertTrue(errors.isEmpty());
     }
 
     @Test
@@ -194,11 +250,12 @@ class FlowValidatorTest {
     @Test
     void validateCollectsAllErrorsInSingleRun() {
         ProcessGroup root = rootGroup();
-        Processor dup1 = new Processor("SameName", TYPE, "id-1", MAPPER.createObjectNode(), root);
-        Processor dup2 = new Processor("SameName", TYPE, "id-2", MAPPER.createObjectNode(), root);
-        Processor invalid = new Processor("Bad*Name", TYPE, "id-3", MAPPER.createObjectNode(), root);
+        Processor alpha1 = new Processor("Alpha", TYPE, "id-1", MAPPER.createObjectNode(), root);
+        Processor alpha2 = new Processor("Alpha", TYPE, "id-2", MAPPER.createObjectNode(), root);
+        Processor beta1 = new Processor("Beta", TYPE, "id-3", MAPPER.createObjectNode(), root);
+        Processor beta2 = new Processor("Beta", TYPE, "id-4", MAPPER.createObjectNode(), root);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
-                root, Map.of(TYPE, List.of(dup1, dup2, invalid)));
+                root, Map.of(TYPE, List.of(alpha1, alpha2, beta1, beta2)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));

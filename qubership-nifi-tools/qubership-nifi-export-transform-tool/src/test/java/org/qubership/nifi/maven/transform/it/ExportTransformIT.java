@@ -73,6 +73,17 @@ class ExportTransformIT {
                     "Extract should create at least one flowConf_* directory");
         }
 
+        // The processor named "Filter status>0" must be extracted into a directory whose name
+        // has the disallowed character replaced by its token, not passed through and not split.
+        Path encodedProcessorDir = flowDirTarget
+                .resolve("test-bucket")
+                .resolve("flowConf_flow_for_it")
+                .resolve("Filter status_gt_0");
+        assertTrue(Files.isDirectory(encodedProcessorDir),
+                "Extract should create the directory 'Filter status_gt_0' for processor 'Filter status>0'");
+        assertTrue(Files.isRegularFile(encodedProcessorDir.resolve("sql_query.sql")),
+                "Extract should write sql_query.sql under the encoded processor directory");
+
         // Flow JSON files must contain @references (no inline values for configured properties)
         try (Stream<Path> stream = Files.walk(flowDirTarget)) {
             List<Path> flowFiles = stream

@@ -58,6 +58,28 @@ class ProcessGroupTest {
     }
 
     @Test
+    void getRelativePathEncodesSpecialCharactersInGroupName() {
+        ProcessGroup root = group("root", null);
+        ProcessGroup child = group("Get status/error", root);
+        assertEquals(Path.of("Get status_sl_error"), child.getRelativePath());
+    }
+
+    @Test
+    void getRelativePathEncodesSpecialCharactersInEverySegment() {
+        ProcessGroup root = group("root", null);
+        ProcessGroup child = group("a<b", root);
+        ProcessGroup grandchild = group("c>d", child);
+        assertEquals(Path.of("a_lt_b", "c_gt_d"), grandchild.getRelativePath());
+    }
+
+    @Test
+    void getPathSegmentsKeepsSpecialCharactersUnchanged() {
+        ProcessGroup root = group("root", null);
+        ProcessGroup child = group("Get status/error", root);
+        assertEquals(List.of("Get status/error"), child.getPathSegments());
+    }
+
+    @Test
     void isVersionedReturnsTrueWhenVersioned() {
         ProcessGroup g = new ProcessGroup("g", "id", List.of(), List.of(), null, true);
         assertTrue(g.isVersioned());

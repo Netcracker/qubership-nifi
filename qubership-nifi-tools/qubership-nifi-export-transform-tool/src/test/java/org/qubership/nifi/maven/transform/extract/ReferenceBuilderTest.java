@@ -77,6 +77,52 @@ class ReferenceBuilderTest {
     }
 
     @Test
+    void buildReferenceEncodesSpecialCharInProcessorName() {
+        ProcessGroup root = rootGroup();
+        Processor processor = new Processor("Get value>1", TYPE, "id",
+                MAPPER.createObjectNode(), root);
+        FlowFile flow = flowFile(Path.of("exports", "my-flow.json"), processor);
+
+        assertEquals("@flowConf_my-flow/Get value_gt_1/query.sql",
+                builder.buildReference(flow, processor, "query.sql"));
+        assertEquals(Path.of("exports", "flowConf_my-flow", "Get value_gt_1", "query.sql"),
+                builder.buildAbsoluteFilePath(flow, processor, "query.sql"));
+    }
+
+    @Test
+    void buildReferenceEncodesSpecialCharInGroupName() {
+        ProcessGroup root = rootGroup();
+        ProcessGroup group = new ProcessGroup("Status: OK", "g-id", List.of(), List.of(), root, false);
+        Processor processor = new Processor("MyProcessor", TYPE, "id", MAPPER.createObjectNode(), group);
+        FlowFile flow = flowFile(Path.of("exports", "my-flow.json"), processor);
+
+        assertEquals("@flowConf_my-flow/Status_cl_ OK/MyProcessor/query.sql",
+                builder.buildReference(flow, processor, "query.sql"));
+    }
+
+    @Test
+    void buildReferenceEncodesEverySpecialCharacterInName() {
+        ProcessGroup root = rootGroup();
+        Processor processor = new Processor("a<b>c:d*e?f\"g|h", TYPE, "id",
+                MAPPER.createObjectNode(), root);
+        FlowFile flow = flowFile(Path.of("exports", "flow.json"), processor);
+
+        assertEquals("@flowConf_flow/a_lt_b_gt_c_cl_d_st_e_qm_f_qt_g_vb_h/query.sql",
+                builder.buildReference(flow, processor, "query.sql"));
+    }
+
+    @Test
+    void buildReferenceEncodesSlashAndBackslashInNameAsSingleSegment() {
+        ProcessGroup root = rootGroup();
+        Processor processor = new Processor("in/out\\done", TYPE, "id",
+                MAPPER.createObjectNode(), root);
+        FlowFile flow = flowFile(Path.of("exports", "flow.json"), processor);
+
+        assertEquals("@flowConf_flow/in_sl_out_bs_done/query.sql",
+                builder.buildReference(flow, processor, "query.sql"));
+    }
+
+    @Test
     void buildAbsoluteFilePathForProcessorInRootGroup() {
         ProcessGroup root = rootGroup();
         Processor processor = new Processor("MyProcessor", TYPE, "id", MAPPER.createObjectNode(), root);

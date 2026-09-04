@@ -1,6 +1,7 @@
 package org.qubership.nifi.maven.transform.extract;
 
 import org.qubership.nifi.maven.transform.flow.FlowFile;
+import org.qubership.nifi.maven.transform.flow.PathSegmentEncoder;
 import org.qubership.nifi.maven.transform.flow.Processor;
 
 import java.nio.file.Path;
@@ -42,13 +43,19 @@ public class ReferenceBuilder {
     /**
      * Builds the relative path flowConf_flowName/group1/.../groupN/processorName/targetFilename.
      *
+     * The flow name is passed through PathSegmentEncoder too, but only defensively:
+     * it comes from an on-disk file name, so in practice it cannot contain any of
+     * the replaced characters and no test exercises that branch. The group and
+     * processor segments are already encoded by Processor.getRelativePath(). The
+     * target filename comes from the config and is used as is.
+     *
      * @param flow           flow containing the processor
      * @param processor      processor whose property is being extracted
      * @param targetFilename target filename from the config mapping
      * @return relative path string with forward slashes
      */
     private String buildRelativePath(FlowFile flow, Processor processor, String targetFilename) {
-        Path relativePath = Path.of(FLOW_CONF_PREFIX + flow.getFlowName())
+        Path relativePath = Path.of(FLOW_CONF_PREFIX + PathSegmentEncoder.encode(flow.getFlowName()))
                 .resolve(processor.getRelativePath())
                 .resolve(targetFilename);
 

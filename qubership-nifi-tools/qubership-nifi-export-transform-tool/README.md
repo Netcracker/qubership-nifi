@@ -162,6 +162,38 @@ processorTypes:
 A ready-to-use configuration file covering the most common qubership-nifi processor types
 is available at [config/configuration-default.yaml](../../qubership-nifi-tools/qubership-nifi-export-transform-tool/config/configuration-default.yaml).
 
+## Reference path format
+
+Extract writes each extracted value to
+`flowConf_<flowName>/<group>/.../<group>/<processorName>/<targetFilename>`
+and stores a reference to it in the flow JSON as
+`@flowConf_<flowName>/<group>/.../<group>/<processorName>/<targetFilename>`.
+
+Processor and process group names are free-form text and may contain characters
+that are not allowed in file and directory names. Each such character is replaced
+with a token in the path and in the reference (the original name in the flow JSON
+is left unchanged):
+
+| Character | Token  |
+|-----------|--------|
+| `\`       | `_bs_` |
+| `/`       | `_sl_` |
+| `:`       | `_cl_` |
+| `*`       | `_st_` |
+| `?`       | `_qm_` |
+| `"`       | `_qt_` |
+| `<`       | `_lt_` |
+| `>`       | `_gt_` |
+| `\|`      | `_vb_` |
+
+For example, a processor named `Get value > 0` is stored under a directory named
+`Get value _gt_ 0`.
+
+The replacement is one-way and not unique: a name that already contains a token
+spelling, such as `Get value _gt_ 0`, maps to the same directory as `Get value > 0`.
+Extract fails with a validation error if two processors or groups would collide
+this way.
+
 ## Extracted file layout
 
 Extract writes the extracted files next to the flow JSON file they came from, under a directory
@@ -210,7 +242,6 @@ a missing `exportDir`, an unreadable file, malformed JSON - instead aborts the r
 | Message | Cause | Fix |
 | ------- | ----- | --- |
 | `Duplicate processor path '<path>': processor '<id>' and processor '<id>' produce the same path. ...` | Two processors resolve to the same parent group path plus processor name, so both would write to the same directory. | Rename one of the processors, or move one into a process group with a different name. |
-| `Invalid characters in <flow name \| process group name \| processor name> '<name>'. ...` | A name that becomes a directory segment contains a character that is not valid in a file system path: `/ \ : * ? " < > \|` | Rename the process group, the processor, or the flow JSON file. |
 | `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. ...` | A `regex:` mapping matched more than one property name, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
 
 These checks run before Extract writes anything, across every configured processor type in the flow,

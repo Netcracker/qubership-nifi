@@ -130,9 +130,14 @@ public class Processor {
      * the parent group's relative path with the processor name appended.
      * Example: Extract/PutSQL_pg/MyProcessor
      *
-     * @return relative Path from the flow root to this processor
+     * The processor name and every parent group name are passed through
+     * PathSegmentEncoder, so names containing characters not allowed in
+     * file system paths still produce valid path segments. Use getName()
+     * and getFullPath() for the original names.
+     *
+     * @return relative Path from the flow root to this processor, with encoded segments
      */
     public Path getRelativePath() {
-        return parentGroup.getRelativePath().resolve(name);
+        return parentGroup.getRelativePath().resolve(PathSegmentEncoder.encode(name));
     }
 }
