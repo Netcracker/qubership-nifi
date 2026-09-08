@@ -60,6 +60,15 @@
       "matchManagers": ["docker-compose"],
       "matchPackageNames": ["apache/nifi-toolkit"],
       "enabled": false
+    },
+    {
+      "description": [
+        "The autotest compose files track the latest published nifi-registry image on purpose, so the tag must stay floating and undigested."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["ghcr.io/netcracker/qubership-nifi-registry"],
+      "matchFileNames": [".github/docker/**"],
+      "enabled": false
     }
   ],
   "vulnerabilityAlerts": {
@@ -100,6 +109,12 @@
       {
         "matchManagers": ["docker-compose"],
         "matchPackageNames": ["apache/nifi-toolkit"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["docker-compose"],
+        "matchPackageNames": ["ghcr.io/netcracker/qubership-nifi-registry"],
+        "matchFileNames": [".github/docker/**"],
         "enabled": false
       }
     ]
