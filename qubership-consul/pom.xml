@@ -79,7 +79,7 @@
         <testcontainers.version>2.0.2</testcontainers.version>
         <!--plugin versions-->
         <pmd.version>3.26.0</pmd.version>
-        <jacoco.version>0.8.14</jacoco.version>
+        <jacoco.version>0.8.15</jacoco.version>
         <flatten-maven-plugin.version>1.2.7</flatten-maven-plugin.version>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <central-publishing.plugin.version>0.7.0</central-publishing.plugin.version>
