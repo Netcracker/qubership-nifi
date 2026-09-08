@@ -38,7 +38,7 @@ services:
       - KEYSTORE_PASSWORD_NIFI_REG=${KEYSTORE_PASSWORD_NIFI_REG}
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
   qubership-nifi:
-    image: ghcr.io/netcracker/qubership-nifi:latest
+    image: ghcr.io/netcracker/qubership-nifi:latest@sha256:2887db4016defe785a3ebdbf3010fd07056b359e034715298096fdd0b1b58ca9
     container_name: qubership-nifi
     hostname: nifi
     depends_on:
@@ -83,7 +83,7 @@ services:
       start_period: 15s
     restart: unless-stopped
   qubership-nifi-registry:
-    image: ghcr.io/netcracker/qubership-nifi-registry:latest
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest@sha256:1c17370cd0dce821625e353bd569130b13b39c60397edbea86fce7d7a3f3a0ab
     container_name: qubership-nifi-registry
     depends_on:
       qubership-nifi-toolkit:
