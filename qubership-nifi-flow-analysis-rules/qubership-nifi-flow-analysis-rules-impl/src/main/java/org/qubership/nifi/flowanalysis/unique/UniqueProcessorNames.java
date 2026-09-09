@@ -30,7 +30,7 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 @Tags({"unique", "name", "processor"})
 @CapabilityDescription("Produces a rule violation for each processor whose name is not unique "
         + "among the processors of the same process group.")
-public class UniqueProcessorNames extends AbstractUniqueNameFlowAnalysisRule {
+public final class UniqueProcessorNames extends AbstractUniqueNameFlowAnalysisRule {
 
     @Override
     public Collection<GroupAnalysisResult> analyzeProcessGroup(

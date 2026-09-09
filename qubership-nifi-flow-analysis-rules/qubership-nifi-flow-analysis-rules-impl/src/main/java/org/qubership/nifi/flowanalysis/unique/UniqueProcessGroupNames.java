@@ -30,7 +30,7 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 @Tags({"unique", "name", "process group"})
 @CapabilityDescription("Produces a rule violation for each child process group whose name is not "
         + "unique among the child process groups of the same parent process group.")
-public class UniqueProcessGroupNames extends AbstractUniqueNameFlowAnalysisRule {
+public final class UniqueProcessGroupNames extends AbstractUniqueNameFlowAnalysisRule {
 
     @Override
     public Collection<GroupAnalysisResult> analyzeProcessGroup(

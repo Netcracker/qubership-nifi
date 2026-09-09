@@ -129,7 +129,8 @@ public class RestrictSourceProcessorRunScheduleTest {
         assertTrue(rule.customValidate(validationContext("1 sec")).isEmpty());
     }
 
-    private Collection<GroupAnalysisResult> analyze(final String minimumRunSchedule, final VersionedProcessor... processors) {
+    private Collection<GroupAnalysisResult> analyze(final String minimumRunSchedule,
+                                                   final VersionedProcessor... processors) {
         VersionedProcessGroup group = processGroup("pg-1", "g");
         group.setProcessors(setOf(processors));
         return rule.analyzeProcessGroup(group, context(minimumRunSchedule));

@@ -37,8 +37,10 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
  */
 public final class Fixtures {
 
-    public static final String UPDATE_ATTRIBUTE_TYPE = "org.apache.nifi.processors.standard.UpdateAttribute";
+    /** Processor type the RestrictSourceProcessorRunSchedule rule skips. */
     public static final String GENERATE_FLOW_FILE_TYPE = "org.apache.nifi.processors.standard.GenerateFlowFile";
+
+    private static final String UPDATE_ATTRIBUTE_TYPE = "org.apache.nifi.processors.standard.UpdateAttribute";
 
     private Fixtures() {
     }

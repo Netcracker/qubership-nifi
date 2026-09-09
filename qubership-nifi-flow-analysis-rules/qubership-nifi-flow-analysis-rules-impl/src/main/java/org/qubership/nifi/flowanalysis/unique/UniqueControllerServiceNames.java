@@ -34,7 +34,7 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 @Tags({"unique", "name", "controller service"})
 @CapabilityDescription("Produces a rule violation for each controller service whose name is not "
         + "unique within a process group or any of its descendant process groups.")
-public class UniqueControllerServiceNames extends AbstractUniqueNameFlowAnalysisRule {
+public final class UniqueControllerServiceNames extends AbstractUniqueNameFlowAnalysisRule {
 
     @Override
     public Collection<GroupAnalysisResult> analyzeProcessGroup(
