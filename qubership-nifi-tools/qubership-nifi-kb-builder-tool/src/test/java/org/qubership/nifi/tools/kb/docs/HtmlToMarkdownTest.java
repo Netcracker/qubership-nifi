@@ -20,6 +20,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class HtmlToMarkdownTest {
@@ -161,15 +165,168 @@ class HtmlToMarkdownTest {
 
     @Test
     void keepsInlineMarkupInsideAnUnrecognizedInlineOnlyElement() {
-        final String md = convert("<dl><dt><strong>Term</strong></dt><dd><p>The definition.</p></dd></dl>");
+        final String md = convert("<figcaption><strong>Term</strong> and its caption</figcaption>");
 
-        assertThat(md)
-                .contains("**Term**")
-                .contains("The definition.");
+        assertThat(md).isEqualTo("**Term** and its caption\n");
     }
 
     @Test
     void rendersAThematicBreak() {
         assertThat(convert("<p>Above</p><hr><p>Below</p>")).contains("Above\n\n---\n\nBelow");
+    }
+
+    @Test
+    void joinsTextAndInlineElementsOutsideAParagraphIntoOneParagraph() {
+        final String md = convert("<h3>Wrapper</h3>The record has two fields: <code>original</code> and "
+                + "<code>enrichment</code>. Each holds the <i>n</i>th record of its FlowFile.");
+
+        assertThat(md).isEqualTo("### Wrapper\n\nThe record has two fields: `original` and `enrichment`. "
+                + "Each holds the *n*th record of its FlowFile.\n");
+    }
+
+    @Test
+    void keepsTheRestOfAParagraphThatThePreElementClosedAsOneParagraph() {
+        // The parser closes the paragraph at the pre element, which leaves the note in the body.
+        final String md = convert("<p>Example:<pre>KafkaClient {}</pre><b>NOTE:</b> The service name must match."
+                + "</p>");
+
+        assertThat(md).isEqualTo("Example:\n\n```\nKafkaClient {}\n```\n\n**NOTE:** The service name must match.\n");
+    }
+
+    @Test
+    void rendersACodeElementWithLineBreaksAsACodeBlock() {
+        final String md = convert("<code>\nid, name, balance<br />\n1, John, 48.23<br />\n2, Jane, 1245.89<br />\n"
+                + "</code>");
+
+        assertThat(md).isEqualTo("```\nid, name, balance\n1, John, 48.23\n2, Jane, 1245.89\n```\n");
+    }
+
+    @Test
+    void rendersACodeElementWrappingAPreElementAsOneCodeBlock() {
+        final String md = convert("<code>\n<pre>name, age\nJohn, 8</pre>\n</code>");
+
+        assertThat(md).isEqualTo("```\nname, age\nJohn, 8\n```\n");
+    }
+
+    @Test
+    void rendersATextareaAsACodeBlockThatKeepsItsIndentation() {
+        final String md = convert("<textarea rows=\"10\">\n<mime-info>\n    <glob pattern=\"*.abcd\" />\n"
+                + "</mime-info>\n</textarea>");
+
+        assertThat(md).isEqualTo("```\n<mime-info>\n    <glob pattern=\"*.abcd\" />\n</mime-info>\n```\n");
+    }
+
+    @Test
+    void rendersEachDefinitionTermAsABoldParagraphAboveItsDefinition() {
+        final String md = convert("<dl><dt>Text-only message</dt><dd>A simple text message.</dd>"
+                + "<dt>Text message with attachment</dt><dd>The text and one or more attachments.</dd></dl>");
+
+        assertThat(md).isEqualTo("**Text-only message**\n\nA simple text message.\n\n"
+                + "**Text message with attachment**\n\nThe text and one or more attachments.\n");
+    }
+
+    @Test
+    void keepsTheParagraphsAndCodeBlocksOfADefinition() {
+        final String md = convert("<dl><dt>Record Path:</dt><dd><p>Evaluated as a record path.</p>"
+                + "<p>Example:</p><pre>%{/record/id}</pre></dd></dl>");
+
+        assertThat(md).isEqualTo("**Record Path:**\n\nEvaluated as a record path.\n\nExample:\n\n"
+                + "```\n%{/record/id}\n```\n");
+    }
+
+    @Test
+    void doesNotBoldADefinitionTermTwice() {
+        final String md = convert("<dl><dt><b>Constant:</b></dt><dd>Used as is.</dd></dl>");
+
+        assertThat(md).isEqualTo("**Constant:**\n\nUsed as is.\n");
+    }
+
+    @Test
+    void rendersListItemsOutsideAnyListAsBulletedItems() {
+        // The parser closes the paragraph at the first li element and leaves each item in the body.
+        final String md = convert("<p>Set the permission in the console.<li>Open the app.</li>"
+                + "<li>Click Submit.</li></p><p>Then generate a token.</p>");
+
+        assertThat(md).isEqualTo("Set the permission in the console.\n\n- Open the app.\n\n- Click Submit.\n\n"
+                + "Then generate a token.\n");
+    }
+
+    @Test
+    void joinsLinksEmphasisAndLineBreaksOutsideAParagraph() {
+        final String md = convert("Create a <a href=\"https://docs.example.com/index.html\">Primary index</a> "
+                + "first.<br>It is <em>required</em>.");
+
+        assertThat(md).isEqualTo("Create a Primary index first.\nIt is *required*.\n");
+    }
+
+    @Test
+    void rendersACodeElementWithLineBreaksInsideAParagraphAsACodeBlock() {
+        final String md = convert("<p>Given the files:<code>\n/dir/app.log.1<br />\n/dir/app.log\n</code></p>");
+
+        assertThat(md).isEqualTo("Given the files:\n\n```\n/dir/app.log.1\n/dir/app.log\n```\n");
+    }
+
+    @Test
+    void convertsCrlfLineEndingsInACodeBlockToLf() {
+        assertThat(convert("<pre>line 1\r\nline 2\r\n</pre>")).isEqualTo("```\nline 1\nline 2\n```\n");
+    }
+
+    @Test
+    void rendersADefinitionListInsideAnInlineWrapper() {
+        final String md = convert("<span><dl><dt>Term</dt><dd>The definition.</dd></dl></span>");
+
+        assertThat(md).isEqualTo("**Term**\n\nThe definition.\n");
+    }
+
+    @Test
+    void omitsAnEmptyDefinitionTerm() {
+        assertThat(convert("<dl><dt> </dt><dd>The definition.</dd></dl>")).isEqualTo("The definition.\n");
+    }
+
+    @Test
+    void namesThePathOfThePageInTheUnrecognizedTagWarning() {
+        final String log = convertCapturingLog("<details><p>Advanced</p></details>",
+                "https://nifi.example.com/nifi-docs/components/org.example/PutThing/additionalDetails.html");
+
+        assertThat(log)
+                .contains("Unrecognized HTML tag <details> in "
+                        + "/nifi-docs/components/org.example/PutThing/additionalDetails.html;")
+                .doesNotContain("nifi.example.com");
+    }
+
+    @Test
+    void namesAPlaceholderInTheWarningForAPageWithNoBaseUri() {
+        final String log = convertCapturingLog("<details><p>Advanced</p></details>", "");
+
+        assertThat(log).contains("Unrecognized HTML tag <details> in a page with no base URI;");
+    }
+
+    @Test
+    void logsATagOutsideTheInlineSetThatSitsInRunningText() {
+        final String log = convertCapturingLog("The price was <strike>10</strike> 8.",
+                "https://nifi.example.com/nifi-docs/components/org.example/PutThing/additionalDetails.html");
+
+        assertThat(log).contains("Unrecognized HTML tag <strike> in ");
+    }
+
+    /**
+     * Converts the body of the given page and returns what the converter logged. slf4j-simple writes
+     * to {@code System.err}, which it resolves on each call.
+     *
+     * @param html    the page HTML
+     * @param baseUri the base URI the page is parsed with, which the warning takes its path from
+     * @return the text written to {@code System.err} during the conversion
+     */
+    private static String convertCapturingLog(final String html, final String baseUri) {
+        final Document doc = Jsoup.parse(html, baseUri);
+        final ByteArrayOutputStream captured = new ByteArrayOutputStream();
+        final PrintStream original = System.err;
+        try (PrintStream replacement = new PrintStream(captured, true, StandardCharsets.UTF_8)) {
+            System.setErr(replacement);
+            new HtmlToMarkdown().convert(doc.body());
+        } finally {
+            System.setErr(original);
+        }
+        return captured.toString(StandardCharsets.UTF_8);
     }
 }
