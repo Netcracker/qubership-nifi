@@ -215,7 +215,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
         body.putObject("revision").put("version", 0);
         body.set("component", component);
-        LOG.info("Creating temporary resource name={} marker={} endpoint={}", name, marker, path);
+        LOG.debug("Creating temporary resource name={} marker={} endpoint={}", name, marker, path);
         try {
             JsonNode entity = rest.postJson(resolver.resolve(path), body.toString());
             Owned resource = register(entity, prefix, name, reference);
@@ -264,7 +264,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         Owned resource = new Owned(id, prefix, name, reference,
                 revision.isIntegralNumber() && revision.canConvertToLong() ? revision.longValue() : -1, entity);
         owned.add(resource);
-        LOG.info("Owned {} id={} marker={} endpoint={}", reference == null ? "PROCESS_GROUP" : reference.kind(),
+        LOG.debug("Owned {} id={} marker={} endpoint={}", reference == null ? "PROCESS_GROUP" : reference.kind(),
                 id, marker, resource.endpoint());
         return resource;
     }
