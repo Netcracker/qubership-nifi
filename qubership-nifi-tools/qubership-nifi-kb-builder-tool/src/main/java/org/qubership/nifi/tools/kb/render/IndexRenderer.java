@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.DefinitionFormat;
 import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
@@ -58,6 +59,26 @@ public final class IndexRenderer {
             array.add(compactEntry(componentRecord));
         }
         return json.toBytes(array);
+    }
+
+    private void appendReadingNotes(final StringBuilder md, final List<ComponentRecord> components) {
+        final boolean normalized = components.stream()
+                .anyMatch(component -> component.definitionFormat() == DefinitionFormat.NORMALIZED_NIFI_1X);
+        if (!normalized) {
+            return;
+        }
+        md.append("These definitions are normalized from NiFi 1.x sources, which report less than the "
+                        + "definition endpoint of later versions. Before you rely on a property:")
+                .append(LF).append(LF);
+        md.append("- A property with no Expression Language scope is unknown, not unsupported. "
+                        + "NiFi 1.x does not report the scope, so check the component documentation "
+                        + "before deciding a property cannot take an expression.").append(LF);
+        md.append("- `readsAttributes`, `writesAttributes`, `dynamicProperties`, `stateManagement`, and "
+                        + "`systemResourceConsiderations` are read from the component's HTML page and may be "
+                        + "incomplete. Property descriptors and relationships come from the API and are "
+                        + "authoritative.").append(LF);
+        md.append("- `manifest.json` records the full field sources and everything NiFi 1.x cannot supply.")
+                .append(LF).append(LF);
     }
 
     private ObjectNode compactEntry(final ComponentRecord componentRecord) {
@@ -104,6 +125,7 @@ public final class IndexRenderer {
     public String renderMarkdown(final List<ComponentRecord> sortedComponents) {
         final StringBuilder md = new StringBuilder();
         md.append("# Component index").append(LF).append(LF);
+        appendReadingNotes(md, sortedComponents);
         for (final NiFiComponentKind kind : NiFiComponentKind.values()) {
             final List<ComponentRecord> ofKind = sortedComponents.stream()
                     .filter(componentRecord -> componentRecord.identity().getKind() == kind)

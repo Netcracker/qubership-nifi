@@ -19,17 +19,26 @@ package org.qubership.nifi.tools.kb;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
 import org.qubership.nifi.tools.export.NiFiContainerManager;
 import org.qubership.nifi.tools.kb.cli.Environment;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentReference;
+import org.qubership.nifi.tools.nifi.common.api.NiFiTemporaryComponentSession;
+import org.qubership.nifi.tools.nifi.common.auth.BearerTokenAuthenticator;
+import org.qubership.nifi.tools.nifi.common.http.NiFiHttpClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 import org.qubership.nifi.tools.nifi.common.tls.Pkcs12TrustMaterial;
 import org.qubership.nifi.tools.nifi.common.tls.TlsContextFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -45,14 +54,17 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -68,7 +80,7 @@ class KnowledgeBaseBuilderIT {
     private static final String USERNAME = "admin";
     private static final int HOST_PORT = 19443;
     private static final int STARTUP_TIMEOUT_SECONDS = 240;
-    private static final int RUN_TIMEOUT_MINUTES = 5;
+    private static final int RUN_TIMEOUT_MINUTES = Integer.getInteger("kb.it.timeout.minutes", 15);
     private static final int FORCED_TERMINATION_TIMEOUT_SECONDS = 30;
     private static final int OUTPUT_DRAIN_TIMEOUT_SECONDS = 10;
     private static final int PEM_LINE_LENGTH = 64;
@@ -77,7 +89,7 @@ class KnowledgeBaseBuilderIT {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Set<String> COMPONENT_JSON_FIELDS =
-            Set.of("documentedType", "definition", "additionalDocumentation");
+            Set.of("documentedType", "definition", "additionalDocumentation", "definitionFormat");
     private static final List<String> KIND_DIRS =
             List.of("processors", "controller-services", "reporting-tasks");
 
@@ -85,6 +97,20 @@ class KnowledgeBaseBuilderIT {
     private String baseUrl;
     private String token;
     private Path caFile;
+    private SSLContext targetSslContext;
+    private int expectedComponentCount;
+
+    protected String image() {
+        return NIFI_IMAGE;
+    }
+
+    protected int nifiMajorVersion() {
+        return 2;
+    }
+
+    protected int port() {
+        return HOST_PORT;
+    }
 
     /** Per-test temporary directory provided by JUnit. */
     @TempDir
@@ -93,14 +119,19 @@ class KnowledgeBaseBuilderIT {
     @BeforeAll
     void startNiFi(@TempDir final Path sharedDir) throws Exception {
         final String password = UUID.randomUUID().toString();
-        container = new NiFiContainerManager(NIFI_IMAGE, USERNAME, password,
-                STARTUP_TIMEOUT_SECONDS, HOST_PORT);
+        container = new NiFiContainerManager(image(), USERNAME, password,
+                STARTUP_TIMEOUT_SECONDS, port());
         container.start();
         baseUrl = container.getBaseUrl();
         final NiFiContainerManager.TruststoreData truststore = container.readTruststore();
         final SSLContext sslContext = buildSslContext(truststore);
         caFile = writePemCaFile(sharedDir, truststore);
         token = requestToken(sslContext, baseUrl, password);
+        targetSslContext = sslContext;
+        for (String kind : List.of("processor", "controller-service", "reporting-task")) {
+            JsonNode types = getJson("/nifi-api/flow/" + kind + "-types");
+            expectedComponentCount += types.elements().next().size();
+        }
     }
 
     @AfterAll
@@ -150,7 +181,9 @@ class KnowledgeBaseBuilderIT {
         assertThat(outputDir.resolve("manifest.json")).exists();
 
         // A second run must replace the existing directory in place without an overwrite flag.
+        String firstFingerprint = fingerprintOf(outputDir);
         assertThat(run(outputDir, true)).isZero();
+        assertThat(fingerprintOf(outputDir)).isEqualTo(firstFingerprint);
         assertCatalogStructure(outputDir);
         assertThat(fingerprintOf(outputDir)).startsWith("sha256:");
     }
@@ -178,6 +211,9 @@ class KnowledgeBaseBuilderIT {
                 "--auth", "token",
                 "--ca-file", caFile.toString(),
                 "--output-dir", outputDir.toString()));
+        if (nifiMajorVersion() == 1) {
+            command.add("--allow-temporary-components");
+        }
         if (skipGuides) {
             command.add("--skip-guides");
         }
@@ -185,6 +221,7 @@ class KnowledgeBaseBuilderIT {
         final ProcessBuilder processBuilder = new ProcessBuilder(command).redirectErrorStream(true);
         processBuilder.environment().put(Environment.NIFI_ACCESS_TOKEN, token);
 
+        final long started = System.nanoTime();
         final Process process = processBuilder.start();
         final StringBuilder output = new StringBuilder();
         // Drained on a separate thread so that a large guide build cannot fill the pipe and deadlock.
@@ -213,6 +250,9 @@ class KnowledgeBaseBuilderIT {
                     + OUTPUT_DRAIN_TIMEOUT_SECONDS + " seconds");
         }
         System.out.print(output);
+        System.out.printf("KB measurement: image=%s mode=%s components=%d elapsedSeconds=%.3f%n",
+                image(), skipGuides ? "catalog" : "full", expectedComponentCount,
+                (System.nanoTime() - started) / 1_000_000_000.0);
         return process.exitValue();
     }
 
@@ -263,14 +303,49 @@ class KnowledgeBaseBuilderIT {
                 assertComponentJson(componentJson);
             }
         }
-        assertThat(componentCount).isPositive();
+        assertThat(componentCount).isEqualTo(expectedComponentCount);
+        final JsonNode manifest = MAPPER.readTree(outputDir.resolve("manifest.json").toFile());
+        assertManifestCollection(manifest);
+        if (nifiMajorVersion() == 1) {
+            assertThat(manifest.path("nifi").path("minimumSupportedVersion").asText()).isEqualTo("1.26.0");
+        }
+    }
+
+    private void assertManifestCollection(final JsonNode manifest) {
+        final JsonNode collection = manifest.path("collection");
+        assertThat(collection.path("definitionFormat").asText())
+                .isEqualTo(nifiMajorVersion() == 1 ? "normalized-nifi-1x" : "native-nifi-2x");
+        assertThat(collection.path("summary").asText()).isNotEmpty();
+        assertThat(collection.path("fieldSources").isObject()).isTrue();
+        assertThat(collection.path("documentationFormats").isObject()).isTrue();
+        final JsonNode unavailable = collection.path("unavailableMetadata");
+        assertThat(unavailable.isArray()).isTrue();
+        if (nifiMajorVersion() == 1) {
+            assertThat(unavailable.toString()).contains("expression-language-scope-enum");
+        } else {
+            assertThat(unavailable).isEmpty();
+        }
     }
 
     private void assertComponentJson(final Path componentJson) throws Exception {
         final JsonNode root = MAPPER.readTree(componentJson.toFile());
-        final Set<String> fields = new java.util.HashSet<>();
+        final Set<String> fields = new HashSet<>();
         root.fieldNames().forEachRemaining(fields::add);
-        assertThat(fields).isEqualTo(COMPONENT_JSON_FIELDS);
+        assertThat(fields).containsAll(COMPONENT_JSON_FIELDS);
+        assertThat(root.has("collection")).isFalse();
+        if (nifiMajorVersion() == 1) {
+            assertThat(componentJson.resolveSibling("componentDocumentation.md")).exists();
+            assertThat(root.path("definitionFormat").asText()).isEqualTo("normalized-nifi-1x");
+            assertThat(root.path("documentationSources").path("componentPath").asText()).isNotEmpty();
+            if (root.path("documentedType").path("type").asText().endsWith(".JoltTransformJSON")) {
+                assertThat(root.path("definition").path("propertyDescriptors").path("jolt-transform")
+                        .path("defaultValue").asText())
+                        .isEqualTo("jolt-transform-chain");
+            }
+        } else {
+            assertThat(root.path("definitionFormat").asText()).isEqualTo("native-nifi-2x");
+            assertThat(root.has("documentationSources")).isFalse();
+        }
 
         final Path additionalDetails = componentJson.resolveSibling("additionalDetails.md");
         final boolean available = root.path("additionalDocumentation").path("available").asBoolean();
@@ -279,6 +354,48 @@ class KnowledgeBaseBuilderIT {
             assertThat(Files.size(additionalDetails)).isPositive();
         } else {
             assertThat(additionalDetails).doesNotExist();
+        }
+    }
+
+    @AfterEach
+    void verifiesOwnedResourcesAreGone() throws Exception {
+        if (nifiMajorVersion() != 1) {
+            return;
+        }
+        JsonNode groups = getJson("/nifi-api/process-groups/root/process-groups").path("processGroups");
+        JsonNode tasks = getJson("/nifi-api/flow/reporting-tasks").path("reportingTasks");
+        JsonNode services = getJson("/nifi-api/flow/controller/controller-services").path("controllerServices");
+        for (JsonNode entries : List.of(groups, tasks, services)) {
+            assertThat(entries.isArray()).isTrue();
+            for (JsonNode entry : entries) {
+                assertThat(entry.path("component").path("name").asText()).doesNotStartWith("nifi-metadata-");
+            }
+        }
+    }
+
+    private JsonNode getJson(final String path) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path))
+                .header("Authorization", "Bearer " + token).GET().build();
+        var response = HttpClient.newBuilder().sslContext(targetSslContext).build()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        return MAPPER.readTree(response.body());
+    }
+
+    protected void verifyControllerServiceScopes() throws Exception {
+        var kind = NiFiComponentKind.CONTROLLER_SERVICE;
+        JsonNode types = getJson(kind.getListPath()).path(kind.getListKey());
+        JsonNode selected = StreamSupport.stream(types.spliterator(), false)
+                .filter(type -> type.path("type").asText().endsWith(".StandardSSLContextService"))
+                .findFirst().orElseThrow();
+        var reference = NiFiComponentReference.from(kind, selected);
+        var resolver = NiFiUriResolver.fromBaseUrl(baseUrl);
+        var http = new NiFiHttpClient(NiFiHttpClient.newHttpClient(targetSslContext, CONNECT_TIMEOUT),
+                resolver, new BearerTokenAuthenticator(token));
+        try (var rest = new NiFiRestClient(http, MAPPER);
+             var session = new NiFiTemporaryComponentSession(rest, resolver, null)) {
+            assertThat(session.collect(reference).path("propertyDescriptors").isObject()).isTrue();
+            assertThat(session.collect(reference, true).path("propertyDescriptors").isObject()).isTrue();
         }
     }
 
@@ -297,14 +414,14 @@ class KnowledgeBaseBuilderIT {
                 trust.clearPassword();
             }
         } finally {
-            java.util.Arrays.fill(password, '\0');
+            Arrays.fill(password, '\0');
         }
     }
 
     private static Path writePemCaFile(final Path dir,
                                        final NiFiContainerManager.TruststoreData truststore) throws Exception {
         final KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (var in = new java.io.ByteArrayInputStream(truststore.getBytes())) {
+        try (var in = new ByteArrayInputStream(truststore.getBytes())) {
             keyStore.load(in, truststore.getPassword().toCharArray());
         }
         final Base64.Encoder encoder = Base64.getMimeEncoder(PEM_LINE_LENGTH, new byte[]{'\n'});

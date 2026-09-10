@@ -17,6 +17,14 @@
 package org.qubership.nifi.tools.kb.collect;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.kb.docs.ComponentDocumentationCollector;
+import org.qubership.nifi.tools.kb.model.CollectionMetadata;
+import org.qubership.nifi.tools.kb.model.ComponentProvenance;
+import org.qubership.nifi.tools.kb.model.DefinitionFormat;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentReference;
+import org.qubership.nifi.tools.nifi.common.api.NiFi1xComponentMetadataProvider;
+import org.qubership.nifi.tools.nifi.common.api.NiFi2xComponentMetadataProvider;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
@@ -26,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -77,6 +86,94 @@ public final class ComponentCollector {
         return records;
     }
 
+    /**
+     * Reads and validates the complete catalog before any temporary resource is created.
+     *
+     * @param catalog the target component catalog
+     * @return the requested value
+     */
+    public List<CatalogEntry> preflight(final NiFiComponentCatalogClient catalog) {
+        List<CatalogEntry> entries = new ArrayList<>();
+        Set<NiFiComponentReference> seen = new HashSet<>();
+        for (NiFiComponentKind kind : NiFiComponentKind.values()) {
+            for (JsonNode type : catalog.listTypes(kind)) {
+                NiFiComponentReference reference;
+                try {
+                    reference = NiFiComponentReference.from(kind, type);
+                } catch (IllegalArgumentException failure) {
+                    throw new CollectionException("Invalid catalog identity: " + failure.getMessage());
+                }
+                if (!seen.add(reference)) {
+                    throw new CollectionException("Duplicate component identity: " + reference);
+                }
+                ObjectNode documented = type.deepCopy();
+                if (type.path("explicitRestrictions").isArray()) {
+                    List<JsonNode> restrictions = new ArrayList<>();
+                    type.path("explicitRestrictions").forEach(restrictions::add);
+                    restrictions.sort(Comparator.comparing(value ->
+                            value.path("requiredPermission").path("id").asText() + ":"
+                                    + value.path("explanation").asText()));
+                    documented.putArray("explicitRestrictions").addAll(restrictions);
+                }
+                entries.add(new CatalogEntry(reference, documented));
+            }
+        }
+        return List.copyOf(entries);
+    }
+
+    /**
+     * Collects the validated catalog, checking each page before creating its component. No definition
+     * carries the {@code allowableValues} of a controller-service reference property.
+     *
+     * @param entries the validated complete catalog
+     * @param provider the NiFi 1.x metadata provider
+     * @param documentation the component HTML collector
+     * @return the collected metadata
+     */
+    public List<ComponentRecord> collectAll(final List<CatalogEntry> entries,
+                                           final NiFi1xComponentMetadataProvider provider,
+                                           final ComponentDocumentationCollector documentation) {
+        List<ComponentRecord> records = new ArrayList<>();
+        for (CatalogEntry entry : entries) {
+            var reference = entry.reference();
+            var page = documentation.collect(reference);
+            ObjectNode definition = (ObjectNode) provider.collect(reference);
+            removeServiceInstanceChoices(definition);
+            page.metadata().fields().forEachRemaining(field -> definition.set(field.getKey(), field.getValue()));
+            for (String field : List.of("description", "tags", "deprecationReason", "usageRestriction",
+                    "explicitRestrictions", "controllerServiceApis")) {
+                if (entry.type().has(field) && !definition.has(field)) {
+                    definition.set(field, entry.type().get(field));
+                }
+            }
+            var identity = new ComponentIdentity(reference.kind(), reference.group(), reference.artifact(),
+                    reference.version(), reference.type());
+            records.add(new ComponentRecord(identity, entry.type(), definition, page.additionalState(),
+                    page.additionalMarkdown(),
+                    new ComponentProvenance(DefinitionFormat.NORMALIZED_NIFI_1X,
+                            CollectionMetadata.documentationSources(page.sourcePath(),
+                                    page.additionalSourcePath())),
+                    page.markdown()));
+            if (records.size() % PROGRESS_INTERVAL == 0) {
+                LOG.info("Collected {} of {} components", records.size(), entries.size());
+            }
+        }
+        LOG.info("Collected {} components", records.size());
+        return records;
+    }
+
+    public record CatalogEntry(NiFiComponentReference reference, JsonNode type) { }
+
+    private static void removeServiceInstanceChoices(final ObjectNode definition) {
+        // A service reference lists the service instances visible from the temporary group: instance
+        // state that differs between targets, not static metadata.
+        definition.path("propertyDescriptors").forEach(descriptor -> {
+            if (descriptor.isObject() && !descriptor.path("identifiesControllerService").asText("").isBlank()) {
+                ((ObjectNode) descriptor).remove("allowableValues");
+            }
+        });
+    }
+
     private ComponentRecord collectOne(final NiFiComponentCatalogClient catalog, final NiFiComponentKind kind,
                                        final JsonNode typeEntry) {
         final String type = requireText(typeEntry, "type", "typeEntry is missing a type");
@@ -86,7 +183,8 @@ public final class ComponentCollector {
         final String version = requireBundleText(bundle, type, "version");
 
         final ComponentIdentity identity = new ComponentIdentity(kind, group, artifact, version, type);
-        final JsonNode definition = catalog.getDefinition(kind, group, artifact, version, type);
+        final JsonNode definition = new NiFi2xComponentMetadataProvider(catalog).collect(
+                new NiFiComponentReference(kind, group, artifact, version, type));
         verifyDefinitionIdentity(identity, definition);
 
         final AdditionalDetailsOutcome outcome = resolveAdditionalDetails(catalog, kind, identity, definition);

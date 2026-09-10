@@ -16,11 +16,12 @@
 
 package org.qubership.nifi.tools.kb.model;
 
+import org.qubership.nifi.tools.nifi.common.api.NiFiVersion;
+
 /**
  * The three guides collected from the target NiFi instance. Each constant carries the guide title,
  * the source path on the NiFi deployment base, the output file name, and the manifest key. Keeping
- * the source paths here isolates them from collection code so a future compatibility adapter can
- * change them without touching the output contract or CLI.
+ * the source paths here lets the collector select the NiFi family without changing output paths.
  */
 public enum GuideType {
 
@@ -77,6 +78,17 @@ public enum GuideType {
      * Returns the source path on the NiFi deployment base.
      *
      * @return the source path
+     *
+     * @param nifiVersion the detected NiFi version
+     */
+    public String getSourcePath(final String nifiVersion) {
+        return NiFiVersion.isNiFi1x(nifiVersion) ? sourcePath.replace("/nifi-api/", "/nifi-docs/") : sourcePath;
+    }
+
+    /**
+     * Returns the legacy NiFi 2.x guide source path.
+     *
+     * @return the requested value
      */
     public String getSourcePath() {
         return sourcePath;

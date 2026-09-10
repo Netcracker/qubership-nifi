@@ -49,6 +49,8 @@ public final class ComponentMarkdownRenderer {
 
         md.append("# ").append(identity.simpleName()).append(LF).append(LF);
 
+        md.append("Definition format: `").append(componentRecord.definitionFormat().token())
+                .append("` (see `manifest.json` for field sources)").append(LF).append(LF);
         appendIdentity(md, identity);
         appendMetadata(md, definition, componentType);
         appendInputAndRelationships(md, definition);
@@ -168,8 +170,8 @@ public final class ComponentMarkdownRenderer {
             final JsonNode descriptor = entry.getValue();
             md.append("| ").append(Markdown.cell(text(descriptor, ComponentFields.NAME, entry.getKey())))
                     .append(" | ").append(Markdown.cell(text(descriptor, ComponentFields.DISPLAY_NAME)))
-                    .append(" | ").append(descriptor.path("required").asBoolean() ? "yes" : "no")
-                    .append(" | ").append(descriptor.path("sensitive").asBoolean() ? "yes" : "no")
+                    .append(" | ").append(booleanText(descriptor, "required"))
+                    .append(" | ").append(booleanText(descriptor, "sensitive"))
                     .append(" | ").append(Markdown.cell(text(descriptor, "expressionLanguageScope")))
                     .append(" | ").append(Markdown.cell(text(descriptor, "defaultValue")))
                     .append(" | ").append(Markdown.cell(allowableValues(descriptor)))
@@ -224,6 +226,8 @@ public final class ComponentMarkdownRenderer {
 
     private void appendLinks(final StringBuilder md, final ComponentRecord componentRecord) {
         md.append("## References").append(LF).append(LF);
+        componentRecord.componentDocumentation().ifPresent(content -> md.append(
+                "- Full component documentation: [componentDocumentation.md](componentDocumentation.md)").append(LF));
         final AdditionalDocumentationState state = componentRecord.additionalDocumentation();
         if (state.isAvailable()) {
             md.append("- Additional component documentation: [")
@@ -232,6 +236,11 @@ public final class ComponentMarkdownRenderer {
         }
         md.append("- Lossless definition: [").append(KnowledgeBaseFormat.COMPONENT_JSON_FILE).append("](")
                 .append(KnowledgeBaseFormat.COMPONENT_JSON_FILE).append(')').append(LF).append(LF);
+    }
+
+    private static String booleanText(final JsonNode descriptor, final String field) {
+        JsonNode value = descriptor.path(field);
+        return value.isBoolean() ? value.booleanValue() ? "yes" : "no" : "";
     }
 
     private static String allowableValues(final JsonNode descriptor) {

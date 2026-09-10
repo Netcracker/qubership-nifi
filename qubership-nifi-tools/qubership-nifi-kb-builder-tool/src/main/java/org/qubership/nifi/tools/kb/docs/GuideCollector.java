@@ -87,7 +87,7 @@ public final class GuideCollector {
 
     private GuideDocument collectOne(final NiFiHttpClient httpClient, final NiFiUriResolver resolver,
                                      final GuideType type, final String nifiVersion) {
-        final URI uri = resolver.resolve(type.getSourcePath());
+        final URI uri = resolver.resolve(type.getSourcePath(nifiVersion));
         LOG.info("Collecting guide {}", type.getTitle());
         final NiFiHttpResponse response = httpClient.get(uri, ACCEPT_HTML);
         if (!response.isSuccess()) {
@@ -102,7 +102,7 @@ public final class GuideCollector {
                     + contentType);
         }
         final Document document = Jsoup.parse(response.bodyAsText(), uri.toString());
-        assertSentinel(type, document);
+        assertSentinel(type, document, nifiVersion);
 
         final Element content = selectContent(document);
         final String bodyMarkdown = htmlToMarkdown.convert(content);
@@ -111,15 +111,16 @@ public final class GuideCollector {
         if (type == GuideType.DEVELOPER) {
             final DeveloperGuideExtractor.ExtractResult extracted = developerGuideExtractor.extract(bodyMarkdown);
             return new GuideDocument(type, header(type, nifiVersion) + extracted.markdown(),
-                    sourceUrl, contentType, extracted.selectedHeadings());
+                    sourceUrl, contentType, extracted.selectedHeadings(), type.getSourcePath(nifiVersion));
         }
-        return new GuideDocument(type, header(type, nifiVersion) + bodyMarkdown, sourceUrl, contentType, List.of());
+        return new GuideDocument(type, header(type, nifiVersion) + bodyMarkdown, sourceUrl, contentType,
+                List.of(), type.getSourcePath(nifiVersion));
     }
 
-    private void assertSentinel(final GuideType type, final Document document) {
+    private void assertSentinel(final GuideType type, final Document document, final String nifiVersion) {
         final String text = document.text().toLowerCase(Locale.ROOT);
         if (!text.contains(type.getSentinelKeyword().toLowerCase(Locale.ROOT))) {
-            throw new GuideException("Response at " + type.getSourcePath()
+            throw new GuideException("Response at " + type.getSourcePath(nifiVersion)
                     + " does not look like the " + type.getTitle() + " (missing expected content)");
         }
     }
@@ -133,7 +134,7 @@ public final class GuideCollector {
     private String header(final GuideType type, final String nifiVersion) {
         return "# " + type.getTitle() + LF + LF
                 + "- NiFi version: " + nifiVersion + LF
-                + "- Source path: " + type.getSourcePath() + LF
+                + "- Source path: " + type.getSourcePath(nifiVersion) + LF
                 + "- Converted from the target NiFi instance." + LF + LF;
     }
 }

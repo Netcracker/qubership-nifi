@@ -127,6 +127,26 @@ public final class NiFiVersion implements Comparable<NiFiVersion> {
     }
 
     /**
+     * Reports whether this version belongs to the NiFi 1.x release family.
+     *
+     * @return {@code true} when the major number is {@code 1}
+     */
+    public boolean isNiFi1x() {
+        return major == 1;
+    }
+
+    /**
+     * Reports whether a raw version string names a NiFi 1.x release.
+     *
+     * @param rawVersion the version string, which may be {@code null}
+     * @return {@code true} when the string parses and its major number is {@code 1}; {@code false}
+     *         for any other version and for a string {@link #parse(String)} rejects
+     */
+    public static boolean isNiFi1x(final String rawVersion) {
+        return parse(rawVersion).map(NiFiVersion::isNiFi1x).orElse(false);
+    }
+
+    /**
      * Creates a version from an explicit numeric tuple, using the canonical dotted string as its raw form.
      *
      * @param majorPart the major number

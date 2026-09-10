@@ -54,6 +54,7 @@ public final class GuideIndexRenderer {
             node.put("guide", document.type().getManifestKey());
             node.put("title", document.type().getTitle());
             node.put("sourceUrl", document.sourceUrl());
+            node.put("sourcePath", document.sourcePath());
             node.put("contentType", document.contentType());
             node.put(KnowledgeBaseFormat.OUTPUT_PATH_FIELD, document.type().getOutputPath());
             final ArrayNode headings = node.putArray("selectedHeadings");

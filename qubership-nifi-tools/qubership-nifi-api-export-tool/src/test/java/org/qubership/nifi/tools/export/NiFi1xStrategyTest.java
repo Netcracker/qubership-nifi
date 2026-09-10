@@ -16,129 +16,71 @@
 
 package org.qubership.nifi.tools.export;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
-
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
-
-import java.util.List;
-import java.util.Map;
-
+import org.qubership.nifi.tools.nifi.common.api.NiFiCleanupException;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
+import java.net.URI;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
 class NiFi1xStrategyTest {
+    private static final ObjectMapper JSON = new ObjectMapper();
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    private NiFiApiClient apiClient;
-    private NiFi1xStrategy strategy;
-
-    @BeforeEach
-    void setUp() {
-        apiClient = mock(NiFiApiClient.class);
-        strategy = new NiFi1xStrategy(apiClient);
+    @Test
+    void sharedProviderPreservesExportShapeForEveryKind() throws Exception {
+        for (var kind : NiFiComponentKind.values()) {
+            NiFiApiClient api = configured(kind);
+            var output = new NiFi1xStrategy(api).collect(kind);
+            assertEquals(1, output.size());
+            assertEquals(Set.of("type", "propertyDescriptors"), output.getFirst().keySet());
+            assertEquals("org.example.Component", output.getFirst().get("type"));
+            verify(api.restClient()).delete(URI.create("https://nifi/nifi-api/process-groups/group?version=0"));
+            verify(api.restClient(), times(2)).delete(any());
+        }
     }
 
     @Test
-    void collectProcessorCreatesInstanceAndDeletesIt() throws Exception {
-        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
-                "{\"processorTypes\":[{\"type\":\"org.foo.MyProc\"}]}"));
-        String processorJson = "{\"component\":{\"id\":\"abc\","
-                + "\"config\":{\"descriptors\":{\"prop1\":{\"name\":\"prop1\"}}}},\"revision\":{\"version\":3}}";
-        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), anyString()))
-                .thenReturn(MAPPER.readTree(processorJson));
-
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
-
-        assertEquals(1, result.size());
-        assertEquals("org.foo.MyProc", result.get(0).get("type"));
-        JsonNode descriptors = (JsonNode) result.get(0).get("propertyDescriptors");
-        assertEquals("prop1", descriptors.path("prop1").path("name").asText());
-        verify(apiClient).delete("/nifi-api/processors/abc?version=3");
+    void cleanupFailureFailsTheExport() throws Exception {
+        NiFiApiClient api = configured(NiFiComponentKind.PROCESSOR);
+        NiFiRestClient rest = api.restClient();
+        doThrow(new IllegalStateException("403")).when(rest).delete(any());
+        assertThrows(NiFiCleanupException.class, () -> new NiFi1xStrategy(api).collect(NiFiComponentKind.PROCESSOR));
     }
 
-    @Test
-    void collectControllerServiceCreatesAndDeletes() throws Exception {
-        when(apiClient.get("/nifi-api/flow/controller-service-types")).thenReturn(MAPPER.readTree(
-                "{\"controllerServiceTypes\":[{\"type\":\"org.foo.MySvc\"}]}"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/controller-services"), anyString()))
-                .thenReturn(MAPPER.readTree(
-                        "{\"component\":{\"id\":\"def\",\"descriptors\":{\"p\":{}}},\"revision\":{\"version\":5}}"));
-
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.CONTROLLER_SERVICE);
-
-        assertEquals(1, result.size());
-        assertEquals("org.foo.MySvc", result.get(0).get("type"));
-        verify(apiClient).delete("/nifi-api/controller-services/def?version=5");
-    }
-
-    @Test
-    void collectReportingTaskCreatesAndDeletes() throws Exception {
-        when(apiClient.get("/nifi-api/flow/reporting-task-types")).thenReturn(MAPPER.readTree(
-                "{\"reportingTaskTypes\":[{\"type\":\"org.foo.MyTask\"}]}"));
-        when(apiClient.post(eq("/nifi-api/controller/reporting-tasks"), anyString())).thenReturn(MAPPER.readTree(
-                "{\"component\":{\"id\":\"ghi\",\"descriptors\":{}},\"revision\":{\"version\":7}}"));
-
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.REPORTING_TASK);
-
-        assertEquals(1, result.size());
-        assertEquals("org.foo.MyTask", result.get(0).get("type"));
-        verify(apiClient).delete("/nifi-api/reporting-tasks/ghi?version=7");
-    }
-
-    @Test
-    void collectSkipsComponentWhenPostThrows() throws Exception {
-        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
-                "{\"processorTypes\":["
-                + "{\"type\":\"org.foo.A\"},"
-                + "{\"type\":\"org.foo.B\"}"
-                + "]}"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), contains("org.foo.A")))
-                .thenThrow(new RuntimeException("Create failed"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"), contains("org.foo.B")))
-                .thenReturn(MAPPER.readTree(
-                        "{\"component\":{\"id\":\"xyz\",\"config\":{\"descriptors\":{}}},"
-                        + "\"revision\":{\"version\":0}}"));
-
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
-
-        assertEquals(1, result.size());
-        assertEquals("org.foo.B", result.get(0).get("type"));
-    }
-
-    @Test
-    void collectReturnsEmptyWhenListKeyMissing() throws Exception {
-        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
-
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
-
-        assertTrue(result.isEmpty());
-        verify(apiClient, never()).post(anyString(), anyString());
-    }
-
-    @Test
-    void collectPostBodyContainsFqcn() throws Exception {
-        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
-                "{\"processorTypes\":[{\"type\":\"org.apache.nifi.processors.standard.GenerateFlowFile\"}]}"));
-        when(apiClient.post(eq("/nifi-api/process-groups/root/processors"),
-                contains("org.apache.nifi.processors.standard.GenerateFlowFile")))
-                .thenReturn(MAPPER.readTree(
-                        "{\"component\":{\"id\":\"q\",\"config\":{\"descriptors\":{}}},\"revision\":{\"version\":0}}"));
-
-        strategy.collect(NiFiComponentKind.PROCESSOR);
-
-        verify(apiClient).post(
-                eq("/nifi-api/process-groups/root/processors"),
-                contains("org.apache.nifi.processors.standard.GenerateFlowFile"));
+    static NiFiApiClient configured(final NiFiComponentKind kind) throws Exception {
+        NiFiApiClient api = mock(NiFiApiClient.class);
+        NiFiRestClient rest = mock(NiFiRestClient.class);
+        var resolver = NiFiUriResolver.fromBaseUrl("https://nifi", true);
+        when(api.restClient()).thenReturn(rest);
+        when(api.resolver()).thenReturn(resolver);
+        when(rest.getJson(resolver.resolve(kind.getListPath()))).thenReturn(JSON.readTree("{\"" + kind.getListKey()
+                + "\":[{\"type\":\"org.example.Component\",\"bundle\":{\"g"
+                        + "roup\":\"g\",\"artifact\":\"a\",\"version\":\"1.28.1\"}}]}"));
+        when(rest.getJson(resolver.resolve("/nifi-api/process-groups/root")))
+                .thenReturn(JSON.readTree("{\"component\":{\"id\":\"root-id\"}}"));
+        when(rest.postJson(any(), anyString())).thenAnswer(call -> {
+            ObjectNode entity = (ObjectNode) JSON.readTree((String) call.getArgument(1));
+            ObjectNode component = (ObjectNode) entity.path("component");
+            component.put("id", component.has("type") ? "child" : "group");
+            if (component.has("type")) {
+                component.putObject("descriptors");
+                component.putObject("config").putObject("descriptors");
+                component.putArray("relationships");
+            }
+            return entity;
+        });
+        return api;
     }
 }

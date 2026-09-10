@@ -20,14 +20,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.http.NiFiRestClient;
+import org.qubership.nifi.tools.nifi.common.http.NiFiUriResolver;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,8 +43,13 @@ class NiFi2xStrategyTest {
     private NiFi2xStrategy strategy;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         apiClient = mock(NiFiApiClient.class);
+        var rest = mock(NiFiRestClient.class);
+        when(apiClient.restClient()).thenReturn(rest);
+        when(apiClient.resolver()).thenReturn(NiFiUriResolver.fromBaseUrl("https://nifi", true));
+        when(rest.getJson(any()))
+                .thenAnswer(call -> apiClient.get(((URI) call.getArgument(0)).getRawPath()));
         strategy = new NiFi2xStrategy(apiClient);
     }
 
@@ -110,12 +118,10 @@ class NiFi2xStrategyTest {
     }
 
     @Test
-    void collectReturnsEmptyWhenResponseKeyMissing() throws Exception {
+    void collectRejectsMalformedCatalog() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
 
-        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
-
-        assertTrue(result.isEmpty());
+        assertThrows(RuntimeException.class, () -> strategy.collect(NiFiComponentKind.PROCESSOR));
     }
 
     @Test

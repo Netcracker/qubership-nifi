@@ -21,6 +21,7 @@ import org.qubership.nifi.tools.kb.collect.CollectionException;
 import org.qubership.nifi.tools.kb.collect.UnsupportedTargetException;
 import org.qubership.nifi.tools.kb.docs.GuideException;
 import org.qubership.nifi.tools.kb.output.OutputException;
+import org.qubership.nifi.tools.nifi.common.api.NiFiCleanupException;
 import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
 import org.qubership.nifi.tools.nifi.common.tls.TlsMaterialException;
 
@@ -70,6 +71,15 @@ class FailureClassifierTest {
         assertThat(FailureClassifier.classify(new IllegalStateException(
                 new IOException(new SSLHandshakeException("untrusted")))))
                 .isEqualTo(ExitCodes.AUTH);
+    }
+
+    @Test
+    void mapsCleanupFailuresToCollectionWhateverTheirCause() {
+        assertThat(FailureClassifier.classify(new NiFiCleanupException("cleanup failed", apiFailure(403))))
+                .as("cleanup failure caused by a 403").isEqualTo(ExitCodes.COLLECTION);
+        assertThat(FailureClassifier.classify(new NiFiCleanupException("cleanup failed",
+                new IOException(new SSLHandshakeException("untrusted")))))
+                .as("cleanup failure caused by a TLS handshake").isEqualTo(ExitCodes.COLLECTION);
     }
 
     @Test

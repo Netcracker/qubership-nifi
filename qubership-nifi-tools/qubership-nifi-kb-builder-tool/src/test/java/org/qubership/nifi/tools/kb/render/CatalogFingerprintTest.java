@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,6 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * step; fix {@link CatalogFingerprint} rather than the expected value here.
  */
 class CatalogFingerprintTest {
+
+    private static final String LABEL = "manifest.json#collection";
 
     @TempDir
     private Path root;
@@ -70,5 +73,30 @@ class CatalogFingerprintTest {
         write("components/index.json", "[1]\n");
         final String after = CatalogFingerprint.compute(root, List.of("components/index.json"));
         assertThat(after).isNotEqualTo(before);
+    }
+
+    @Test
+    void coversVirtualEntries() throws IOException {
+        write("a.txt", "alpha\n");
+        final List<String> paths = List.of("a.txt");
+
+        final String base = CatalogFingerprint.compute(root, paths, Map.of(LABEL,
+                "{\"definitionFormat\":\"native-nifi-2x\"}".getBytes(StandardCharsets.UTF_8)));
+        final String changed = CatalogFingerprint.compute(root, paths, Map.of(LABEL,
+                "{\"definitionFormat\":\"normalized-nifi-1x\"}".getBytes(StandardCharsets.UTF_8)));
+        final String withoutVirtual = CatalogFingerprint.compute(root, paths);
+
+        assertThat(base).isNotEqualTo(changed).isNotEqualTo(withoutVirtual);
+    }
+
+    @Test
+    void digestsAVirtualEntryLikeAFileOfTheSameName() throws IOException {
+        write("a.txt", "alpha\n");
+
+        final String asVirtual = CatalogFingerprint.compute(root, List.of(),
+                Map.of("a.txt", "alpha\n".getBytes(StandardCharsets.UTF_8)));
+        final String asFile = CatalogFingerprint.compute(root, List.of("a.txt"));
+
+        assertThat(asVirtual).isEqualTo(asFile);
     }
 }

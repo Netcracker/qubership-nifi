@@ -21,6 +21,7 @@ import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 
 /**
  * Normalizes a NiFi deployment or UI URL and safely resolves API and documentation paths against
@@ -88,7 +89,7 @@ public final class NiFiUriResolver {
         if (!uri.isAbsolute() || uri.getScheme() == null) {
             throw new IllegalArgumentException("NiFi URL must be absolute with a scheme");
         }
-        final String uriScheme = uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+        final String uriScheme = uri.getScheme().toLowerCase(Locale.ROOT);
         if (requireHttps && !"https".equals(uriScheme)) {
             throw new IllegalArgumentException("NiFi URL must use HTTPS");
         }
@@ -208,11 +209,23 @@ public final class NiFiUriResolver {
         return resolveCoordinatePath(kind.getAdditionalDetailsPathPrefix(), group, artifact, version, type);
     }
 
-    private URI resolveCoordinatePath(final String prefix, final String group, final String artifact,
-                                      final String version, final String type) {
+    /**
+     * Builds a component URI with independently encoded coordinates and suffix segments.
+     *
+     * @param prefix the API or documentation path prefix
+     * @param group the bundle group
+     * @param artifact the bundle artifact
+     * @param version the bundle version
+     * @param type the fully qualified component type
+     * @param suffix the trailing documentation path segments
+     * @return the requested value
+     */
+    public URI resolveCoordinatePath(final String prefix, final String group, final String artifact,
+                                      final String version, final String type, final String... suffix) {
         try {
             return new URIBuilder(resolve(prefix))
                     .appendPathSegments(group, artifact, version, type)
+                    .appendPathSegments(suffix)
                     .build();
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Component URI could not be built: " + e.getReason(), e);

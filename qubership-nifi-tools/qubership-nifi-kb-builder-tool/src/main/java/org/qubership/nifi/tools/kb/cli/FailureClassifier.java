@@ -18,6 +18,7 @@ package org.qubership.nifi.tools.kb.cli;
 
 import org.qubership.nifi.tools.kb.collect.UnsupportedTargetException;
 import org.qubership.nifi.tools.kb.output.OutputException;
+import org.qubership.nifi.tools.nifi.common.api.NiFiCleanupException;
 import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
 import org.qubership.nifi.tools.nifi.common.tls.TlsMaterialException;
 
@@ -52,6 +53,11 @@ public final class FailureClassifier {
         }
         if (failure instanceof OutputException) {
             return ExitCodes.OUTPUT;
+        }
+        // Resources may be left on the target whatever caused the cleanup to fail, so the operator
+        // follows the cleanup recovery rather than the one for its cause.
+        if (failure instanceof NiFiCleanupException) {
+            return ExitCodes.COLLECTION;
         }
         if (failure instanceof NiFiApiException apiException) {
             return classifyApi(apiException);

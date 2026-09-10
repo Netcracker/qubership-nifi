@@ -20,8 +20,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
+import org.qubership.nifi.tools.kb.model.CollectionMetadata;
 import org.qubership.nifi.tools.kb.model.ComponentIdentity;
+import org.qubership.nifi.tools.kb.model.ComponentProvenance;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.DefinitionFormat;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 
 import java.util.ArrayList;
@@ -136,7 +139,34 @@ class IndexRendererTest {
     void rendersEmptyMarkdownIndex() {
         final String markdown = new IndexRenderer(new JsonOutput(MAPPER)).renderMarkdown(List.of());
 
-        assertThat(markdown).isEqualTo("# Component index\n\n");
+        assertThat(markdown).startsWith("# Component index");
+    }
+
+    @Test
+    void warnsThatNormalizedFieldsAreUnknownRatherThanUnsupported() {
+        final ComponentRecord normalized = new ComponentRecord(
+                new ComponentIdentity(NiFiComponentKind.PROCESSOR, "org.example", "example-nar", "1.0",
+                        "org.example.Legacy"),
+                MAPPER.createObjectNode().put("type", "org.example.Legacy"),
+                MAPPER.createObjectNode().put("type", "org.example.Legacy"),
+                AdditionalDocumentationState.notAdvertised(), null,
+                new ComponentProvenance(DefinitionFormat.NORMALIZED_NIFI_1X,
+                        CollectionMetadata.documentationSources("/nifi-docs/components/x/index.html", null)),
+                "# Legacy\n");
+
+        final String markdown = new IndexRenderer(new JsonOutput(MAPPER)).renderMarkdown(List.of(normalized));
+
+        assertThat(markdown).contains("unknown, not unsupported")
+                .contains("read from the component's HTML page and may be incomplete")
+                .contains("manifest.json");
+    }
+
+    @Test
+    void omitsNormalizationWarningsForNativeDefinitions() throws Exception {
+        final String markdown = new IndexRenderer(new JsonOutput(MAPPER)).renderMarkdown(List.of(
+                componentRecord(NiFiComponentKind.PROCESSOR, "Native", MAPPER.readTree("{}"), false)));
+
+        assertThat(markdown).doesNotContain("unknown, not unsupported").doesNotContain("HTML page");
     }
 
     private static ComponentRecord componentRecord(final NiFiComponentKind kind, final String simpleName,

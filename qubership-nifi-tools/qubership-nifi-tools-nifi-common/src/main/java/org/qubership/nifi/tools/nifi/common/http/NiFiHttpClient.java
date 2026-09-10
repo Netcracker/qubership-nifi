@@ -49,6 +49,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Sends bounded HTTP requests to a single NiFi origin. It applies authentication, enforces that
@@ -160,7 +161,24 @@ public final class NiFiHttpClient implements Closeable {
      */
     public NiFiHttpResponse get(final URI uri, final String acceptHeader) {
         requireSameOrigin(Method.GET, uri);
-        return executeWithRetry(uri, acceptHeader);
+        return executeWithRetry(uri, acceptHeader, target -> true);
+    }
+
+    /**
+     * Sends a GET while also constraining every redirect to the caller's allowed resources.
+     *
+     * @param uri the request URI
+     * @param acceptHeader the accepted response media type
+     * @param allowed the predicate applied to the initial URI and every redirect
+     * @return the requested value
+     */
+    public NiFiHttpResponse get(final URI uri, final String acceptHeader,
+                                final Predicate<URI> allowed) {
+        requireSameOrigin(Method.GET, uri);
+        if (!allowed.test(uri)) {
+            throw new IllegalArgumentException("GET URI is outside the allowed documentation subtree");
+        }
+        return executeWithRetry(uri, acceptHeader, allowed);
     }
 
     /**
@@ -226,12 +244,15 @@ public final class NiFiHttpClient implements Closeable {
      * @param uri          the request URI
      * @param acceptHeader the value of the {@code Accept} header
      * @return the bounded response
+     *
+     * @param allowed the predicate applied to the initial URI and every redirect
      */
-    private NiFiHttpResponse executeWithRetry(final URI uri, final String acceptHeader) {
+    private NiFiHttpResponse executeWithRetry(final URI uri, final String acceptHeader,
+            final Predicate<URI> allowed) {
         int attempt = 0;
         while (true) {
             try {
-                final Exchange exchange = sendGetFollowingSameOriginRedirects(uri, acceptHeader);
+                final Exchange exchange = sendGetFollowingSameOriginRedirects(uri, acceptHeader, allowed);
                 if (RETRYABLE_STATUSES.contains(exchange.response().statusCode()) && attempt < config.maxRetries()) {
                     backoff(Method.GET, uri, attempt, retryAfterMillis(exchange));
                     attempt++;
@@ -296,9 +317,13 @@ public final class NiFiHttpClient implements Closeable {
      * @param acceptHeader the value of the {@code Accept} header
      * @return the exchange that ended the redirect chain
      * @throws IOException on a transport failure
+     *
+     * @param allowed the predicate applied to the initial URI and every redirect
      */
     private Exchange sendGetFollowingSameOriginRedirects(final URI initialUri,
-                                                         final String acceptHeader) throws IOException {
+                                                         final String acceptHeader,
+                                                         final Predicate<URI> allowed)
+            throws IOException {
         URI currentUri = initialUri;
         int redirects = 0;
         while (true) {
@@ -311,7 +336,7 @@ public final class NiFiHttpClient implements Closeable {
                             "Redirect response is missing a Location header");
                 }
                 final URI target = currentUri.resolve(exchange.location());
-                if (!resolver.isSameOrigin(target) || redirects >= config.maxRedirects()) {
+                if (!resolver.isSameOrigin(target) || !allowed.test(target) || redirects >= config.maxRedirects()) {
                     throw new NiFiApiException(Method.GET.name(), redact(currentUri), status, "",
                             "Rejected redirect to " + redact(target));
                 }

@@ -16,8 +16,9 @@
 
 package org.qubership.nifi.tools.export;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import org.qubership.nifi.tools.nifi.common.api.NiFiAboutClient;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public final class ComponentDescriptorCollector {
      * Creates a new collector, auto-detecting the NiFi major version to select the right strategy.
      *
      * @param client the NiFi API client (must already be authenticated)
-     * @throws Exception if version detection or strategy initialisation fails
+     * @throws Exception if version detection or strategy initialization fails
      */
     public ComponentDescriptorCollector(final NiFiApiClient client) throws Exception {
         int majorVersion = detectMajorVersion(client);
@@ -61,10 +62,11 @@ public final class ComponentDescriptorCollector {
     }
 
     private int detectMajorVersion(final NiFiApiClient apiClient) throws Exception {
-        JsonNode about = apiClient.get("/nifi-api/flow/about");
-        String version = about.path("about").path("version").asText();
-        LOG.info("NiFi version string: {}", version);
-        String majorStr = version.split("\\.")[0];
-        return Integer.parseInt(majorStr);
+        String raw = new NiFiAboutClient(
+                apiClient.restClient(), apiClient.resolver()).readVersionString();
+        var version = NiFiVersion.parse(raw)
+                .orElseThrow(() -> new IllegalArgumentException("Cannot parse NiFi version: " + raw));
+        LOG.info("NiFi version string: {}", raw);
+        return version.getMajor();
     }
 }

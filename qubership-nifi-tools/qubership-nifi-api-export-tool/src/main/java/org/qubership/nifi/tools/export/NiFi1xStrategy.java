@@ -17,136 +17,52 @@
 package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentCatalogClient;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentReference;
+import org.qubership.nifi.tools.nifi.common.api.NiFi1xComponentMetadataProvider;
+import org.qubership.nifi.tools.nifi.common.api.NiFiTemporaryComponentSession;
+import org.qubership.nifi.tools.nifi.common.api.NiFiCleanupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * NiFi 1.x strategy: creates a component instance, extracts property descriptors, then deletes the instance.
- */
+/** Adapts the shared metadata provider to the exporter's descriptor-only format. */
 public final class NiFi1xStrategy implements NiFiVersionStrategy {
-
     private static final Logger LOG = LoggerFactory.getLogger(NiFi1xStrategy.class);
-
     private final NiFiApiClient apiClient;
-    private final ObjectMapper mapper = new ObjectMapper();
 
     /**
-     * Creates a new NiFi1xStrategy using the given API client.
+     * Uses shared temporary ownership for descriptor export.
      *
-     * @param client the NiFi API client (must already be authenticated)
+     * @param client the authenticated client
      */
     public NiFi1xStrategy(final NiFiApiClient client) {
-        this.apiClient = client;
+        apiClient = client;
     }
 
     @Override
-    public List<Map<String, Object>> collect(final NiFiComponentKind kind) throws Exception {
+    public List<Map<String, Object>> collect(final NiFiComponentKind kind) {
+        NiFiComponentCatalogClient catalog = new NiFiComponentCatalogClient(apiClient.restClient(),
+                apiClient.resolver());
         List<Map<String, Object>> result = new ArrayList<>();
-
-        JsonNode listResponse = apiClient.get(kind.getListPath());
-        JsonNode types = listResponse.get(kind.getListKey());
-        if (types == null || !types.isArray()) {
-            LOG.warn("No types found for {} at path {}", kind, kind.getListPath());
-            return result;
-        }
-
-        for (JsonNode typeEntry : types) {
-            String fqcn = typeEntry.path("type").asText();
-            try {
-                Map<String, Object> entry = collectOne(kind, fqcn);
-                result.add(entry);
-            } catch (Exception e) {
-                LOG.warn("Failed to collect descriptors for {} ({})", fqcn, kind, e);
+        try (var session = new NiFiTemporaryComponentSession(apiClient.restClient(), apiClient.resolver(), null)) {
+            var provider = new NiFi1xComponentMetadataProvider(session);
+            for (JsonNode entry : catalog.listTypes(kind)) {
+                try {
+                    var reference = NiFiComponentReference.from(kind, entry);
+                    JsonNode definition = provider.collect(reference);
+                    result.add(Map.of("type", reference.type(), "propertyDescriptors",
+                            definition.path("propertyDescriptors")));
+                } catch (NiFiCleanupException failure) {
+                    throw failure;
+                } catch (RuntimeException failure) {
+                    LOG.warn("Failed to collect descriptors for {} ({})", entry.path("type").asText(), kind, failure);
+                }
             }
         }
-
         return result;
-    }
-
-    private Map<String, Object> collectOne(final NiFiComponentKind kind, final String fqcn) throws Exception {
-        ObjectNode revision = mapper.createObjectNode().put("version", 0);
-        ObjectNode component = mapper.createObjectNode().put("type", fqcn);
-        ObjectNode createBody = mapper.createObjectNode().set("revision", revision);
-        createBody.set("component", component);
-        String createBodyJson = mapper.writeValueAsString(createBody);
-
-        switch (kind) {
-            case PROCESSOR:
-                return collectProcessor(fqcn, createBodyJson);
-            case CONTROLLER_SERVICE:
-                return collectControllerService(fqcn, createBodyJson);
-            case REPORTING_TASK:
-                return collectReportingTask(fqcn, createBodyJson);
-            default:
-                throw new IllegalArgumentException("Unknown kind: " + kind);
-        }
-    }
-
-    private Map<String, Object> collectProcessor(final String fqcn, final String createBody) throws Exception {
-        JsonNode response = apiClient.post("/nifi-api/process-groups/root/processors", createBody);
-        String id = response.path("component").path("id").asText();
-        if (id.isEmpty()) {
-            throw new IllegalStateException("NiFi response missing component.id for " + fqcn);
-        }
-        long version = response.path("revision").path("version").asLong();
-        JsonNode descriptors = response.path("component").path("config").path("descriptors");
-        try {
-            return buildEntry(fqcn, descriptors);
-        } finally {
-            deleteQuietly("/nifi-api/processors/" + id + "?version=" + version);
-        }
-    }
-
-    private Map<String, Object> collectControllerService(final String fqcn, final String createBody) throws Exception {
-        JsonNode response = apiClient.post("/nifi-api/process-groups/root/controller-services", createBody);
-        String id = response.path("component").path("id").asText();
-        if (id.isEmpty()) {
-            throw new IllegalStateException("NiFi response missing component.id for " + fqcn);
-        }
-        long version = response.path("revision").path("version").asLong();
-        JsonNode descriptors = response.path("component").path("descriptors");
-        try {
-            return buildEntry(fqcn, descriptors);
-        } finally {
-            deleteQuietly("/nifi-api/controller-services/" + id + "?version=" + version);
-        }
-    }
-
-    private Map<String, Object> collectReportingTask(final String fqcn, final String createBody) throws Exception {
-        JsonNode response = apiClient.post("/nifi-api/controller/reporting-tasks", createBody);
-        String id = response.path("component").path("id").asText();
-        if (id.isEmpty()) {
-            throw new IllegalStateException("NiFi response missing component.id for " + fqcn);
-        }
-        long version = response.path("revision").path("version").asLong();
-        JsonNode descriptors = response.path("component").path("descriptors");
-        try {
-            return buildEntry(fqcn, descriptors);
-        } finally {
-            deleteQuietly("/nifi-api/reporting-tasks/" + id + "?version=" + version);
-        }
-    }
-
-    private Map<String, Object> buildEntry(final String fqcn, final JsonNode descriptors) {
-        Map<String, Object> entry = new HashMap<>();
-        entry.put("type", fqcn);
-        entry.put("propertyDescriptors", descriptors);
-        return entry;
-    }
-
-    private void deleteQuietly(final String path) {
-        try {
-            apiClient.delete(path);
-        } catch (Exception e) {
-            LOG.warn("Failed to delete {}", path, e);
-        }
     }
 }
