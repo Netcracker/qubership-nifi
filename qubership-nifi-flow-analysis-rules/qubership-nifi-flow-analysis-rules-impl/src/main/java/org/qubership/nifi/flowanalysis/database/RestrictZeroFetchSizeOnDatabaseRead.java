@@ -33,7 +33,9 @@ import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
  * Flow analysis rule that reports a database-reading processor that has Fetch Size = 0. On PostgreSQL
  * and MySQL the JDBC driver then loads the whole result set into memory at once, which can cause an
  * OutOfMemoryError on large queries. Setting a positive value is safe on every database, so the rule
- * does not try to determine the database type.
+ * does not try to determine the database type. A positive Fetch Size alone does not make PostgreSQL
+ * or MySQL stream the result set - PostgreSQL also needs the connection out of auto-commit mode and
+ * MySQL needs useCursorFetch=true in the JDBC URL - but it never makes memory use worse.
  *
  * <p>The target processor is recognised by the presence of a property descriptor whose name or
  * display name is "Fetch Size", so custom JDBC processors following that convention are covered
@@ -49,9 +51,12 @@ public final class RestrictZeroFetchSizeOnDatabaseRead extends AbstractFlowAnaly
     private static final String VIOLATION_MESSAGE =
             "Fetch Size is 0, which may cause an OutOfMemoryError on large queries.";
     private static final String VIOLATION_EXPLANATION =
-            "A Fetch Size of 0 lets the JDBC driver use its default. On PostgreSQL and MySQL the driver "
-            + "then loads the whole result set into memory at once. Set a positive Fetch Size so the "
-            + "driver streams the result set instead; a positive value is safe on every database.";
+            "A Fetch Size of 0 lets the JDBC driver use its default, and on PostgreSQL and MySQL that "
+            + "default loads the whole result set into memory at once. Set a positive Fetch Size; it is "
+            + "safe on every database. A positive Fetch Size alone is not enough for the driver to stream "
+            + "the result set: on PostgreSQL the connection must not be in auto-commit mode, so also set "
+            + "Set Auto Commit to false on the processor; on MySQL the JDBC URL must set "
+            + "useCursorFetch=true.";
 
     @Override
     public Collection<ComponentAnalysisResult> analyzeComponent(

@@ -48,33 +48,6 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
             final String issueIdPrefix,
             final String scope) {
 
-        return reportDuplicateNames(components, componentKind, issueIdPrefix, scope, true);
-    }
-
-    /**
-     * Groups the given components by name and produces one violation per component whose name is
-     * shared with at least one other component in the collection.
-     *
-     * <p>When {@code listOtherComponents} is false the message names only the component and its
-     * duplicated name. This keeps the message stable for a rule that walks descendant groups: the
-     * framework calls such a rule once per ancestor group, so the count and the identifier list
-     * would otherwise differ between passes for a component in a nested group.</p>
-     *
-     * @param components          the components whose names must be unique
-     * @param componentKind       singular noun for the component type, for example "processor"
-     * @param issueIdPrefix       stable prefix for the generated issue id
-     * @param scope               human-readable name of the uniqueness scope
-     * @param listOtherComponents whether to include the count and the identifiers of the other
-     *                            components with the same name
-     * @return the collection of violations, empty when all names are unique
-     */
-    protected Collection<GroupAnalysisResult> reportDuplicateNames(
-            final Collection<? extends VersionedComponent> components,
-            final String componentKind,
-            final String issueIdPrefix,
-            final String scope,
-            final boolean listOtherComponents) {
-
         final Map<String, List<VersionedComponent>> componentsByName = new LinkedHashMap<>();
         for (final VersionedComponent component : components) {
             componentsByName
@@ -90,8 +63,7 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
                             .forComponent(
                                     component,
                                     issueIdPrefix + "-" + component.getIdentifier(),
-                                    buildMessage(component, duplicates, name, componentKind, scope,
-                                            listOtherComponents))
+                                    buildMessage(component, duplicates, name, componentKind, scope))
                             .build());
                 }
             }
@@ -104,14 +76,7 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
             final List<VersionedComponent> duplicates,
             final String name,
             final String componentKind,
-            final String scope,
-            final boolean listOtherComponents) {
-
-        if (!listOtherComponents) {
-            return "The " + componentKind + " '" + name + "' [" + component.getIdentifier() + "] is not "
-                    + "unique: another " + componentKind + " in " + scope + " has the same name. "
-                    + "Rename this or the other component to resolve this.";
-        }
+            final String scope) {
 
         final List<String> otherIds = duplicates.stream()
                 .filter(other -> other != component)

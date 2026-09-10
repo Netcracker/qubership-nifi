@@ -20,8 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.qubership.nifi.flowanalysis.Fixtures.processGroup;
-import static org.qubership.nifi.flowanalysis.Fixtures.setOf;
+import static org.qubership.nifi.flowanalysis.Fixtures.controllerService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,11 +30,10 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleInitializationContext;
-import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,13 +114,13 @@ public class RequireRunDurationForBatchingProcessorsTest {
         assertTrue(rule.scanBatchingTypes(manifestDirectory.resolve("does-not-exist")).isEmpty());
     }
 
-    // ---- loadBatchingTypes + analyzeProcessGroup ----
+    // ---- loadBatchingTypes + analyzeComponent ----
 
     @Test
     public void reportsBatchingProcessorWithZeroRunDuration() throws IOException {
         enableWith(BATCHING_TYPE);
 
-        GroupAnalysisResult result = single(analyze(processor("p-1", BATCHING_TYPE, 0L)));
+        ComponentAnalysisResult result = single(analyze(processor("p-1", BATCHING_TYPE, 0L)));
 
         assertEquals("run-duration-zero", result.getIssueId());
         assertTrue(result.getMessage().contains("Run Duration is 0"), result.getMessage());
@@ -172,6 +170,13 @@ public class RequireRunDurationForBatchingProcessorsTest {
         assertTrue(analyze(processor("p-1", BATCHING_TYPE, 0L)).isEmpty());
     }
 
+    @Test
+    public void ignoresNonProcessorComponents() throws IOException {
+        enableWith(BATCHING_TYPE);
+
+        assertTrue(rule.analyzeComponent(controllerService("cs-1", "Pool"), analysisContext).isEmpty());
+    }
+
     // ---- helpers ----
 
     private void enableWith(final String... batchingTypes) throws IOException {
@@ -183,13 +188,11 @@ public class RequireRunDurationForBatchingProcessorsTest {
         rule.loadBatchingTypes(manifestDirectory);
     }
 
-    private Collection<GroupAnalysisResult> analyze(final VersionedProcessor... processors) {
-        VersionedProcessGroup group = processGroup("pg-1", "g");
-        group.setProcessors(setOf(processors));
-        return rule.analyzeProcessGroup(group, analysisContext);
+    private Collection<ComponentAnalysisResult> analyze(final VersionedProcessor processor) {
+        return rule.analyzeComponent(processor, analysisContext);
     }
 
-    private static GroupAnalysisResult single(final Collection<GroupAnalysisResult> results) {
+    private static ComponentAnalysisResult single(final Collection<ComponentAnalysisResult> results) {
         assertEquals(1, results.size(), () -> "expected exactly one violation, got " + results);
         return results.iterator().next();
     }

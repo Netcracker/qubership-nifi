@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -34,11 +34,11 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flowanalysis.AbstractFlowAnalysisRule;
+import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
-import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -71,7 +71,7 @@ public final class RequireRunDurationForBatchingProcessors extends AbstractFlowA
             + "latency-sensitive processing, or where the processor deletes data from a remote source "
             + "after commit.";
 
-    private volatile Set<String> batchingTypes = Set.of();
+    private final AtomicReference<Set<String>> batchingTypes = new AtomicReference<>(Set.of());
 
     /**
      * Scans the NAR extension manifests once and caches the processor types that support batching.
@@ -85,11 +85,12 @@ public final class RequireRunDurationForBatchingProcessors extends AbstractFlowA
         if (!Files.isDirectory(directory)) {
             getLogger().warn("Directory {} does not exist; the rule reports nothing until the "
                     + "extension manifests can be read.", directory);
-            batchingTypes = Set.of();
+            batchingTypes.set(Set.of());
             return;
         }
-        batchingTypes = scanBatchingTypes(directory);
-        getLogger().info("Found {} batching-capable processor types in {}", batchingTypes.size(), directory);
+        final Set<String> types = scanBatchingTypes(directory);
+        batchingTypes.set(types);
+        getLogger().info("Found {} batching-capable processor types in {}", types.size(), directory);
     }
 
     /**
@@ -97,32 +98,24 @@ public final class RequireRunDurationForBatchingProcessors extends AbstractFlowA
      */
     @OnDisabled
     public void onDisabled() {
-        batchingTypes = Set.of();
+        batchingTypes.set(Set.of());
     }
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(
-            final VersionedProcessGroup processGroup, final FlowAnalysisRuleContext context) {
+    public Collection<ComponentAnalysisResult> analyzeComponent(
+            final VersionedComponent component, final FlowAnalysisRuleContext context) {
 
-        final Set<String> types = batchingTypes;
-        if (types.isEmpty()) {
+        if (!(component instanceof final VersionedProcessor processor)) {
             return List.of();
         }
-        final List<GroupAnalysisResult> results = new ArrayList<>();
-        for (final VersionedProcessor processor : processGroup.getProcessors()) {
-            if (!types.contains(processor.getType())) {
-                continue;
-            }
-            final Long runDurationMillis = processor.getRunDurationMillis();
-            if (runDurationMillis != null && runDurationMillis > 0L) {
-                continue;
-            }
-            results.add(GroupAnalysisResult
-                    .forComponent(processor, "run-duration-zero", VIOLATION_MESSAGE)
-                    .explanation(VIOLATION_EXPLANATION)
-                    .build());
+        if (!batchingTypes.get().contains(processor.getType())) {
+            return List.of();
         }
-        return results;
+        final Long runDurationMillis = processor.getRunDurationMillis();
+        if (runDurationMillis != null && runDurationMillis > 0L) {
+            return List.of();
+        }
+        return List.of(new ComponentAnalysisResult("run-duration-zero", VIOLATION_MESSAGE, VIOLATION_EXPLANATION));
     }
 
     private static Path manifestDirectory() {

@@ -77,8 +77,8 @@ public class RestrictSourceProcessorRunScheduleTest {
     }
 
     @Test
-    public void noViolationWhenRunScheduleEqualsThreshold() {
-        assertTrue(analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "1 sec")).isEmpty());
+    public void reportsRunScheduleEqualToThreshold() {
+        assertEquals(1, analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "1 sec")).size());
     }
 
     @Test
@@ -122,11 +122,39 @@ public class RestrictSourceProcessorRunScheduleTest {
         assertTrue(analyze("0 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "not-a-duration")).isEmpty());
     }
 
+    @Test
+    public void ignoresProcessorWhoseTypeIsInTheIgnoredList() {
+        VersionedProcessor listener = processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec");
+        listener.setType("org.apache.nifi.processors.standard.ListenHTTP");
+
+        assertTrue(analyze("0 sec", "org.apache.nifi.processors.standard.ListenHTTP", listener).isEmpty());
+    }
+
+    @Test
+    public void ignoredListAcceptsSeveralTypesWithSurroundingWhitespace() {
+        VersionedProcessor consumer = processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec");
+        consumer.setType("org.apache.nifi.processors.kafka.pubsub.ConsumeKafka");
+
+        assertTrue(analyze("0 sec", " a.b.C , org.apache.nifi.processors.kafka.pubsub.ConsumeKafka ",
+                consumer).isEmpty());
+    }
+
+    @Test
+    public void stillReportsProcessorTypesNotInTheIgnoredList() {
+        assertEquals(1, analyze("0 sec", "some.other.Type",
+                processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")).size());
+    }
+
     private Collection<GroupAnalysisResult> analyze(final String threshold,
+                                                   final VersionedProcessor... processors) {
+        return analyze(threshold, null, processors);
+    }
+
+    private Collection<GroupAnalysisResult> analyze(final String threshold, final String ignoredTypes,
                                                    final VersionedProcessor... processors) {
         VersionedProcessGroup group = processGroup("pg-1", "g");
         group.setProcessors(setOf(processors));
-        return rule.analyzeProcessGroup(group, context(threshold));
+        return rule.analyzeProcessGroup(group, context(threshold, ignoredTypes));
     }
 
     private static GroupAnalysisResult single(final Collection<GroupAnalysisResult> results) {
@@ -135,11 +163,20 @@ public class RestrictSourceProcessorRunScheduleTest {
     }
 
     private static FlowAnalysisRuleContext context(final String threshold) {
-        PropertyValue value = mock(PropertyValue.class);
-        when(value.asTimePeriod(TimeUnit.MILLISECONDS))
+        return context(threshold, null);
+    }
+
+    private static FlowAnalysisRuleContext context(final String threshold, final String ignoredTypes) {
+        PropertyValue thresholdValue = mock(PropertyValue.class);
+        when(thresholdValue.asTimePeriod(TimeUnit.MILLISECONDS))
                 .thenReturn(FormatUtils.getTimeDuration(threshold, TimeUnit.MILLISECONDS));
+        PropertyValue ignoredValue = mock(PropertyValue.class);
+        when(ignoredValue.getValue()).thenReturn(ignoredTypes);
         FlowAnalysisRuleContext context = mock(FlowAnalysisRuleContext.class);
-        when(context.getProperty(RestrictSourceProcessorRunSchedule.RUN_SCHEDULE_THRESHOLD)).thenReturn(value);
+        when(context.getProperty(RestrictSourceProcessorRunSchedule.RUN_SCHEDULE_THRESHOLD))
+                .thenReturn(thresholdValue);
+        when(context.getProperty(RestrictSourceProcessorRunSchedule.IGNORED_PROCESSOR_TYPES))
+                .thenReturn(ignoredValue);
         return context;
     }
 }

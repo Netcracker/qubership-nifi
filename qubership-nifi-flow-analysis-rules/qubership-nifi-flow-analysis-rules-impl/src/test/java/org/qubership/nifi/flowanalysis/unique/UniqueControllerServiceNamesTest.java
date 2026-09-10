@@ -45,13 +45,12 @@ public class UniqueControllerServiceNamesTest {
                 controllerService("cs-3", "Cache")));
 
         assertEquals(Set.of("cs-1", "cs-2"), subjectIds(rule.analyzeProcessGroup(group, context)));
-        assertEquals(
-                Set.of("duplicate-controller-service-name-cs-1", "duplicate-controller-service-name-cs-2"),
+        assertEquals(Set.of("duplicate-controller-service-name"),
                 issueIds(rule.analyzeProcessGroup(group, context)));
     }
 
     @Test
-    public void reportsDuplicateAcrossDescendantGroups() {
+    public void reportsClashBetweenAGroupAndItsDescendant() {
         VersionedProcessGroup grandchild = processGroup("pg-3", "grandchild");
         grandchild.setControllerServices(setOf(controllerService("cs-2", "Pool")));
         VersionedProcessGroup child = processGroup("pg-2", "child");
@@ -60,11 +59,39 @@ public class UniqueControllerServiceNamesTest {
         root.setControllerServices(setOf(controllerService("cs-1", "Pool")));
         root.setProcessGroups(setOf(child));
 
-        assertEquals(Set.of("cs-1", "cs-2"), subjectIds(rule.analyzeProcessGroup(root, context)));
+        // Only the ancestor's service is flagged: the descendant's own pass cannot see upward.
+        assertEquals(Set.of("cs-1"), subjectIds(rule.analyzeProcessGroup(root, context)));
     }
 
     @Test
-    public void messageMentionsDescendantScope() {
+    public void descendantPassDoesNotFlagAServiceThatOnlyClashesWithAnAncestor() {
+        VersionedProcessGroup child = processGroup("pg-2", "child");
+        child.setControllerServices(setOf(controllerService("cs-2", "Pool")));
+        VersionedProcessGroup root = processGroup("pg-1", "root");
+        root.setControllerServices(setOf(controllerService("cs-1", "Pool")));
+        root.setProcessGroups(setOf(child));
+
+        assertTrue(rule.analyzeProcessGroup(child, context).isEmpty());
+    }
+
+    @Test
+    public void noViolationForSiblingGroupsThatCarryTheSameServiceName() {
+        // Two child groups imported from the same versioned flow, each with its own JsonTreeReader.
+        VersionedProcessGroup orders = processGroup("pg-orders", "orders");
+        orders.setControllerServices(setOf(controllerService("cs-orders", "JsonTreeReader")));
+        VersionedProcessGroup invoices = processGroup("pg-invoices", "invoices");
+        invoices.setControllerServices(setOf(controllerService("cs-invoices", "JsonTreeReader")));
+        VersionedProcessGroup root = processGroup("pg-1", "root");
+        root.setProcessGroups(setOf(orders, invoices));
+
+        // The framework calls the rule once per group in the tree.
+        assertTrue(rule.analyzeProcessGroup(root, context).isEmpty());
+        assertTrue(rule.analyzeProcessGroup(orders, context).isEmpty());
+        assertTrue(rule.analyzeProcessGroup(invoices, context).isEmpty());
+    }
+
+    @Test
+    public void messageNamesTheDuplicatedNameAndAsksToRenameOne() {
         VersionedProcessGroup group = processGroup("pg-1", "g");
         group.setControllerServices(setOf(
                 controllerService("cs-1", "Pool"),
@@ -72,25 +99,9 @@ public class UniqueControllerServiceNamesTest {
 
         String message = resultFor(rule.analyzeProcessGroup(group, context), "cs-1").getMessage();
 
-        assertTrue(message.contains("The controller service 'Pool' [cs-1] is not unique"), message);
-        assertTrue(message.contains("in this process group or a descendant group"), message);
-    }
-
-    @Test
-    public void messageForANestedServiceIsTheSameRegardlessOfWhichAncestorPassProducesIt() {
-        VersionedProcessGroup child = processGroup("pg-2", "child");
-        child.setControllerServices(setOf(
-                controllerService("cs-2", "Pool"),
-                controllerService("cs-3", "Pool")));
-        VersionedProcessGroup root = processGroup("pg-1", "root");
-        root.setControllerServices(setOf(controllerService("cs-1", "Pool")));
-        root.setProcessGroups(setOf(child));
-
-        String fromRootPass = resultFor(rule.analyzeProcessGroup(root, context), "cs-2").getMessage();
-        String fromChildPass = resultFor(rule.analyzeProcessGroup(child, context), "cs-2").getMessage();
-
-        assertEquals(fromRootPass, fromChildPass);
-        assertTrue(fromRootPass.contains("another controller service"), fromRootPass);
+        assertTrue(message.contains("Controller service name 'Pool' is not unique"), message);
+        assertTrue(message.contains("same process group or a descendant group"), message);
+        assertTrue(message.contains("Rename one of them"), message);
     }
 
     @Test
@@ -102,5 +113,10 @@ public class UniqueControllerServiceNamesTest {
         root.setProcessGroups(setOf(child));
 
         assertTrue(rule.analyzeProcessGroup(root, context).isEmpty());
+    }
+
+    @Test
+    public void noViolationWhenGroupHasNoServices() {
+        assertTrue(rule.analyzeProcessGroup(processGroup("pg-1", "g"), context).isEmpty());
     }
 }
