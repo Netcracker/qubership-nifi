@@ -147,7 +147,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
                 if (primary != null) {
                     primary.addSuppressed(failure);
                 } else {
-                    throw failure;
+                    LOG.error("Failed to cleanup resource(id: {}, type: {})", resource.id, reference.kind());
                 }
             }
         }
