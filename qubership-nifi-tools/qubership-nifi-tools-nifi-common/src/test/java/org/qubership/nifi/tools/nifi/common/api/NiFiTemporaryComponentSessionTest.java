@@ -26,6 +26,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.qubership.nifi.tools.nifi.common.auth.NoAuthentication;
 import org.qubership.nifi.tools.nifi.common.http.NiFiApiException;
@@ -38,9 +40,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class NiFiTemporaryComponentSessionTest {
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -237,24 +241,49 @@ class NiFiTemporaryComponentSessionTest {
         assertThatThrownBy(session::close).isInstanceOf(NiFiCleanupException.class);
     }
 
-    @Test
-    void controllerScopedReportingTaskReconcilesAtTheReportingTaskListing() {
+    /**
+     * A rejected creation makes the session look for the component in the listing of the level the
+     * creation was requested at, so one run records both endpoints. The group the session creates first
+     * is {@code id-0}.
+     *
+     * @param kind the component kind
+     * @param controllerScope whether controller scope is requested
+     * @param createRequest the expected creation request
+     * @param listRequest the expected reconciliation request
+     */
+    @ParameterizedTest
+    @MethodSource("endpointsByKindAndScope")
+    void createsAndReconcilesAtTheEndpointsOfTheKindAndScope(final NiFiComponentKind kind,
+                                                            final boolean controllerScope,
+                                                            final String createRequest, final String listRequest) {
         createStatus = 403;
         try (var session = session()) {
-            assertThatThrownBy(() -> session.collect(reference(NiFiComponentKind.REPORTING_TASK, "a"), true))
+            assertThatThrownBy(() -> session.collect(reference(kind, "a"), controllerScope))
                     .isInstanceOf(NiFiApiException.class);
         }
-        assertThat(requests).contains("GET /nifi-api/flow/reporting-tasks");
+        assertThat(requests).contains(createRequest, listRequest);
     }
 
-    @Test
-    void controllerScopedServiceReconcilesAtTheControllerServiceListing() {
-        createStatus = 403;
-        try (var session = session()) {
-            assertThatThrownBy(() -> session.collect(reference(NiFiComponentKind.CONTROLLER_SERVICE, "a"), true))
-                    .isInstanceOf(NiFiApiException.class);
-        }
-        assertThat(requests).contains("GET /nifi-api/flow/controller/controller-services");
+    static Stream<Arguments> endpointsByKindAndScope() {
+        return Stream.of(
+                arguments(NiFiComponentKind.PROCESSOR, false,
+                        "POST /nifi-api/process-groups/id-0/processors",
+                        "GET /nifi-api/process-groups/id-0/processors"),
+                arguments(NiFiComponentKind.PROCESSOR, true,
+                        "POST /nifi-api/process-groups/id-0/processors",
+                        "GET /nifi-api/process-groups/id-0/processors"),
+                arguments(NiFiComponentKind.CONTROLLER_SERVICE, false,
+                        "POST /nifi-api/process-groups/id-0/controller-services",
+                        "GET /nifi-api/flow/process-groups/id-0/controller-services"),
+                arguments(NiFiComponentKind.CONTROLLER_SERVICE, true,
+                        "POST /nifi-api/controller/controller-services",
+                        "GET /nifi-api/flow/controller/controller-services"),
+                arguments(NiFiComponentKind.REPORTING_TASK, false,
+                        "POST /nifi-api/controller/reporting-tasks",
+                        "GET /nifi-api/flow/reporting-tasks"),
+                arguments(NiFiComponentKind.REPORTING_TASK, true,
+                        "POST /nifi-api/controller/reporting-tasks",
+                        "GET /nifi-api/flow/reporting-tasks"));
     }
 
     @Test

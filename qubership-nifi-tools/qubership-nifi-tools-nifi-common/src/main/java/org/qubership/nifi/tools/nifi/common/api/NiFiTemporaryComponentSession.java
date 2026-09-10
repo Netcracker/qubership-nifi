@@ -44,8 +44,8 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
     private final NiFiUriResolver resolver;
     private final String parent;
     private final String marker = "nifi-metadata-" + UUID.randomUUID();
-    private final List<Owned> owned = new ArrayList<>();
-    private Owned group;
+    private final List<OwnedResource> owned = new ArrayList<>();
+    private OwnedResource group;
     private RuntimeException groupFailure;
     private boolean closed;
     private RuntimeException cleanupFailure;
@@ -98,30 +98,13 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
             throw new IllegalStateException("Temporary session is closed");
         }
         ensureGroup();
-        String plural = switch (reference.kind()) {
-            case PROCESSOR -> "processors";
-            case CONTROLLER_SERVICE -> "controller-services";
-            case REPORTING_TASK -> "reporting-tasks";
-        };
-        boolean controller = reference.kind() == NiFiComponentKind.REPORTING_TASK
-                || reference.kind() == NiFiComponentKind.CONTROLLER_SERVICE && controllerScope;
-        String createPath = "/nifi-api/" + (controller ? "controller" : "process-groups/" + group.id)
-                + "/" + plural;
-        String listPath = switch (reference.kind()) {
-            case PROCESSOR -> createPath;
-            case CONTROLLER_SERVICE -> controllerScope ? "/nifi-api/flow/controller/controller-services"
-                    : "/nifi-api/flow/process-groups/" + group.id + "/controller-services";
-            case REPORTING_TASK -> "/nifi-api/flow/reporting-tasks";
-        };
-        String key = switch (reference.kind()) {
-            case PROCESSOR -> "processors";
-            case CONTROLLER_SERVICE -> "controllerServices";
-            case REPORTING_TASK -> "reportingTasks";
-        };
+        NiFiComponentKind kind = reference.kind();
         String name = marker + "-" + UUID.randomUUID();
         ObjectNode component = JsonNodeFactory.instance.objectNode().put("name", name).put("type", reference.type());
         component.set("bundle", reference.bundle());
-        Owned resource = create(createPath, listPath, key, "/nifi-api/" + plural + "/", name, reference, component);
+        OwnedResource resource = create(kind.getCreatePath(group.id, controllerScope),
+                kind.getInstanceListPath(group.id, controllerScope), kind.getInstanceListKey(),
+                kind.getInstancePathPrefix(), name, reference, component);
         RuntimeException primary = null;
         try {
             JsonNode node = resource.entity.path("component");
@@ -209,16 +192,16 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         }
     }
 
-    private Owned create(final String path, final String listPath, final String listKey,
-                         final String prefix, final String name, final NiFiComponentReference reference,
-                         final ObjectNode component) {
+    private OwnedResource create(final String path, final String listPath, final String listKey,
+                                 final String prefix, final String name, final NiFiComponentReference reference,
+                                 final ObjectNode component) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
         body.putObject("revision").put("version", 0);
         body.set("component", component);
         LOG.debug("Creating temporary resource name={} marker={} endpoint={}", name, marker, path);
         try {
             JsonNode entity = rest.postJson(resolver.resolve(path), body.toString());
-            Owned resource = register(entity, prefix, name, reference);
+            OwnedResource resource = register(entity, prefix, name, reference);
             if (resource.revision < 0) {
                 throw new IllegalStateException("Create response lacks revision for " + resource.endpoint());
             }
@@ -233,7 +216,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
                 boolean reconciled = false;
                 for (JsonNode entity : list) {
                     if (name.equals(entity.path("component").path("name").asText())) {
-                        Owned resource = register(entity, prefix, name, reference);
+                        OwnedResource resource = register(entity, prefix, name, reference);
                         delete(resource);
                         reconciled = true;
                     }
@@ -252,24 +235,23 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         }
     }
 
-    private Owned register(final JsonNode entity, final String prefix, final String name,
-                           final NiFiComponentReference reference) {
+    private OwnedResource register(final JsonNode entity, final String prefix, final String name,
+                                   final NiFiComponentReference reference) {
         String id = safeId(entity.path("component").path("id").asText());
-        for (Owned resource : owned) {
-            if (resource.endpoint().equals(prefix + id)) {
+        for (OwnedResource resource : owned) {
+            if (resource.prefix.equals(prefix) && resource.id.equals(id)) {
                 return resource;
             }
         }
         JsonNode revision = entity.path("revision").path("version");
-        Owned resource = new Owned(id, prefix, name, reference,
+        OwnedResource resource = new OwnedResource(id, prefix, name, reference,
                 revision.isIntegralNumber() && revision.canConvertToLong() ? revision.longValue() : -1, entity);
         owned.add(resource);
-        LOG.debug("Owned {} id={} marker={} endpoint={}", reference == null ? "PROCESS_GROUP" : reference.kind(),
-                id, marker, resource.endpoint());
+        LOG.debug("Owned {} id={} marker={} endpoint={}", resource.kindLabel(), id, marker, resource.endpoint());
         return resource;
     }
 
-    private void delete(final Owned resource) {
+    private void delete(final OwnedResource resource) {
         try {
             if (resource.revision < 0 && !refresh(resource)) {
                 owned.remove(resource);
@@ -288,9 +270,8 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
             owned.remove(resource);
         } catch (RuntimeException failure) {
             resource.cleanupFailed = true;
-            throw new NiFiCleanupException("Failed cleanup of " + (resource.reference == null ? "PROCESS_GROUP"
-                    : resource.reference.kind()) + " id=" + resource.id + " endpoint=" + resource.endpoint()
-                    + " marker=" + marker, failure);
+            throw new NiFiCleanupException("Failed cleanup of " + resource.kindLabel() + " id=" + resource.id
+                    + " endpoint=" + resource.endpoint() + " marker=" + marker, failure);
         }
     }
 
@@ -302,7 +283,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
                         .contains("revision");
     }
 
-    private boolean refresh(final Owned resource) {
+    private boolean refresh(final OwnedResource resource) {
         var current = rest.getJsonAllowingNotFound(resolver.resolve(resource.endpoint()));
         if (current.isEmpty()) {
             return false;
@@ -341,14 +322,14 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         closed = true;
         LOG.info("Cleaning up temporary component run {}", marker);
         RuntimeException failure = cleanupFailure;
-        List<Owned> remaining = new ArrayList<>(owned);
+        List<OwnedResource> remaining = new ArrayList<>(owned);
         Collections.reverse(remaining);
-        for (Owned resource : remaining) {
+        for (OwnedResource resource : remaining) {
             if (resource.cleanupFailed) {
                 continue;
             }
             // A group deletion must never conceal failed child cleanup.
-            if (resource.reference == null && owned.size() > 1) {
+            if (resource.isGroup() && owned.size() > 1) {
                 continue;
             }
             try {
@@ -366,17 +347,18 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         }
     }
 
-    private static final class Owned {
+    private static final class OwnedResource {
         private final String id;
         private final String prefix;
         private final String name;
         private final NiFiComponentReference reference;
+        private final JsonNode entity;
         private long revision;
         private boolean cleanupFailed;
-        private final JsonNode entity;
 
-        private Owned(final String resourceId, final String endpointPrefix, final String resourceName,
-                      final NiFiComponentReference componentReference, final long version, final JsonNode response) {
+        private OwnedResource(final String resourceId, final String endpointPrefix, final String resourceName,
+                              final NiFiComponentReference componentReference, final long version,
+                              final JsonNode response) {
             id = resourceId;
             prefix = endpointPrefix;
             name = resourceName;
@@ -387,6 +369,14 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
 
         private String endpoint() {
             return prefix + id;
+        }
+
+        private boolean isGroup() {
+            return reference == null;
+        }
+
+        private String kindLabel() {
+            return isGroup() ? "PROCESS_GROUP" : reference.kind().name();
         }
     }
 }
