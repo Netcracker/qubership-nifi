@@ -77,6 +77,23 @@ public class UniqueControllerServiceNamesTest {
     }
 
     @Test
+    public void messageForANestedServiceIsTheSameRegardlessOfWhichAncestorPassProducesIt() {
+        VersionedProcessGroup child = processGroup("pg-2", "child");
+        child.setControllerServices(setOf(
+                controllerService("cs-2", "Pool"),
+                controllerService("cs-3", "Pool")));
+        VersionedProcessGroup root = processGroup("pg-1", "root");
+        root.setControllerServices(setOf(controllerService("cs-1", "Pool")));
+        root.setProcessGroups(setOf(child));
+
+        String fromRootPass = resultFor(rule.analyzeProcessGroup(root, context), "cs-2").getMessage();
+        String fromChildPass = resultFor(rule.analyzeProcessGroup(child, context), "cs-2").getMessage();
+
+        assertEquals(fromRootPass, fromChildPass);
+        assertTrue(fromRootPass.contains("another controller service"), fromRootPass);
+    }
+
+    @Test
     public void noViolationWhenNamesAreUniqueAcrossTree() {
         VersionedProcessGroup child = processGroup("pg-2", "child");
         child.setControllerServices(setOf(controllerService("cs-2", "Cache")));

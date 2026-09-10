@@ -45,7 +45,8 @@ public final class UniqueControllerServiceNames extends AbstractUniqueNameFlowAn
                 allServices,
                 "controller service",
                 "duplicate-controller-service-name",
-                "this process group or a descendant group");
+                "this process group or a descendant group",
+                false);
     }
 
     private static void collectControllerServices(
