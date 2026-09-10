@@ -30,8 +30,6 @@ import static org.qubership.nifi.flowanalysis.Fixtures.setOf;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
@@ -56,18 +54,26 @@ public class RestrictSourceProcessorRunScheduleTest {
 
     @Test
     public void reportsSourceProcessorWithZeroRunSchedule() {
-        GroupAnalysisResult result = single(analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")));
+        GroupAnalysisResult result = single(analyze("0 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")));
 
-        assertEquals("run-schedule-below-minimum-p-1", result.getIssueId());
+        assertEquals("run-schedule-too-low-p-1", result.getIssueId());
         assertTrue(result.getMessage().contains("Run Schedule '0 sec'"), result.getMessage());
-        assertTrue(result.getMessage().contains("no delay between executions"), result.getMessage());
+        assertTrue(result.getMessage().contains("flood the flow with FlowFiles"), result.getMessage());
     }
 
     @Test
-    public void reportsSourceProcessorBelowThreshold() {
-        GroupAnalysisResult result = single(analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "500 millis")));
+    public void reportsPositiveRunScheduleBelowThreshold() {
+        assertEquals(1, analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "500 millis")).size());
+    }
 
-        assertTrue(result.getMessage().contains("below the configured minimum of '1 sec'"), result.getMessage());
+    @Test
+    public void reportsZeroRunScheduleEvenWhenThresholdIsZero() {
+        assertEquals(1, analyze("0 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")).size());
+    }
+
+    @Test
+    public void noViolationWhenPositiveRunScheduleAndZeroThreshold() {
+        assertTrue(analyze("0 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "100 millis")).isEmpty());
     }
 
     @Test
@@ -86,7 +92,7 @@ public class RestrictSourceProcessorRunScheduleTest {
         group.setProcessors(setOf(processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")));
         group.setConnections(setOf(connection("upstream", "p-1")));
 
-        assertTrue(rule.analyzeProcessGroup(group, context("1 sec")).isEmpty());
+        assertTrue(rule.analyzeProcessGroup(group, context("0 sec")).isEmpty());
     }
 
     @Test
@@ -95,45 +101,32 @@ public class RestrictSourceProcessorRunScheduleTest {
         group.setProcessors(setOf(processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec")));
         group.setConnections(setOf(connection("p-1", "p-1")));
 
-        assertFalse(rule.analyzeProcessGroup(group, context("1 sec")).isEmpty());
+        assertFalse(rule.analyzeProcessGroup(group, context("0 sec")).isEmpty());
     }
 
     @Test
     public void ignoresCronDrivenProcessor() {
-        assertTrue(analyze("1 sec", processor("p-1", "p-1", "CRON_DRIVEN", "* * * * * ?")).isEmpty());
+        assertTrue(analyze("0 sec", processor("p-1", "p-1", "CRON_DRIVEN", "* * * * * ?")).isEmpty());
     }
 
     @Test
-    public void ignoresConfiguredProcessorTypes() {
+    public void reportsGenerateFlowFile() {
         VersionedProcessor generateFlowFile = processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec");
         generateFlowFile.setType(GENERATE_FLOW_FILE_TYPE);
 
-        assertTrue(analyze("1 sec", generateFlowFile).isEmpty());
+        assertEquals(1, analyze("0 sec", generateFlowFile).size());
     }
 
     @Test
     public void ignoresProcessorWithUnparseableRunSchedule() {
-        assertTrue(analyze("1 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "not-a-duration")).isEmpty());
+        assertTrue(analyze("0 sec", processor("p-1", "p-1", "TIMER_DRIVEN", "not-a-duration")).isEmpty());
     }
 
-    @Test
-    public void customValidateRejectsZeroMinimum() {
-        Collection<ValidationResult> results = rule.customValidate(validationContext("0 sec"));
-
-        assertEquals(1, results.size());
-        assertFalse(results.iterator().next().isValid());
-    }
-
-    @Test
-    public void customValidateAcceptsPositiveMinimum() {
-        assertTrue(rule.customValidate(validationContext("1 sec")).isEmpty());
-    }
-
-    private Collection<GroupAnalysisResult> analyze(final String minimumRunSchedule,
+    private Collection<GroupAnalysisResult> analyze(final String threshold,
                                                    final VersionedProcessor... processors) {
         VersionedProcessGroup group = processGroup("pg-1", "g");
         group.setProcessors(setOf(processors));
-        return rule.analyzeProcessGroup(group, context(minimumRunSchedule));
+        return rule.analyzeProcessGroup(group, context(threshold));
     }
 
     private static GroupAnalysisResult single(final Collection<GroupAnalysisResult> results) {
@@ -141,25 +134,12 @@ public class RestrictSourceProcessorRunScheduleTest {
         return results.iterator().next();
     }
 
-    private static FlowAnalysisRuleContext context(final String minimumRunSchedule) {
-        PropertyValue value = timePeriod(minimumRunSchedule);
+    private static FlowAnalysisRuleContext context(final String threshold) {
+        PropertyValue value = mock(PropertyValue.class);
+        when(value.asTimePeriod(TimeUnit.MILLISECONDS))
+                .thenReturn(FormatUtils.getTimeDuration(threshold, TimeUnit.MILLISECONDS));
         FlowAnalysisRuleContext context = mock(FlowAnalysisRuleContext.class);
-        when(context.getProperty(RestrictSourceProcessorRunSchedule.MINIMUM_RUN_SCHEDULE)).thenReturn(value);
+        when(context.getProperty(RestrictSourceProcessorRunSchedule.RUN_SCHEDULE_THRESHOLD)).thenReturn(value);
         return context;
-    }
-
-    private static ValidationContext validationContext(final String minimumRunSchedule) {
-        PropertyValue value = timePeriod(minimumRunSchedule);
-        ValidationContext context = mock(ValidationContext.class);
-        when(context.getProperty(RestrictSourceProcessorRunSchedule.MINIMUM_RUN_SCHEDULE)).thenReturn(value);
-        return context;
-    }
-
-    private static PropertyValue timePeriod(final String value) {
-        PropertyValue propertyValue = mock(PropertyValue.class);
-        when(propertyValue.asTimePeriod(TimeUnit.MILLISECONDS))
-                .thenReturn(FormatUtils.getTimeDuration(value, TimeUnit.MILLISECONDS));
-        when(propertyValue.getValue()).thenReturn(value);
-        return propertyValue;
     }
 }

@@ -16,69 +16,59 @@
 
 package org.qubership.nifi.flowanalysis.database;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flowanalysis.AbstractFlowAnalysisRule;
+import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
-import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 
 /**
- * Flow analysis rule that reports a processor exposing a Fetch Size property set to 0. A Fetch Size
- * of 0 lets the JDBC driver use its default; on PostgreSQL and MySQL the driver then loads the whole
- * result set into memory at once, which can cause an OutOfMemoryError on large queries. Setting a
- * positive value is safe on every database, so the rule does not try to determine the database type.
+ * Flow analysis rule that reports a database-reading processor that has Fetch Size = 0. On PostgreSQL
+ * and MySQL the JDBC driver then loads the whole result set into memory at once, which can cause an
+ * OutOfMemoryError on large queries. Setting a positive value is safe on every database, so the rule
+ * does not try to determine the database type.
  *
  * <p>The target processor is recognised by the presence of a property descriptor whose name or
  * display name is "Fetch Size", so custom JDBC processors following that convention are covered
  * without a hard-coded processor list.</p>
  */
 @Tags({"processor", "database", "sql", "fetch size"})
-@CapabilityDescription("Produces a rule violation for each processor that exposes a Fetch Size "
-        + "property set to 0. A Fetch Size of 0 lets the JDBC driver use its default; on PostgreSQL "
-        + "and MySQL the driver then loads the entire result set into memory at once, which can "
-        + "cause an OutOfMemoryError on large queries.")
+@CapabilityDescription("Produces a rule violation for each database-reading processor that has "
+        + "Fetch Size = 0. On PostgreSQL and MySQL the JDBC driver then loads the entire result set "
+        + "into memory at once, which can cause an OutOfMemoryError on large queries.")
 public final class RestrictZeroFetchSizeOnDatabaseRead extends AbstractFlowAnalysisRule {
 
     private static final String FETCH_SIZE_LABEL = "fetch size";
+    private static final String VIOLATION_MESSAGE =
+            "Fetch Size is 0, which may cause an OutOfMemoryError on large queries.";
+    private static final String VIOLATION_EXPLANATION =
+            "A Fetch Size of 0 lets the JDBC driver use its default. On PostgreSQL and MySQL the driver "
+            + "then loads the whole result set into memory at once. Set a positive Fetch Size so the "
+            + "driver streams the result set instead; a positive value is safe on every database.";
 
     @Override
-    public Collection<GroupAnalysisResult> analyzeProcessGroup(
-            final VersionedProcessGroup processGroup, final FlowAnalysisRuleContext context) {
+    public Collection<ComponentAnalysisResult> analyzeComponent(
+            final VersionedComponent component, final FlowAnalysisRuleContext context) {
 
-        final List<GroupAnalysisResult> results = new ArrayList<>();
-        for (final VersionedProcessor processor : processGroup.getProcessors()) {
-            final String fetchSizeProperty = fetchSizePropertyName(processor);
-            if (fetchSizeProperty == null) {
-                continue;
-            }
-            final Map<String, String> properties = processor.getProperties();
-            if (properties == null || !isZero(properties.get(fetchSizeProperty))) {
-                continue;
-            }
-            results.add(GroupAnalysisResult
-                    .forComponent(
-                            processor,
-                            "fetch-size-zero-" + processor.getIdentifier(),
-                            buildMessage(processor))
-                    .build());
+        if (!(component instanceof final VersionedProcessor processor)) {
+            return List.of();
         }
-        return results;
-    }
-
-    private static String buildMessage(final VersionedProcessor processor) {
-        return "The processor '" + processor.getName() + "' [" + processor.getIdentifier() + "] "
-                + "reads from a database with Fetch Size set to 0, which lets the JDBC driver use its "
-                + "default. On PostgreSQL and MySQL the driver then loads the entire result set into "
-                + "memory at once, which can cause an OutOfMemoryError on large queries. Set Fetch Size "
-                + "to a positive value (for example 1000) so the driver streams the result set.";
+        final String fetchSizeProperty = fetchSizePropertyName(processor);
+        if (fetchSizeProperty == null) {
+            return List.of();
+        }
+        final Map<String, String> properties = processor.getProperties();
+        if (properties == null || !"0".equals(properties.get(fetchSizeProperty))) {
+            return List.of();
+        }
+        return List.of(new ComponentAnalysisResult("fetch-size-zero", VIOLATION_MESSAGE, VIOLATION_EXPLANATION));
     }
 
     private static String fetchSizePropertyName(final VersionedProcessor processor) {
@@ -100,20 +90,5 @@ public final class RestrictZeroFetchSizeOnDatabaseRead extends AbstractFlowAnaly
             return null;
         }
         return text.toLowerCase(Locale.ROOT).replace('-', ' ').replace('_', ' ').trim();
-    }
-
-    private static boolean isZero(final String value) {
-        if (value == null) {
-            return false;
-        }
-        final String trimmed = value.trim();
-        if (trimmed.contains("${") || trimmed.contains("#{")) {
-            return false;
-        }
-        try {
-            return Long.parseLong(trimmed) == 0L;
-        } catch (final NumberFormatException e) {
-            return false;
-        }
     }
 }

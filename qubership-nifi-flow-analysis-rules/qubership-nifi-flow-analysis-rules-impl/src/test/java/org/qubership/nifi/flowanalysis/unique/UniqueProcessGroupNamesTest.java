@@ -56,9 +56,8 @@ public class UniqueProcessGroupNamesTest {
 
         String message = resultFor(rule.analyzeProcessGroup(root, context), "g-1").getMessage();
 
-        assertTrue(message.contains("The process group 'sub' [g-1]"), message);
-        assertTrue(message.contains("violates the UniqueProcessGroupNames rule"), message);
-        assertTrue(message.contains("2 process groups in the same parent process group"), message);
+        assertTrue(message.contains("The process group 'sub' [g-1] is not unique"), message);
+        assertTrue(message.contains("2 process groups in the parent process group"), message);
     }
 
     @Test

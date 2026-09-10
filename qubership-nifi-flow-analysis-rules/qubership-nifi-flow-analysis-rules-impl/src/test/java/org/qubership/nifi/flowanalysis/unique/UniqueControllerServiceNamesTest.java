@@ -72,8 +72,7 @@ public class UniqueControllerServiceNamesTest {
 
         String message = resultFor(rule.analyzeProcessGroup(group, context), "cs-1").getMessage();
 
-        assertTrue(message.contains("The controller service 'Pool' [cs-1]"), message);
-        assertTrue(message.contains("violates the UniqueControllerServiceNames rule"), message);
+        assertTrue(message.contains("The controller service 'Pool' [cs-1] is not unique"), message);
         assertTrue(message.contains("in this process group or a descendant group"), message);
     }
 

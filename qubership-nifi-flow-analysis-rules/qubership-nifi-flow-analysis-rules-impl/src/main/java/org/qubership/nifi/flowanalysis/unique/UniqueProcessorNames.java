@@ -25,11 +25,11 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 
 /**
  * Flow analysis rule that reports a violation for every processor whose name is not unique among
- * the processors that belong directly to the same process group.
+ * the processors within the process group.
  */
 @Tags({"unique", "name", "processor"})
 @CapabilityDescription("Produces a rule violation for each processor whose name is not unique "
-        + "among the processors of the same process group.")
+        + "among the processors of the process group.")
 public final class UniqueProcessorNames extends AbstractUniqueNameFlowAnalysisRule {
 
     @Override
@@ -39,6 +39,6 @@ public final class UniqueProcessorNames extends AbstractUniqueNameFlowAnalysisRu
                 processGroup.getProcessors(),
                 "processor",
                 "duplicate-processor-name",
-                "the same process group");
+                "the process group");
     }
 }

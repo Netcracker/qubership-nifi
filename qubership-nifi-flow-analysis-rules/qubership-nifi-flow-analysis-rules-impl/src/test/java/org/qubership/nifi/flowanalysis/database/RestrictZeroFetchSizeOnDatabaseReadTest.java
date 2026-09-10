@@ -18,17 +18,15 @@ package org.qubership.nifi.flowanalysis.database;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.qubership.nifi.flowanalysis.Fixtures.controllerService;
 import static org.qubership.nifi.flowanalysis.Fixtures.descriptor;
-import static org.qubership.nifi.flowanalysis.Fixtures.processGroup;
 import static org.qubership.nifi.flowanalysis.Fixtures.processor;
-import static org.qubership.nifi.flowanalysis.Fixtures.setOf;
 
 import java.util.Collection;
 import java.util.Map;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowanalysis.ComponentAnalysisResult;
 import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
-import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -39,58 +37,55 @@ public class RestrictZeroFetchSizeOnDatabaseReadTest {
 
     @Test
     public void reportsProcessorWithZeroFetchSize() {
-        Collection<GroupAnalysisResult> results = analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "0"));
+        Collection<ComponentAnalysisResult> results = analyze(withFetchSize("Fetch Size", "Fetch Size", "0"));
 
         assertEquals(1, results.size());
-        GroupAnalysisResult result = results.iterator().next();
-        assertEquals("p-1", result.getComponent().orElseThrow().getIdentifier());
-        assertEquals("fetch-size-zero-p-1", result.getIssueId());
+        assertEquals("fetch-size-zero", results.iterator().next().getIssueId());
     }
 
     @Test
-    public void messageExplainsTheRiskAndTheFix() {
-        String message = analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "0"))
-                .iterator().next().getMessage();
+    public void messageIsShortAndExplanationHasTheDetails() {
+        ComponentAnalysisResult result = analyze(withFetchSize("Fetch Size", "Fetch Size", "0")).iterator().next();
 
-        assertTrue(message.contains("[p-1]"), message);
-        assertTrue(message.contains("Fetch Size set to 0"), message);
-        assertTrue(message.contains("OutOfMemoryError"), message);
-        assertTrue(message.contains("Set Fetch Size to a positive value"), message);
+        assertTrue(result.getMessage().contains("Fetch Size is 0"), result.getMessage());
+        assertTrue(result.getMessage().contains("OutOfMemoryError"), result.getMessage());
+        assertTrue(result.getExplanation().contains("PostgreSQL and MySQL"), result.getExplanation());
+        assertTrue(result.getExplanation().contains("Set a positive Fetch Size"), result.getExplanation());
     }
 
     @Test
     public void noViolationForPositiveFetchSize() {
-        assertTrue(analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "1000")).isEmpty());
+        assertTrue(analyze(withFetchSize("Fetch Size", "Fetch Size", "1000")).isEmpty());
     }
 
     @Test
     public void noViolationWhenFetchSizeIsExpressionLanguage() {
-        assertTrue(analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "${fetch.size}")).isEmpty());
+        assertTrue(analyze(withFetchSize("Fetch Size", "Fetch Size", "${fetch.size}")).isEmpty());
     }
 
     @Test
     public void noViolationWhenFetchSizeIsParameterReference() {
-        assertTrue(analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "#{fetch_size}")).isEmpty());
+        assertTrue(analyze(withFetchSize("Fetch Size", "Fetch Size", "#{fetch_size}")).isEmpty());
     }
 
     @Test
     public void noViolationWhenFetchSizeValueIsNotANumber() {
-        assertTrue(analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "abc")).isEmpty());
+        assertTrue(analyze(withFetchSize("Fetch Size", "Fetch Size", "abc")).isEmpty());
     }
 
     @Test
-    public void treatsZeroPaddedValueAsZero() {
-        assertEquals(1, analyze(withFetchSize("p-1", "Fetch Size", "Fetch Size", "00")).size());
+    public void onlyExactlyZeroCountsAsZero() {
+        assertTrue(analyze(withFetchSize("Fetch Size", "Fetch Size", "00")).isEmpty());
     }
 
     @Test
     public void detectsFetchSizeByDisplayNameWhenInternalNameDiffers() {
-        assertEquals(1, analyze(withFetchSize("p-1", "fetch-size", "Fetch Size", "0")).size());
+        assertEquals(1, analyze(withFetchSize("fetch-size", "Fetch Size", "0")).size());
     }
 
     @Test
     public void detectsFetchSizeCaseInsensitively() {
-        assertEquals(1, analyze(withFetchSize("p-1", "FETCH SIZE", "FETCH SIZE", "0")).size());
+        assertEquals(1, analyze(withFetchSize("FETCH SIZE", "FETCH SIZE", "0")).size());
     }
 
     @Test
@@ -117,24 +112,17 @@ public class RestrictZeroFetchSizeOnDatabaseReadTest {
     }
 
     @Test
-    public void reportsOnlyProcessorsWithZeroFetchSize() {
-        Collection<GroupAnalysisResult> results = analyze(
-                withFetchSize("p-1", "Fetch Size", "Fetch Size", "0"),
-                withFetchSize("p-2", "Fetch Size", "Fetch Size", "1000"));
-
-        assertEquals(1, results.size());
-        assertEquals("p-1", results.iterator().next().getComponent().orElseThrow().getIdentifier());
+    public void ignoresNonProcessorComponents() {
+        assertTrue(rule.analyzeComponent(controllerService("cs-1", "Pool"), context).isEmpty());
     }
 
-    private Collection<GroupAnalysisResult> analyze(final VersionedProcessor... processors) {
-        VersionedProcessGroup group = processGroup("pg-1", "g");
-        group.setProcessors(setOf(processors));
-        return rule.analyzeProcessGroup(group, context);
+    private Collection<ComponentAnalysisResult> analyze(final VersionedProcessor processor) {
+        return rule.analyzeComponent(processor, context);
     }
 
-    private static VersionedProcessor withFetchSize(final String id, final String propertyName,
+    private static VersionedProcessor withFetchSize(final String propertyName,
                                                     final String displayName, final String value) {
-        return processor(id, id,
+        return processor("p-1", "p-1",
                 Map.of(propertyName, descriptor(propertyName, displayName)),
                 value == null ? Map.of() : Map.of(propertyName, value));
     }

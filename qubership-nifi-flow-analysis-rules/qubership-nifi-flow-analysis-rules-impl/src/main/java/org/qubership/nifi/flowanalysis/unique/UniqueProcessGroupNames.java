@@ -25,11 +25,11 @@ import org.apache.nifi.flowanalysis.GroupAnalysisResult;
 
 /**
  * Flow analysis rule that reports a violation for every child process group whose name is not
- * unique among the child process groups of the same parent process group.
+ * unique among the child process groups of the parent process group.
  */
 @Tags({"unique", "name", "process group"})
 @CapabilityDescription("Produces a rule violation for each child process group whose name is not "
-        + "unique among the child process groups of the same parent process group.")
+        + "unique among the child process groups of the parent process group.")
 public final class UniqueProcessGroupNames extends AbstractUniqueNameFlowAnalysisRule {
 
     @Override
@@ -39,6 +39,6 @@ public final class UniqueProcessGroupNames extends AbstractUniqueNameFlowAnalysi
                 processGroup.getProcessGroups(),
                 "process group",
                 "duplicate-process-group-name",
-                "the same parent process group");
+                "the parent process group");
     }
 }

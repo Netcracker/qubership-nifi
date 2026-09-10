@@ -38,7 +38,7 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
      * @param componentKind singular noun for the component type, for example "processor"
      * @param issueIdPrefix stable prefix for the generated issue id
      * @param scope         human-readable name of the uniqueness scope, for example
-     *                      "the same process group"
+     *                      "the process group"
      * @return the collection of violations, empty when all names are unique
      */
     protected Collection<GroupAnalysisResult> reportDuplicateNames(
@@ -54,7 +54,6 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
                     .add(component);
         }
 
-        final String ruleName = getClass().getSimpleName();
         final List<GroupAnalysisResult> results = new ArrayList<>();
         componentsByName.forEach((name, duplicates) -> {
             if (duplicates.size() > 1) {
@@ -63,7 +62,7 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
                             .forComponent(
                                     component,
                                     issueIdPrefix + "-" + component.getIdentifier(),
-                                    buildMessage(component, duplicates, name, componentKind, scope, ruleName))
+                                    buildMessage(component, duplicates, name, componentKind, scope))
                             .build());
                 }
             }
@@ -76,8 +75,7 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
             final List<VersionedComponent> duplicates,
             final String name,
             final String componentKind,
-            final String scope,
-            final String ruleName) {
+            final String scope) {
 
         final List<String> otherIds = duplicates.stream()
                 .filter(other -> other != component)
@@ -88,9 +86,8 @@ abstract class AbstractUniqueNameFlowAnalysisRule extends AbstractFlowAnalysisRu
                 ? "the other is " + otherIds.get(0)
                 : "the others are " + String.join(", ", otherIds);
 
-        return "The " + componentKind + " '" + name + "' [" + component.getIdentifier() + "] "
-                + "violates the " + ruleName + " rule. Its name is not unique: " + duplicates.size() + " "
-                + componentKind + "s in " + scope + " are named '" + name + "' (" + others + "). "
-                + "Rename this " + componentKind + " so that its name is unique in " + scope + ".";
+        return "The " + componentKind + " '" + name + "' [" + component.getIdentifier() + "] is not "
+                + "unique: " + duplicates.size() + " " + componentKind + "s in " + scope + " are named '"
+                + name + "' (" + others + "). Rename this or other components to resolve this.";
     }
 }

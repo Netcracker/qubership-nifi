@@ -55,15 +55,14 @@ public class UniqueProcessorNamesTest {
     }
 
     @Test
-    public void messageNamesRuleCountAndTheOtherProcessor() {
+    public void messageNamesCountScopeAndTheOtherProcessor() {
         VersionedProcessGroup group = processGroup("pg-1", "etl");
         group.setProcessors(setOf(processor("p-1", "Route"), processor("p-2", "Route")));
 
         String message = resultFor(rule.analyzeProcessGroup(group, context), "p-1").getMessage();
 
-        assertTrue(message.contains("The processor 'Route' [p-1]"), message);
-        assertTrue(message.contains("violates the UniqueProcessorNames rule"), message);
-        assertTrue(message.contains("2 processors in the same process group are named 'Route'"), message);
+        assertTrue(message.contains("The processor 'Route' [p-1] is not unique"), message);
+        assertTrue(message.contains("2 processors in the process group are named 'Route'"), message);
         assertTrue(message.contains("the other is [p-2]"), message);
     }
 
