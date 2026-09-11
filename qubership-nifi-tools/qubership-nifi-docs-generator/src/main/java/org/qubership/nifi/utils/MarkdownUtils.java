@@ -22,6 +22,8 @@ public class MarkdownUtils {
             "<!-- Table for additional controller services. DO NOT REMOVE. -->";
     private static final String TABLE_REPORTING_TASK =
             "<!-- Table for additional reporting tasks. DO NOT REMOVE. -->";
+    private static final String TABLE_FLOW_ANALYSIS_RULE =
+            "<!-- Table for additional flow analysis rules. DO NOT REMOVE. -->";
 
     private static final String PROPERTIES_DESCRIPTION_PROCESSOR =
             "<!-- Additional processors properties description. DO NOT REMOVE. -->";
@@ -29,6 +31,8 @@ public class MarkdownUtils {
             "<!-- Additional controller services description. DO NOT REMOVE. -->";
     private static final String PROPERTIES_DESCRIPTION_REPORTING_TASK =
             "<!-- Additional reporting tasks description. DO NOT REMOVE. -->";
+    private static final String PROPERTIES_DESCRIPTION_FLOW_ANALYSIS_RULE =
+            "<!-- Additional flow analysis rules properties description. DO NOT REMOVE. -->";
 
     private static final String PROPERTIES_DESCRIPTION_END_PROCESSOR =
             "<!-- End of additional processors properties description. DO NOT REMOVE. -->";
@@ -36,12 +40,15 @@ public class MarkdownUtils {
             "<!-- End of additional controller services description. DO NOT REMOVE. -->";
     private static final String PROPERTIES_DESCRIPTION_END_REPORTING_TASK =
             "<!-- End of additional reporting tasks description. DO NOT REMOVE. -->";
+    private static final String PROPERTIES_DESCRIPTION_END_FLOW_ANALYSIS_RULE =
+            "<!-- End of additional flow analysis rules properties description. DO NOT REMOVE. -->";
 
 
     private static final String HEADER_BASE = "|NAR|Description|";
     private static final String HEADER_PROCESSORS = "|Processor" + HEADER_BASE;
     private static final String HEADER_CONTROLLER_SERVICES = "|Controller Service" + HEADER_BASE;
     private static final String HEADER_REPORTING_TASKS = "|Reporting Task" + HEADER_BASE;
+    private static final String HEADER_FLOW_ANALYSIS_RULE = "|Flow Analysis Rules" + HEADER_BASE;
     private static final String TITLE_SEPARATOR = "|---|---|---|";
 
     private static final String PROPERTIES_DESCRIPTION_HEADER = "|Display Name|API Name"
@@ -126,12 +133,14 @@ public class MarkdownUtils {
             case PROCESSOR -> TABLE_PROCESSOR;
             case CONTROLLER_SERVICE -> TABLE_CONTROLLER_SERVICES;
             case REPORTING_TASK -> TABLE_REPORTING_TASK;
+            case FLOW_ANALYSIS_RULE -> TABLE_FLOW_ANALYSIS_RULE;
         };
 
         String headerTemplate = switch (componentType) {
             case PROCESSOR -> HEADER_PROCESSORS;
             case CONTROLLER_SERVICE -> HEADER_CONTROLLER_SERVICES;
             case REPORTING_TASK -> HEADER_REPORTING_TASKS;
+            case FLOW_ANALYSIS_RULE -> HEADER_FLOW_ANALYSIS_RULE;
         };
 
         for (int i = 0; i < lines.size(); i++) {
@@ -210,7 +219,8 @@ public class MarkdownUtils {
      * Generates detailed property descriptions for components in Markdown format
      * and inserts them into the template file.
      * The heading level for component names is controlled by the {@code headerLevel}
-     * constructor parameter.
+     * constructor parameter. Components with no properties are omitted from this section,
+     * since they would otherwise appear as an empty heading and an empty properties table.
      * @param customComponentList list of components for table
      * @param componentType the type of component properties to generate; must be one of:
      *                      {@code "processor"}, {@code "controller_service"}, or {@code "reporting_task"}
@@ -222,12 +232,14 @@ public class MarkdownUtils {
             case PROCESSOR -> PROPERTIES_DESCRIPTION_PROCESSOR;
             case CONTROLLER_SERVICE -> PROPERTIES_DESCRIPTION_CONTROLLER_SERVICES;
             case REPORTING_TASK -> PROPERTIES_DESCRIPTION_REPORTING_TASK;
+            case FLOW_ANALYSIS_RULE -> PROPERTIES_DESCRIPTION_FLOW_ANALYSIS_RULE;
         };
 
         String endMarker = switch (componentType) {
             case PROCESSOR -> PROPERTIES_DESCRIPTION_END_PROCESSOR;
             case CONTROLLER_SERVICE -> PROPERTIES_DESCRIPTION_END_CONTROLLER_SERVICES;
             case REPORTING_TASK -> PROPERTIES_DESCRIPTION_END_REPORTING_TASK;
+            case FLOW_ANALYSIS_RULE -> PROPERTIES_DESCRIPTION_END_FLOW_ANALYSIS_RULE;
         };
 
         boolean markerFound = false;
@@ -265,17 +277,16 @@ public class MarkdownUtils {
                 String componentName = customComponentEntity.getComponentName();
                 List<PropertyDescriptorEntity> entities = customComponentEntity.getComponentProperties();
 
+                if (entities == null || entities.isEmpty()) {
+                    continue;
+                }
+
                 descriptionLines.add("");
                 descriptionLines.add(componentHeadingPrefix + componentName);
                 descriptionLines.add("");
 
-                String componentDescription = null;
-                if (entities != null && !entities.isEmpty()) {
-                    PropertyDescriptorEntity firstEntity = entities.get(0);
-                    if (firstEntity != null) {
-                        componentDescription = firstEntity.getComponentDescription();
-                    }
-                }
+                PropertyDescriptorEntity firstEntity = entities.get(0);
+                String componentDescription = firstEntity != null ? firstEntity.getComponentDescription() : null;
 
                 if (componentDescription != null) {
                     descriptionLines.add(removeSpacesBeforeNewline(componentDescription));
@@ -285,23 +296,21 @@ public class MarkdownUtils {
                 descriptionLines.add(PROPERTIES_DESCRIPTION_HEADER);
                 descriptionLines.add(PROPERTIES_DESCRIPTION_TITLE_SEPARATOR);
 
-                if (entities != null) {
-                    for (PropertyDescriptorEntity entity : entities) {
-                        if (entity != null) {
-                            String displayName = entity.getDisplayName() != null ? entity.getDisplayName() : "";
-                            String apiName = entity.getApiName() != null ? entity.getApiName() : "";
-                            String defaultValue = entity.getDefaultValueAsString() != null
-                                    ? entity.getDefaultValueAsString() : "";
-                            String allowableValuesStr = entity.getAllowableValuesAsString() != null
-                                    ? entity.getAllowableValuesAsString() : "";
-                            String description = entity.getDescriptionAsString() != null
-                                    ? entity.getDescriptionAsString() : "";
-                            descriptionLines.add("|" + displayName + "|`" + apiName + "`|" + defaultValue + "|"
-                                    + allowableValuesStr + "|" + description + "|");
-                        } else {
-                            getLog().error("Found null entity in list for component '"
-                                    + componentName + "'");
-                        }
+                for (PropertyDescriptorEntity entity : entities) {
+                    if (entity != null) {
+                        String displayName = entity.getDisplayName() != null ? entity.getDisplayName() : "";
+                        String apiName = entity.getApiName() != null ? entity.getApiName() : "";
+                        String defaultValue = entity.getDefaultValueAsString() != null
+                                ? entity.getDefaultValueAsString() : "";
+                        String allowableValuesStr = entity.getAllowableValuesAsString() != null
+                                ? entity.getAllowableValuesAsString() : "";
+                        String description = entity.getDescriptionAsString() != null
+                                ? entity.getDescriptionAsString() : "";
+                        descriptionLines.add("|" + displayName + "|`" + apiName + "`|" + defaultValue + "|"
+                                + allowableValuesStr + "|" + description + "|");
+                    } else {
+                        getLog().error("Found null entity in list for component '"
+                                + componentName + "'");
                     }
                 }
             }

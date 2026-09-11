@@ -42,3 +42,16 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Additional reporting tasks description. DO NOT REMOVE. -->
 <!-- End of additional reporting tasks description. DO NOT REMOVE. -->
+
+## Additional flow analysis rules
+
+Qubership-nifi contains additional flow analysis rules compared with Apache NiFi.
+Table below provides list of these flow analysis rules with descriptions.
+More information on their usage is available in Help (`Global Menu` -> `Help`) within qubership-nifi.
+
+<!-- Table for additional flow analysis rules. DO NOT REMOVE. -->
+
+## Additional flow analysis rules properties description
+
+<!-- Additional flow analysis rules properties description. DO NOT REMOVE. -->
+<!-- End of additional flow analysis rules properties description. DO NOT REMOVE. -->
