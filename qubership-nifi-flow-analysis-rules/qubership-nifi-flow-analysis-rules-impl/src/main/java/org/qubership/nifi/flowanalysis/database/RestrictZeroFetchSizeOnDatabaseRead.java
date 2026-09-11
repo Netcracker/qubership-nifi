@@ -44,7 +44,10 @@ import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 @Tags({"processor", "database", "sql", "fetch size"})
 @CapabilityDescription("Produces a rule violation for each database-reading processor that has "
         + "Fetch Size = 0. On PostgreSQL and MySQL the JDBC driver then loads the entire result set "
-        + "into memory at once, which can cause an OutOfMemoryError on large queries.")
+        + "into memory at once, which can cause an OutOfMemoryError on large queries. A positive "
+        + "Fetch Size alone is not enough for the driver to stream the result set: on PostgreSQL the "
+        + "connection must not be in auto-commit mode, so if the processor has a Set Auto Commit "
+        + "property, set it to false; on MySQL the JDBC URL must set useCursorFetch=true.")
 public final class RestrictZeroFetchSizeOnDatabaseRead extends AbstractFlowAnalysisRule {
 
     private static final String FETCH_SIZE_LABEL = "fetch size";
@@ -54,9 +57,9 @@ public final class RestrictZeroFetchSizeOnDatabaseRead extends AbstractFlowAnaly
             "A Fetch Size of 0 lets the JDBC driver use its default, and on PostgreSQL and MySQL that "
             + "default loads the whole result set into memory at once. Set a positive Fetch Size; it is "
             + "safe on every database. A positive Fetch Size alone is not enough for the driver to stream "
-            + "the result set: on PostgreSQL the connection must not be in auto-commit mode, so also set "
-            + "Set Auto Commit to false on the processor; on MySQL the JDBC URL must set "
-            + "useCursorFetch=true.";
+            + "the result set: on PostgreSQL the connection must not be in auto-commit mode, so if the "
+            + "processor has a Set Auto Commit property, set it to false; on MySQL the JDBC URL must "
+            + "set useCursorFetch=true.";
 
     @Override
     public Collection<ComponentAnalysisResult> analyzeComponent(

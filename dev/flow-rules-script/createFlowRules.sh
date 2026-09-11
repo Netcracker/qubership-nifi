@@ -35,7 +35,45 @@ call_nifi_api() {
         dataArg="-H 'Content-Type: application/json' --data @$bodyFile"
     fi
     eval curl -sS -w '%{response_code}' -o "$outFile" -X "$method" \
-        $dataArg $AUTH_HEADER "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api$apiPath"
+        "$dataArg" "$AUTH_HEADER" "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api$apiPath"
+}
+
+enable_rule() {
+    local ruleId="$1" version="$2" name="$3"
+    jq -n --argjson version "$version" \
+        '{ revision: { version: $version }, disconnectedNodeAcknowledged: true, state: "ENABLED" }' > "$TMP_BODY"
+
+    respCode=$(call_nifi_api PUT "/controller/flow-analysis-rules/$ruleId/run-status" "$TMP_BODY" "$TMP_RESPONSE")
+    if [ "$respCode" != "200" ]; then
+        echo "Response body:" >&2
+        cat "$TMP_RESPONSE" >&2
+        handle_error "Error: rule '$name' could not be enabled. Response code = $respCode."
+    fi
+    echo "  Enabled rule '$name'."
+}
+
+wait_for_validation() {
+    local ruleId="$1"
+    local attempt=0
+    local maxAttempts=10
+    local sleepSeconds=1
+
+    while :; do
+        respCode=$(call_nifi_api GET "/controller/flow-analysis-rules/$ruleId" "" "$TMP_RESPONSE")
+        if [ "$respCode" != "200" ]; then
+            echo "Response body:" >&2
+            cat "$TMP_RESPONSE" >&2
+            handle_error "Error: failed to GET /nifi-api/controller/flow-analysis-rules/$ruleId. Response code = $respCode."
+        fi
+        if [ "$(jq -r '.component.validationStatus // "UNKNOWN"' "$TMP_RESPONSE")" != "VALIDATING" ]; then
+            return
+        fi
+        attempt=$((attempt + 1))
+        if [ "$attempt" -ge "$maxAttempts" ]; then
+            handle_error "Error: rule id '$ruleId' is still VALIDATING after ${maxAttempts}s, giving up."
+        fi
+        sleep "$sleepSeconds"
+    done
 }
 
 #Validate inputs
@@ -82,10 +120,20 @@ while read -r entry; do
         *) handle_error "Error: rule '$name' has invalid Policy '$policyRaw'. Expected 'Warn' or 'Enforce'." ;;
     esac
 
-    # Skip if a rule of this type already exists
-    if jq -e --arg type "$type" \
-        '.flowAnalysisRules[]?.component.type == $type' "$TMP_EXISTING" | grep -q true; then
-        echo "Rule of type '$type' already exists, skipping '$name'."
+    # Skip if a rule of this type already exists. The script never updates the properties of an
+    # existing rule; if it is DISABLED but VALID, a re-run repairs it by enabling it.
+    existingRule=$(jq -c --arg type "$type" \
+        '[.flowAnalysisRules[]? | select(.component.type == $type)] | first // empty' "$TMP_EXISTING")
+    if [ -n "$existingRule" ]; then
+        existingState=$(echo "$existingRule" | jq -r '.component.state // "UNKNOWN"')
+        existingValidationStatus=$(echo "$existingRule" | jq -r '.component.validationStatus // "UNKNOWN"')
+        echo "Rule of type '$type' already exists (state = $existingState," \
+            "validationStatus = $existingValidationStatus), skipping '$name'."
+        if [ "$existingState" = "DISABLED" ] && [ "$existingValidationStatus" = "VALID" ]; then
+            existingId=$(echo "$existingRule" | jq -r '.id')
+            existingVersion=$(echo "$existingRule" | jq -r '.revision.version')
+            enable_rule "$existingId" "$existingVersion" "$name"
+        fi
         skipped=$((skipped + 1))
         continue
     fi
@@ -127,9 +175,13 @@ while read -r entry; do
     fi
 
     ruleId=$(jq -r '.id' "$TMP_RESPONSE")
+    echo "Created rule '$name' (id = $ruleId, policy = $policy)."
+
+    # NiFi validates the new rule asynchronously, so the POST response's validationStatus is not
+    # reliable; wait_for_validation polls the rule until validation settles.
+    wait_for_validation "$ruleId"
     ruleVersion=$(jq -r '.revision.version' "$TMP_RESPONSE")
     validationStatus=$(jq -r '.component.validationStatus // "UNKNOWN"' "$TMP_RESPONSE")
-    echo "Created rule '$name' (id = $ruleId, policy = $policy)."
 
     if [ "$validationStatus" != "VALID" ]; then
         echo "  Warning: rule '$name' is $validationStatus, leaving it DISABLED. Validation errors:" >&2
@@ -138,17 +190,7 @@ while read -r entry; do
         continue
     fi
 
-    # Enable the rule
-    jq -n --argjson version "$ruleVersion" \
-        '{ revision: { version: $version }, disconnectedNodeAcknowledged: true, state: "ENABLED" }' > "$TMP_BODY"
-
-    respCode=$(call_nifi_api PUT "/controller/flow-analysis-rules/$ruleId/run-status" "$TMP_BODY" "$TMP_RESPONSE")
-    if [ "$respCode" != "200" ]; then
-        echo "Response body:" >&2
-        cat "$TMP_RESPONSE" >&2
-        handle_error "Error: rule '$name' was created but could not be enabled. Response code = $respCode."
-    fi
-    echo "  Enabled rule '$name'."
+    enable_rule "$ruleId" "$ruleVersion" "$name"
     created=$((created + 1))
 done < <(jq -c '.[]' "$configPath")
 

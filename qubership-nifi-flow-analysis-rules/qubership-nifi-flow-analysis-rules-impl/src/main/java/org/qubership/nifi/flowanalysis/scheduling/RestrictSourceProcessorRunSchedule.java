@@ -45,11 +45,10 @@ import org.apache.nifi.util.FormatUtils;
  * Types property.
  */
 @Tags({"processor", "source", "scheduling", "frequency"})
-@CapabilityDescription("Reports a source processor - a TIMER_DRIVEN processor with no incoming "
-        + "connection - whose Run Schedule is at or below the configured threshold. Such a processor "
-        + "runs with little or no delay and can overload its source system or flood the flow with "
-        + "FlowFiles. Push-based listeners and blocking consumers can be excluded through the Ignored "
-        + "Processor Types property.")
+@CapabilityDescription("Reports a source processor (TIMER_DRIVEN, no incoming connection) whose Run "
+        + "Schedule is at or below the configured threshold - wasting CPU and risking overload of the "
+        + "source system or flooding the flow. Push-based listeners and blocking consumers can be "
+        + "excluded via Ignored Processor Types.")
 public final class RestrictSourceProcessorRunSchedule extends AbstractFlowAnalysisRule {
 
     /**
@@ -73,7 +72,7 @@ public final class RestrictSourceProcessorRunSchedule extends AbstractFlowAnalys
             .description("Comma-separated list of fully qualified processor types that this rule never "
                     + "reports. Use it for push-based listeners and blocking consumers, such as "
                     + "org.apache.nifi.processors.standard.ListenHTTP or "
-                    + "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka, where a Run Schedule of 0 "
+                    + "org.apache.nifi.kafka.processors.ConsumeKafka, where a Run Schedule of 0 "
                     + "is the normal setting. Empty by default.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

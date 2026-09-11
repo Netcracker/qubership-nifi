@@ -364,9 +364,9 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |`UniqueProcessorNames`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each processor whose name is not unique among the processors of the process group.|
 |`UniqueProcessGroupNames`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each child process group whose name is not unique among the child process groups of the parent process group.|
 |`UniqueControllerServiceNames`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each controller service whose name clashes with another controller service in the same process group or in a descendant process group - the places where NiFi makes both services visible together.|
-|`RestrictSourceProcessorRunSchedule`|qubership-nifi-flow-analysis-rules-nar|Reports a source processor - a TIMER_DRIVEN processor with no incoming connection - whose Run Schedule is at or below the configured threshold. Such a processor runs with little or no delay and can overload its source system or flood the flow with FlowFiles. Push-based listeners and blocking consumers can be excluded through the Ignored Processor Types property.|
+|`RestrictSourceProcessorRunSchedule`|qubership-nifi-flow-analysis-rules-nar|Reports a source processor (TIMER_DRIVEN, no incoming connection) whose Run Schedule is at or below the configured threshold - wasting CPU and risking overload of the source system or flooding the flow. Push-based listeners and blocking consumers can be excluded via Ignored Processor Types.|
 |`RequireRunDurationForBatchingProcessors`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each processor that supports batching (that is, exposes a Run Duration control) but has Run Duration set to 0. A Run Duration above 0 lets the framework batch repository commits and can raise throughput on high-volume flows. The rule reads the NAR extension manifests under NIFI_HOME/work/nar/extensions when it is enabled.|
-|`RestrictZeroFetchSizeOnDatabaseRead`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each database-reading processor that has Fetch Size = 0. On PostgreSQL and MySQL the JDBC driver then loads the entire result set into memory at once, which can cause an OutOfMemoryError on large queries.|
+|`RestrictZeroFetchSizeOnDatabaseRead`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each database-reading processor that has Fetch Size = 0. On PostgreSQL and MySQL the JDBC driver then loads the entire result set into memory at once, which can cause an OutOfMemoryError on large queries. A positive Fetch Size alone is not enough for the driver to stream the result set: on PostgreSQL the connection must not be in auto-commit mode, so if the processor has a Set Auto Commit property, set it to false; on MySQL the JDBC URL must set useCursorFetch=true.|
 
 ## Additional flow analysis rules properties description
 
@@ -374,10 +374,10 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 ### RestrictSourceProcessorRunSchedule
 
-Reports a source processor - a TIMER_DRIVEN processor with no incoming connection - whose Run Schedule is at or below the configured threshold. Such a processor runs with little or no delay and can overload its source system or flood the flow with FlowFiles. Push-based listeners and blocking consumers can be excluded through the Ignored Processor Types property.
+Reports a source processor (TIMER_DRIVEN, no incoming connection) whose Run Schedule is at or below the configured threshold - wasting CPU and risking overload of the source system or flooding the flow. Push-based listeners and blocking consumers can be excluded via Ignored Processor Types.
 
 |Display Name|API Name|Default Value|Allowable Values|Description|
 |---|---|---|---|---|
 |Run Schedule Threshold|`Run Schedule Threshold`|0 sec||Source processors whose Run Schedule is at or below this value are reported.|
-|Ignored Processor Types|`Ignored Processor Types`|||Comma-separated list of fully qualified processor types that this rule never reports. Use it for push-based listeners and blocking consumers, such as org.apache.nifi.processors.standard.ListenHTTP or org.apache.nifi.processors.kafka.pubsub.ConsumeKafka, where a Run Schedule of 0 is the normal setting. Empty by default.|
+|Ignored Processor Types|`Ignored Processor Types`|||Comma-separated list of fully qualified processor types that this rule never reports. Use it for push-based listeners and blocking consumers, such as org.apache.nifi.processors.standard.ListenHTTP or org.apache.nifi.kafka.processors.ConsumeKafka, where a Run Schedule of 0 is the normal setting. Empty by default.|
 <!-- End of additional flow analysis rules properties description. DO NOT REMOVE. -->

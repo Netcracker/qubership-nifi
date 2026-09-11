@@ -10,10 +10,10 @@
     "Type": "org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings",
     "Policy": "Warn",
     "Property": [
-      { "name": "Min Backpressure Object Count Threshold", "value": "1" },
-      { "name": "Max Backpressure Object Count Threshold", "value": "20000" },
-      { "name": "Min Backpressure Data Size Threshold", "value": "1 MB" },
-      { "name": "Max Backpressure Data Size Threshold", "value": "1 GB" }
+      { "name": "Minimum Backpressure Object Count Threshold", "value": "1" },
+      { "name": "Maximum Backpressure Object Count Threshold", "value": "20000" },
+      { "name": "Minimum Backpressure Data Size Threshold", "value": "1 MB" },
+      { "name": "Maximum Backpressure Data Size Threshold", "value": "1 GB" }
     ]
   },
   {
@@ -39,7 +39,7 @@
     "Type": "org.qubership.nifi.flowanalysis.scheduling.RestrictSourceProcessorRunSchedule",
     "Policy": "Warn",
     "Property": [
-      { "name": "Run Schedule Threshold", "value": "100 msec" }
+      { "name": "Run Schedule Threshold", "value": "100 millis" }
     ]
   },
   {

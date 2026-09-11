@@ -133,9 +133,9 @@ public class RestrictSourceProcessorRunScheduleTest {
     @Test
     public void ignoredListAcceptsSeveralTypesWithSurroundingWhitespace() {
         VersionedProcessor consumer = processor("p-1", "p-1", "TIMER_DRIVEN", "0 sec");
-        consumer.setType("org.apache.nifi.processors.kafka.pubsub.ConsumeKafka");
+        consumer.setType("org.apache.nifi.kafka.processors.ConsumeKafka");
 
-        assertTrue(analyze("0 sec", " a.b.C , org.apache.nifi.processors.kafka.pubsub.ConsumeKafka ",
+        assertTrue(analyze("0 sec", " a.b.C , org.apache.nifi.kafka.processors.ConsumeKafka ",
                 consumer).isEmpty());
     }
 
