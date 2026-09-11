@@ -44,7 +44,6 @@ public final class KnowledgeBaseValidator {
 
     private static final Pattern FINGERPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
 
-
     private final ObjectMapper mapper = new ObjectMapper();
 
     /**

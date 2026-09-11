@@ -140,8 +140,7 @@ public final class ComponentCollector {
             ObjectNode definition = (ObjectNode) provider.collect(reference);
             removeServiceInstanceChoices(definition);
             page.metadata().fields().forEachRemaining(field -> definition.set(field.getKey(), field.getValue()));
-            for (String field : List.of("description", "tags", "deprecationReason", "usageRestriction",
-                    "explicitRestrictions", "controllerServiceApis")) {
+            for (String field : CollectionMetadata.TYPE_LIST_FALLBACK_FIELDS) {
                 if (entry.type().has(field) && !definition.has(field)) {
                     definition.set(field, entry.type().get(field));
                 }

@@ -19,16 +19,27 @@ package org.qubership.nifi.tools.kb.model;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
+import org.qubership.nifi.tools.nifi.common.api.NiFiTemporaryComponentSession;
+
+import java.util.List;
 
 /**
  * Describes the meaning and sources of the component definitions in a Knowledge Base.
  *
  * <p>The description is split by how often its parts change. A build targets one NiFi instance, so
- * the format, the field-source groups, and the list of metadata the source cannot supply are the
- * same for every component: {@link #describe} renders them once for the manifest. Only the
- * documentation paths differ per component, and {@link #documentationSources} renders those.
+ * the format, the source of each definition field, and the list of metadata the source cannot
+ * supply are the same for every component: {@link #describe} renders them once for the manifest.
+ * Only the documentation paths differ per component, and {@link #documentationSources} renders
+ * those.
  */
 public final class CollectionMetadata {
+
+    /**
+     * Fields a NiFi 1.x definition takes from the component's type-list entry when the component
+     * instance does not report them.
+     */
+    public static final List<String> TYPE_LIST_FALLBACK_FIELDS = List.of("description", "tags",
+            "deprecationReason", "usageRestriction", "explicitRestrictions", "controllerServiceApis");
 
     private static final String TYPE_LIST_API = "type-list-api";
     private static final String INSTANCE_API = "instance-api";
@@ -88,11 +99,20 @@ public final class CollectionMetadata {
         final ObjectNode result = base(DefinitionFormat.NORMALIZED_NIFI_1X,
                 "API-derived descriptors, relationships, and capabilities; "
                         + "HTML-derived attributes, dynamic properties, and state/resource documentation.");
-        result.putObject("fieldSources").put("documentedType", TYPE_LIST_API)
-                .put("propertyDescriptors", INSTANCE_API).put("supportedRelationships", INSTANCE_API)
-                .put("executionCapabilities", "instance-api-when-present")
-                .put("readsAttributes,writesAttributes,dynamicProperties,stateManagement,systemResourceConsiderations",
-                        "component-html");
+        final ObjectNode fieldSources = result.putObject("fieldSources").put("documentedType", TYPE_LIST_API)
+                .put("type", TYPE_LIST_API).put("bundle", TYPE_LIST_API)
+                .put("propertyDescriptors", INSTANCE_API).put("supportedRelationships", INSTANCE_API);
+        for (final String field : NiFiTemporaryComponentSession.OPTIONAL_INSTANCE_FIELDS) {
+            fieldSources.put(field, "instance-api-when-present");
+        }
+        for (final String field : TYPE_LIST_FALLBACK_FIELDS) {
+            // Where the instance can also report the field, its value takes precedence over the type list.
+            fieldSources.put(field, fieldSources.has(field) ? "instance-api-else-type-list-api" : TYPE_LIST_API);
+        }
+        for (final String field : List.of("readsAttributes", "writesAttributes", "dynamicProperties",
+                "stateManagement", "systemResourceConsiderations")) {
+            fieldSources.put(field, "component-html");
+        }
         result.putObject("documentationFormats").put("component", "html-to-markdown")
                 .put("componentOutput", "componentDocumentation.md")
                 .put("additionalDetails", "html-to-markdown");

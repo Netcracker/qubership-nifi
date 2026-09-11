@@ -39,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -49,8 +50,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * contract.
  *
  * <p>The writer and the validator have to agree in both guide modes, and {@code component.json}
- * must carry the required top-level fields: a consumer reads them by name, so an
- * additional fields are ignorable within a supported schema. If this goes red because a
+ * must carry the required top-level fields. A consumer reads them by name and ignores any other
+ * field within a supported schema. If this goes red because a
  * field was added deliberately, update the output contract in the module README and
  * {@link KnowledgeBaseValidator} together, not just this assertion.
  */
@@ -124,6 +125,44 @@ class KnowledgeBaseWriterTest {
         assertThat(collection.path("fieldSources").isObject()).isTrue();
         assertThat(collection.path("unavailableMetadata").isArray()).isTrue();
         assertThat(collection.path("documentationFormats").isObject()).isTrue();
+    }
+
+    @Test
+    void normalizedManifestMapsEachDefinitionFieldToItsSource() throws Exception {
+        final KnowledgeBaseProvenance provenance = new KnowledgeBaseProvenance(
+                "qubership-nifi-kb-builder-tool", "2.6.4", Instant.parse("2026-07-18T00:00:00Z"),
+                "1.28.1", "1.26.0", "https://nifi.example.com");
+        new KnowledgeBaseWriter(new JsonOutput(MAPPER)).writeTo(temp,
+                new KnowledgeBase(provenance, List.of(), skipGuides()));
+
+        final JsonNode fieldSources = MAPPER.readTree(temp.resolve(KnowledgeBaseFormat.MANIFEST_FILE).toFile())
+                .path(KnowledgeBaseFormat.COLLECTION_FIELD).path("fieldSources");
+        assertThat(MAPPER.convertValue(fieldSources, Map.class)).isEqualTo(Map.ofEntries(
+                Map.entry("documentedType", "type-list-api"),
+                Map.entry("type", "type-list-api"),
+                Map.entry("bundle", "type-list-api"),
+                Map.entry("description", "type-list-api"),
+                Map.entry("tags", "type-list-api"),
+                Map.entry("deprecationReason", "type-list-api"),
+                Map.entry("usageRestriction", "type-list-api"),
+                Map.entry("explicitRestrictions", "type-list-api"),
+                Map.entry("propertyDescriptors", "instance-api"),
+                Map.entry("supportedRelationships", "instance-api"),
+                Map.entry("inputRequirement", "instance-api-when-present"),
+                Map.entry("supportsParallelProcessing", "instance-api-when-present"),
+                Map.entry("supportsEventDriven", "instance-api-when-present"),
+                Map.entry("supportsBatching", "instance-api-when-present"),
+                Map.entry("supportsSensitiveDynamicProperties", "instance-api-when-present"),
+                Map.entry("persistsState", "instance-api-when-present"),
+                Map.entry("restricted", "instance-api-when-present"),
+                Map.entry("deprecated", "instance-api-when-present"),
+                Map.entry("executionNodeRestricted", "instance-api-when-present"),
+                Map.entry("controllerServiceApis", "instance-api-else-type-list-api"),
+                Map.entry("readsAttributes", "component-html"),
+                Map.entry("writesAttributes", "component-html"),
+                Map.entry("dynamicProperties", "component-html"),
+                Map.entry("stateManagement", "component-html"),
+                Map.entry("systemResourceConsiderations", "component-html")));
     }
 
     @Test

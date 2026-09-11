@@ -294,6 +294,7 @@ class KnowledgeBaseBuilderIT {
         }
 
         int componentCount = 0;
+        final Set<String> definitionFields = new HashSet<>();
         try (Stream<Path> jsonFiles = Files.walk(componentsDir)) {
             final List<Path> componentJsons = jsonFiles
                     .filter(p -> p.getFileName().toString().equals("component.json"))
@@ -301,17 +302,19 @@ class KnowledgeBaseBuilderIT {
             for (final Path componentJson : componentJsons) {
                 componentCount++;
                 assertComponentJson(componentJson);
+                MAPPER.readTree(componentJson.toFile()).path("definition").fieldNames()
+                        .forEachRemaining(definitionFields::add);
             }
         }
         assertThat(componentCount).isEqualTo(expectedComponentCount);
         final JsonNode manifest = MAPPER.readTree(outputDir.resolve("manifest.json").toFile());
-        assertManifestCollection(manifest);
+        assertManifestCollection(manifest, definitionFields);
         if (nifiMajorVersion() == 1) {
             assertThat(manifest.path("nifi").path("minimumSupportedVersion").asText()).isEqualTo("1.26.0");
         }
     }
 
-    private void assertManifestCollection(final JsonNode manifest) {
+    private void assertManifestCollection(final JsonNode manifest, final Set<String> definitionFields) {
         final JsonNode collection = manifest.path("collection");
         assertThat(collection.path("definitionFormat").asText())
                 .isEqualTo(nifiMajorVersion() == 1 ? "normalized-nifi-1x" : "native-nifi-2x");
@@ -322,6 +325,11 @@ class KnowledgeBaseBuilderIT {
         assertThat(unavailable.isArray()).isTrue();
         if (nifiMajorVersion() == 1) {
             assertThat(unavailable.toString()).contains("expression-language-scope-enum");
+            // Only this direction holds on a real image: a key can name a field, such as usageRestriction,
+            // that no component of the image carries.
+            final Set<String> sourcedFields = new HashSet<>();
+            collection.path("fieldSources").fieldNames().forEachRemaining(sourcedFields::add);
+            assertThat(sourcedFields).as("fieldSources keys").containsAll(definitionFields);
         } else {
             assertThat(unavailable).isEmpty();
         }

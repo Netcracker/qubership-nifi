@@ -39,6 +39,15 @@ import java.util.UUID;
  * POST and DELETE are never retried by the transport. A stale revision allows one verified retry.
  */
 public final class NiFiTemporaryComponentSession implements AutoCloseable {
+    /**
+     * Top-level fields that {@link #collect(NiFiComponentReference, boolean)} copies into the metadata
+     * when the component instance reports them.
+     */
+    public static final List<String> OPTIONAL_INSTANCE_FIELDS = List.of("inputRequirement",
+            "supportsParallelProcessing", "supportsEventDriven", "supportsBatching",
+            "supportsSensitiveDynamicProperties", "persistsState", "restricted", "deprecated",
+            "executionNodeRestricted", "controllerServiceApis");
+
     private static final Logger LOG = LoggerFactory.getLogger(NiFiTemporaryComponentSession.class);
     private final NiFiRestClient rest;
     private final NiFiUriResolver resolver;
@@ -150,9 +159,7 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
         ObjectNode result = JsonNodeFactory.instance.objectNode().put("type", reference.type());
         result.set("bundle", reference.bundle());
         result.set("propertyDescriptors", descriptors(reference, component).deepCopy());
-        for (String field : List.of("inputRequirement", "supportsParallelProcessing", "supportsEventDriven",
-                "supportsBatching", "supportsSensitiveDynamicProperties", "persistsState", "restricted",
-                "deprecated", "executionNodeRestricted", "controllerServiceApis")) {
+        for (String field : OPTIONAL_INSTANCE_FIELDS) {
             if (component.has(field)) {
                 result.set(field, component.get(field).deepCopy());
             }
