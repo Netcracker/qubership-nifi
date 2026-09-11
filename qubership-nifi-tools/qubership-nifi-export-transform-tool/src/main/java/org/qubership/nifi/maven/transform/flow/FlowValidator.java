@@ -1,24 +1,41 @@
 package org.qubership.nifi.maven.transform.flow;
 
+import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.transform.config.PluginConfig;
 import org.qubership.nifi.maven.transform.config.PropertyMapping;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * Validates the structural integrity of a flow before the Extract operation.
  *
  * Checks that all target processors map to unique export paths, and that regex
- * property mappings match exactly one property per processor.
+ * property mappings match exactly one property per processor. Two paths are compared
+ * case-insensitively, since Windows and the macOS default file system treat them as
+ * the same directory regardless of the platform Extract actually runs on.
  *
- * Names are not restricted here: PathSegmentEncoder replaces unsafe characters
- * when the export path is built, so the uniqueness check runs on the encoded
- * path and also catches names that only clash after replacement.
+ * A processor whose name collides with another's is disambiguated with an identifier
+ * suffix, not rejected; each such collision is logged. An error is reported only if a
+ * processor's final export path still matches another's: either two identifier suffixes
+ * collide, or a processor's plain name already equals another processor's suffixed name.
  */
 public class FlowValidator {
+
+    private final Log log;
+    private final DuplicatePathResolver duplicatePathResolver = new DuplicatePathResolver();
+
+    /**
+     * Constructor for class FlowValidator.
+     *
+     * @param logger maven logger
+     */
+    public FlowValidator(final Log logger) {
+        this.log = logger;
+    }
 
     /**
      * Validates all processors of configured types in the given flow.
@@ -32,20 +49,33 @@ public class FlowValidator {
     public List<String> validate(FlowFile flow, PluginConfig config) {
         List<String> errors = new ArrayList<>();
 
-        // Checked across all processor types, not just within one: two types can map to the same
-        // target filename, so two processors sharing a path would write to the same file.
-        // The key is the encoded relative path (Processor.getRelativePath(), "/"-separated), the
-        // same path used on disk, so this also catches names that only clash after encoding.
-        Map<String, Processor> seenPaths = new HashMap<>();
-
+        List<Processor> allProcessors = new ArrayList<>();
         for (var typeConfig : config.getProcessorTypes()) {
-            List<Processor> processors = flow.getProcessorsByType(typeConfig.getProcessorTypeFqn());
-            collectDuplicatePaths(processors, errors, seenPaths);
+            allProcessors.addAll(flow.getProcessorsByType(typeConfig.getProcessorTypeFqn()));
         }
+
+        List<List<Processor>> collisions = duplicatePathResolver.disambiguate(allProcessors);
+        logDisambiguatedCollisions(collisions);
+        Map<String, Processor> seenPaths = new HashMap<>();
+        collectDuplicatePaths(allProcessors, errors, seenPaths);
 
         collectAmbiguousRegexMappings(flow, config, errors);
 
         return errors;
+    }
+
+    private void logDisambiguatedCollisions(List<List<Processor>> collisions) {
+        for (List<Processor> group : collisions) {
+            List<String> disambiguatedPaths = group.stream()
+                    .map(p -> p.getFullPath() + " (" + p.getIdentifier() + ") -> " + p.getRelativePath())
+                    .toList();
+            log.info(String.format(
+                    "Processor name collision: %d processors share the same export path; "
+                            + "each was given a distinct directory using its identifier: %s. "
+                            + "A processor's directory depends on which other processors collide "
+                            + "with it, so a directory from an earlier Extract run may now be unused.",
+                    group.size(), disambiguatedPaths));
+        }
     }
 
     private void collectDuplicatePaths(List<Processor> processors,
@@ -53,18 +83,17 @@ public class FlowValidator {
 
         for (Processor processor : processors) {
             String exportPath = processor.getRelativePath().toString().replace("\\", "/");
-            Processor existing = seenPaths.putIfAbsent(exportPath, processor);
+            Processor existing = seenPaths.putIfAbsent(exportPath.toLowerCase(Locale.ROOT), processor);
 
             if (existing != null) {
+                String existingPath = existing.getRelativePath().toString().replace("\\", "/");
                 errors.add(String.format(
-                        "Duplicate processor path '%s': processor '%s' (%s) and processor '%s' (%s) "
-                                + "map to the same export path after replacing characters not allowed "
-                                + "in file system paths. Processors must map to unique paths within "
-                                + "the flow, since the path determines the directory structure "
-                                + "during Extract.",
-                        exportPath,
-                        existing.getFullPath(), existing.getIdentifier(),
-                        processor.getFullPath(), processor.getIdentifier()));
+                        "Duplicate processor path: processor '%s' (%s) resolves to '%s' and processor "
+                                + "'%s' (%s) resolves to '%s'. The two are the same path on a file system "
+                                + "that ignores case, such as Windows or the macOS default. Rename one of "
+                                + "the processors, or move one into a process group with a different name.",
+                        existing.getFullPath(), existing.getIdentifier(), existingPath,
+                        processor.getFullPath(), processor.getIdentifier(), exportPath));
             }
         }
     }

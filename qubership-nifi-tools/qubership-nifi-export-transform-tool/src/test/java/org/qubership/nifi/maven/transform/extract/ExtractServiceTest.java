@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -311,29 +310,39 @@ class ExtractServiceTest {
 
     // End-to-end check with the real FlowValidator: two processor names that collide only after
     // the special characters are replaced ("Filter a>b" and "Filter a_gt_b" both become
-    // "Filter a_gt_b") must make Extract fail with a validation error, not overwrite one value
-    // with the other.
+    // "Filter a_gt_b") must still produce two distinct files, one per processor's identifier
+    // suffix, rather than overwriting one value with the other.
     @Test
-    void extractFailsWhenProcessorNamesClashAfterEncoding(@TempDir Path tempDir) throws IOException {
+    void extractResolvesProcessorNamesThatClashAfterEncoding(@TempDir Path tempDir)
+            throws ExtractException, IOException {
         ExtractService realValidatorService = new ExtractService(log, flowReader, flowWriter,
-                new FlowValidator(), new FileSystemService(), propertyResolver, new ReferenceBuilder());
+                new FlowValidator(log), new FileSystemService(), propertyResolver, new ReferenceBuilder());
 
         Path flowPath = tempDir.resolve("flow.json");
         ObjectNode props1 = MAPPER.createObjectNode();
         props1.put("SQL Query", "SELECT 1");
         ObjectNode props2 = MAPPER.createObjectNode();
         props2.put("SQL Query", "SELECT 2");
-        Processor withSpecialChar = new Processor("Filter a>b", TYPE, "id-1", props1, rootGroup());
-        Processor withToken = new Processor("Filter a_gt_b", TYPE, "id-2", props2, rootGroup());
+        Processor withSpecialChar = new Processor("Filter a>b", TYPE, "id-111111111111", props1, rootGroup());
+        Processor withToken = new Processor("Filter a_gt_b", TYPE, "id-222222222222", props2, rootGroup());
         FlowFile flow = new FlowFile(flowPath, MAPPER.createObjectNode(), rootGroup(),
                 Map.of(TYPE, List.of(withSpecialChar, withToken)));
-        PluginConfig config = config(PropertyMapping.of("SQL Query", "query.sql"));
+        PropertyMapping mapping = PropertyMapping.of("SQL Query", "query.sql");
+        PluginConfig config = config(mapping);
+        ProcessorProperty property1 = new ProcessorProperty("SQL Query", props1);
+        ProcessorProperty property2 = new ProcessorProperty("SQL Query", props2);
 
         when(flowReader.findFlowPaths(tempDir)).thenReturn(List.of(flowPath));
         when(flowReader.read(flowPath)).thenReturn(Optional.of(flow));
+        when(propertyResolver.resolve(withSpecialChar, mapping)).thenReturn(Optional.of(property1));
+        when(propertyResolver.resolve(withToken, mapping)).thenReturn(Optional.of(property2));
 
-        assertThrows(ExtractException.class, () -> realValidatorService.extract(config, tempDir));
-        verify(flowWriter, never()).write(any());
-        assertFalse(Files.exists(tempDir.resolve("flowConf_flow")));
+        realValidatorService.extract(config, tempDir);
+
+        Path dir1 = tempDir.resolve("flowConf_flow").resolve("Filter a_gt_b_111111111111");
+        Path dir2 = tempDir.resolve("flowConf_flow").resolve("Filter a_gt_b_222222222222");
+        assertEquals("SELECT 1", Files.readString(dir1.resolve("query.sql")));
+        assertEquals("SELECT 2", Files.readString(dir2.resolve("query.sql")));
+        verify(flowWriter).write(flow);
     }
 }

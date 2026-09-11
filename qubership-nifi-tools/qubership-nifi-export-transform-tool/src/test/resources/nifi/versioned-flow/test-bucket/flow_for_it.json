@@ -414,6 +414,30 @@
 				"type": "org.apache.nifi.processors.standard.ExecuteSQL"
 			},
 			{
+				"comments": "",
+				"componentType": "PROCESSOR",
+				"groupIdentifier": "ffd40c9a-0c87-3a8e-8a28-c2f98ddd143a",
+				"identifier": "aaaaaaaa-bbbb-cccc-dddd-111111111111",
+				"name": "DuplicateProcessor",
+				"properties": {
+					"SQL Query": "SELECT 1"
+				},
+				"scheduledState": "ENABLED",
+				"type": "org.apache.nifi.processors.standard.ExecuteSQL"
+			},
+			{
+				"comments": "",
+				"componentType": "PROCESSOR",
+				"groupIdentifier": "ffd40c9a-0c87-3a8e-8a28-c2f98ddd143a",
+				"identifier": "aaaaaaaa-bbbb-cccc-dddd-222222222222",
+				"name": "DuplicateProcessor",
+				"properties": {
+					"SQL Query": "SELECT 2"
+				},
+				"scheduledState": "ENABLED",
+				"type": "org.apache.nifi.processors.standard.ExecuteSQL"
+			},
+			{
 				"autoTerminatedRelationships": [],
 				"backoffMechanism": "PENALIZE_FLOWFILE",
 				"bulletinLevel": "WARN",

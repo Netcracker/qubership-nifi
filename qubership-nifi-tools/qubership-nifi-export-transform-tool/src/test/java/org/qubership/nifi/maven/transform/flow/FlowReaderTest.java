@@ -143,6 +143,38 @@ class FlowReaderTest {
     }
 
     @Test
+    void readDisambiguatesProcessorsWithDuplicateNamesInSameGroup() throws IOException {
+        String json = """
+                {
+                  "flowContents": {
+                    "name": "root", "identifier": "root-id",
+                    "processors": [
+                      {
+                        "name": "MyProcessor", "type": "%1$s",
+                        "identifier": "123e4567-e89b-12d3-a456-111111111111",
+                        "properties": {"SQL Query": "SELECT 1"}
+                      },
+                      {
+                        "name": "MyProcessor", "type": "%1$s",
+                        "identifier": "123e4567-e89b-12d3-a456-222222222222",
+                        "properties": {"SQL Query": "SELECT 2"}
+                      }
+                    ],
+                    "processGroups": []
+                  }
+                }
+                """.formatted(TYPE);
+        Path file = writeFlow("flow.json", json);
+
+        FlowFile flow = reader.read(file).orElseThrow();
+
+        List<Processor> processors = flow.getProcessorsByType(TYPE);
+        assertEquals(2, processors.size());
+        assertEquals(Path.of("MyProcessor_111111111111"), processors.get(0).getRelativePath());
+        assertEquals(Path.of("MyProcessor_222222222222"), processors.get(1).getRelativePath());
+    }
+
+    @Test
     void readReturnsEmptyWhenFlowContentsMissing() throws IOException {
         Path file = writeFlow("flow.json", "{\"other\": \"value\"}");
 

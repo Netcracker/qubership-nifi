@@ -39,7 +39,7 @@ public final class ExtractMojo extends AbstractTransformMojo {
                 getLog(),
                 new FlowReader(new ObjectMapper(), config),
                 new FlowWriter(),
-                new FlowValidator(),
+                new FlowValidator(getLog()),
                 new FileSystemService(),
                 new PropertyResolver(getLog()),
                 new ReferenceBuilder());

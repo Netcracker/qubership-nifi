@@ -17,11 +17,19 @@ import java.util.regex.Pattern;
  */
 public class Processor {
 
+    /**
+     * Number of trailing characters of identifier used as a path disambiguation suffix.
+     * Equal to the length of a standard UUID's last hyphen-separated group, so the suffix never
+     * includes a hyphen.
+     */
+    private static final int PATH_SUFFIX_LENGTH = 12;
+
     private final String name;
     private final String typeFqn;
     private final String identifier;
     private final ObjectNode propertiesNode;
     private final ProcessGroup parentGroup;
+    private boolean pathDisambiguated;
 
     /**
      * Constructor for class Processor.
@@ -135,9 +143,49 @@ public class Processor {
      * file system paths still produce valid path segments. Use getName()
      * and getFullPath() for the original names.
      *
+     * Once markPathDisambiguated() has been called, the last segment also carries a suffix
+     * built from the identifier and passed through PathSegmentEncoder as well, so a processor
+     * that shares its encoded name and parent group with another processor still resolves to
+     * a distinct path.
+     *
      * @return relative Path from the flow root to this processor, with encoded segments
      */
     public Path getRelativePath() {
+        if (!pathDisambiguated) {
+            return getBaseRelativePath();
+        }
+        String segment = PathSegmentEncoder.encode(name) + "_" + PathSegmentEncoder.encode(identifierSuffix());
+        return parentGroup.getRelativePath().resolve(segment);
+    }
+
+    /**
+     * Returns the relative path this processor would have without an identifier suffix,
+     * regardless of markPathDisambiguated(). Used to find which processors originally
+     * shared a path, since getRelativePath() no longer reveals that once marked.
+     *
+     * @return relative Path from the flow root to this processor, without a disambiguation suffix
+     */
+    Path getBaseRelativePath() {
         return parentGroup.getRelativePath().resolve(PathSegmentEncoder.encode(name));
+    }
+
+    /**
+     * Marks this processor's name as colliding with another processor's on the export path, so
+     * that getRelativePath() appends an identifier-based suffix to keep the two paths distinct.
+     */
+    public void markPathDisambiguated() {
+        this.pathDisambiguated = true;
+    }
+
+    /**
+     * Returns the last 12 characters of the identifier, which for a standard UUID is the
+     * identifier's last hyphen-separated group. The caller still passes this through
+     * PathSegmentEncoder, since nothing guarantees the identifier is a well-formed UUID.
+     *
+     * @return trailing characters of the identifier used to disambiguate a colliding export path
+     */
+    private String identifierSuffix() {
+        int length = identifier.length();
+        return length > PATH_SUFFIX_LENGTH ? identifier.substring(length - PATH_SUFFIX_LENGTH) : identifier;
     }
 }

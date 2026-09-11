@@ -63,6 +63,40 @@ class ProcessorTest {
     }
 
     @Test
+    void getRelativePathIsUnaffectedBeforeMarkPathDisambiguatedIsCalled() {
+        Processor p = new Processor("MyProcessor", TYPE, "123e4567-e89b-12d3-a456-426614174000",
+                MAPPER.createObjectNode(), rootGroup());
+        assertEquals(Path.of("MyProcessor"), p.getRelativePath());
+    }
+
+    @Test
+    void getRelativePathAppendsLast12CharactersOfIdentifierAfterMarkPathDisambiguated() {
+        Processor p = new Processor("MyProcessor", TYPE, "123e4567-e89b-12d3-a456-426614174000",
+                MAPPER.createObjectNode(), rootGroup());
+        p.markPathDisambiguated();
+        assertEquals(Path.of("MyProcessor_426614174000"), p.getRelativePath());
+    }
+
+    @Test
+    void getRelativePathUsesWholeIdentifierWhenShorterThan12Characters() {
+        Processor p = new Processor("MyProcessor", TYPE, "short-id", MAPPER.createObjectNode(), rootGroup());
+        p.markPathDisambiguated();
+        assertEquals(Path.of("MyProcessor_short-id"), p.getRelativePath());
+    }
+
+    @Test
+    void getRelativePathEncodesSlashesAndDotsInIdentifierSuffix() {
+        Processor p = new Processor("MyProcessor", TYPE, "aaaaaaaaaaaa/../../../..",
+                MAPPER.createObjectNode(), rootGroup());
+        p.markPathDisambiguated();
+
+        Path result = p.getRelativePath();
+
+        assertEquals(Path.of("MyProcessor__sl_.._sl_.._sl_.._sl_.."), result);
+        assertEquals(1, result.getNameCount());
+    }
+
+    @Test
     void getFullPathKeepsSpecialCharactersUnchanged() {
         ProcessGroup root = rootGroup();
         ProcessGroup child = new ProcessGroup("a<b", "child-id", List.of(), List.of(), root, false);
