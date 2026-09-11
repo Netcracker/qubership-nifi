@@ -8,6 +8,8 @@ dependencies:
   apm:
     - Netcracker/qubership-ai-packages/agent-packages/qubership-repo-essentials#0e384f374d05bf6dc1900f518312db62e71b71f4 #main
     - Netcracker/qubership-ai-packages/agent-packages/javadoc-authoring#0e384f374d05bf6dc1900f518312db62e71b71f4 #main
+    - Netcracker/qubership-ai-packages/agent-packages/final-review#0e384f374d05bf6dc1900f518312db62e71b71f4 #main
+    - Netcracker/qubership-ai-packages/agent-packages/test-authoring#0e384f374d05bf6dc1900f518312db62e71b71f4 #main
     - ./agent-packages/qubership-nifi-linters
     - ./agent-packages/nifi-development-kit
     - ./agent-packages/qubership-nifi-docs-maintenance
