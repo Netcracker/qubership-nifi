@@ -118,6 +118,19 @@ class NiFi2xStrategyTest {
     }
 
     @Test
+    void definitionWithoutPropertyDescriptorsExportsAnEmptyObject() throws Exception {
+        when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree(
+                "{\"processorTypes\":[{\"type\":\"org.foo.Bar\","
+                + "\"bundle\":{\"group\":\"g\",\"artifact\":\"a\",\"version\":\"1.0\"}}]}"));
+        when(apiClient.get("/nifi-api/flow/processor-definition/g/a/1.0/org.foo.Bar"))
+                .thenReturn(MAPPER.readTree("{\"type\":\"org.foo.Bar\"}"));
+
+        List<Map<String, Object>> result = strategy.collect(NiFiComponentKind.PROCESSOR);
+
+        assertEquals(MAPPER.createObjectNode(), result.get(0).get("propertyDescriptors"));
+    }
+
+    @Test
     void collectRejectsMalformedCatalog() throws Exception {
         when(apiClient.get("/nifi-api/flow/processor-types")).thenReturn(MAPPER.readTree("{}"));
 
