@@ -20,7 +20,7 @@ public enum ComponentType {
     /**
      * flow analysis rules type.
      */
-    FLOW_ANALYSIS_RULE("flow_analysis_rules");
+    FLOW_ANALYSIS_RULE("flow_analysis_rule");
 
     private final String type;
 

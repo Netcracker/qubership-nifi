@@ -19,12 +19,6 @@ configPath=$1
 
 NIFI_TARGET_URL="${NIFI_TARGET_URL:-https://localhost:8443}"
 NIFI_CERT="${NIFI_CERT:-}"
-NIFI_ACCESS_TOKEN="${NIFI_ACCESS_TOKEN:-}"
-
-AUTH_HEADER=""
-if [ -n "$NIFI_ACCESS_TOKEN" ]; then
-    AUTH_HEADER="-H 'Authorization: Bearer $NIFI_ACCESS_TOKEN'"
-fi
 
 # call_nifi_api <method> <api-path> <body-file-or-empty> <output-file>
 # prints the HTTP response code, writes the response body to <output-file>
@@ -35,7 +29,7 @@ call_nifi_api() {
         dataArg="-H 'Content-Type: application/json' --data @$bodyFile"
     fi
     eval curl -sS -w '%{response_code}' -o "$outFile" -X "$method" \
-        "$dataArg" "$AUTH_HEADER" "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api$apiPath"
+        "$dataArg" "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api$apiPath"
 }
 
 enable_rule() {
@@ -93,7 +87,7 @@ if [ "$respCode" != "200" ]; then
     handle_error "Error: failed to GET /nifi-api/flow/flow-analysis-rule-types. Response code = $respCode."
 fi
 
-# Existing rules, to skip the ones already created (match by type)
+# Existing rules, to skip the ones already created (match by Name)
 respCode=$(call_nifi_api GET "/controller/flow-analysis-rules" "" "$TMP_EXISTING")
 if [ "$respCode" != "200" ]; then
     echo "Response body:" >&2
@@ -120,15 +114,15 @@ while read -r entry; do
         *) handle_error "Error: rule '$name' has invalid Policy '$policyRaw'. Expected 'Warn' or 'Enforce'." ;;
     esac
 
-    # Skip if a rule of this type already exists. The script never updates the properties of an
+    # Skip if a rule with this Name already exists. The script never updates the properties of an
     # existing rule; if it is DISABLED but VALID, a re-run repairs it by enabling it.
-    existingRule=$(jq -c --arg type "$type" \
-        '[.flowAnalysisRules[]? | select(.component.type == $type)] | first // empty' "$TMP_EXISTING")
+    existingRule=$(jq -c --arg name "$name" \
+        '[.flowAnalysisRules[]? | select(.component.name == $name)] | first // empty' "$TMP_EXISTING")
     if [ -n "$existingRule" ]; then
         existingState=$(echo "$existingRule" | jq -r '.component.state // "UNKNOWN"')
         existingValidationStatus=$(echo "$existingRule" | jq -r '.component.validationStatus // "UNKNOWN"')
-        echo "Rule of type '$type' already exists (state = $existingState," \
-            "validationStatus = $existingValidationStatus), skipping '$name'."
+        echo "Rule named '$name' already exists (state = $existingState," \
+            "validationStatus = $existingValidationStatus), skipping."
         if [ "$existingState" = "DISABLED" ] && [ "$existingValidationStatus" = "VALID" ]; then
             existingId=$(echo "$existingRule" | jq -r '.id')
             existingVersion=$(echo "$existingRule" | jq -r '.revision.version')

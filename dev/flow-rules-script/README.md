@@ -6,7 +6,7 @@
 configuration file. For each entry it creates the rule through the NiFi REST API, applies the
 configured properties and enforcement policy, and enables the rule.
 
-The script is idempotent by rule type: if a rule of the same `Type` already exists in the target
+The script is idempotent by rule name: if a rule with the same `Name` already exists in the target
 NiFi, that entry is skipped, so re-running the script does not create duplicates. It never updates
 the properties of an existing rule; if that rule is `DISABLED` but `VALID`, a re-run enables it,
 which repairs a rule left disabled by an earlier failed run.
@@ -34,14 +34,12 @@ Prerequisites:
 
 ## Environment variables
 
-| Parameter         | Required | Default                  | Description                                                                                                                                                                                                                                      |
-|-------------------|----------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| NIFI_TARGET_URL   | N        | `https://localhost:8443` | Base URL of the target NiFi.                                                                                                                                                                                                                     |
-| NIFI_CERT         | N        |                          | TLS arguments passed to `curl` for mutual TLS. The exact set depends on the Linux distribution; refer to the `curl` documentation on your system. For Alpine Linux: `--cert 'client.p12:client.password' --cert-type P12 --cacert nifi-cert.pem` |
-| NIFI_ACCESS_TOKEN | N        |                          | Bearer token for single-user or OIDC authentication. When set, the script adds an `Authorization: Bearer <token>` header to every request.                                                                                                       |
+| Parameter       | Required | Default                  | Description                                                                                                                                                                                                                                      |
+|-----------------|----------|--------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NIFI_TARGET_URL | N        | `https://localhost:8443` | Base URL of the target NiFi.                                                                                                                                                                                                                     |
+| NIFI_CERT       | N        |                          | TLS arguments passed to `curl` for mutual TLS. The exact set depends on the Linux distribution; refer to the `curl` documentation on your system. For Alpine Linux: `--cert 'client.p12:client.password' --cert-type P12 --cacert nifi-cert.pem` |
 
-Set either `NIFI_CERT` (mutual TLS) or `NIFI_ACCESS_TOKEN` (bearer token), matching how the target
-NiFi authenticates clients.
+Leave `NIFI_CERT` empty if the target NiFi does not require mutual TLS.
 
 ## Configuration file
 
@@ -100,7 +98,7 @@ in this state.
 2. `GET /nifi-api/flow/flow-analysis-rule-types` - resolves the bundle coordinates for each rule
    type. A type that is not installed in the target NiFi is a fatal error.
 3. `GET /nifi-api/controller/flow-analysis-rules` - the rules that already exist, used to skip
-   entries whose `Type` is already present. If an existing rule is `DISABLED` but `VALID`, it is
+   entries whose `Name` is already present. If an existing rule is `DISABLED` but `VALID`, it is
    enabled; its properties are not touched.
 4. For each remaining entry:
    - `POST /nifi-api/controller/flow-analysis-rules` with the type, bundle, name, enforcement
