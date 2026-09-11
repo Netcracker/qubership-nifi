@@ -16,72 +16,29 @@
 
 package org.qubership.nifi.tools.export;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import org.qubership.nifi.tools.nifi.common.api.NiFiComponentCatalogClient;
 import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
+import org.qubership.nifi.tools.nifi.common.api.NiFi2xComponentMetadataProvider;
 import java.util.List;
 import java.util.Map;
 
-/**
- * NiFi 2.x strategy: uses definition endpoints to retrieve property descriptors
- * without creating component instances.
- */
+/** Adapts the shared metadata provider to the exporter's descriptor-only format. */
 public final class NiFi2xStrategy implements NiFiVersionStrategy {
-
-    private static final Logger LOG = LoggerFactory.getLogger(NiFi2xStrategy.class);
-
     private final NiFiApiClient apiClient;
 
     /**
-     * Creates a new NiFi2xStrategy using the given API client.
+     * Uses shared native definitions for descriptor export.
      *
-     * @param client the NiFi API client (must already be authenticated)
+     * @param client the authenticated client
      */
     public NiFi2xStrategy(final NiFiApiClient client) {
-        this.apiClient = client;
+        apiClient = client;
     }
 
     @Override
-    public List<Map<String, Object>> collect(final NiFiComponentKind kind) throws Exception {
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        JsonNode listResponse = apiClient.get(kind.getListPath());
-        JsonNode types = listResponse.get(kind.getListKey());
-        if (types == null || !types.isArray()) {
-            LOG.warn("No types found for {} at path {}", kind, kind.getListPath());
-            return result;
-        }
-
-        for (JsonNode typeEntry : types) {
-            String fqcn = typeEntry.path("type").asText();
-            JsonNode bundle = typeEntry.path("bundle");
-            String group = bundle.path("group").asText();
-            String artifact = bundle.path("artifact").asText();
-            String version = bundle.path("version").asText();
-
-            try {
-                String defPath = kind.getDefinitionPathPrefix()
-                        + "/" + group + "/" + artifact + "/" + version + "/" + fqcn;
-                JsonNode defResponse = apiClient.get(defPath);
-                JsonNode rawDescriptors = defResponse.path("propertyDescriptors");
-                JsonNode descriptors = rawDescriptors.isObject()
-                        ? rawDescriptors
-                        : JsonNodeFactory.instance.objectNode();
-
-                Map<String, Object> entry = new HashMap<>();
-                entry.put("type", fqcn);
-                entry.put("propertyDescriptors", descriptors);
-                result.add(entry);
-            } catch (Exception e) {
-                LOG.warn("Failed to get definition for {} ({})", fqcn, kind, e);
-            }
-        }
-
-        return result;
+    public List<Map<String, Object>> collect(final NiFiComponentKind kind) {
+        NiFiComponentCatalogClient catalog = new NiFiComponentCatalogClient(apiClient.restClient(),
+                apiClient.resolver());
+        return DescriptorExport.collect(catalog, new NiFi2xComponentMetadataProvider(catalog), kind);
     }
 }

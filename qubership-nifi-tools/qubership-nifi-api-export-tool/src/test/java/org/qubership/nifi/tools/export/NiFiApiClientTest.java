@@ -167,11 +167,11 @@ class NiFiApiClientTest {
     }
 
     @Test
-    void deleteNon200LogsWarningNoException() throws Exception {
+    void deleteNon200Fails() throws Exception {
         server.enqueue(new MockResponse().setResponseCode(201).setBody("tok"));
         client.authenticate();
 
         server.enqueue(new MockResponse().setResponseCode(500).setBody("Server Error"));
-        assertDoesNotThrow(() -> client.delete("/nifi-api/processors/abc?version=0"));
+        assertThrows(NiFiApiException.class, () -> client.delete("/nifi-api/processors/abc?version=0"));
     }
 }

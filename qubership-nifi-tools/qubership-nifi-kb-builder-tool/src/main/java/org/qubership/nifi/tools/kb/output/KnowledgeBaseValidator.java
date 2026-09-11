@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.qubership.nifi.tools.kb.model.AdditionalDocumentationState;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
+import org.qubership.nifi.tools.kb.model.DefinitionFormat;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
@@ -29,6 +30,7 @@ import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -41,7 +43,6 @@ import java.util.stream.Stream;
 public final class KnowledgeBaseValidator {
 
     private static final Pattern FINGERPRINT = Pattern.compile("^sha256:[0-9a-f]{64}$");
-    private static final int TOP_LEVEL_FIELD_COUNT = 3;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -66,8 +67,21 @@ public final class KnowledgeBaseValidator {
         if (!FINGERPRINT.matcher(manifest.path(KnowledgeBaseFormat.FINGERPRINT_FIELD).asText("")).matches()) {
             throw new OutputException("Manifest fingerprint is not a valid sha256 value");
         }
+        validateCollection(manifest);
         validateGuides(root, manifest);
         validateComponents(root, manifest);
+    }
+
+    private void validateCollection(final JsonNode manifest) {
+        final JsonNode collection = manifest.path(KnowledgeBaseFormat.COLLECTION_FIELD);
+        if (!collection.path(KnowledgeBaseFormat.DEFINITION_FORMAT_FIELD).isTextual()
+                || !collection.path("summary").isTextual()
+                || !collection.path("fieldSources").isObject()
+                || !collection.path("unavailableMetadata").isArray()
+                || !collection.path("documentationFormats").isObject()) {
+            throw new OutputException("Manifest collection must describe definitionFormat, summary, fieldSources, "
+                    + "unavailableMetadata, and documentationFormats");
+        }
     }
 
     private void validateGuides(final Path root, final JsonNode manifest) {
@@ -113,30 +127,49 @@ public final class KnowledgeBaseValidator {
                 throw new OutputException("Component count mismatch for " + kind + ": manifest " + expected
                         + " but found " + dirs + " directories");
             }
-            validateComponentDirs(kindDir);
+            validateComponentDirs(kindDir, manifest.path(KnowledgeBaseFormat.COLLECTION_FIELD)
+                    .path(KnowledgeBaseFormat.DEFINITION_FORMAT_FIELD).asText());
         }
     }
 
-    private void validateComponentDirs(final Path kindDir) {
+    private void validateComponentDirs(final Path kindDir, final String manifestFormat) {
         try (Stream<Path> dirs = Files.list(kindDir)) {
-            dirs.filter(Files::isDirectory).forEach(this::validateComponentDir);
+            dirs.filter(Files::isDirectory).forEach(dir -> validateComponentDir(dir, manifestFormat));
         } catch (final IOException e) {
             throw new OutputException("Failed to list component directories: " + kindDir, e);
         }
     }
 
-    private void validateComponentDir(final Path dir) {
+    private void validateComponentDir(final Path dir, final String manifestFormat) {
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
         requireFile(dir.resolve(KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE));
         final JsonNode componentRecord = read(dir.resolve(KnowledgeBaseFormat.COMPONENT_JSON_FILE));
-        if (componentRecord.size() != TOP_LEVEL_FIELD_COUNT
-                || !componentRecord.has(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD)
-                || !componentRecord.has(KnowledgeBaseFormat.DEFINITION_FIELD)
-                || !componentRecord.has(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD)) {
-            throw new OutputException("component.json must contain exactly documentedType, definition, and "
+        if (!componentRecord.path(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD).isObject()
+                || !componentRecord.path(KnowledgeBaseFormat.DEFINITION_FIELD).isObject()
+                || !componentRecord.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD).isObject()) {
+            throw new OutputException("component.json must contain objects documentedType, definition, and "
                     + "additionalDocumentation: " + dir.getFileName());
         }
+        final String format = componentRecord.path(KnowledgeBaseFormat.DEFINITION_FORMAT_FIELD).asText();
+        if (!manifestFormat.equals(format)) {
+            throw new OutputException("Component definitionFormat '" + format + "' contradicts the manifest '"
+                    + manifestFormat + "': " + dir.getFileName());
+        }
+        if (DefinitionFormat.NORMALIZED_NIFI_1X.token().equals(format)) {
+            requireFile(dir.resolve("componentDocumentation.md"));
+            if (!componentRecord.path(KnowledgeBaseFormat.DOCUMENTATION_SOURCES_FIELD).path("componentPath")
+                    .isTextual()) {
+                throw new OutputException("A normalized component requires documentationSources.componentPath: "
+                        + dir.getFileName());
+            }
+        }
         final JsonNode state = componentRecord.path(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);
+        for (String field : List.of("advertised", "requested", "available")) {
+            if (!state.path(field).isBoolean()) {
+                throw new OutputException("additionalDocumentation requires Boolean " + field + ": "
+                        + dir.getFileName());
+            }
+        }
         final boolean available = state.path(KnowledgeBaseFormat.AVAILABLE_FIELD).asBoolean();
         final Path detailsFile = dir.resolve(AdditionalDocumentationState.ADDITIONAL_DETAILS_FILE);
         if (available) {

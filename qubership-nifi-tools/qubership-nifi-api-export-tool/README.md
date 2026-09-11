@@ -71,3 +71,11 @@ Integration tests (Docker required):
 ```shell
 mvn test -pl qubership-nifi-tools/qubership-nifi-api-export-tool -Dgroups=docker
 ```
+
+## NiFi 1.x temporary resources
+
+On NiFi 1.x, metadata collection creates stopped processors and disabled controller services for
+exact bundle coordinates in a temporary child process group. It creates stopped reporting tasks at
+controller scope. The exporter logs the run marker, resource IDs, and cleanup endpoints. It deletes
+each resource after collection and fails if cleanup is incomplete. Other component failures retain
+the skip-and-warn behavior.

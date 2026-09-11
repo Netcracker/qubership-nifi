@@ -69,6 +69,15 @@ public final class KnowledgeBaseFormat {
     /** Component field containing the lossless definition. */
     public static final String DEFINITION_FIELD = "definition";
 
+    /** Manifest and component field naming how the definitions were produced. */
+    public static final String DEFINITION_FORMAT_FIELD = "definitionFormat";
+
+    /** Manifest field describing what the definitions mean and where their fields came from. */
+    public static final String COLLECTION_FIELD = "collection";
+
+    /** Component field containing the paths its documentation was read from. */
+    public static final String DOCUMENTATION_SOURCES_FIELD = "documentationSources";
+
     /** Component field containing derived additional-documentation state. */
     public static final String ADDITIONAL_DOCUMENTATION_FIELD = "additionalDocumentation";
 

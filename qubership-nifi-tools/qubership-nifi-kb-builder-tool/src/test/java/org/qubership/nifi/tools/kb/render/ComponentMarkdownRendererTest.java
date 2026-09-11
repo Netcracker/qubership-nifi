@@ -42,6 +42,20 @@ class ComponentMarkdownRendererTest {
             NiFiComponentKind.PROCESSOR, "org.example", "example-nar", "1.0", "org.example.TestProcessor");
 
     @Test
+    void statesHowTheDefinitionWasProduced() throws Exception {
+        final ComponentRecord native2x = new ComponentRecord(
+                new ComponentIdentity(NiFiComponentKind.PROCESSOR, "org.example", "example-nar", "1.0",
+                        "org.example.Native"),
+                MAPPER.readTree("{\"type\": \"org.example.Native\"}"),
+                MAPPER.readTree("{\"type\": \"org.example.Native\"}"),
+                AdditionalDocumentationState.notAdvertised(), null);
+
+        final String markdown = new ComponentMarkdownRenderer().render(native2x);
+
+        assertThat(markdown).contains("Definition format: `native-nifi-2x`").contains("manifest.json");
+    }
+
+    @Test
     void rendersAllAvailableSections() throws Exception {
         final JsonNode definition = MAPPER.readTree("""
                 {

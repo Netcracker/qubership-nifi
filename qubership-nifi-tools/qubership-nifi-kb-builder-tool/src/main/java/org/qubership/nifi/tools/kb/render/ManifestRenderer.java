@@ -17,8 +17,10 @@
 package org.qubership.nifi.tools.kb.render;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.qubership.nifi.tools.kb.model.CollectionMetadata;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
+import org.qubership.nifi.tools.kb.model.DefinitionFormat;
 import org.qubership.nifi.tools.kb.model.GuideMode;
 import org.qubership.nifi.tools.kb.model.GuideType;
 import org.qubership.nifi.tools.kb.model.KnowledgeBase;
@@ -29,8 +31,8 @@ import java.util.List;
 
 /**
  * Renders {@code manifest.json}, the completion marker and machine-readable root of the Knowledge
- * Base. It records the schema version, provenance, component counts, guide statuses, and the
- * aggregate catalog fingerprint.
+ * Base. It records the schema version, provenance, how the definitions were collected, component
+ * counts, guide statuses, and the aggregate catalog fingerprint.
  *
  * <p>Its presence marks a complete Knowledge Base, so it must be written only after every other
  * output file.
@@ -38,7 +40,7 @@ import java.util.List;
 public final class ManifestRenderer {
 
     /** The Knowledge Base schema version. */
-    public static final String SCHEMA_VERSION = "1";
+    public static final String SCHEMA_VERSION = "2";
 
     private final JsonOutput json;
 
@@ -74,11 +76,41 @@ public final class ManifestRenderer {
         nifi.put("baseUrl", kb.provenance().baseUrl());
 
         root.put(KnowledgeBaseFormat.FINGERPRINT_FIELD, fingerprint);
+        root.set(KnowledgeBaseFormat.COLLECTION_FIELD, renderCollection(kb));
 
         appendCounts(root, kb.components());
         appendGuides(root, kb);
 
         return json.toBytes(root);
+    }
+
+    /**
+     * Renders the collection section: what the definitions in this build mean and where their
+     * fields came from.
+     *
+     * <p>The writer digests this section alongside the component output, so it is rendered on its
+     * own rather than only as part of the manifest, which is written after the fingerprint exists.
+     *
+     * @param kb the Knowledge Base
+     * @return the collection section
+     * @throws IllegalStateException when a component was collected in a format the target NiFi
+     *                               version does not produce
+     */
+    public ObjectNode renderCollection(final KnowledgeBase kb) {
+        return CollectionMetadata.describe(definitionFormat(kb));
+    }
+
+    private static DefinitionFormat definitionFormat(final KnowledgeBase kb) {
+        final String nifiVersion = kb.provenance().nifiVersion();
+        final DefinitionFormat expected = DefinitionFormat.forNiFiVersion(nifiVersion);
+        for (final ComponentRecord component : kb.components()) {
+            if (component.definitionFormat() != expected) {
+                throw new IllegalStateException("Component " + component.identity().getType()
+                        + " was collected as " + component.definitionFormat().token() + " but NiFi "
+                        + nifiVersion + " produces " + expected.token());
+            }
+        }
+        return expected;
     }
 
     private void appendCounts(final ObjectNode root, final List<ComponentRecord> components) {
@@ -96,8 +128,9 @@ public final class ManifestRenderer {
         for (final GuideType type : GuideType.values()) {
             final ObjectNode guideNode = guides.putObject(type.getManifestKey());
             guideNode.put(KnowledgeBaseFormat.STATUS_FIELD, kb.guides().mode().manifestStatus());
+            guideNode.put("sourcePath", kb.guides().find(type).map(doc -> doc.sourcePath())
+                    .orElse(type.getSourcePath(kb.provenance().nifiVersion())));
             if (kb.guides().mode() == GuideMode.REQUIRED) {
-                guideNode.put("sourcePath", type.getSourcePath());
                 guideNode.put(KnowledgeBaseFormat.OUTPUT_PATH_FIELD, type.getOutputPath());
             }
         }

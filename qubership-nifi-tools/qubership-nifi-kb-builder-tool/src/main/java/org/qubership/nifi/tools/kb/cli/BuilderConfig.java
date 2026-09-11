@@ -43,6 +43,12 @@ public final class BuilderConfig {
     private final Path caFile;
     private final boolean skipGuides;
     private final Path outputDir;
+    private final boolean allowTemporaryComponents;
+
+    /** @return whether the operator opted into temporary creation */
+    public boolean allowTemporaryComponents() {
+        return allowTemporaryComponents;
+    }
 
     private BuilderConfig(final Builder builder) {
         this.resolver = builder.resolver;
@@ -54,6 +60,7 @@ public final class BuilderConfig {
         this.caFile = builder.caFile;
         this.skipGuides = builder.skipGuides;
         this.outputDir = builder.outputDir;
+        this.allowTemporaryComponents = builder.allowTemporaryComponents;
     }
 
     /**
@@ -69,6 +76,7 @@ public final class BuilderConfig {
         builder.resolver = resolveUrl(command.nifiUrl());
         builder.authMode = command.auth();
         builder.skipGuides = command.skipGuides();
+        builder.allowTemporaryComponents = command.allowTemporaryComponents();
         builder.outputDir = resolveOutput(command.outputDir());
 
         resolveCaFile(command, builder);
@@ -290,5 +298,6 @@ public final class BuilderConfig {
         private Path caFile;
         private boolean skipGuides;
         private Path outputDir;
+        private boolean allowTemporaryComponents;
     }
 }

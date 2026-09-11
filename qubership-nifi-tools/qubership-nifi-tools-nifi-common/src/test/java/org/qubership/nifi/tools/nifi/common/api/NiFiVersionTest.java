@@ -66,6 +66,22 @@ class NiFiVersionTest {
     }
 
     @Test
+    void onlyMajorVersionOneIsTheNiFi1xFamily() {
+        assertThat(NiFiVersion.of(0, 9, 9).isNiFi1x()).as("0.9.9").isFalse();
+        assertThat(NiFiVersion.of(1, 0, 0).isNiFi1x()).as("1.0.0").isTrue();
+        assertThat(NiFiVersion.of(1, 28, 1).isNiFi1x()).as("1.28.1").isTrue();
+        assertThat(NiFiVersion.of(2, 0, 0).isNiFi1x()).as("2.0.0").isFalse();
+    }
+
+    @Test
+    void aRawVersionIsNiFi1xOnlyWhenItParses() {
+        assertThat(NiFiVersion.isNiFi1x("1.26.0-SNAPSHOT")).as("1.26.0-SNAPSHOT").isTrue();
+        assertThat(NiFiVersion.isNiFi1x("2.5.0")).as("2.5.0").isFalse();
+        assertThat(NiFiVersion.isNiFi1x("1.x")).as("1.x").isFalse();
+        assertThat(NiFiVersion.isNiFi1x(null)).as("null").isFalse();
+    }
+
+    @Test
     void comparesEqualityByNumericTuple() {
         final NiFiVersion version = NiFiVersion.of(2, 5, 1);
         final NiFiVersion equalWithSuffix = NiFiVersion.parse("2.5.1-SNAPSHOT").orElseThrow();

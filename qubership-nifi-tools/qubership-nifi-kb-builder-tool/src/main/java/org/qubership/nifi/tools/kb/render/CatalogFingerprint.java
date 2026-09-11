@@ -28,13 +28,15 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Computes the aggregate Knowledge Base fingerprint: a lowercase SHA-256 digest, prefixed with
  * {@code sha256:}, over the normalized (LF) content of the covered files, which are the component
  * output and, in a full build, the guides. Paths are sorted by their UTF-8 byte sequence and each
  * path/content pair is framed with unambiguous eight-byte big-endian length prefixes so path and
- * content boundaries cannot collide.
+ * content boundaries cannot collide. Content that never gets a file of its own can be digested
+ * alongside them as a labeled virtual entry.
  *
  * <p>Line endings are normalized to LF only in the digest input; the on-disk bytes of verbatim
  * files are never rewritten.</p>
@@ -59,15 +61,37 @@ public final class CatalogFingerprint {
      * @throws IllegalStateException when SHA-256 is unavailable in this JVM
      */
     public static String compute(final Path root, final List<String> relativePaths) {
-        final List<String> sorted = new ArrayList<>(relativePaths);
-        sorted.sort(Comparator.comparing(path -> path.getBytes(StandardCharsets.UTF_8),
+        return compute(root, relativePaths, Map.of());
+    }
+
+    /**
+     * Computes the fingerprint over the given covered relative paths under {@code root}, together
+     * with content that is not covered by a file of its own.
+     *
+     * <p>The manifest carries the fingerprint, so it is written after the digest exists and cannot
+     * cover itself. Content that lives only in the manifest is passed here instead, under a label
+     * that names where it ends up, so it stays inside the fingerprint.
+     *
+     * @param root          the staging root directory
+     * @param relativePaths the covered relative paths (using {@code /} separators)
+     * @param virtual       labeled content to digest alongside the files
+     * @return the {@code sha256:}-prefixed fingerprint
+     * @throws UncheckedIOException  when a covered file cannot be read
+     * @throws IllegalStateException when SHA-256 is unavailable in this JVM
+     */
+    public static String compute(final Path root, final List<String> relativePaths,
+                                 final Map<String, byte[]> virtual) {
+        final List<String> labels = new ArrayList<>(relativePaths);
+        labels.addAll(virtual.keySet());
+        labels.sort(Comparator.comparing(label -> label.getBytes(StandardCharsets.UTF_8),
                 CatalogFingerprint::compareUnsigned));
         final MessageDigest digest = DigestUtils.newSha256Digest();
-        for (final String relativePath : sorted) {
-            final byte[] pathBytes = relativePath.getBytes(StandardCharsets.UTF_8);
-            final byte[] contentBytes = normalizeToLf(read(root.resolve(relativePath)));
-            digest.update(lengthPrefix(pathBytes.length));
-            digest.update(pathBytes);
+        for (final String label : labels) {
+            final byte[] labelBytes = label.getBytes(StandardCharsets.UTF_8);
+            final byte[] source = virtual.containsKey(label) ? virtual.get(label) : read(root.resolve(label));
+            final byte[] contentBytes = normalizeToLf(source);
+            digest.update(lengthPrefix(labelBytes.length));
+            digest.update(labelBytes);
             digest.update(lengthPrefix(contentBytes.length));
             digest.update(contentBytes);
         }

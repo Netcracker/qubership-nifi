@@ -22,9 +22,12 @@ import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.KnowledgeBaseFormat;
 
 /**
- * Renders a component's lossless {@code component.json}. The record has exactly three top-level
- * objects: {@code documentedType}, {@code definition}, and the derived {@code additionalDocumentation}.
- * The retained source trees are written without filtering unknown fields.
+ * Renders component JSON with documented type, definition, additional-documentation state, and the
+ * provenance that varies per component. Native NiFi 2.x definitions retain all unknown fields.
+ *
+ * <p>What the format means, which sources each field group came from, and what the source cannot
+ * supply are the same for every component in a build, so they are written once to the manifest
+ * rather than repeated here.
  */
 public final class ComponentJsonRenderer {
 
@@ -49,6 +52,10 @@ public final class ComponentJsonRenderer {
         final ObjectNode root = json.mapper().createObjectNode();
         root.set(KnowledgeBaseFormat.DOCUMENTED_TYPE_FIELD, componentRecord.documentedType());
         root.set(KnowledgeBaseFormat.DEFINITION_FIELD, componentRecord.definition());
+
+        root.put(KnowledgeBaseFormat.DEFINITION_FORMAT_FIELD, componentRecord.definitionFormat().token());
+        componentRecord.documentationSources()
+                .ifPresent(sources -> root.set(KnowledgeBaseFormat.DOCUMENTATION_SOURCES_FIELD, sources));
 
         final AdditionalDocumentationState state = componentRecord.additionalDocumentation();
         final ObjectNode additional = root.putObject(KnowledgeBaseFormat.ADDITIONAL_DOCUMENTATION_FIELD);

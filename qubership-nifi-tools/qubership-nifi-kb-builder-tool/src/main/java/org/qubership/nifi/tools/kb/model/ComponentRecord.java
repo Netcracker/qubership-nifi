@@ -39,6 +39,37 @@ public final class ComponentRecord {
     private final JsonNode definition;
     private final AdditionalDocumentationState additionalDocumentation;
     private final String additionalDetailsContent;
+    private final DefinitionFormat definitionFormat;
+    private final JsonNode documentationSources;
+    private final String componentDocumentation;
+
+    /**
+     * Returns how this component's definition was produced.
+     *
+     * @return the definition format
+     */
+    public DefinitionFormat definitionFormat() {
+        return definitionFormat;
+    }
+
+    /**
+     * Returns the paths this component's documentation was read from.
+     *
+     * @return the documentation sources, or empty for a native definition that has none
+     */
+    public Optional<JsonNode> documentationSources() {
+        return Optional.ofNullable(documentationSources);
+    }
+
+    /**
+     * Returns the full converted component page when the backend supplies one.
+     *
+     * @return the requested value
+     */
+    public Optional<String> componentDocumentation() {
+        return Optional.ofNullable(componentDocumentation);
+    }
+
 
     /**
      * Creates a new component record.
@@ -53,6 +84,29 @@ public final class ComponentRecord {
     public ComponentRecord(final ComponentIdentity componentIdentity, final JsonNode documentedTypeNode,
                            final JsonNode definitionNode, final AdditionalDocumentationState additionalDocState,
                            final String additionalDetailsText) {
+        this(componentIdentity, documentedTypeNode, definitionNode, additionalDocState, additionalDetailsText,
+                ComponentProvenance.nativeDefinition(), null);
+    }
+
+    /**
+     * Retains metadata and documentation together with the provenance of this component.
+     *
+     * @param componentIdentity the canonical component identity
+     * @param documentedTypeNode the full type metadata
+     * @param definitionNode the native or normalized static definition
+     * @param additionalDocState the additional documentation outcome
+     * @param additionalDetailsText the available additional Markdown, or null
+     * @param componentProvenance where this component's definition and documentation came from
+     * @param documentationMarkdown the full component Markdown, or null for native definitions
+     */
+    public ComponentRecord(final ComponentIdentity componentIdentity, final JsonNode documentedTypeNode,
+                           final JsonNode definitionNode, final AdditionalDocumentationState additionalDocState,
+                           final String additionalDetailsText, final ComponentProvenance componentProvenance,
+                           final String documentationMarkdown) {
+        final ComponentProvenance provenance = Objects.requireNonNull(componentProvenance, "componentProvenance");
+        this.definitionFormat = provenance.format();
+        this.documentationSources = provenance.documentationSources();
+        this.componentDocumentation = documentationMarkdown;
         this.identity = Objects.requireNonNull(componentIdentity, "componentIdentity");
         this.documentedType = Objects.requireNonNull(documentedTypeNode, "documentedTypeNode");
         this.definition = Objects.requireNonNull(definitionNode, "definitionNode");

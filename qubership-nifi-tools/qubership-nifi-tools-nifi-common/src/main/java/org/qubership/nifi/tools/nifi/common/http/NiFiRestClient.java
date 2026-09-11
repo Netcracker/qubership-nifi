@@ -23,6 +23,7 @@ import org.apache.hc.core5.http.Method;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Locale;
 import java.util.Optional;
 
 /**
@@ -109,6 +110,18 @@ public final class NiFiRestClient implements Closeable {
         return requireSuccessJson(Method.POST, uri, response);
     }
 
+    /**
+     * Deletes an owned resource, propagating every non-success status.
+     *
+     * @param uri the request URI
+     */
+    public void delete(final URI uri) {
+        final NiFiHttpResponse response = httpClient.delete(uri);
+        if (!response.isSuccess()) {
+            throw error(Method.DELETE, uri, response, "DELETE request did not succeed");
+        }
+    }
+
     private JsonNode requireSuccessJson(final Method method, final URI uri, final NiFiHttpResponse response) {
         if (!response.isSuccess()) {
             throw error(method, uri, response, method.name() + " request did not succeed");
@@ -118,7 +131,7 @@ public final class NiFiRestClient implements Closeable {
 
     private JsonNode parse(final Method method, final URI uri, final NiFiHttpResponse response) {
         final Optional<String> contentType = response.contentType();
-        if (contentType.isPresent() && !contentType.get().toLowerCase(java.util.Locale.ROOT).contains("json")) {
+        if (contentType.isPresent() && !contentType.get().toLowerCase(Locale.ROOT).contains("json")) {
             throw error(method, uri, response,
                     "Expected a JSON response but received content type " + contentType.get());
         }

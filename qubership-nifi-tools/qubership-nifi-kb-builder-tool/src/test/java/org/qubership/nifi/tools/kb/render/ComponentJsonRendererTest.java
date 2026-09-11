@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Fails when {@code component.json} loses source data or changes its published shape.
  *
  * <p>The file is the lossless authority behind every other rendered artifact, so it must carry the
- * source trees verbatim, expose exactly the three documented top-level fields, and state the
+ * source trees verbatim, expose the required top-level fields, and state the
  * additional-documentation outcome. Update these expectations only with an intentional change to the
  * Knowledge Base output contract.</p>
  */
@@ -54,9 +54,11 @@ class ComponentJsonRendererTest {
                 AdditionalDocumentationState.notAdvertised(), null));
 
         assertThat(rendered.fieldNames()).toIterable()
-                .containsExactlyInAnyOrder("documentedType", "definition", "additionalDocumentation");
+                .containsExactlyInAnyOrder("documentedType", "definition", "additionalDocumentation",
+                        "definitionFormat");
         assertThat(rendered.get("documentedType")).isEqualTo(documented);
         assertThat(rendered.get("definition")).isEqualTo(definition);
+        assertThat(rendered.path("definitionFormat").asText()).isEqualTo("native-nifi-2x");
     }
 
     @Test

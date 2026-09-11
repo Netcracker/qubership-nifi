@@ -50,10 +50,12 @@ public final class NiFiContainerManager implements AutoCloseable {
                                 final int hostPort) {
         this.port = hostPort;
         this.container = new GenericContainer<>(image)
+                .withExposedPorts(NIFI_PORT)
                 .withEnv("SINGLE_USER_CREDENTIALS_USERNAME", user)
                 .withEnv("SINGLE_USER_CREDENTIALS_PASSWORD", pass)
                 .withEnv("NIFI_WEB_PROXY_HOST", "localhost:" + hostPort)
                 .waitingFor(Wait.forHttps("/nifi-api/controller/config")
+                        .forPort(NIFI_PORT)
                         .allowInsecure()
                         .forStatusCode(HTTP_UNAUTHORIZED_STATUS_CODE)
                         .withStartupTimeout(Duration.ofSeconds(timeout))

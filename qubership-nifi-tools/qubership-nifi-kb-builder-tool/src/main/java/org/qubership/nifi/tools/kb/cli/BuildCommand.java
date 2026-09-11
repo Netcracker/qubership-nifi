@@ -61,6 +61,14 @@ public final class BuildCommand implements Callable<Integer> {
             description = "Build the component catalog without requesting or processing the guides.")
     private boolean skipGuides;
 
+    @Option(names = "--allow-temporary-components", description = "Allow NiFi 1.x temporary component creation. "
+            + "Use a disposable instance: initialization and @OnAdded can cause external side effects.")
+    private boolean allowTemporaryComponents;
+
+    boolean allowTemporaryComponents() {
+        return allowTemporaryComponents;
+    }
+
     private final Environment environment;
     private final KnowledgeBaseBuilder builder;
 

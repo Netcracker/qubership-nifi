@@ -26,7 +26,23 @@ import java.util.List;
  * @param sourceUrl        the redacted source URL the guide was fetched from
  * @param contentType      the fetched content type
  * @param selectedHeadings the selected top-level headings (used for the Developer's Guide)
+ *
+ * @param sourcePath the resolved component documentation path
  */
 public record GuideDocument(GuideType type, String markdown, String sourceUrl, String contentType,
-                            List<String> selectedHeadings) {
+                            List<String> selectedHeadings, String sourcePath) {
+    /**
+     * Creates guide provenance using the legacy NiFi 2.x source path.
+     *
+     * @param guideType the guide type
+     * @param guideMarkdown the converted guide content
+     * @param guideSourceUrl the redacted source URL
+     * @param guideContentType the returned media type
+     * @param guideSelectedHeadings the selected developer guide headings
+     */
+    public GuideDocument(final GuideType guideType, final String guideMarkdown, final String guideSourceUrl,
+                         final String guideContentType, final List<String> guideSelectedHeadings) {
+        this(guideType, guideMarkdown, guideSourceUrl, guideContentType, guideSelectedHeadings,
+                guideType.getSourcePath());
+    }
 }

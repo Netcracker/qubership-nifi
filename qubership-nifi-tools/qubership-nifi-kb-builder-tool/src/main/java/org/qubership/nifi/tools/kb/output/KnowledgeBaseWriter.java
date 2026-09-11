@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.tools.kb.output;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.qubership.nifi.tools.kb.model.ComponentKindLayout;
 import org.qubership.nifi.tools.kb.model.ComponentRecord;
 import org.qubership.nifi.tools.kb.model.GuideDocument;
@@ -38,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Renders a complete Knowledge Base into a staging directory in the deterministic order required by
@@ -50,11 +52,16 @@ import java.util.List;
  */
 public final class KnowledgeBaseWriter {
 
+    /** Digest label for the manifest collection section, which no covered file carries. */
+    private static final String MANIFEST_COLLECTION_LABEL =
+            KnowledgeBaseFormat.MANIFEST_FILE + '#' + KnowledgeBaseFormat.COLLECTION_FIELD;
+
     private final ComponentJsonRenderer componentJson;
     private final ComponentMarkdownRenderer componentMarkdown = new ComponentMarkdownRenderer();
     private final IndexRenderer index;
     private final ManifestRenderer manifest;
     private final GuideIndexRenderer guideIndex;
+    private final JsonOutput json;
 
     /**
      * Creates a new writer with a private JSON mapper. The mapper is deliberately not shared: the
@@ -71,6 +78,7 @@ public final class KnowledgeBaseWriter {
      * @param jsonOutput the deterministic JSON output helper
      */
     public KnowledgeBaseWriter(final JsonOutput jsonOutput) {
+        this.json = jsonOutput;
         this.componentJson = new ComponentJsonRenderer(jsonOutput);
         this.index = new IndexRenderer(jsonOutput);
         this.manifest = new ManifestRenderer(jsonOutput);
@@ -119,7 +127,9 @@ public final class KnowledgeBaseWriter {
             writeGuides(root, kb, coveredPaths);
         }
 
-        final String fingerprint = CatalogFingerprint.compute(root, coveredPaths);
+        final ObjectNode collection = manifest.renderCollection(kb);
+        final String fingerprint = CatalogFingerprint.compute(root, coveredPaths,
+                Map.of(MANIFEST_COLLECTION_LABEL, json.toBytes(collection)));
 
         Files.write(root.resolve(KnowledgeBaseFormat.MANIFEST_FILE), manifest.render(kb, fingerprint));
     }
@@ -154,6 +164,12 @@ public final class KnowledgeBaseWriter {
         coveredPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
                 KnowledgeBaseFormat.COMPONENT_MARKDOWN_FILE)));
 
+        if (componentRecord.componentDocumentation().isPresent()) {
+            Files.writeString(dir.resolve("componentDocumentation.md"),
+                    componentRecord.componentDocumentation().orElseThrow());
+            coveredPaths.add(componentPath(ComponentSorting.relativePath(componentRecord.identity(),
+                    "componentDocumentation.md")));
+        }
         if (componentRecord.additionalDocumentation().isAvailable()) {
             Files.writeString(dir.resolve(KnowledgeBaseFormat.ADDITIONAL_DETAILS_FILE),
                     componentRecord.additionalDetailsContent().orElse(""));

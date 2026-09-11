@@ -23,10 +23,13 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 /**
  * Converts a sanitized HTML content element to Markdown, preserving headings, paragraphs, lists,
@@ -36,13 +39,22 @@ import java.util.function.UnaryOperator;
  * so the rules and examples the guides express as nested lists reach the reader with their item
  * boundaries intact.</p>
  *
+ * <p>Text and inline elements that sit directly in a block container, outside any paragraph, are
+ * joined into one paragraph, the way a browser lays them out. Hand-written NiFi 1.x component pages
+ * often omit the {@code p} element, and the HTML parser closes a paragraph early at a {@code pre}
+ * element or a list, which leaves the rest of its sentence in the container. A {@code textarea}, and
+ * a {@code code} element that holds line breaks, become code blocks, whether they sit in a container
+ * or directly in a paragraph. A definition list becomes a bold paragraph per term followed by its
+ * definition, and an {@code li} outside any list becomes a bulleted item.</p>
+ *
  * <p>Images are omitted and their sources are never requested. Anchors are flattened to their link
  * text, whatever the scheme, so no URL from the source document reaches the output. An anchor with
  * no text is dropped entirely.
  *
  * <p>A tag outside the recognized set is treated as a wrapper when it holds block content, so that
- * content keeps its own structure. Every such tag is reported once per instance: a guide that
- * degrades because NiFi started emitting markup this converter does not model must leave a trace.
+ * content keeps its own structure. Each such tag is logged once per converter, with the path of the
+ * first page it appears in: a page that degrades because NiFi started emitting markup this
+ * converter does not model must leave a trace.
  */
 public final class HtmlToMarkdown {
 
@@ -53,7 +65,18 @@ public final class HtmlToMarkdown {
 
     /** The tags {@code convertBlock} renders as blocks, used to decide whether a wrapper holds any. */
     private static final String BLOCK_CONTENT_SELECTOR =
-            "h1,h2,h3,h4,h5,h6,p,ul,ol,pre,blockquote,table,hr,div,section,article,main";
+            "h1,h2,h3,h4,h5,h6,p,ul,ol,li,pre,textarea,blockquote,table,hr,div,section,article,main,dl,dt,dd";
+
+    /**
+     * The phrasing tags that stay in the paragraph the surrounding text forms when they sit directly
+     * in a block container. Any other element there is rendered as a block, and one that
+     * {@code convertBlock} does not model is logged as unrecognized.
+     */
+    private static final Set<String> INLINE_TAGS = Set.of("a", "code", "strong", "b", "em", "i", "br", "img",
+            "span", "u", "s", "sub", "sup", "small", "tt", "kbd", "samp", "var", "abbr", "cite", "q", "mark",
+            "font", "label");
+
+    private static final String UNKNOWN_SOURCE = "a page with no base URI";
 
     private final Set<String> reportedUnknownTags = new HashSet<>();
 
@@ -69,14 +92,56 @@ public final class HtmlToMarkdown {
         return out.toString().replaceAll("\n{3,}", "\n\n").strip() + "\n";
     }
 
+    /**
+     * Renders the children of a block container in source order. Consecutive text nodes and inline
+     * elements form one paragraph, which ends at the next block element or at the end of the
+     * container.
+     *
+     * @param parent the block container
+     * @param out    the output being built
+     */
     private void convertBlockChildren(final Element parent, final StringBuilder out) {
+        final StringBuilder run = new StringBuilder();
         for (final Node node : parent.childNodes()) {
-            if (node instanceof Element element) {
-                convertBlock(element, out);
-            } else if (node instanceof TextNode textNode && !textNode.isBlank()) {
-                out.append(textNode.text().strip()).append("\n\n");
+            if (node instanceof TextNode textNode) {
+                run.append(textNode.text());
+            } else if (node instanceof Element element) {
+                if (isInlineRunContent(element)) {
+                    appendInlineNode(element, run);
+                } else {
+                    appendParagraph(run, out);
+                    convertBlock(element, out);
+                }
             }
         }
+        appendParagraph(run, out);
+    }
+
+    /**
+     * Returns whether the element belongs to the paragraph the text around it forms. An inline
+     * element is rendered as a block instead when it holds block content, which makes it a wrapper,
+     * or when it is a {@code code} element holding a line break, which makes it a code block.
+     *
+     * @param element the element found in a block container
+     * @return {@code true} if the element is inline content of the surrounding paragraph
+     */
+    private static boolean isInlineRunContent(final Element element) {
+        return INLINE_TAGS.contains(element.tagName().toLowerCase(Locale.ROOT))
+                && element.select(BLOCK_CONTENT_SELECTOR).isEmpty()
+                && !isMultiLineCodeSample(element);
+    }
+
+    private static boolean isMultiLineCodeSample(final Element element) {
+        final String tag = element.tagName().toLowerCase(Locale.ROOT);
+        return "textarea".equals(tag) || ("code".equals(tag) && element.selectFirst("br") != null);
+    }
+
+    private static void appendParagraph(final StringBuilder run, final StringBuilder out) {
+        final String text = run.toString().strip();
+        if (!text.isEmpty()) {
+            out.append(text).append("\n\n");
+        }
+        run.setLength(0);
     }
 
     private void convertBlock(final Element element, final StringBuilder out) {
@@ -86,17 +151,79 @@ public final class HtmlToMarkdown {
                 final int level = Math.min(tag.charAt(1) - '0', MAX_HEADING_LEVEL);
                 out.append("#".repeat(level)).append(' ').append(inline(element).strip()).append("\n\n");
             }
-            case "p" -> appendInlineBlock(element, out, UnaryOperator.identity());
+            case "p" -> {
+                // A paragraph holding a multi-line code sample is rendered as a container, so the
+                // sample becomes a code block rather than one line of inline code.
+                if (element.children().stream().anyMatch(HtmlToMarkdown::isMultiLineCodeSample)) {
+                    convertBlockChildren(element, out);
+                } else {
+                    appendInlineBlock(element, out, UnaryOperator.identity());
+                }
+            }
             case "ul" -> appendList(element, out, false);
             case "ol" -> appendList(element, out, true);
-            case "pre" -> out.append("```\n").append(element.wholeText().stripTrailing()).append("\n```\n\n");
+            case "pre", "textarea" -> appendCodeBlock(element.wholeText(), out);
             case "blockquote" -> appendInlineBlock(element, out,
                     text -> "> " + text.replace("\n", "\n> "));
             case "table" -> appendTable(element, out);
             case "hr" -> out.append("---\n\n");
-            case "img" -> { }
-            case "div", "section", "article", "main", "span" -> convertBlockChildren(element, out);
-            default -> convertUnknownBlock(element, out, tag);
+            case "div", "section", "article", "main", "dl", "dd" -> convertBlockChildren(element, out);
+            case "dt" -> appendDefinitionTerm(element, out);
+            case "li" -> {
+                // An item outside any list; the blank line after it keeps the next paragraph from
+                // being read as a continuation of the item.
+                appendListItem(element, out, "- ", 0);
+                out.append('\n');
+            }
+            default -> {
+                if ("code".equals(tag) && element.select(BLOCK_CONTENT_SELECTOR).isEmpty()) {
+                    appendLineBrokenCode(element, out);
+                } else if (INLINE_TAGS.contains(tag)) {
+                    convertBlockChildren(element, out);
+                } else {
+                    convertUnknownBlock(element, out, tag);
+                }
+            }
+        }
+    }
+
+    /**
+     * Renders a {@code code} element whose lines are separated by {@code br} elements as a code
+     * block. Only the {@code br} elements break lines: the source text is whitespace-normalized,
+     * because the newline that usually follows each {@code br} would otherwise double every line
+     * break, and each line is stripped, so indentation is not kept.
+     *
+     * @param code the code element
+     * @param out  the output being built
+     */
+    private void appendLineBrokenCode(final Element code, final StringBuilder out) {
+        appendCodeBlock(inline(code).lines().map(String::strip).collect(Collectors.joining("\n")), out);
+    }
+
+    /**
+     * Appends a fenced code block with LF line endings. Blank lines before the first line of code
+     * and whitespace after the last one are dropped, and each remaining line keeps its indentation.
+     *
+     * @param text the code text
+     * @param out  the output being built
+     */
+    private static void appendCodeBlock(final String text, final StringBuilder out) {
+        final String code = text.lines().dropWhile(String::isBlank)
+                .collect(Collectors.joining("\n")).stripTrailing();
+        out.append("```\n").append(code).append("\n```\n\n");
+    }
+
+    /**
+     * Renders a definition term as a bold paragraph. The term's plain text is used, so a term that is
+     * already bold in the source is not wrapped in a second pair of markers.
+     *
+     * @param term the {@code dt} element
+     * @param out  the output being built
+     */
+    private static void appendDefinitionTerm(final Element term, final StringBuilder out) {
+        final String text = term.text().strip();
+        if (!text.isEmpty()) {
+            out.append("**").append(text).append("**\n\n");
         }
     }
 
@@ -113,12 +240,29 @@ public final class HtmlToMarkdown {
      */
     private void convertUnknownBlock(final Element element, final StringBuilder out, final String tag) {
         if (reportedUnknownTags.add(tag)) {
-            LOG.warn("Unrecognized HTML tag <{}> in guide content; rendering its content generically", tag);
+            LOG.warn("Unrecognized HTML tag <{}> in {}; rendering its content generically", tag,
+                    sourcePath(element));
         }
         if (element.select(BLOCK_CONTENT_SELECTOR).isEmpty()) {
             appendInlineBlock(element, out, UnaryOperator.identity());
         } else {
             convertBlockChildren(element, out);
+        }
+    }
+
+    /**
+     * Returns the path of the page the element was parsed from, taken from its base URI. Only the
+     * path is returned, so the host and any user info stay out of the log.
+     *
+     * @param element the element
+     * @return the raw path of the page, or a placeholder if the element has no usable base URI
+     */
+    private static String sourcePath(final Element element) {
+        try {
+            final String path = new URI(element.baseUri()).getRawPath();
+            return path == null || path.isEmpty() ? UNKNOWN_SOURCE : path;
+        } catch (URISyntaxException e) {
+            return UNKNOWN_SOURCE;
         }
     }
 
@@ -141,20 +285,24 @@ public final class HtmlToMarkdown {
             if (!"li".equalsIgnoreCase(item.tagName())) {
                 continue;
             }
-            final String marker = ordered ? (index + ". ") : "- ";
-            final String text = inline(item).strip();
-            if (text.isEmpty()) {
-                // An item with no text of its own only wraps a nested list; rendering an empty bullet
-                // above it would add a level of nesting the source document does not have.
-                appendNestedLists(item, out, depth);
-            } else {
-                out.append(LIST_INDENT.repeat(depth)).append(marker).append(text).append('\n');
-                appendNestedLists(item, out, depth + 1);
-            }
+            appendListItem(item, out, ordered ? (index + ". ") : "- ", depth);
             index++;
         }
         if (depth == 0) {
             out.append('\n');
+        }
+    }
+
+    private void appendListItem(final Element item, final StringBuilder out, final String marker,
+                                final int depth) {
+        final String text = inline(item).strip();
+        if (text.isEmpty()) {
+            // An item with no text of its own only wraps a nested list; rendering an empty bullet
+            // above it would add a level of nesting the source document does not have.
+            appendNestedLists(item, out, depth);
+        } else {
+            out.append(LIST_INDENT.repeat(depth)).append(marker).append(text).append('\n');
+            appendNestedLists(item, out, depth + 1);
         }
     }
 

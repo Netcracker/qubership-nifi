@@ -154,13 +154,18 @@ public class NiFiApiClient implements Closeable {
      * Performs a DELETE request to the given NiFi API path.
      *
      * @param path the API path (relative to base URL)
-     * @throws Exception if the HTTP request fails
+     * @throws Exception if the HTTP request fails or the response status is not 2xx
      */
     public void delete(final String path) throws Exception {
-        final NiFiHttpResponse response = httpClient.delete(resolver.resolve(path));
-        if (!response.isSuccess()) {
-            LOG.warn("DELETE {} returned status {}", path, response.statusCode());
-        }
+        restClient.delete(resolver.resolve(path));
+    }
+
+    final NiFiRestClient restClient() {
+        return restClient;
+    }
+
+    final NiFiUriResolver resolver() {
+        return resolver;
     }
 
     /**

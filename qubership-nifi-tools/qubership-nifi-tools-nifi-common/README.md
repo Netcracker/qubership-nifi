@@ -1,9 +1,8 @@
 # qubership-nifi-tools-nifi-common
 
-A reusable library for talking to the Apache NiFi 2.x REST API from a command-line tool: TLS setup,
-authentication, bounded HTTP transport, URI resolution, version detection, and component catalog
-retrieval. It is built on Apache HttpClient 5 and Jackson, and it makes no assumption about how the
-calling tool is configured or what it does with the results.
+A reusable Apache NiFi 1.x and 2.x REST client for command-line tools. It provides TLS setup,
+authentication, bounded HTTP transport, URI resolution, version detection, and component catalogs.
+The library uses Apache HttpClient 5 and Jackson without constraining caller configuration or output.
 
 ## Maven coordinates
 
@@ -88,3 +87,36 @@ timeout, a 32 MB body limit, three retries, and three redirects.
   `/nifi-api/flow/...` paths.
 - **The request timeout is per socket read,** not a deadline for the whole response. A response that
   keeps trickling bytes can outlast it.
+
+## Static metadata providers and temporary ownership
+
+`NiFiComponentReference` identifies a component by kind, type, and exact bundle coordinates.
+`NiFi2xComponentMetadataProvider` returns native definitions. `NiFi1xComponentMetadataProvider`
+returns normalized metadata through an `AutoCloseable` `NiFiTemporaryComponentSession`.
+
+For each exact bundle coordinate, the NiFi 1.x session creates processors and process-group-scoped
+controller services in a temporary child group. Reporting tasks always use controller scope, and a
+controller service uses it only when the caller passes `true` to `collect(reference, controllerScope)`.
+The session removes each component after collection. Close it before
+publishing output. Component creation can invoke extension initialization even when the component
+is never enabled or scheduled, so use disposable targets.
+
+The session logs its run marker, resource IDs, and endpoints, and logs each cleanup failure at ERROR
+when it occurs. It reconciles uncertain creation by
+exact ownership and throws `NiFiCleanupException` if cleanup fails. Callers must treat cleanup
+failures as fatal. If collection and cleanup both fail, the cleanup failure is suppressed on the
+collection failure. After a cleanup or group-creation failure, later `collect` calls fail without
+sending a request.
+
+Descriptors are returned as the instance reports them. The `allowableValues` of a controller-service
+reference property therefore list the service instances visible from the temporary group; remove
+them where only static metadata is wanted.
+
+`NiFiRestClient.delete` propagates non-success statuses. For a stale revision, the session verifies
+ownership and the current revision with GET before one DELETE retry. It also confirms a 404 with GET;
+other statuses, including 409, fail cleanup. Transport-level POST and DELETE retries and redirects
+remain disabled.
+
+The bounded GET overload accepts a URI predicate that restricts documentation redirects to a
+component subtree. `resolveCoordinatePath` encodes bundle coordinates and trailing documentation
+segments while preserving deployment prefixes.
