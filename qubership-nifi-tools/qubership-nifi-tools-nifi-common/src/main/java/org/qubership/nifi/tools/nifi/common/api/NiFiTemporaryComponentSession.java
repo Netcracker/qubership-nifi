@@ -74,8 +74,8 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
     }
 
     /**
-     * Collects the metadata of the requested component without controller scope, as
-     * {@link #collect(NiFiComponentReference, boolean)} describes.
+     * Collects the metadata of the requested component, creating a controller service in the temporary
+     * group, as {@link #collect(NiFiComponentReference, boolean)} describes.
      *
      * @param reference the exact component and bundle identity
      * @return the collected metadata
@@ -85,13 +85,15 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
     }
 
     /**
-     * Controller scope is explicit; a failed creation never triggers another POST in a different scope.
+     * Collects the metadata of the requested component from a temporary instance, then removes the
+     * instance. A failed creation never triggers another POST in a different scope.
      *
      * <p>Descriptors are returned as the instance reports them, so the {@code allowableValues} of a
      * controller-service reference property list the service instances visible from the temporary group.</p>
      *
      * @param reference the exact component and bundle identity
-     * @param controllerScope whether a service requires controller scope
+     * @param controllerScope whether to create a controller service at controller level rather than in the
+     *        temporary group; reporting tasks are created at controller level either way
      * @return the collected metadata
      * @throws NiFiCleanupException when this component cannot be removed after collection, or when an
      *         earlier cleanup in this session failed, in which case no request is sent
@@ -136,10 +138,9 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
                 delete(resource);
             } catch (RuntimeException failure) {
                 cleanupFailure = failure;
+                LOG.error("Failed to clean up resource (id: {}, kind: {})", resource.id, reference.kind(), failure);
                 if (primary != null) {
                     primary.addSuppressed(failure);
-                } else {
-                    LOG.error("Failed to cleanup resource(id: {}, type: {})", resource.id, reference.kind());
                 }
             }
         }
@@ -234,8 +235,10 @@ public final class NiFiTemporaryComponentSession implements AutoCloseable {
                     throw new IllegalStateException("Cannot establish the outcome of creation for exact name " + name);
                 }
             } catch (RuntimeException recovery) {
-                cleanupFailure = new NiFiCleanupException("Creation outcome is uncertain at " + path
-                        + "; inspect exact marker/name " + name + " and owned resource inventory", recovery);
+                cleanupFailure = new NiFiCleanupException("Cannot reconcile or remove the resource requested at "
+                        + path + "; inspect exact marker/name " + name + " and owned resource inventory", recovery);
+                LOG.error("Failed to reconcile or remove temporary resource {}; the session sends no further "
+                        + "collection requests", name, cleanupFailure);
                 primary.addSuppressed(cleanupFailure);
             }
             throw primary;

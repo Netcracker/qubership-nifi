@@ -95,12 +95,14 @@ timeout, a 32 MB body limit, three retries, and three redirects.
 returns normalized metadata through an `AutoCloseable` `NiFiTemporaryComponentSession`.
 
 For each exact bundle coordinate, the NiFi 1.x session creates processors and process-group-scoped
-controller services in a temporary child group. Reporting tasks and explicitly controller-scoped
-services use controller scope. The session removes each component after collection. Close it before
+controller services in a temporary child group. Reporting tasks always use controller scope, and a
+controller service uses it only when the caller passes `true` to `collect(reference, controllerScope)`.
+The session removes each component after collection. Close it before
 publishing output. Component creation can invoke extension initialization even when the component
 is never enabled or scheduled, so use disposable targets.
 
-The session logs its run marker, resource IDs, and endpoints. It reconciles uncertain creation by
+The session logs its run marker, resource IDs, and endpoints, and logs each cleanup failure at ERROR
+when it occurs. It reconciles uncertain creation by
 exact ownership and throws `NiFiCleanupException` if cleanup fails. Callers must treat cleanup
 failures as fatal. If collection and cleanup both fail, the cleanup failure is suppressed on the
 collection failure. After a cleanup or group-creation failure, later `collect` calls fail without

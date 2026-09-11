@@ -242,6 +242,25 @@ class NiFiTemporaryComponentSessionTest {
     }
 
     /**
+     * A 500 from the creation POST, with no matching name in the listing, leaves the session unable to
+     * tell whether NiFi created the component.
+     */
+    @Test
+    void creationWithAnUnknownOutcomeStopsTheSessionWithoutARequest() {
+        createStatus = 500;
+        var session = session();
+        assertThatThrownBy(() -> session.collect(reference(NiFiComponentKind.PROCESSOR, "a")))
+                .isInstanceOf(NiFiApiException.class)
+                .satisfies(failure -> assertThat(failure.getSuppressed())
+                        .hasExactlyElementsOfTypes(NiFiCleanupException.class));
+        int sent = requests.size();
+        assertThatThrownBy(() -> session.collect(reference(NiFiComponentKind.PROCESSOR, "b")))
+                .isInstanceOf(NiFiCleanupException.class);
+        assertThat(requests).hasSize(sent);
+        assertThatThrownBy(session::close).isInstanceOf(NiFiCleanupException.class);
+    }
+
+    /**
      * A rejected creation makes the session look for the component in the listing of the level the
      * creation was requested at, so one run records both endpoints. The group the session creates first
      * is {@code id-0}.
