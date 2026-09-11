@@ -9,7 +9,9 @@ Compared with Apache NiFi it supports:
 - automated NiFi configuration restore: configuration version to restore can be set via Consul parameter
 - additional processors for various tasks not supported in open-source Apache NiFi: bulk DB operations,
   complex JSON extract from DB, rules-based validation
-- reporting tasks for additional monitoring of NiFi processes.
+- reporting tasks for additional monitoring of NiFi processes
+- flow analysis rules for validating flow design: naming uniqueness, processor scheduling,
+  batching, and database read settings.
 
 ## Status
 

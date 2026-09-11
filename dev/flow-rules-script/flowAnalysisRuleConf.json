@@ -1,0 +1,51 @@
+[
+  {
+    "Name": "UniqueProcessorNames",
+    "Type": "org.qubership.nifi.flowanalysis.unique.UniqueProcessorNames",
+    "Policy": "Warn",
+    "Property": []
+  },
+  {
+    "Name": "RestrictBackpressureSettings",
+    "Type": "org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings",
+    "Policy": "Warn",
+    "Property": [
+      { "name": "Minimum Backpressure Object Count Threshold", "value": "1" },
+      { "name": "Maximum Backpressure Object Count Threshold", "value": "20000" },
+      { "name": "Minimum Backpressure Data Size Threshold", "value": "1 MB" },
+      { "name": "Maximum Backpressure Data Size Threshold", "value": "1 GB" }
+    ]
+  },
+  {
+    "Name": "RestrictZeroFetchSizeOnDatabaseRead",
+    "Type": "org.qubership.nifi.flowanalysis.database.RestrictZeroFetchSizeOnDatabaseRead",
+    "Policy": "Warn",
+    "Property": []
+  },
+  {
+    "Name": "UniqueProcessGroupNames",
+    "Type": "org.qubership.nifi.flowanalysis.unique.UniqueProcessGroupNames",
+    "Policy": "Warn",
+    "Property": []
+  },
+  {
+    "Name": "UniqueControllerServiceNames",
+    "Type": "org.qubership.nifi.flowanalysis.unique.UniqueControllerServiceNames",
+    "Policy": "Warn",
+    "Property": []
+  },
+  {
+    "Name": "RestrictSourceProcessorRunSchedule",
+    "Type": "org.qubership.nifi.flowanalysis.scheduling.RestrictSourceProcessorRunSchedule",
+    "Policy": "Warn",
+    "Property": [
+      { "name": "Run Schedule Threshold", "value": "100 millis" }
+    ]
+  },
+  {
+    "Name": "RequireRunDurationForBatchingProcessors",
+    "Type": "org.qubership.nifi.flowanalysis.scheduling.RequireRunDurationForBatchingProcessors",
+    "Policy": "Warn",
+    "Property": []
+  }
+]

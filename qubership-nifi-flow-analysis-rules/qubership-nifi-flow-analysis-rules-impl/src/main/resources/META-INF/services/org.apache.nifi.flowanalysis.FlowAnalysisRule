@@ -1,0 +1,6 @@
+org.qubership.nifi.flowanalysis.unique.UniqueProcessorNames
+org.qubership.nifi.flowanalysis.unique.UniqueProcessGroupNames
+org.qubership.nifi.flowanalysis.unique.UniqueControllerServiceNames
+org.qubership.nifi.flowanalysis.scheduling.RestrictSourceProcessorRunSchedule
+org.qubership.nifi.flowanalysis.scheduling.RequireRunDurationForBatchingProcessors
+org.qubership.nifi.flowanalysis.database.RestrictZeroFetchSizeOnDatabaseRead

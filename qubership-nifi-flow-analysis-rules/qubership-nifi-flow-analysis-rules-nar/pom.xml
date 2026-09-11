@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>org.qubership.nifi</groupId>
+        <artifactId>qubership-nifi-flow-analysis-rules</artifactId>
+        <version>2.8.4-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>qubership-nifi-flow-analysis-rules-nar</artifactId>
+    <version>2.8.4-SNAPSHOT</version>
+    <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-shared-nar</artifactId>
+            <version>${nifi.version}</version>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.qubership.nifi</groupId>
+            <artifactId>qubership-nifi-flow-analysis-rules-impl</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

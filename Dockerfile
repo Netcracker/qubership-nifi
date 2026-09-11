@@ -65,6 +65,7 @@ COPY --chown=10001:0 qubership-bundle/qubership-nifi-processors-nar/target/migra
     qubership-services/qubership-service-api-nar/target/qubership-service-api-nar-*.nar \
     qubership-services/qubership-service-nar/target/qubership-service-nar-*.nar \
     qubership-nifi-lookup-services/qubership-nifi-lookup-service-nar/target/qubership-nifi-lookup-service-nar-*.nar \
+    qubership-nifi-flow-analysis-rules/qubership-nifi-flow-analysis-rules-nar/target/qubership-nifi-flow-analysis-rules-nar-*.nar \
     qubership-nifi-db-bundle/qubership-nifi-db-processors-nar/target/qubership-nifi-db-processors-nar-*.nar \
     $NIFI_HOME/lib/
 

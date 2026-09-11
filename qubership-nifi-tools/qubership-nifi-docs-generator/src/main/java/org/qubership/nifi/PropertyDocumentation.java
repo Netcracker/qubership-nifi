@@ -20,6 +20,9 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleInitializationContext;
+import org.apache.nifi.mock.MockFlowAnalysisRuleInitializationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.maven.plugin.AbstractMojo;
@@ -66,6 +69,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.qubership.nifi.ComponentType.CONTROLLER_SERVICE;
+import static org.qubership.nifi.ComponentType.FLOW_ANALYSIS_RULE;
 import static org.qubership.nifi.ComponentType.PROCESSOR;
 import static org.qubership.nifi.ComponentType.REPORTING_TASK;
 
@@ -280,6 +284,25 @@ public class PropertyDocumentation extends AbstractMojo {
                         project.getArtifactId(), descriptionValue, componentProperties));
             }
 
+            ServiceLoader<FlowAnalysisRule> flowAnalysisRulesServiceLoader =
+                    ServiceLoader.load(FlowAnalysisRule.class, componentClassLoader);
+            for (FlowAnalysisRule flowAnalysisRulesInstance : flowAnalysisRulesServiceLoader) {
+                Class<? extends FlowAnalysisRule> flowAnalysisRuleClass = flowAnalysisRulesInstance.getClass();
+                FlowAnalysisRuleInitializationContext flowAnalysisRulesInitializationContext =
+                        new MockFlowAnalysisRuleInitializationContext();
+                flowAnalysisRulesInstance.initialize(flowAnalysisRulesInitializationContext);
+                CapabilityDescription capabilityDescription = flowAnalysisRuleClass
+                        .getAnnotation(CapabilityDescription.class);
+                List<PropertyDescriptor> propertyDescriptors = flowAnalysisRulesInstance.getPropertyDescriptors();
+                String flowAnalysisRuleName = flowAnalysisRuleClass.getSimpleName();
+                String descriptionValue = capabilityDescription != null
+                        ? capabilityDescription.value() : "";
+                List<PropertyDescriptorEntity> componentProperties =
+                        generateComponentPropertiesList(propertyDescriptors, descriptionValue);
+                customComponentList.add(new CustomComponentEntity(flowAnalysisRuleName, FLOW_ANALYSIS_RULE,
+                        project.getArtifactId(), descriptionValue, componentProperties));
+            }
+
             List<CustomComponentEntity> processorEntities = customComponentList.stream()
                     .filter(entity -> PROCESSOR.equals(entity.getType()))
                     .collect(Collectors.toList());
@@ -305,6 +328,15 @@ public class PropertyDocumentation extends AbstractMojo {
             if (!reportingTaskEntities.isEmpty()) {
                 markdownUtils.generateTable(reportingTaskEntities, REPORTING_TASK);
                 markdownUtils.generatePropertyDescription(reportingTaskEntities, REPORTING_TASK);
+            }
+
+            List<CustomComponentEntity> flowAnalysisRulesEntities = customComponentList.stream()
+                    .filter(entity -> FLOW_ANALYSIS_RULE.equals(entity.getType()))
+                    .collect(Collectors.toList());
+
+            if (!flowAnalysisRulesEntities.isEmpty()) {
+                markdownUtils.generateTable(flowAnalysisRulesEntities, FLOW_ANALYSIS_RULE);
+                markdownUtils.generatePropertyDescription(flowAnalysisRulesEntities, FLOW_ANALYSIS_RULE);
             }
 
         } catch (ServiceConfigurationError e) {

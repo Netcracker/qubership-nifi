@@ -1,7 +1,7 @@
 package org.qubership.nifi;
 
 /**
- * Enum for NiFi component type. One of processor, controller_service, reporting_task.
+ * Enum for NiFi component type. One of processor, controller_service, reporting_task, flow_analysis_rules.
  */
 public enum ComponentType {
 
@@ -16,7 +16,11 @@ public enum ComponentType {
     /**
      * reporting task type.
      */
-    REPORTING_TASK("reporting_task");
+    REPORTING_TASK("reporting_task"),
+    /**
+     * flow analysis rules type.
+     */
+    FLOW_ANALYSIS_RULE("flow_analysis_rule");
 
     private final String type;
 

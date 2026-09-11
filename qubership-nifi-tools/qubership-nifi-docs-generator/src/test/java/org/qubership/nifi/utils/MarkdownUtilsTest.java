@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -190,6 +191,51 @@ class MarkdownUtilsTest {
         assertTrue(result.contains("### MyProcessor"), "Should contain component heading");
         assertTrue(result.contains("My Property"), "Should contain property display name");
         assertTrue(result.contains("Component overall description"), "Should contain component description");
+    }
+
+    /** Verifies generatePropertyDescription() omits components that have no properties. */
+    @Test
+    void testGeneratePropertyDescriptionSkipsComponentWithoutProperties() throws Exception {
+        Path file = writeTemplate(readResource("all-markers-template.md"));
+        MarkdownUtils utils = new MarkdownUtils(file, mockLog());
+        utils.readFile();
+
+        CustomComponentEntity withoutProperties = new CustomComponentEntity(
+                "NoPropertiesProcessor", ComponentType.PROCESSOR, "my-nar", "A processor",
+                Collections.emptyList());
+
+        utils.generatePropertyDescription(Collections.singletonList(withoutProperties), ComponentType.PROCESSOR);
+        utils.writeToFile();
+
+        String result = Files.readString(file);
+        assertFalse(result.contains("NoPropertiesProcessor"), "Should not contain a heading for the component");
+        assertFalse(result.contains("|Display Name|API Name|Default Value|Allowable Values|Description|"),
+                "Should not contain an empty properties table");
+    }
+
+    /** Verifies generatePropertyDescription() keeps components with properties when mixed with ones without. */
+    @Test
+    void testGeneratePropertyDescriptionKeepsOnlyComponentsWithProperties() throws Exception {
+        Path file = writeTemplate(readResource("all-markers-template.md"));
+        MarkdownUtils utils = new MarkdownUtils(file, mockLog());
+        utils.readFile();
+
+        PropertyDescriptorEntity prop = new PropertyDescriptorEntity(
+                "My Property", "my-property", "default", "Property description",
+                null, "Component overall description");
+        CustomComponentEntity withProperties = new CustomComponentEntity(
+                "WithPropertiesProcessor", ComponentType.PROCESSOR, "my-nar", "A processor",
+                Collections.singletonList(prop));
+        CustomComponentEntity withoutProperties = new CustomComponentEntity(
+                "NoPropertiesProcessor", ComponentType.PROCESSOR, "my-nar", "A processor",
+                Collections.emptyList());
+
+        utils.generatePropertyDescription(List.of(withProperties, withoutProperties), ComponentType.PROCESSOR);
+        utils.writeToFile();
+
+        String result = Files.readString(file);
+        assertTrue(result.contains("### WithPropertiesProcessor"), "Should keep the component that has properties");
+        assertFalse(result.contains("NoPropertiesProcessor"), "Should skip the component without properties");
     }
 
     /** Verifies generatePropertyDescription() uses the custom header level when specified. */
