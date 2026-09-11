@@ -100,6 +100,7 @@
         <module>qubership-nifi-flow-diff-core</module>
         <module>qubership-nifi-flow-diff-tool</module>
         <module>qubership-nifi-flow-diff-cli</module>
+        <module>qubership-nifi-flow-diff-cli-deps</module>
         <module>qubership-nifi-tools-nifi-common</module>
         <module>qubership-nifi-kb-builder-tool</module>
         <module>qubership-nifi-kb-builder-tool-it</module>
