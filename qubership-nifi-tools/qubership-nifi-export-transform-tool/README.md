@@ -223,11 +223,13 @@ References always use forward slashes, on every platform.
 
 The path is built from process group and processor *names*, not identifiers, and checked for
 uniqueness across every configured processor type together. Two processors can therefore end up
-with the same directory path: they can share a name outright, have names that resolve to the same
-path after the character replacement in [Reference path format](#reference-path-format), or sit in
-process groups whose own names collide the same way. Extract keeps every such processor's directory
-distinct by appending an underscore and the last 12 characters of the processor's identifier (a
-UUID) to its directory name.
+with the same directory path: they can share a name outright, have names that differ only in
+case, have names that resolve to the same path after the character replacement in
+[Reference path format](#reference-path-format), or sit in process groups whose own names collide
+the same way. The case-only check runs unconditionally, on every platform, because Windows and
+the macOS default file system treat two such paths as the same directory regardless of where
+Extract itself runs. Extract keeps every such processor's directory distinct by appending an
+underscore and the last 12 characters of the processor's identifier (a UUID) to its directory name.
 
 For two `ExecuteSQL` processors both named `Load customers` in group `Extract`, with identifiers
 ending in `...111111111111` and `...222222222222`:
@@ -247,8 +249,16 @@ Only the directory on disk, and the `@`-reference built from it, carry the suffi
 name in the flow JSON is unchanged. Extract logs an INFO message naming both processors and the
 resolved paths whenever it disambiguates a collision this way.
 
-Extract still fails with a validation error in the one case the suffix cannot resolve: two
-processors whose identifiers happen to share their last 12 characters (see
+A processor's directory therefore depends on which other processors are present in the same
+Extract run, not on that processor alone. Adding a second `Load customers` moves the first one
+from `Extract/Load customers/` to a suffixed directory, and later removing the second processor
+moves it back. Extract never deletes an export's existing `flowConf_*` tree, so a directory from
+before such a change stays on disk next to the new one. Delete the `flowConf_*` tree before
+running Extract again on a changed export, to avoid leaving an orphaned directory behind.
+
+Extract still fails with a validation error when two processors' final export paths match even
+after the suffix is added. That happens when two identifiers share their last 12 characters, or
+when one processor's plain name already equals another processor's suffixed name (see
 [Extract errors](#extract-errors)).
 
 ## Error scenarios
@@ -271,7 +281,7 @@ a missing `exportDir`, an unreadable file, malformed JSON - instead aborts the r
 
 | Message | Cause | Fix |
 | ------- | ----- | --- |
-| `Duplicate processor path '<path>': processor '<id>' and processor '<id>' still map to the same export path after appending an identifier-based suffix. ...` | Two processors that share a directory path (see [Colliding names](#colliding-names)) also have identifiers that share their last 12 characters, so the disambiguating suffix does not separate them either. | Rename one of the processors, or move one into a process group with a different name. |
+| `Duplicate processor path '<path>': processor '<id>' and processor '<id>' map to the same export path. ...` | Two processors still map to the same path after disambiguation (see [Colliding names](#colliding-names)): either their identifiers share their last 12 characters, or one's plain name already equals the other's suffixed name. | Rename one of the processors, or move one into a process group with a different name. |
 | `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. ...` | A `regex:` mapping matched more than one property name, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
 
 These checks run before Extract writes anything, across every configured processor type in the flow.

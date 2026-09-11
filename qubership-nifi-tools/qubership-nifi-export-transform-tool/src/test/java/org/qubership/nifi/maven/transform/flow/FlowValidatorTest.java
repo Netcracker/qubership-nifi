@@ -93,6 +93,23 @@ class FlowValidatorTest {
     }
 
     @Test
+    void validateDisambiguatesNamesThatDifferOnlyInCase() {
+        // "Load customers" and "Load Customers" resolve to the same directory on Windows and
+        // the macOS default file system, even though the strings differ.
+        ProcessGroup root = rootGroup();
+        Processor p1 = new Processor("Load customers", TYPE, "id-111111111111", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("Load Customers", TYPE, "id-222222222222", MAPPER.createObjectNode(), root);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertTrue(errors.isEmpty());
+        assertNotEquals(p1.getRelativePath(), p2.getRelativePath());
+    }
+
+    @Test
     void validateLogsNothingWhenNoProcessorNamesCollide() {
         ProcessGroup root = rootGroup();
         Processor p1 = new Processor("Alpha", TYPE, "id-1", MAPPER.createObjectNode(), root);
@@ -289,6 +306,29 @@ class FlowValidatorTest {
         assertEquals(1, errors.size());
         assertTrue(errors.get(0).contains("Duplicate"));
         assertTrue(errors.get(0).contains("MyProcessor"));
+    }
+
+    @Test
+    void validateReturnsErrorWhenASuffixedPathMatchesAnotherProcessorsPlainName() {
+        // "Load" collides with a sibling and gets suffixed to "Load_111111111111". A third
+        // processor literally named "Load_111111111111" is never marked (its own base path is
+        // unique), but its plain path still matches the suffixed one.
+        ProcessGroup root = rootGroup();
+        Processor p1 = new Processor("Load", TYPE,
+                "id-111111111111", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("Load", TYPE,
+                "id-222222222222", MAPPER.createObjectNode(), root);
+        Processor p3 = new Processor("Load_111111111111", TYPE,
+                "id-333333333333", MAPPER.createObjectNode(), root);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2, p3)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).contains("Duplicate"));
+        assertTrue(errors.get(0).contains("Load_111111111111"));
     }
 
     @Test

@@ -7,17 +7,21 @@ import org.qubership.nifi.maven.transform.config.PropertyMapping;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * Validates the structural integrity of a flow before the Extract operation.
  *
  * Checks that all target processors map to unique export paths, and that regex
- * property mappings match exactly one property per processor.
+ * property mappings match exactly one property per processor. Two paths are compared
+ * case-insensitively, since Windows and the macOS default file system treat them as
+ * the same directory regardless of the platform Extract actually runs on.
  *
  * A processor whose name collides with another's is disambiguated with an identifier
- * suffix, not rejected; each such collision is logged. An error is reported only if
- * that suffix collides too.
+ * suffix, not rejected; each such collision is logged. An error is reported only if a
+ * processor's final export path still matches another's: either two identifier suffixes
+ * collide, or a processor's plain name already equals another processor's suffixed name.
  */
 public class FlowValidator {
 
@@ -67,7 +71,9 @@ public class FlowValidator {
                     .toList();
             log.info(String.format(
                     "Processor name collision: %d processors share the same export path; "
-                            + "each was given a distinct directory using its identifier: %s",
+                            + "each was given a distinct directory using its identifier: %s. "
+                            + "A processor's directory depends on which other processors collide "
+                            + "with it, so a directory from an earlier Extract run may now be unused.",
                     group.size(), disambiguatedPaths));
         }
     }
@@ -77,17 +83,17 @@ public class FlowValidator {
 
         for (Processor processor : processors) {
             String exportPath = processor.getRelativePath().toString().replace("\\", "/");
-            Processor existing = seenPaths.putIfAbsent(exportPath, processor);
+            Processor existing = seenPaths.putIfAbsent(exportPath.toLowerCase(Locale.ROOT), processor);
 
             if (existing != null) {
+                String existingPath = existing.getRelativePath().toString().replace("\\", "/");
                 errors.add(String.format(
-                        "Duplicate processor path '%s': processor '%s' (%s) and processor '%s' (%s) "
-                                + "still map to the same export path after appending an identifier-based "
-                                + "suffix. Rename one of the processors, or move one into a process group "
-                                + "with a different name.",
-                        exportPath,
-                        existing.getFullPath(), existing.getIdentifier(),
-                        processor.getFullPath(), processor.getIdentifier()));
+                        "Duplicate processor path: processor '%s' (%s) resolves to '%s' and processor "
+                                + "'%s' (%s) resolves to '%s'. The two are the same path on a file system "
+                                + "that ignores case, such as Windows or the macOS default. Rename one of "
+                                + "the processors, or move one into a process group with a different name.",
+                        existing.getFullPath(), existing.getIdentifier(), existingPath,
+                        processor.getFullPath(), processor.getIdentifier(), exportPath));
             }
         }
     }

@@ -82,6 +82,21 @@ class DuplicatePathResolverTest {
     }
 
     @Test
+    void disambiguateResolvesCollisionCausedByCaseDifferenceAlone() {
+        ProcessGroup root = rootGroup();
+        Processor p1 = new Processor("Load customers", TYPE, "id-111111111111",
+                MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("Load Customers", TYPE, "id-222222222222",
+                MAPPER.createObjectNode(), root);
+
+        List<List<Processor>> collisions = resolver.disambiguate(List.of(p1, p2));
+
+        assertEquals(Path.of("Load customers_111111111111"), p1.getRelativePath());
+        assertEquals(Path.of("Load Customers_222222222222"), p2.getRelativePath());
+        assertEquals(1, collisions.size());
+    }
+
+    @Test
     void disambiguateResolvesCollisionCausedByParentGroupNamesMatching() {
         ProcessGroup root = rootGroup();
         ProcessGroup group1 = new ProcessGroup("SameGroup", "gid1", List.of(), List.of(), root, false);

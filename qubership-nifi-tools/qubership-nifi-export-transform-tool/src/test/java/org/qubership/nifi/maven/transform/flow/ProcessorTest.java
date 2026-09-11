@@ -85,6 +85,18 @@ class ProcessorTest {
     }
 
     @Test
+    void getRelativePathEncodesSlashesAndDotsInIdentifierSuffix() {
+        Processor p = new Processor("MyProcessor", TYPE, "aaaaaaaaaaaa/../../../..",
+                MAPPER.createObjectNode(), rootGroup());
+        p.markPathDisambiguated();
+
+        Path result = p.getRelativePath();
+
+        assertEquals(Path.of("MyProcessor__sl_.._sl_.._sl_.._sl_.."), result);
+        assertEquals(1, result.getNameCount());
+    }
+
+    @Test
     void getFullPathKeepsSpecialCharactersUnchanged() {
         ProcessGroup root = rootGroup();
         ProcessGroup child = new ProcessGroup("a<b", "child-id", List.of(), List.of(), root, false);

@@ -144,8 +144,9 @@ public class Processor {
      * and getFullPath() for the original names.
      *
      * Once markPathDisambiguated() has been called, the last segment also carries a suffix
-     * built from the identifier, so a processor that shares its encoded name and parent
-     * group with another processor still resolves to a distinct path.
+     * built from the identifier and passed through PathSegmentEncoder as well, so a processor
+     * that shares its encoded name and parent group with another processor still resolves to
+     * a distinct path.
      *
      * @return relative Path from the flow root to this processor, with encoded segments
      */
@@ -153,7 +154,7 @@ public class Processor {
         if (!pathDisambiguated) {
             return getBaseRelativePath();
         }
-        String segment = PathSegmentEncoder.encode(name) + "_" + identifierSuffix();
+        String segment = PathSegmentEncoder.encode(name) + "_" + PathSegmentEncoder.encode(identifierSuffix());
         return parentGroup.getRelativePath().resolve(segment);
     }
 
@@ -178,8 +179,8 @@ public class Processor {
 
     /**
      * Returns the last 12 characters of the identifier, which for a standard UUID is the
-     * identifier's last hyphen-separated group and therefore already safe to use as a path
-     * segment.
+     * identifier's last hyphen-separated group. The caller still passes this through
+     * PathSegmentEncoder, since nothing guarantees the identifier is a well-formed UUID.
      *
      * @return trailing characters of the identifier used to disambiguate a colliding export path
      */

@@ -21,9 +21,10 @@ import java.util.stream.Stream;
 /**
  * Reads exported NiFi flow JSON files and builds the object model.
  *
- * Processors of configured types come out with a unique getRelativePath(): a name that collides
- * with a sibling's is disambiguated before the FlowFile is returned, so every caller, Extract
- * and Build alike, sees the same resolved paths.
+ * A processor of a configured type whose name collides with a sibling's is disambiguated with
+ * an identifier suffix before the FlowFile is returned, so every caller, Extract and Build alike,
+ * sees the same resolved paths. This does not guarantee a unique getRelativePath() in every case;
+ * FlowValidator reports the rare case where a path still collides after disambiguation.
  */
 public class FlowReader {
 
