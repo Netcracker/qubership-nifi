@@ -142,16 +142,21 @@ class ExtractMojoTest {
 
     @Test
     void executeThrowsMojoFailureExceptionWhenValidationFails() throws Exception {
-        Path configFile = write("config.yaml", CONFIG_YAML);
+        String regexConfigYaml = """
+                processorTypes:
+                  - org.qubership.nifi.TestProcessor:
+                      script.groovy:
+                        regex: "Script.*"
+                """;
+        Path configFile = write("config.yaml", regexConfigYaml);
         write("flow.json", """
                 {
                   "flowContents": {
                     "name": "root", "identifier": "root-id",
                     "processors": [
-                      {"name": "DupProc", "type": "org.qubership.nifi.TestProcessor",
-                       "identifier": "id-1", "properties": {}},
-                      {"name": "DupProc", "type": "org.qubership.nifi.TestProcessor",
-                       "identifier": "id-2", "properties": {}}
+                      {"name": "AmbiguousProc", "type": "org.qubership.nifi.TestProcessor",
+                       "identifier": "proc-id",
+                       "properties": {"Script Body": "println 'hi'", "Script File": "script.groovy"}}
                     ],
                     "processGroups": []
                   }

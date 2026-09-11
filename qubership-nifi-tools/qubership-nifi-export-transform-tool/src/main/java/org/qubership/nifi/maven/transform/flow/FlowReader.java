@@ -20,6 +20,10 @@ import java.util.stream.Stream;
 
 /**
  * Reads exported NiFi flow JSON files and builds the object model.
+ *
+ * Processors of configured types come out with a unique getRelativePath(): a name that collides
+ * with a sibling's is disambiguated before the FlowFile is returned, so every caller, Extract
+ * and Build alike, sees the same resolved paths.
  */
 public class FlowReader {
 
@@ -27,6 +31,7 @@ public class FlowReader {
 
     private final ObjectMapper jsonMapper;
     private final Set<String> configuredTypes;
+    private final DuplicatePathResolver duplicatePathResolver = new DuplicatePathResolver();
 
     /**
      * Creates a FlowReader that uses the given Jackson mapper for JSON parsing.
@@ -61,6 +66,10 @@ public class FlowReader {
         Map<String, List<Processor>> processorsByType = new HashMap<>();
         ProcessGroup rootGroup = parseProcessGroup(
                 flowContentsNode, null, processorsByType);
+
+        List<Processor> allProcessors = new ArrayList<>();
+        processorsByType.values().forEach(allProcessors::addAll);
+        duplicatePathResolver.disambiguate(allProcessors);
 
         return Optional.of(new FlowFile(
                 flowFilePath, rootNode, rootGroup, processorsByType, detectedFormat));

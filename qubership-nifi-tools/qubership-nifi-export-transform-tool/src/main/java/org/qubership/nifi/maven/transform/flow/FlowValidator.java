@@ -1,5 +1,6 @@
 package org.qubership.nifi.maven.transform.flow;
 
+import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.transform.config.PluginConfig;
 import org.qubership.nifi.maven.transform.config.PropertyMapping;
 
@@ -14,11 +15,23 @@ import java.util.Map;
  * Checks that all target processors map to unique export paths, and that regex
  * property mappings match exactly one property per processor.
  *
- * Names are not restricted here: PathSegmentEncoder replaces unsafe characters
- * when the export path is built, so the uniqueness check runs on the encoded
- * path and also catches names that only clash after replacement.
+ * A processor whose name collides with another's is disambiguated with an identifier
+ * suffix, not rejected; each such collision is logged. An error is reported only if
+ * that suffix collides too.
  */
 public class FlowValidator {
+
+    private final Log log;
+    private final DuplicatePathResolver duplicatePathResolver = new DuplicatePathResolver();
+
+    /**
+     * Constructor for class FlowValidator.
+     *
+     * @param logger maven logger
+     */
+    public FlowValidator(final Log logger) {
+        this.log = logger;
+    }
 
     /**
      * Validates all processors of configured types in the given flow.
@@ -32,20 +45,31 @@ public class FlowValidator {
     public List<String> validate(FlowFile flow, PluginConfig config) {
         List<String> errors = new ArrayList<>();
 
-        // Checked across all processor types, not just within one: two types can map to the same
-        // target filename, so two processors sharing a path would write to the same file.
-        // The key is the encoded relative path (Processor.getRelativePath(), "/"-separated), the
-        // same path used on disk, so this also catches names that only clash after encoding.
-        Map<String, Processor> seenPaths = new HashMap<>();
-
+        List<Processor> allProcessors = new ArrayList<>();
         for (var typeConfig : config.getProcessorTypes()) {
-            List<Processor> processors = flow.getProcessorsByType(typeConfig.getProcessorTypeFqn());
-            collectDuplicatePaths(processors, errors, seenPaths);
+            allProcessors.addAll(flow.getProcessorsByType(typeConfig.getProcessorTypeFqn()));
         }
+
+        List<List<Processor>> collisions = duplicatePathResolver.disambiguate(allProcessors);
+        logDisambiguatedCollisions(collisions);
+        Map<String, Processor> seenPaths = new HashMap<>();
+        collectDuplicatePaths(allProcessors, errors, seenPaths);
 
         collectAmbiguousRegexMappings(flow, config, errors);
 
         return errors;
+    }
+
+    private void logDisambiguatedCollisions(List<List<Processor>> collisions) {
+        for (List<Processor> group : collisions) {
+            List<String> disambiguatedPaths = group.stream()
+                    .map(p -> p.getFullPath() + " (" + p.getIdentifier() + ") -> " + p.getRelativePath())
+                    .toList();
+            log.info(String.format(
+                    "Processor name collision: %d processors share the same export path; "
+                            + "each was given a distinct directory using its identifier: %s",
+                    group.size(), disambiguatedPaths));
+        }
     }
 
     private void collectDuplicatePaths(List<Processor> processors,
@@ -58,10 +82,9 @@ public class FlowValidator {
             if (existing != null) {
                 errors.add(String.format(
                         "Duplicate processor path '%s': processor '%s' (%s) and processor '%s' (%s) "
-                                + "map to the same export path after replacing characters not allowed "
-                                + "in file system paths. Processors must map to unique paths within "
-                                + "the flow, since the path determines the directory structure "
-                                + "during Extract.",
+                                + "still map to the same export path after appending an identifier-based "
+                                + "suffix. Rename one of the processors, or move one into a process group "
+                                + "with a different name.",
                         exportPath,
                         existing.getFullPath(), existing.getIdentifier(),
                         processor.getFullPath(), processor.getIdentifier()));

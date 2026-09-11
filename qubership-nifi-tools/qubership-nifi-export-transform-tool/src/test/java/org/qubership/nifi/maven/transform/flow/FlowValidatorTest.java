@@ -2,23 +2,43 @@ package org.qubership.nifi.maven.transform.flow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.maven.plugin.logging.Log;
 import org.qubership.nifi.maven.transform.config.PluginConfig;
 import org.qubership.nifi.maven.transform.config.ProcessorTypeConfig;
 import org.qubership.nifi.maven.transform.config.PropertyMapping;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 class FlowValidatorTest {
 
     private static final String TYPE = "org.apache.nifi.processors.standard.ExecuteSQL";
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private final FlowValidator validator = new FlowValidator();
+
+    /** Mock Maven logger. */
+    @Mock
+    private Log log;
+
+    private FlowValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new FlowValidator(log);
+    }
 
     private PluginConfig config(PropertyMapping... mappings) {
         return new PluginConfig(List.of(new ProcessorTypeConfig(TYPE, List.of(mappings))));
@@ -57,21 +77,32 @@ class FlowValidatorTest {
     }
 
     @Test
-    void validateReturnsErrorForDuplicateProcessorPaths() {
+    void validateDisambiguatesDuplicateProcessorPathsInsteadOfReportingAnError() {
         ProcessGroup root = rootGroup();
-        Processor p1 = new Processor("MyProcessor", TYPE, "id-1", MAPPER.createObjectNode(), root);
-        Processor p2 = new Processor("MyProcessor", TYPE, "id-2", MAPPER.createObjectNode(), root);
+        Processor p1 = new Processor("MyProcessor", TYPE, "id-111111111111", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("MyProcessor", TYPE, "id-222222222222", MAPPER.createObjectNode(), root);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
                 root, Map.of(TYPE, List.of(p1, p2)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("Duplicate"));
-        assertTrue(errors.get(0).contains("MyProcessor"));
-        assertTrue(errors.get(0).contains("id-1"));
-        assertTrue(errors.get(0).contains("id-2"));
+        assertTrue(errors.isEmpty());
+        assertNotEquals(p1.getRelativePath(), p2.getRelativePath());
+        verify(log).info(anyString());
+    }
+
+    @Test
+    void validateLogsNothingWhenNoProcessorNamesCollide() {
+        ProcessGroup root = rootGroup();
+        Processor p1 = new Processor("Alpha", TYPE, "id-1", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("Beta", TYPE, "id-2", MAPPER.createObjectNode(), root);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2)));
+
+        validator.validate(flow, config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        verify(log, never()).info(anyString());
     }
 
     @Test
@@ -91,21 +122,20 @@ class FlowValidatorTest {
     }
 
     @Test
-    void validateReturnsErrorWhenSameNameProcessorsAreInChildGroupsWithSameName() {
+    void validateDisambiguatesProcessorsInChildGroupsWithSameName() {
         ProcessGroup root = rootGroup();
         ProcessGroup group1 = new ProcessGroup("SameGroup", "gid1", List.of(), List.of(), root, false);
         ProcessGroup group2 = new ProcessGroup("SameGroup", "gid2", List.of(), List.of(), root, false);
-        Processor p1 = new Processor("MyProcessor", TYPE, "id1", MAPPER.createObjectNode(), group1);
-        Processor p2 = new Processor("MyProcessor", TYPE, "id2", MAPPER.createObjectNode(), group2);
+        Processor p1 = new Processor("MyProcessor", TYPE, "id-111111111111", MAPPER.createObjectNode(), group1);
+        Processor p2 = new Processor("MyProcessor", TYPE, "id-222222222222", MAPPER.createObjectNode(), group2);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
                 root, Map.of(TYPE, List.of(p1, p2)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("Duplicate"));
-        assertTrue(errors.get(0).contains("SameGroup / MyProcessor"));
+        assertTrue(errors.isEmpty());
+        assertNotEquals(p1.getRelativePath(), p2.getRelativePath());
     }
 
     @Test
@@ -127,33 +157,30 @@ class FlowValidatorTest {
     }
 
     @Test
-    void validateReturnsErrorWhenGroupNamesClashAfterEncoding() {
+    void validateDisambiguatesGroupsThatClashAfterEncoding() {
         ProcessGroup root = rootGroup();
         ProcessGroup withSpecialChar = new ProcessGroup("Filter status>0", "g-1",
                 List.of(), List.of(), root, false);
         ProcessGroup withToken = new ProcessGroup("Filter status_gt_0", "g-2",
                 List.of(), List.of(), root, false);
-        Processor p1 = new Processor("P", TYPE, "id-1", MAPPER.createObjectNode(), withSpecialChar);
-        Processor p2 = new Processor("P", TYPE, "id-2", MAPPER.createObjectNode(), withToken);
+        Processor p1 = new Processor("P", TYPE, "id-111111111111", MAPPER.createObjectNode(), withSpecialChar);
+        Processor p2 = new Processor("P", TYPE, "id-222222222222", MAPPER.createObjectNode(), withToken);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
                 root, Map.of(TYPE, List.of(p1, p2)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("Filter status>0 / P"));
-        assertTrue(errors.get(0).contains("Filter status_gt_0 / P"));
-        assertTrue(errors.get(0).contains("id-1"));
-        assertTrue(errors.get(0).contains("id-2"));
+        assertTrue(errors.isEmpty());
+        assertNotEquals(p1.getRelativePath(), p2.getRelativePath());
     }
 
     @Test
-    void validateReturnsErrorWhenProcessorNamesClashAfterEncoding() {
+    void validateDisambiguatesProcessorsThatClashAfterEncoding() {
         ProcessGroup root = rootGroup();
-        Processor withSpecialChar = new Processor("Filter a>b", TYPE, "id-1",
+        Processor withSpecialChar = new Processor("Filter a>b", TYPE, "id-111111111111",
                 MAPPER.createObjectNode(), root);
-        Processor withToken = new Processor("Filter a_gt_b", TYPE, "id-2",
+        Processor withToken = new Processor("Filter a_gt_b", TYPE, "id-222222222222",
                 MAPPER.createObjectNode(), root);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
                 root, Map.of(TYPE, List.of(withSpecialChar, withToken)));
@@ -161,11 +188,8 @@ class FlowValidatorTest {
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
 
-        assertEquals(1, errors.size());
-        assertTrue(errors.get(0).contains("Filter a>b"));
-        assertTrue(errors.get(0).contains("Filter a_gt_b"));
-        assertTrue(errors.get(0).contains("id-1"));
-        assertTrue(errors.get(0).contains("id-2"));
+        assertTrue(errors.isEmpty());
+        assertNotEquals(withSpecialChar.getRelativePath(), withToken.getRelativePath());
     }
 
     @Test
@@ -248,17 +272,42 @@ class FlowValidatorTest {
     }
 
     @Test
-    void validateCollectsAllErrorsInSingleRun() {
+    void validateReturnsErrorWhenDisambiguatingSuffixesStillCollide() {
+        // Identifiers differ, but share the same last 12 characters, so the disambiguating
+        // suffix does not separate them either.
         ProcessGroup root = rootGroup();
-        Processor alpha1 = new Processor("Alpha", TYPE, "id-1", MAPPER.createObjectNode(), root);
-        Processor alpha2 = new Processor("Alpha", TYPE, "id-2", MAPPER.createObjectNode(), root);
-        Processor beta1 = new Processor("Beta", TYPE, "id-3", MAPPER.createObjectNode(), root);
-        Processor beta2 = new Processor("Beta", TYPE, "id-4", MAPPER.createObjectNode(), root);
+        Processor p1 = new Processor("MyProcessor", TYPE,
+                "11111111-1111-1111-1111-999999999999", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("MyProcessor", TYPE,
+                "22222222-2222-2222-2222-999999999999", MAPPER.createObjectNode(), root);
         FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
-                root, Map.of(TYPE, List.of(alpha1, alpha2, beta1, beta2)));
+                root, Map.of(TYPE, List.of(p1, p2)));
 
         List<String> errors = validator.validate(flow,
                 config(PropertyMapping.of("SQL Query", "query.sql")));
+
+        assertEquals(1, errors.size());
+        assertTrue(errors.get(0).contains("Duplicate"));
+        assertTrue(errors.get(0).contains("MyProcessor"));
+    }
+
+    @Test
+    void validateCollectsAllErrorsInSingleRun() {
+        ProcessGroup root = rootGroup();
+        Processor p1 = new Processor("MyProcessor", TYPE,
+                "11111111-1111-1111-1111-999999999999", MAPPER.createObjectNode(), root);
+        Processor p2 = new Processor("MyProcessor", TYPE,
+                "22222222-2222-2222-2222-999999999999", MAPPER.createObjectNode(), root);
+        ObjectNode scriptProps = MAPPER.createObjectNode();
+        scriptProps.put("Script Body", "println 'hi'");
+        scriptProps.put("Script File", "script.groovy");
+        Processor scripted = new Processor("Scripted", TYPE, "id-3", scriptProps, root);
+        FlowFile flow = new FlowFile(Path.of("flow.json"), MAPPER.createObjectNode(),
+                root, Map.of(TYPE, List.of(p1, p2, scripted)));
+
+        List<String> errors = validator.validate(flow,
+                config(PropertyMapping.of("SQL Query", "query.sql"),
+                        PropertyMapping.ofRegex("Script.*", "script.groovy")));
 
         assertEquals(2, errors.size());
     }

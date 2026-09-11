@@ -84,6 +84,19 @@ class ExportTransformIT {
         assertTrue(Files.isRegularFile(encodedProcessorDir.resolve("sql_query.sql")),
                 "Extract should write sql_query.sql under the encoded processor directory");
 
+        // The flow has two ExecuteSQL processors both named "DuplicateProcessor". Extract must
+        // give each one its own directory, disambiguated with the last 12 characters of its
+        // identifier, rather than reporting a duplicate-path error.
+        Path flowConfDir = flowDirTarget.resolve("test-bucket").resolve("flowConf_flow_for_it");
+        Path duplicateDir1 = flowConfDir.resolve("DuplicateProcessor_111111111111");
+        Path duplicateDir2 = flowConfDir.resolve("DuplicateProcessor_222222222222");
+        assertTrue(Files.isDirectory(duplicateDir1),
+                "Extract should create 'DuplicateProcessor_111111111111' for the first DuplicateProcessor");
+        assertTrue(Files.isDirectory(duplicateDir2),
+                "Extract should create 'DuplicateProcessor_222222222222' for the second DuplicateProcessor");
+        assertEquals("SELECT 1", Files.readString(duplicateDir1.resolve("sql_query.sql"), StandardCharsets.UTF_8));
+        assertEquals("SELECT 2", Files.readString(duplicateDir2.resolve("sql_query.sql"), StandardCharsets.UTF_8));
+
         // Flow JSON files must contain @references (no inline values for configured properties)
         try (Stream<Path> stream = Files.walk(flowDirTarget)) {
             List<Path> flowFiles = stream

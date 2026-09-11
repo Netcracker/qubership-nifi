@@ -191,8 +191,8 @@ For example, a processor named `Get value > 0` is stored under a directory named
 
 The replacement is one-way and not unique: a name that already contains a token
 spelling, such as `Get value _gt_ 0`, maps to the same directory as `Get value > 0`.
-Extract fails with a validation error if two processors or groups would collide
-this way.
+Extract resolves a collision like this the same way it resolves two processors sharing
+a plain name; see [Colliding names](#colliding-names).
 
 ## Extracted file layout
 
@@ -218,8 +218,38 @@ nifi/
 The property value becomes the reference
 `@flowConf_main-flow/Extract/PutSQL_pg/Load customers/sql_query.sql`.
 References always use forward slashes, on every platform.
-Since the path is derived from names alone, it has to identify the processor uniquely.
-Extract enforces this before writing anything (see [Error scenarios](#error-scenarios)).
+
+### Colliding names
+
+The path is built from process group and processor *names*, not identifiers, and checked for
+uniqueness across every configured processor type together. Two processors can therefore end up
+with the same directory path: they can share a name outright, have names that resolve to the same
+path after the character replacement in [Reference path format](#reference-path-format), or sit in
+process groups whose own names collide the same way. Extract keeps every such processor's directory
+distinct by appending an underscore and the last 12 characters of the processor's identifier (a
+UUID) to its directory name.
+
+For two `ExecuteSQL` processors both named `Load customers` in group `Extract`, with identifiers
+ending in `...111111111111` and `...222222222222`:
+
+```text
+nifi/
+  main-flow.json
+  flowConf_main-flow/
+    Extract/
+      Load customers_111111111111/
+        sql_query.sql
+      Load customers_222222222222/
+        sql_query.sql
+```
+
+Only the directory on disk, and the `@`-reference built from it, carry the suffix; the processor's
+name in the flow JSON is unchanged. Extract logs an INFO message naming both processors and the
+resolved paths whenever it disambiguates a collision this way.
+
+Extract still fails with a validation error in the one case the suffix cannot resolve: two
+processors whose identifiers happen to share their last 12 characters (see
+[Extract errors](#extract-errors)).
 
 ## Error scenarios
 
@@ -241,14 +271,14 @@ a missing `exportDir`, an unreadable file, malformed JSON - instead aborts the r
 
 | Message | Cause | Fix |
 | ------- | ----- | --- |
-| `Duplicate processor path '<path>': processor '<id>' and processor '<id>' produce the same path. ...` | Two processors resolve to the same parent group path plus processor name, so both would write to the same directory. | Rename one of the processors, or move one into a process group with a different name. |
+| `Duplicate processor path '<path>': processor '<id>' and processor '<id>' still map to the same export path after appending an identifier-based suffix. ...` | Two processors that share a directory path (see [Colliding names](#colliding-names)) also have identifiers that share their last 12 characters, so the disambiguating suffix does not separate them either. | Rename one of the processors, or move one into a process group with a different name. |
 | `Regex '<pattern>' matches multiple properties [<names>] in processor '<name>'. ...` | A `regex:` mapping matched more than one property name, so it is ambiguous which value to extract. | Tighten the pattern, for example by anchoring it or removing an alternative branch. |
 
-These checks run before Extract writes anything, across every configured processor type in the flow,
-so one bad name blocks the whole flow export. Paths are built from process group *names*, not
-identifiers, and uniqueness is checked across all configured types together. Build runs none of
-these checks: during Build, an ambiguous `regex:` mapping silently resolves to the first matching
-property.
+These checks run before Extract writes anything, across every configured processor type in the flow.
+Two processors sharing a directory path do not block the export; Extract resolves that automatically
+(see [Colliding names](#colliding-names)). An ambiguous `regex:` mapping does block it. Build runs
+none of these checks: during Build, an ambiguous `regex:` mapping silently resolves to the first
+matching property.
 
 ### Build errors
 
