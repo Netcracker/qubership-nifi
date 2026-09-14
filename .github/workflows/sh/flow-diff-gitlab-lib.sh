@@ -40,7 +40,9 @@ FLOW_DIFF_PATH=''
 # Assertions
 #
 
-# Prints the failure and returns 1. Callers run under `set -e`, so returning is enough to stop them.
+# Prints the failure and returns 1. Callers run under `set -e`, so returning is enough to stop them,
+# except inside a command substitution, where bash does not apply set -e; a function whose output is
+# read that way returns explicitly after calling fail.
 fail() {
     printf 'FAIL: %s\n' "$*" >&2
     return 1
@@ -317,43 +319,58 @@ open_mr() {
     # GitLab answers 409 when a merge request for the branch is already open, and the error body has
     # no iid. Without this the scenario would run every later call against the literal "null" and
     # still report success, because those calls fail and the assertions then compare empty values.
-    [ -n "$iid" ] || fail "GitLab opened no merge request for ${branch}"
+    # Callers read the iid through a command substitution, where bash does not apply set -e, so the
+    # failure has to return explicitly.
+    if [ -z "$iid" ]; then
+        fail "GitLab opened no merge request for ${branch}"
+        return 1
+    fi
     printf '%s' "$iid"
 }
 
-# wait_for_new_mr_pipeline <iid> <after-id>; prints the id of the first pipeline newer than
-# <after-id>. Identifying the pipeline by id rather than by commit sha keeps the second push of the
-# sticky-update scenario from matching the pipeline the first push created.
-wait_for_new_mr_pipeline() {
-    local iid="$1" after_id="$2"
-    local deadline=$((SECONDS + 180)) pipeline_id
-    while [ "$SECONDS" -lt "$deadline" ]; do
-        pipeline_id="$(gitlab_api GET "/projects/${FLOW_DIFF_PROJECT_ID}/merge_requests/${iid}/pipelines" \
-            | jq -r --argjson after "$after_id" '[.[] | select(.id > $after)] | sort_by(.id) | .[0].id // empty')"
-        if [ -n "$pipeline_id" ]; then
-            printf '%s' "$pipeline_id"
-            return 0
+# wait_for_mr_pipelines <iid> <sha>; waits until every pipeline of the merge request built for commit
+# <sha> has finished, and prints them one per line as <id>:<status>, oldest first.
+#
+# Pipelines are matched by commit rather than by id because one push can create two merge request
+# pipelines for the same commit. GitLab creates one when the merge request is opened, and a second
+# one when it processes the push, if the merge request already exists by then; the scenarios open it
+# within a second of the push. The resource group runs the two in turn, so a scenario that waited for
+# the first one only would leave the second one running, and the next push to the branch would
+# cancel it. Matching the commit also keeps the second push of the sticky-update scenario from
+# matching a pipeline of the first push.
+#
+# The wait returns once every pipeline listed for the commit has finished, and does not wait for a
+# pipeline GitLab creates after that. Such a pipeline diffs the same commit, so it writes the same
+# note body, and the next push cancels it; the next scenario matches its own commit and ignores it.
+wait_for_mr_pipelines() {
+    local iid="$1" sha="$2"
+    local appear_deadline=$((SECONDS + 180)) finish_deadline='' pipelines='' last_seen=''
+    # Every failure below returns explicitly: run_mr_pipeline reads the output through a command
+    # substitution, where bash does not apply set -e.
+    while :; do
+        pipelines="$(gitlab_api GET "/projects/${FLOW_DIFF_PROJECT_ID}/merge_requests/${iid}/pipelines" \
+            | jq -r --arg sha "$sha" '[.[] | select(.sha == $sha)] | sort_by(.id) | .[] | "\(.id):\(.status)"')"
+        if [ -n "$pipelines" ]; then
+            last_seen="$pipelines"
+            finish_deadline="${finish_deadline:-$((SECONDS + 240))}"
+            if ! grep -Evq ':(success|failed|canceled|skipped)$' <<< "$pipelines"; then
+                printf '%s\n' "$pipelines"
+                return 0
+            fi
+        fi
+        # Once a pipeline has been listed, an empty result means a failed request rather than a
+        # missing pipeline, so only the finish deadline applies from then on.
+        if [ -z "$finish_deadline" ] && [ "$SECONDS" -ge "$appear_deadline" ]; then
+            fail "no pipeline for commit ${sha} appeared on merge request ${iid} within 180 seconds"
+            return 1
+        fi
+        if [ -n "$finish_deadline" ] && [ "$SECONDS" -ge "$finish_deadline" ]; then
+            fail "the pipelines for commit ${sha} on merge request ${iid} did not all finish within 240 seconds;" \
+                "last seen: $(paste -sd ' ' - <<< "$last_seen")"
+            return 1
         fi
         sleep 5
     done
-    fail "no pipeline newer than ${after_id} appeared on merge request ${iid} within 180 seconds"
-}
-
-# wait_for_pipeline <pipeline-id>; prints its terminal status.
-wait_for_pipeline() {
-    local pipeline_id="$1"
-    local deadline=$((SECONDS + 240)) status=''
-    while [ "$SECONDS" -lt "$deadline" ]; do
-        status="$(gitlab_api GET "/projects/${FLOW_DIFF_PROJECT_ID}/pipelines/${pipeline_id}" | jq -r '.status')"
-        case "$status" in
-            success | failed | canceled | skipped)
-                printf '%s' "$status"
-                return 0
-                ;;
-        esac
-        sleep 5
-    done
-    fail "pipeline ${pipeline_id} was still ${status} after 240 seconds"
 }
 
 # flow_diff_note <iid>; prints the single note whose body opens with the marker, as JSON. Prints
@@ -414,7 +431,6 @@ save_test_context() {
         printf 'FLOW_DIFF_PATH=%s\n' "${FLOW_DIFF_PATH:-}"
         printf 'FLOW_DIFF_MR_IID=%s\n' "${FLOW_DIFF_MR_IID:-}"
         printf 'FLOW_DIFF_NOTE_ID=%s\n' "${FLOW_DIFF_NOTE_ID:-}"
-        printf 'FLOW_DIFF_PIPELINE_ID=%s\n' "${FLOW_DIFF_PIPELINE_ID:-}"
         printf 'FLOW_DIFF_SKIP_MR_IID=%s\n' "${FLOW_DIFF_SKIP_MR_IID:-}"
     } > "$FLOW_DIFF_CONTEXT_FILE"
     umask "$previous_umask"
@@ -432,18 +448,24 @@ load_test_context() {
 # Scenarios
 #
 
-# run_mr_pipeline <iid> <after-id>; waits for the merge request's next pipeline to finish, asserts it
-# succeeded, and prints its id. Dumps every job trace first when it did not, because the status alone
-# never says which line of the pipeline script failed.
+# run_mr_pipeline <iid> <sha>; waits for the merge request pipelines built for commit <sha>, asserts
+# that all of them succeeded, and prints the id of the newest one. Before asserting, it dumps the job
+# traces of every pipeline that did not succeed, because the status alone never says which line of
+# the pipeline script failed.
 run_mr_pipeline() {
-    local iid="$1" after_id="$2" pipeline_id status
-    pipeline_id="$(wait_for_new_mr_pipeline "$iid" "$after_id")"
-    status="$(wait_for_pipeline "$pipeline_id")"
-    if [ "$status" != 'success' ]; then
-        dump_pipeline_jobs "$pipeline_id" >&2
-    fi
-    assert_equals 'success' "$status" "status of pipeline ${pipeline_id} on merge request ${iid}" >&2
-    printf '%s' "$pipeline_id"
+    local iid="$1" sha="$2" pipelines pipeline_id status newest='' want='' got=''
+    pipelines="$(wait_for_mr_pipelines "$iid" "$sha")" || return 1
+    while IFS=: read -r pipeline_id status; do
+        [ "$status" = 'success' ] || dump_pipeline_jobs "$pipeline_id" >&2
+        want="${want:+${want} }${pipeline_id}:success"
+        got="${got:+${got} }${pipeline_id}:${status}"
+        newest="$pipeline_id"
+    done <<< "$pipelines"
+    # scenario_sticky_update reads the output through a command substitution, where bash does not
+    # apply set -e, so a failed assertion has to return explicitly.
+    assert_equals "$want" "$got" \
+        "the status of each pipeline for commit ${sha} on merge request ${iid}" >&2 || return 1
+    printf '%s' "$newest"
 }
 
 # A merge request that changes a processor property gets a note naming the changed property.
@@ -452,9 +474,10 @@ scenario_significant_change() {
         '(.flowContents.processors[] | select(.name == "Filter status>0") | .properties["SQL Query"])
             |= sub("status > 0"; "status > 1")'
 
-    local iid pipeline_id note body
+    local sha iid note body
+    sha="$(git -C "$FLOW_DIFF_REPO_DIR" rev-parse HEAD)"
     iid="$(open_mr 'flow-significant' 'Narrow the status filter')"
-    pipeline_id="$(run_mr_pipeline "$iid" 0)"
+    run_mr_pipeline "$iid" "$sha" > /dev/null
 
     note="$(flow_diff_note "$iid")"
     [ -n "$note" ] || fail "merge request ${iid} carries no note opening with ${MARKER}"
@@ -464,7 +487,6 @@ scenario_significant_change() {
 
     # The sticky-update scenario pushes a second commit onto this same merge request.
     FLOW_DIFF_MR_IID="$iid"
-    FLOW_DIFF_PIPELINE_ID="$pipeline_id"
     FLOW_DIFF_NOTE_ID="$(jq -r '.id' <<< "$note")"
     save_test_context
     echo "ok: note ${FLOW_DIFF_NOTE_ID} posted on merge request ${iid}"
@@ -484,8 +506,9 @@ scenario_sticky_update() {
     push_flow_change 'flow-significant' 'raise the LogAttribute log level' \
         '(.flowContents.processors[] | select(.name == "LogAttribute") | .properties["Log Level"]) = "debug"'
 
-    local pipeline_id note body
-    pipeline_id="$(run_mr_pipeline "$FLOW_DIFF_MR_IID" "$FLOW_DIFF_PIPELINE_ID")"
+    local sha pipeline_id note body
+    sha="$(git -C "$FLOW_DIFF_REPO_DIR" rev-parse HEAD)"
+    pipeline_id="$(run_mr_pipeline "$FLOW_DIFF_MR_IID" "$sha")"
     echo "ok: pipeline ${pipeline_id} ran for the second push"
 
     note="$(flow_diff_note "$FLOW_DIFF_MR_IID")"
@@ -508,9 +531,10 @@ scenario_technical_change() {
         'walk(if type == "object" and has("instanceIdentifier")
             then .instanceIdentifier |= ("0000" + .[4:]) else . end)'
 
-    local iid note body
+    local sha iid note body
+    sha="$(git -C "$FLOW_DIFF_REPO_DIR" rev-parse HEAD)"
     iid="$(open_mr 'flow-technical' 'Rewrite the NiFi instance identifiers')"
-    run_mr_pipeline "$iid" 0 > /dev/null
+    run_mr_pipeline "$iid" "$sha" > /dev/null
 
     note="$(flow_diff_note "$iid")"
     [ -n "$note" ] || fail "merge request ${iid} carries no note opening with ${MARKER}"
