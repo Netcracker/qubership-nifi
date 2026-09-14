@@ -1,0 +1,60 @@
+---
+# GitLab instance and runner used by the flow-diff-pipeline-test workflow to run the merge request
+# pipeline shipped in flow-diff-ci-cd-pipeline/.gitlab-ci.yml against a real GitLab.
+# Named explicitly so the network the runner joins is a stated fact rather than a function of this
+# directory's path; the workflow looks it up as flow-diff-gitlab_default.
+name: flow-diff-gitlab
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:18.11.11-ce.0@sha256:10528ba59904282f06798db2075d0ccb34a07f585dcd108d4a7d25fab9bbc271
+    container_name: flow-diff-gitlab
+    hostname: gitlab
+    # external_url names gitlab:8929 rather than localhost because GitLab bakes it into
+    # CI_REPOSITORY_URL and CI_API_V4_URL, and the job container resolves that name over this
+    # network. The workflow maps the same name to 127.0.0.1 in /etc/hosts, so the host side of the
+    # test uses one URL with the pipeline.
+    # Everything disabled below is a service the test never reads, and most of the first-boot cost.
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab:8929'
+        puma['worker_processes'] = 0
+        sidekiq['max_concurrency'] = 5
+        prometheus_monitoring['enable'] = false
+        registry['enable'] = false
+        alertmanager['enable'] = false
+        gitlab_kas['enable'] = false
+        gitlab_rails['gitlab_default_projects_features_container_registry'] = false
+    ports:
+      - 127.0.0.1:8929:8929
+    shm_size: '256m'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl --fail --silent --show-error --max-time 10 http://localhost:8929/-/readiness > /dev/null"
+      interval: 10s
+      timeout: 15s
+      retries: 60
+      start_period: 120s
+  gitlab-runner:
+    image: gitlab/gitlab-runner:v18.11.4@sha256:96fbcefea955010d39e22408abd71e76c4da0c732bc200506fbef1c001c4d1c6
+    container_name: flow-diff-gitlab-runner
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    # The runner creates every job container through the host daemon, which is also where the
+    # locally built flow-diff-cli image lives. It starts unregistered; register_gitlab_runner
+    # writes config.toml afterwards, and the runner reloads it on its own.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - runner-config:/etc/gitlab-runner
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "gitlab-runner --version > /dev/null"
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 5s
+volumes:
+  runner-config:

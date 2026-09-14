@@ -1,0 +1,160 @@
+---
+name: flow-diff-pipeline-test
+
+# Runs the GitLab merge request pipeline shipped in flow-diff-ci-cd-pipeline/.gitlab-ci.yml against a
+# real GitLab instance. The job builds flow-diff-ci-cd-pipeline/Dockerfile from this repository's own
+# sources, starts GitLab and a runner with docker compose, seeds a project with the pipeline and a
+# NiFi flow, and drives four merge requests through it.
+#
+# The pipeline itself is shell inside a YAML file that nothing else executes, so this workflow is the
+# only thing that reports a break in its rules: guard, its totals gate, or its sticky note.
+on:
+  push:
+    paths:
+      - 'flow-diff-ci-cd-pipeline/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps/**'
+      - 'qubership-nifi-tools/qubership-nifi-tools-common/**'
+      - 'qubership-nifi-tools/pom.xml'
+      - 'pom.xml'
+      - '.github/workflows/flow-diff-pipeline-test.yml'
+      - '.github/workflows/sh/flow-diff-gitlab-lib.sh'
+      - '.github/docker/flow-diff-gitlab/**'
+      - '.github/configuration/flow-diff-gitlab/**'
+  pull_request:
+    paths:
+      - 'flow-diff-ci-cd-pipeline/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli/**'
+      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps/**'
+      - 'qubership-nifi-tools/qubership-nifi-tools-common/**'
+      - 'qubership-nifi-tools/pom.xml'
+      - 'pom.xml'
+      - '.github/workflows/flow-diff-pipeline-test.yml'
+      - '.github/workflows/sh/flow-diff-gitlab-lib.sh'
+      - '.github/docker/flow-diff-gitlab/**'
+      - '.github/configuration/flow-diff-gitlab/**'
+  workflow_dispatch: null
+
+permissions:
+  contents: read
+
+# Pulling a 1.8 GB image, booting GitLab, and driving four merge requests costs twenty minutes or
+# more, so a superseded run is not worth finishing.
+concurrency:
+  group: flow-diff-pipeline-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLOW_DIFF_COMPOSE_FILE: .github/docker/flow-diff-gitlab/docker-compose.yaml
+
+jobs:
+  flow-diff-pipeline-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      # Only the modules whose jars the image carries. The full reactor builds every NAR and bundle
+      # in the repository, none of which reaches flow-diff-cli.
+      - name: Build Maven artifacts
+        run: >
+          mvn --batch-mode install
+          -pl qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps -am
+          -DskipUnitTests=true -Dgpg.skip=true
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The build context is the repository root: the Dockerfile copies the jars that the
+      # qubership-nifi-flow-diff-cli-deps module staged into its target/lib.
+      - name: Build the flow-diff CLI Docker image
+        run: docker build -t flow-diff-cli:it -f flow-diff-ci-cd-pipeline/Dockerfile .
+
+      # GitLab hands the job container a gitlab:8929 clone URL. Resolving the same name here lets the
+      # host side of the test push to the URL the pipeline itself uses.
+      - name: Map the gitlab host name to the local instance
+        run: echo '127.0.0.1 gitlab' | sudo tee -a /etc/hosts
+
+      # A first boot runs the database migrations, which is most of the wait.
+      - name: Start GitLab and wait for health
+        run: docker compose -f "$FLOW_DIFF_COMPOSE_FILE" up -d --wait --wait-timeout 600
+
+      - name: Configure GitLab and seed the test project
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          network="$(docker network ls --filter name=flow-diff-gitlab_default --format '{{.Name}}' | head -1)"
+          seed_gitlab_token
+          register_gitlab_runner "$network"
+          create_test_project "$PWD" "${RUNNER_TEMP}/flow-diff-project"
+          save_test_context
+
+      # Opened here rather than in its own scenario so that the three merge requests below run between
+      # this and the assertion, and a GitLab that is merely slow to create pipelines is ruled out.
+      - name: Open a merge request outside the flow path
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          load_test_context
+          open_out_of_scope_mr
+
+      - name: Report a significant flow change
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          load_test_context
+          scenario_significant_change
+
+      - name: Update the same note on a second push
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          load_test_context
+          scenario_sticky_update
+
+      - name: Report no change for a technical-only edit
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          load_test_context
+          scenario_technical_change
+
+      - name: Check that no flow-diff job ran outside the flow path
+        run: |
+          set -euo pipefail
+          . .github/workflows/sh/flow-diff-gitlab-lib.sh
+          load_test_context
+          assert_out_of_scope_skipped
+
+      - name: Collect Docker logs on failure
+        if: failure()
+        run: docker compose -f "$FLOW_DIFF_COMPOSE_FILE" logs --no-color > ./flow-diff-gitlab.log 2>&1 || true
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flow-diff-pipeline-test-logs
+          path: ./flow-diff-gitlab.log
+          retention-days: 2
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f "$FLOW_DIFF_COMPOSE_FILE" down -v || true
+          rm -f ./flow-diff-gitlab-context.env ./flow-diff-gitlab.log
