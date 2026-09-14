@@ -11,7 +11,7 @@
     <artifactId>qubership-nifi-flow-diff-cli-deps</artifactId>
     <name>${project.groupId}:${project.artifactId}</name>
     <packaging>pom</packaging>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.qubership.nifi</groupId>

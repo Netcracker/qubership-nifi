@@ -24,6 +24,7 @@ no pipeline artifacts are produced. The MR comment is the only output.
 | ------------------ | --------------------------------------------------------------------------------------------------- |
 | `.gitlab-ci.yml`   | The pipeline itself. Copy this into the target repository's root and adjust the `variables:` block. |
 | `Dockerfile`       | The image used in the pipeline.                                                                     |
+
 ## Setup walkthrough
 
 ### 1. Create the GitLab API token
@@ -128,7 +129,8 @@ You need Docker, a JDK, and Maven.
 1. Build the image under the tag the test expects:
 
    ```shell
-   mvn install -DskipUnitTests=true
+   mvn -f qubership-nifi-tools/pom.xml install -pl qubership-nifi-flow-diff-cli-deps -am \
+       -DskipUnitTests=true -Dgpg.skip=true
    docker build -t flow-diff-cli:it -f flow-diff-ci-cd-pipeline/Dockerfile .
    ```
 

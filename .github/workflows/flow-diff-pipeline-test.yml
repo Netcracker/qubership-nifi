@@ -69,12 +69,13 @@ jobs:
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
 
-      # Only the modules whose jars the image carries. The full reactor builds every NAR and bundle
-      # in the repository, none of which reaches flow-diff-cli.
+      # Build only the modules whose jars the image carries. Maven starts from the tools aggregator
+      # because the root reactor loads every module's model before it applies -pl, and
+      # qubership-nifi-quarkus-consul imports a BOM from GitHub Packages that this job's token cannot read.
       - name: Build Maven artifacts
         run: >
-          mvn --batch-mode install
-          -pl qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps -am
+          mvn --batch-mode -f qubership-nifi-tools/pom.xml install
+          -pl qubership-nifi-flow-diff-cli-deps -am
           -DskipUnitTests=true -Dgpg.skip=true
         env:
           GITHUB_ACTOR: ${{ github.actor }}
