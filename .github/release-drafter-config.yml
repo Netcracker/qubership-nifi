@@ -35,6 +35,7 @@ template: |
   ## Release artifacts
 
   - Docker image: ghcr.io/netcracker/qubership-nifi:$RESOLVED_VERSION
+  - Docker Flow Diff image: ghcr.io/netcracker/qubership-nifi-flow-diff-cli:$RESOLVED_VERSION
 
   ---
 
