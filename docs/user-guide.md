@@ -359,7 +359,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 
 <!-- Table for additional flow analysis rules. DO NOT REMOVE. -->
 
-|Flow Analysis Rules|NAR|Description|
+|Flow Analysis Rule|NAR|Description|
 |---|---|---|
 |`UniqueProcessorNames`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each processor whose name is not unique among the processors of the process group.|
 |`UniqueProcessGroupNames`|qubership-nifi-flow-analysis-rules-nar|Produces a rule violation for each child process group whose name is not unique among the child process groups of the parent process group.|

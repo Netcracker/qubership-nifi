@@ -48,7 +48,7 @@ public class MarkdownUtils {
     private static final String HEADER_PROCESSORS = "|Processor" + HEADER_BASE;
     private static final String HEADER_CONTROLLER_SERVICES = "|Controller Service" + HEADER_BASE;
     private static final String HEADER_REPORTING_TASKS = "|Reporting Task" + HEADER_BASE;
-    private static final String HEADER_FLOW_ANALYSIS_RULE = "|Flow Analysis Rules" + HEADER_BASE;
+    private static final String HEADER_FLOW_ANALYSIS_RULE = "|Flow Analysis Rule" + HEADER_BASE;
     private static final String TITLE_SEPARATOR = "|---|---|---|";
 
     private static final String PROPERTIES_DESCRIPTION_HEADER = "|Display Name|API Name"
