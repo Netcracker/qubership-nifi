@@ -44,7 +44,7 @@ services:
         condition: service_healthy
     # The runner creates every job container through the host daemon, which is also where the
     # locally built flow-diff-cli image lives. It starts unregistered; register_gitlab_runner
-    # writes config.toml afterwards, and the runner reloads it on its own.
+    # writes config.toml afterward, and the runner reloads it on its own.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - runner-config:/etc/gitlab-runner
@@ -58,3 +58,4 @@ services:
       start_period: 5s
 volumes:
   runner-config:
+    driver: local
