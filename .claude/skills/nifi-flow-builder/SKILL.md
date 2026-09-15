@@ -26,21 +26,25 @@ It reads only the KB's JSON files and never contacts a NiFi instance. Every comm
 `--kb <path>`.
 
 ## 1. Locate the Knowledge Base
+
 ```bash
 kb.py locate
 ```
 
 This resolves the KB in order: the `--kb` argument, then `$NIFI_KB_PATH`, then a scan of the
-current directory and the enclosing repository. It prints the path, the NiFi version and the
-component counts.
+current directory and the enclosing repository. It prints the path, the NiFi version, the
+definition format and the component counts. A KB built from NiFi 1.x (`normalized-nifi-1x`)
+answers every command below the same way as one built from 2.x (`native-nifi-2x`); where the
+two versions differ, this document says so.
 
 Report the NiFi version to the user before you build anything. Everything downstream is
 correct only for that version, so the user needs to know which one you used.
 
 Two cases need a decision rather than a guess:
 
-- **Several KBs found.** The command lists them and stops. Pick the one whose NiFi version
-  matches the target flow, or ask. Do not default to the first.
+- **Several KBs found.** `validate` and `normalize` take the one whose NiFi version equals the
+  flow's own bundle version, and name it. Every other command lists them and stops: pick the
+  one whose NiFi version matches the target flow, or ask. Do not default to the first.
 - **No KB found.** Stop and say so. Ask the user for `NIFI_KB_PATH`, or point them at
   `qubership-nifi-kb-builder-tool` to build one against their NiFi. Do not carry on from
   memory: producing a plausible flow with wrong bundle coordinates is worse than producing
@@ -56,6 +60,9 @@ A mismatch is a real fork in the road, so raise it rather than resolving it sile
 a NiFi 1.x flow with a 2.x KB means either a deliberate upgrade (types and properties move) or
 the wrong KB. Ask which.
 
+For an upgrade, pass the target's KB with `--kb`. Without it, `validate` picks the KB that
+matches the flow's current version, and a 1.x flow checked against the 1.x KB looks clean.
+
 ## 3. Find the components
 
 Work down this ladder and stop as soon as you have what you need. The catalog holds hundreds
@@ -68,6 +75,7 @@ them whole wastes most of your context before you have written anything.
 | Exact property keys, defaults, allowable values | `kb.py props <Name>` |
 | Full picture: description, relationships, attributes, use cases | `kb.py show <Name>` |
 | Vendor prose for a tricky component | `kb.py show <Name> --details` |
+| The full component page of a 1.x KB: dynamic properties, dynamic relationships, state | `kb.py show <Name> --doc` |
 | Which service fits this service-typed property? | `kb.py services <Name> --property "<Property>"` |
 
 `kb.py props` is usually enough to configure a component and costs a fraction of `show`. Reach
@@ -109,7 +117,10 @@ have an incoming connection; `INPUT_REQUIRED` components must have one.
 never holds a service name or type.
 
 **Use Expression Language only where it is allowed.** The `EL` column gives the scope. In a
-`NONE` property, `${...}` is stored as literal text.
+`NONE` property, `${...}` is stored as literal text. A 1.x KB uses the same scope names:
+`ENVIRONMENT` is the scope 1.x calls "Variable Registry Only", which resolves variables,
+environment variables and system properties but no FlowFile attributes. `UNDEFINED` marks a
+1.x property that accepts Expression Language without declaring a scope.
 
 **Keep secrets out of the file.** Properties marked `[SENSITIVE]` should reference a parameter
 (`#{db.password}`), never an inline literal. A flow definition is a committed artifact.
@@ -131,10 +142,17 @@ reschedules the task the instant it returns and burns a thread spinning on empty
 That cost is invisible in a test flow and obvious on a busy cluster. `kb.py props` prints
 the component's default under `sched`; take it when it is non-zero, and choose one
 yourself when it is not - several sources, `GetFile` among them, ship with a zero default.
+A 1.x KB records no default of the component's own, so there `props` shows the framework's
+`0 sec` for every processor and the choice is always yours.
 100 millis is a common floor for a source that must react quickly, and seconds are normal
 for a directory poll. A processor fed by a
 connection is different: an empty queue already stops it being scheduled, so `0 sec` is
 the normal setting there.
+
+**Use a scheduling strategy from the `supported` list** that `kb.py props` prints under
+`sched`. NiFi 2.x offers `TIMER_DRIVEN` and `CRON_DRIVEN`; 1.x adds `EVENT_DRIVEN` for the
+processors that support it. Never write `PRIMARY_NODE_ONLY`, which 1.x deprecates and 2.0
+removed: use `TIMER_DRIVEN` with `executionNode: "PRIMARY"`.
 
 **Batch where the processor allows it.** `kb.py props` reports whether a component supports
 batching. When it does, `runDurationMillis` above zero lets NiFi handle several FlowFiles
@@ -162,6 +180,12 @@ away in 2.0, and a `variables` map in a 2.x flow is accepted and then ignored, w
 worse than an error: the flow imports cleanly and every `${name}` reading a variable resolves
 to nothing once it runs. If the user asks for variables, give them a parameter context.
 
+In NiFi 1.x the Variable Registry still works but is deprecated: a `variables` map on a
+process group is read, and `${name}` resolves a variable in any property whose EL scope is
+`ENVIRONMENT` or `FLOWFILE_ATTRIBUTES`. Every new 1.x flow uses parameters. When you edit an
+existing 1.x flow that uses variables, keep them, and use them for the change as well:
+converting the flow to parameters is a major modification that the edit does not need.
+
 When a property shows `only applies when ...`, it is dependent: NiFi hides it until the
 controlling property holds one of the listed values. Do not set a dependent property whose
 condition is not met, and do not treat one as required when it is inactive.
@@ -179,10 +203,16 @@ defaults) rather than a fixed guess, and generates `propertyDescriptors` for the
 you set. It edits in place unless you pass `-o`. Running it on a flow that is already complete
 changes nothing, so it is safe on a file you are editing.
 
-It also removes two fields that belong to a NiFi download rather than to the flow: the
-top-level `latest`, which Registry snapshots never carry, and an empty `variables` map, which
-nothing in 2.x reads. A `variables` map with entries in it is left alone and reported by
-`validate`, because deleting it would throw away values the user meant to keep.
+A 1.x KB records none of those per-component defaults, so for 1.x `normalize` writes NiFi's
+framework defaults instead. It also writes the fields of the KB's NiFi version and no others:
+a 1.x flow keeps `variables: {}` on every group, and gets no `portFunction` on ports and no
+`dynamic` in `propertyDescriptors`, because 1.x has neither field.
+
+It also removes the top-level `latest`, which belongs to a NiFi download rather than to the
+flow and which Registry snapshots never carry. For 2.x it removes an empty `variables` map
+too, since nothing in 2.x reads one. A `variables` map with entries in it is left alone and,
+for 2.x, reported by `validate`, because deleting it would throw away values the user meant
+to keep.
 
 `validate` checks types, bundles, property keys, allowable values, EL scope, dependent and
 required properties, controller service API compatibility, relationship handling, input
@@ -191,7 +221,7 @@ connection endpoints, and the fields the importer needs. It exits non-zero on an
 
 Run them, fix what is reported, and run again until clean. Then say so and quote the counts.
 
-Warnings deserve a decision rather than a reflex. Two are worth reading closely:
+Warnings deserve a decision rather than a reflex. Three are worth reading closely:
 
 - A relationship the documentation names but the catalog does not declare. Some processors
   build their relationship set from property values - `ConsumeKafka` adds `parse failure` when
@@ -200,6 +230,8 @@ Warnings deserve a decision rather than a reflex. Two are worth reading closely:
   probably real.
 - A sensitive property holding a literal, or an external service whose type cannot be checked.
   Either may be what the user wants.
+- A required sensitive property with no value. NiFi leaves sensitive values out of a
+  downloaded flow, so every export shows this. In a flow you write, reference a parameter.
 
 ## 6. Verify against a live NiFi and Registry when they are reachable
 
@@ -214,7 +246,8 @@ verify_live.py <flow.json> \
   --auth certificate --certificate-file <client.p12> --ca-file <ca.pem>
 ```
 
-The two targets answer different questions, and either may be given on its own.
+The two targets answer different questions, and either may be given on its own. The same
+command works against NiFi 1.x and 2.x.
 
 `--nifi-url` imports the flow into a temporary process group, reads back every component's
 validation state, and deletes the group again. This is the check that knows what a component

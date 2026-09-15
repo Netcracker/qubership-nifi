@@ -15,7 +15,7 @@ so the API answers `HTTP 500` with a stack trace in `nifi-app.log` and no useful
 happens before any component is validated, which makes it look unrelated to the flow's
 contents.
 
-Observed on NiFi 2.10 as mandatory:
+Observed on NiFi 2.10 as mandatory, and written by every NiFi 1.28.1 export as well:
 
 | Element | Fields the importer dereferences |
 | --- | --- |
@@ -83,11 +83,15 @@ written out rather than omitted.
 Set `parameterContextName` to a key of `parameterContexts` if anything in the group references
 a parameter; leave it `null` otherwise. Child groups inherit the nearest ancestor's binding.
 
-There is no `variables` key. The Variable Registry was removed in NiFi 2.0, so a 2.x export
-has no such field and a 2.x import ignores one you supply. That last part is what makes it
-worth stating: a flow carrying variables loads without complaint, and every `${name}` that
+There is no `variables` key in 2.x. The Variable Registry was removed in NiFi 2.0, so a 2.x
+export has no such field and a 2.x import ignores one you supply. That last part is what makes
+it worth stating: a flow carrying variables loads without complaint, and every `${name}` that
 reads one silently evaluates to nothing at runtime. Parameters replace them - declare a
 parameter context and reference it as `#{name}`.
+
+A 1.x export writes a `variables` map of names to values on every process group, empty when
+the group has none, and NiFi 1.x reads it on import. Variables are deprecated in 1.x: a new
+flow uses parameters, and an existing flow keeps the variables it has.
 
 ## Processor
 
@@ -140,13 +144,20 @@ Field notes:
   and omitting the field, or setting it to `null`, fails the upload with HTTP 500. An
   empty map is accepted, and so is one that covers only some of the properties - NiFi
   does not read the contents at import. Write the full mirror anyway, because that is
-  what a re-export produces and anything less shows up as diff noise.
+  what a re-export produces and anything less shows up as diff noise. A 1.x export goes
+  further and lists a descriptor for every property the component declares, set or not,
+  sometimes with a `resourceDefinition`; NiFi 1.28.1 accepts the shorter map that
+  `normalize` writes.
 - `dynamic` marks a property as user-defined rather than one the component declares, so
   it is `true` exactly for the keys you added under `dynamic properties: yes`. NiFi 2.x
   writes it; 1.x exports have no such field, and `kb.py normalize` follows the Knowledge
   Base version rather than adding a key the target NiFi never produces. Let `normalize`
   generate all of this from the catalog rather than writing it by hand.
-- `schedulingStrategy` must be one of the strategies `kb.py props` lists under `sched`.
+- `schedulingStrategy` must be one of the strategies `kb.py props` lists under `sched`:
+  `TIMER_DRIVEN` or `CRON_DRIVEN` in 2.x, plus `EVENT_DRIVEN` in 1.x for a processor that
+  supports it. `PRIMARY_NODE_ONLY` is deprecated in 1.x and gone in 2.x; express it as
+  `executionNode: "PRIMARY"` instead. A `CRON_DRIVEN` period is a Quartz cron expression,
+  such as `* * * * * ?`.
   `TIMER_DRIVEN` with `schedulingPeriod: "0 sec"` means run as often as possible. That is
   the right setting for a processor fed by a connection, because an empty queue stops it
   being scheduled anyway, and the wrong one for a source: with no upstream queue, nothing
@@ -252,7 +263,8 @@ processor declares.
 ```
 
 Set `type` and `componentType` to `OUTPUT_PORT` for an output port. `portFunction` is
-`STANDARD` or `FAILURE`.
+`STANDARD` or `FAILURE`. It exists from NiFi 2.0: a 1.x port has no such field, and a 1.x
+flow leaves it out.
 
 Funnels are minimal: `identifier`, `position`, `componentType: "FUNNEL"` and
 `groupIdentifier`. Labels add `label`, `width` and `height`, and affect nothing at runtime.

@@ -10,6 +10,7 @@ Python 3.8+, standard library only.
 """
 
 import argparse
+import collections
 import difflib
 import json
 import os
@@ -37,6 +38,31 @@ EL_TOKEN = re.compile(r"(?<!\$)\$\{")
 PARAM_TOKEN = re.compile(r"(?<!#)#\{")
 # The all-zero prefix that hand-written flows reach for when they number components.
 PLACEHOLDER_ID = re.compile(r"^0{8}-0{4}-0{4}-0{4}-", re.IGNORECASE)
+
+# The definitionFormat of a component.json built from NiFi 1.x. It combines the 1.x instance API
+# with details taken from the component HTML, and its field names and shapes differ from those of
+# the 2.x definition API that the rest of this script reads.
+FORMAT_1X = "normalized-nifi-1x"
+
+EL_SCOPES = ("NONE", "ENVIRONMENT", "FLOWFILE_ATTRIBUTES")
+
+# NiFi 1.x reports Expression Language support as a display label. In 1.x, ENVIRONMENT covers the
+# Variable Registry as well as environment variables and system properties.
+EL_SCOPE_1X = {
+    "Not Supported": "NONE",
+    "Variable Registry Only": "ENVIRONMENT",
+    "Variable Registry and FlowFile Attributes": "FLOWFILE_ATTRIBUTES",
+}
+
+# Default concurrent tasks and scheduling period per strategy, from
+# org.apache.nifi.scheduling.SchedulingStrategy in NiFi 1.28.1. A 1.x Knowledge Base records no
+# per-component scheduling defaults, so these framework values stand in for every processor.
+# EVENT_DRIVEN has no period. PRIMARY_NODE_ONLY is left out because 1.x deprecates it.
+SCHEDULING_1X = {
+    "TIMER_DRIVEN": (1, "0 sec"),
+    "CRON_DRIVEN": (1, "* * * * * ?"),
+    "EVENT_DRIVEN": (0, None),
+}
 
 
 class KbError(Exception):
@@ -74,8 +100,12 @@ def _search_roots(start):
     return roots
 
 
-def discover(explicit=None, search_from=None):
-    """Resolve the Knowledge Base: --kb, then NIFI_KB_PATH, then the repository."""
+def discover(explicit=None, search_from=None, flow_version=None):
+    """Resolve the Knowledge Base: --kb, then NIFI_KB_PATH, then the repository.
+
+    When the repository holds several Knowledge Bases, `flow_version` picks the one whose NiFi
+    version equals it. Without an exact match the choice is left to the caller.
+    """
     if explicit:
         path = Path(explicit).expanduser().resolve()
         if not _is_kb_root(path):
@@ -111,6 +141,13 @@ def discover(explicit=None, search_from=None):
             "No NiFi Knowledge Base found. Set NIFI_KB_PATH, pass --kb <path>, or build "
             "one with %s-tool." % BUILDER_PREFIX
         )
+    if len(found) > 1 and flow_version:
+        matching = [p for p in found
+                    if _manifest(p).get("nifi", {}).get("version") == flow_version]
+        if len(matching) == 1:
+            print("Several Knowledge Bases found; using %s, which matches the flow's NiFi %s."
+                  % (matching[0], flow_version), file=sys.stderr)
+            return matching[0]
     if len(found) > 1:
         listing = "\n".join(
             "  %s  (NiFi %s)" % (p, _manifest(p).get("nifi", {}).get("version", "?"))
@@ -125,6 +162,87 @@ def discover(explicit=None, search_from=None):
 
 def _manifest(kb):
     return json.loads((kb / "manifest.json").read_text(encoding="utf-8"))
+
+
+def flow_nifi_version(path):
+    """The NiFi version a flow was built for, or None when the file does not say.
+
+    Built-in components carry the NiFi version as their bundle version, so the most common version
+    among the org.apache.nifi bundles is the flow's. Bundles from other groups carry versions of
+    their own and are not counted.
+    """
+    try:
+        root, _ = root_group(json.loads(Path(path).read_text(encoding="utf-8")))
+    except (OSError, ValueError, KbError):
+        return None
+    counts = collections.Counter()
+    for _, group in walk_groups(root):
+        for component in (group.get("processors") or []) + (group.get("controllerServices") or []):
+            bundle = component.get("bundle") or {}
+            if bundle.get("group") == "org.apache.nifi" and bundle.get("version"):
+                counts[bundle["version"]] += 1
+    return counts.most_common(1)[0][0] if counts else None
+
+
+def _adapt_descriptor_1x(descriptor):
+    allowed = descriptor.get("allowableValues") or []
+    if allowed and "allowableValue" in allowed[0]:
+        descriptor["allowableValues"] = [
+            {"value": item["allowableValue"].get("value"),
+             "displayName": item["allowableValue"].get("displayName"),
+             "description": item["allowableValue"].get("description", "")}
+            for item in allowed
+        ]
+    service_api = descriptor.get("identifiesControllerService")
+    if isinstance(service_api, str) and "typeProvidedByValue" not in descriptor:
+        bundle = descriptor.get("identifiesControllerServiceBundle") or {}
+        descriptor["typeProvidedByValue"] = dict(bundle, type=service_api)
+    label = descriptor.get("expressionLanguageScope")
+    if label not in EL_SCOPES:
+        descriptor.setdefault("expressionLanguageScopeDescription", label)
+        # "true (undefined scope)" marks a property that accepts Expression Language without
+        # declaring a scope. UNDEFINED keeps it apart from NONE, so ${...} in it is not an error.
+        descriptor["expressionLanguageScope"] = EL_SCOPE_1X.get(
+            label, "UNDEFINED" if descriptor.get("supportsEl") else "NONE")
+
+
+def adapt_1x(definition, kind, documentation=""):
+    """Rewrite a NiFi 1.x component definition in the field names of the 2.x definition API.
+
+    Every command reads the 2.x names, so translating once at load time keeps one code path for
+    both versions. A 2.x key the definition already carries is kept as it is. `documentation` is
+    the text of componentDocumentation.md, the only place a 1.x Knowledge Base records whether a
+    processor has dynamic relationships.
+    """
+    if "typeDescription" not in definition and "description" in definition:
+        definition["typeDescription"] = definition["description"]
+    for descriptor in (definition.get("propertyDescriptors") or {}).values():
+        _adapt_descriptor_1x(descriptor)
+    definition.setdefault("supportsDynamicProperties", bool(definition.get("dynamicProperties")))
+    if "providedApiImplementations" not in definition and definition.get("controllerServiceApis"):
+        definition["providedApiImplementations"] = [
+            dict(api.get("bundle") or {}, type=api["type"])
+            for api in definition["controllerServiceApis"]
+        ]
+    if kind != "PROCESSOR":
+        return definition
+
+    definition.setdefault("supportsDynamicRelationships",
+                          "### Dynamic Relationships" in documentation)
+    definition.setdefault("primaryNodeOnly", bool(definition.get("executionNodeRestricted")))
+    definition.setdefault("triggerSerially", definition.get("supportsParallelProcessing") is False)
+    if "supportedSchedulingStrategies" not in definition:
+        strategies = ["TIMER_DRIVEN", "CRON_DRIVEN"]
+        if definition.get("supportsEventDriven"):
+            strategies.append("EVENT_DRIVEN")
+        definition["supportedSchedulingStrategies"] = strategies
+        definition["defaultSchedulingStrategy"] = "TIMER_DRIVEN"
+        definition["defaultConcurrentTasksBySchedulingStrategy"] = {
+            s: SCHEDULING_1X[s][0] for s in strategies}
+        definition["defaultSchedulingPeriodBySchedulingStrategy"] = {
+            s: SCHEDULING_1X[s][1] for s in strategies if SCHEDULING_1X[s][1]}
+        definition["schedulingDefaultsFromFramework"] = True
+    return definition
 
 
 class Kb:
@@ -144,11 +262,18 @@ class Kb:
         return self.manifest.get("nifi", {}).get("version", "unknown")
 
     def definition(self, entry):
-        """Load and cache component.json for an index entry."""
+        """Load and cache component.json for an index entry, in the 2.x field names."""
         key = entry["path"]
         if key not in self._definitions:
-            path = self.root / "components" / key / "component.json"
-            self._definitions[key] = json.loads(path.read_text(encoding="utf-8"))
+            base = self.root / "components" / key
+            component = json.loads((base / "component.json").read_text(encoding="utf-8"))
+            if component.get("definitionFormat") == FORMAT_1X:
+                documentation = ""
+                doc_path = base / "componentDocumentation.md"
+                if entry["kind"] == "PROCESSOR" and doc_path.is_file():
+                    documentation = doc_path.read_text(encoding="utf-8", errors="replace")
+                adapt_1x(component["definition"], entry["kind"], documentation)
+            self._definitions[key] = component
         return self._definitions[key]
 
     def lookup(self, kind, type_name):
@@ -251,6 +376,8 @@ def cmd_locate(kb, args):
     guides = kb.manifest.get("guides", {})
     print("Knowledge Base : %s" % kb.root)
     print("NiFi version   : %s" % kb.nifi_version)
+    print("Format         : %s"
+          % kb.manifest.get("collection", {}).get("definitionFormat", "?"))
     print("Built at       : %s" % kb.manifest.get("generatedAt", "?"))
     print(
         "Components     : %s processors, %s controller services, %s reporting tasks"
@@ -344,6 +471,18 @@ def cmd_show(kb, args):
         sys.stdout.write(path.read_text(encoding="utf-8"))
         return 0
 
+    # A 1.x Knowledge Base keeps the full component page, which documents dynamic properties,
+    # dynamic relationships, and state that component.json covers only in part.
+    documentation = base / "componentDocumentation.md"
+    if args.doc:
+        if not documentation.is_file():
+            raise KbError(
+                "%s has no componentDocumentation.md. Only a Knowledge Base built from NiFi 1.x "
+                "has one; use --details for the extended docs." % simple_name(entry["type"])
+            )
+        sys.stdout.write(documentation.read_text(encoding="utf-8"))
+        return 0
+
     definition = kb.definition(entry)["definition"]
     _print_header(kb, entry, definition)
 
@@ -383,6 +522,9 @@ def cmd_show(kb, args):
     if entry.get("additionalDetailsAvailable"):
         print()
         print("Extended docs available: kb.py show %s --details" % simple_name(entry["type"]))
+    if documentation.is_file():
+        print()
+        print("Full component page: kb.py show %s --doc" % simple_name(entry["type"]))
     return 0
 
 
@@ -406,6 +548,9 @@ def _print_header(kb, entry, definition):
             "sched  : %s (default), supported: %s, default period %s"
             % (default_strategy, ", ".join(strategies) or "?", periods.get(default_strategy, "?"))
         )
+        if definition.get("schedulingDefaultsFromFramework"):
+            print("         framework defaults: a 1.x Knowledge Base records no per-component "
+                  "schedule")
         if definition.get("supportsBatching"):
             print("         supports batching - runDurationMillis may be raised above 0")
         else:
@@ -524,8 +669,9 @@ def cmd_services(kb, args):
 # NiFi's importer deserializes the flow into Java objects and reads enums, integers and
 # maps without null checks, so an omitted field arrives as null and throws before any
 # validation runs - the API answers HTTP 500, not a useful message. These are the fields
-# a NiFi 2.10 import was observed to dereference. Rather than memorize them, run
-# `kb.py normalize`, which fills every field NiFi writes on export.
+# a NiFi 2.10 import was observed to dereference. Every NiFi 1.28.1 export writes all of them
+# too, so the check holds for a 1.x flow. Rather than memorize them, run `kb.py normalize`,
+# which fills every field NiFi writes on export.
 REQUIRED_ON_IMPORT = {
     "processors": ["propertyDescriptors", "bulletinLevel", "penaltyDuration", "yieldDuration",
                    "runDurationMillis", "concurrentlySchedulableTaskCount", "position",
@@ -707,6 +853,14 @@ def _check_properties(kb, report, where, component, entry):
         if properties.get(key) not in (None, ""):
             continue
         if not _is_active(descriptors, properties, key):
+            continue
+        if descriptor.get("sensitive"):
+            report.warn(
+                where,
+                "required property '%s' is sensitive and has no value. NiFi leaves sensitive "
+                "values out of a downloaded flow, so an export always looks like this. Reference "
+                "a parameter (#{...}) and set its value in the target NiFi." % key,
+            )
             continue
         report.error(
             where,
@@ -1079,7 +1233,13 @@ def cmd_validate(kb, args):
 
             strategy = processor.get("schedulingStrategy")
             supported_strategies = definition.get("supportedSchedulingStrategies") or []
-            if strategy and supported_strategies and strategy not in supported_strategies:
+            if strategy == "PRIMARY_NODE_ONLY" and nifi_major(kb) == 1:
+                report.warn(
+                    where,
+                    "schedulingStrategy 'PRIMARY_NODE_ONLY' is deprecated in NiFi 1.x and removed "
+                    "in 2.0. Use 'TIMER_DRIVEN' and set executionNode to PRIMARY.",
+                )
+            elif strategy and supported_strategies and strategy not in supported_strategies:
                 report.error(
                     where,
                     "schedulingStrategy '%s' is not supported. Available: %s."
@@ -1091,12 +1251,17 @@ def cmd_validate(kb, args):
                 default_period = (definition.get("defaultSchedulingPeriodBySchedulingStrategy")
                                   or {}).get("TIMER_DRIVEN")
                 # Some sources ship with a zero default of their own, so citing it as the
-                # remedy would recommend the very setting being complained about.
-                remedy = ("NiFi's own default for %s is %r"
-                          % (simple_name(entry["type"]), default_period)
-                          if default_period and not zero_period(default_period)
-                          else "%s ships with a zero default of its own, so this one is a "
-                               "judgement call" % simple_name(entry["type"]))
+                # remedy would recommend the very setting being complained about. A 1.x
+                # Knowledge Base holds only the framework default, which says nothing either way.
+                if definition.get("schedulingDefaultsFromFramework"):
+                    remedy = ("a 1.x Knowledge Base records no default of %s's own, so choose "
+                              "the period yourself" % simple_name(entry["type"]))
+                elif default_period and not zero_period(default_period):
+                    remedy = ("NiFi's own default for %s is %r"
+                              % (simple_name(entry["type"]), default_period))
+                else:
+                    remedy = ("%s ships with a zero default of its own, so this one is a "
+                              "judgment call" % simple_name(entry["type"]))
                 report.warn(
                     where,
                     "source processor scheduled every %r. With no incoming connection there "
@@ -1308,7 +1473,10 @@ def normalize_group(kb, group):
             port.setdefault("concurrentlySchedulableTaskCount", 1)
             port.setdefault("scheduledState", "ENABLED")
             port.setdefault("allowRemoteAccess", False)
-            port.setdefault("portFunction", "STANDARD")
+            # Failure ports arrived in NiFi 2.0. A 1.x port has no portFunction field, and a
+            # 1.28.1 export never writes one.
+            if nifi_major(kb) != 1:
+                port.setdefault("portFunction", "STANDARD")
     for child in group["processGroups"]:
         normalize_group(kb, child)
 
@@ -1421,7 +1589,10 @@ def build_parser():
     show = sub.add_parser("show", help="Print component.md for one component")
     show.add_argument("name")
     show.add_argument("--kind")
-    show.add_argument("--details", action="store_true", help="Print additionalDetails.md instead")
+    pages = show.add_mutually_exclusive_group()
+    pages.add_argument("--details", action="store_true", help="Print additionalDetails.md instead")
+    pages.add_argument("--doc", action="store_true",
+                       help="Print componentDocumentation.md instead (1.x Knowledge Base only)")
 
     props = sub.add_parser("props", help="Print the property table with JSON keys")
     props.add_argument("name")
@@ -1464,8 +1635,9 @@ def main(argv=None):
         "normalize": cmd_normalize,
     }
     try:
-        search_from = Path(args.flow).parent if getattr(args, "flow", None) else None
-        kb = Kb(discover(args.kb, search_from))
+        flow = getattr(args, "flow", None)
+        search_from = Path(flow).parent if flow else None
+        kb = Kb(discover(args.kb, search_from, flow_nifi_version(flow) if flow else None))
         return handlers[args.command](kb, args)
     except KbError as exc:
         print("%s" % exc, file=sys.stderr)
