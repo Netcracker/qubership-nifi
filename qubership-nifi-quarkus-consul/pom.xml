@@ -50,7 +50,7 @@
         <quarkus.platform.version>3.27.2</quarkus.platform.version>
         <quarkus-plugin.version>3.27.2</quarkus-plugin.version>
         <core-quarkus-external-bom.version>1.0.9</core-quarkus-external-bom.version>
-        <netty.version>4.1.136.Final</netty.version>
+        <netty.version>4.1.138.Final</netty.version>
         <jackson.version>2.21.4</jackson.version>
         <!--test libraries versions-->
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
