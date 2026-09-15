@@ -30,24 +30,6 @@ mkdir -p /tmp/db-init-scripts-custom
 
 scripts_dir='/opt/nifi/scripts'
 
-# Adding severity_to_number function, if not exists
-if ! type "$severity_to_number" >/dev/null 2>&1; then
-    info "Loading severity_to_number function..."
-    # Copied from base-image's entrypoint.sh
-    severity_to_number() {
-        case "$1" in
-            DEBUG) echo 1 ;;
-            INFO)  echo 2 ;;
-            WARN|WARNING) echo 3 ;;
-            ERROR) echo 4 ;;
-            *) echo 2 ;;
-        esac
-    }
-    export -f severity_to_number
-    info "Setting CURRENT_LOG_LEVEL..."
-    # shellcheck disable=SC2034
-    CURRENT_LOG_LEVEL=$(severity_to_number "${LOG_LEVEL^^:-INFO}")
-fi
 # Load diag-bootstrap.sh (and diag-lib.sh) to make functions from profiler agent available
 # Copied from base-image's entrypoint.sh
 if [ -f /app/diag/diag-bootstrap.sh ]; then
