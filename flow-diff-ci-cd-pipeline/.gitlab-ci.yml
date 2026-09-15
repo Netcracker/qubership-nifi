@@ -11,7 +11,7 @@ variables:
 flow-diff:
   stage: flow-diff
   image:
-    name: ghcr.io/netcracker/qubership-nifi-flow-diff:2.8.4
+    name: ghcr.io/netcracker/qubership-nifi-flow-diff-cli:2.8.4
   resource_group: "flow-diff-$CI_MERGE_REQUEST_IID"
   interruptible: true
   variables:
