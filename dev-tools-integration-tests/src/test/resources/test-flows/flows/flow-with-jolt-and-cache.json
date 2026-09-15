@@ -191,7 +191,7 @@
                 "runDurationMillis": 0,
                 "concurrentlySchedulableTaskCount": 1,
                 "autoTerminatedRelationships": [],
-                "scheduledState": "DISABLED",
+                "scheduledState": "ENABLED",
                 "retryCount": 10,
                 "retriedRelationships": [],
                 "backoffMechanism": "PENALIZE_FLOWFILE",
