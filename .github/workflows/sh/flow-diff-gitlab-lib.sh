@@ -24,11 +24,13 @@ PROJECT_NAME='flow-diff-it'
 # The tag the workflow builds flow-diff-ci-cd-pipeline/Dockerfile as.
 FLOW_DIFF_IMAGE='flow-diff-cli:it'
 
-# The three strings below are the output this test asserts, so they are written out here rather
+# The four strings below are the output this test asserts, so they are written out here rather
 # than read from the pipeline. A test that took its expected values from the file under test would
 # pass whatever that file said, and reworded output is a user-visible change that should fail.
 # Everything else the test needs from the pipeline, adopt_pipeline_settings reads out of it.
 MARKER='<!-- nifi-flow-diff -->'
+# Precedes the short SHA of the commit the note describes.
+COMMIT_LABEL='Commit:'
 NO_CHANGE_TEXT='No significant NiFi flow changes detected.'
 CHANGE_TEXT='Significant and environmental changes to the NiFi flows modified in this MR:'
 
@@ -104,9 +106,10 @@ gitlab_api() {
 #
 # The split is deliberate. FLOW_DIFF_PATH is configuration: the test only has to agree with the
 # pipeline about where the flows live, so it reads the value and changing it needs no edit here.
-# The marker and the two bodies are what the assertions compare against, so reading them from the
-# file would make those assertions pass whatever the pipeline said. They are checked instead, and a
-# reworded body fails here, naming the string, rather than minutes later as an unfindable note.
+# The marker, the commit label, and the two bodies are what the assertions compare against, so
+# reading them from the file would make those assertions pass whatever the pipeline said. They are
+# checked instead, and a reworded string fails here, naming it, rather than minutes later as an
+# unfindable note.
 adopt_pipeline_settings() {
     local pipeline="$1" name value
 
@@ -115,14 +118,14 @@ adopt_pipeline_settings() {
         || fail 'could not read FLOW_DIFF_PATH from the variables block of .gitlab-ci.yml'
 
     # An explicit return: fail inside a loop body only sets the exit status, and the loop runs on.
-    for name in MARKER NO_CHANGE_TEXT CHANGE_TEXT; do
+    for name in MARKER COMMIT_LABEL NO_CHANGE_TEXT CHANGE_TEXT; do
         value="${!name}"
         if ! grep -Fq "$value" "$pipeline"; then
             fail "flow-diff-ci-cd-pipeline/.gitlab-ci.yml no longer emits ${name}: ${value}"
             return 1
         fi
     done
-    echo "ok: flows live under ${FLOW_DIFF_PATH}, and the pipeline still emits all three asserted strings"
+    echo "ok: flows live under ${FLOW_DIFF_PATH}, and the pipeline still emits all four asserted strings"
 }
 
 # Creates the root personal access token the rest of the test authenticates with, and exports it as
@@ -396,6 +399,13 @@ flow_diff_jobs() {
         | jq -r '.[] | select(.name == "flow-diff") | .name'
 }
 
+# flow_diff_job_status <pipeline-id>; prints the status of the flow-diff job in the pipeline.
+flow_diff_job_status() {
+    local pipeline_id="$1"
+    gitlab_api GET "/projects/${FLOW_DIFF_PROJECT_ID}/pipelines/${pipeline_id}/jobs" \
+        | jq -r '.[] | select(.name == "flow-diff") | .status'
+}
+
 #
 # Diagnostics
 #
@@ -449,22 +459,25 @@ load_test_context() {
 #
 
 # run_mr_pipeline <iid> <sha>; waits for the merge request pipelines built for commit <sha>, asserts
-# that all of them succeeded, and prints the id of the newest one. Before asserting, it dumps the job
-# traces of every pipeline that did not succeed, because the status alone never says which line of
-# the pipeline script failed.
+# that each of them and its flow-diff job succeeded, and prints the id of the newest pipeline. The job
+# is asserted on its own because it has allow_failure: true, so a pipeline whose flow-diff job failed
+# still finishes with status success. Before asserting, it dumps the job traces of every pipeline
+# where either did not succeed, because the status alone never says which line of the script failed.
 run_mr_pipeline() {
-    local iid="$1" sha="$2" pipelines pipeline_id status newest='' want='' got=''
+    local iid="$1" sha="$2" pipelines pipeline_id status job_status newest='' want='' got=''
     pipelines="$(wait_for_mr_pipelines "$iid" "$sha")" || return 1
     while IFS=: read -r pipeline_id status; do
-        [ "$status" = 'success' ] || dump_pipeline_jobs "$pipeline_id" >&2
-        want="${want:+${want} }${pipeline_id}:success"
-        got="${got:+${got} }${pipeline_id}:${status}"
+        job_status="$(flow_diff_job_status "$pipeline_id")" || return 1
+        [ "${status}:${job_status}" = 'success:success' ] || dump_pipeline_jobs "$pipeline_id" >&2
+        want="${want:+${want} }${pipeline_id}:success:success"
+        got="${got:+${got} }${pipeline_id}:${status}:${job_status}"
         newest="$pipeline_id"
     done <<< "$pipelines"
     # scenario_sticky_update reads the output through a command substitution, where bash does not
     # apply set -e, so a failed assertion has to return explicitly.
     assert_equals "$want" "$got" \
-        "the status of each pipeline for commit ${sha} on merge request ${iid}" >&2 || return 1
+        "<pipeline>:<pipeline status>:<flow-diff job status> for commit ${sha} on merge request ${iid}" >&2 \
+        || return 1
     printf '%s' "$newest"
 }
 
@@ -484,6 +497,7 @@ scenario_significant_change() {
     body="$(jq -r '.body' <<< "$note")"
     assert_contains "$body" "$CHANGE_TEXT" "the note on merge request ${iid}"
     assert_contains "$body" 'SQL Query' "the note on merge request ${iid}"
+    assert_contains "$body" "${COMMIT_LABEL} ${sha:0:8}" "the note on merge request ${iid}"
 
     # The sticky-update scenario pushes a second commit onto this same merge request.
     FLOW_DIFF_MR_IID="$iid"
@@ -520,6 +534,9 @@ scenario_sticky_update() {
     # this the assertion above would also pass on a pipeline that never updated the note.
     body="$(jq -r '.body' <<< "$note")"
     assert_contains "$body" 'Log Level' "the updated note on merge request ${FLOW_DIFF_MR_IID}"
+    # The commit line has to move with the note, or a reader could not tell a current note from one
+    # a failed run left behind.
+    assert_contains "$body" "${COMMIT_LABEL} ${sha:0:8}" "the updated note on merge request ${FLOW_DIFF_MR_IID}"
 }
 
 # A merge request whose flow changes are all technical gets the no-change note.
@@ -540,6 +557,7 @@ scenario_technical_change() {
     [ -n "$note" ] || fail "merge request ${iid} carries no note opening with ${MARKER}"
     body="$(jq -r '.body' <<< "$note")"
     assert_contains "$body" "$NO_CHANGE_TEXT" "the note on merge request ${iid}"
+    assert_contains "$body" "${COMMIT_LABEL} ${sha:0:8}" "the note on merge request ${iid}"
 }
 
 # A merge request that touches nothing under FLOW_DIFF_PATH runs no flow-diff job and gets no note.

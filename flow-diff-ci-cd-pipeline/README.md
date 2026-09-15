@@ -12,8 +12,8 @@ the pipeline:
    against the merge-base commit.
 2. Filters out purely technical/cosmetic differences, keeping only significant and environmental
    changes (plus added/removed flows).
-3. Posts a single sticky comment on the merge request with the result (updating the same comment
-   on re-runs instead of adding a new one each time).
+3. Posts a single sticky comment on the merge request with the result and the commit it describes
+   (updating the same comment on re-runs instead of adding a new one each time).
 
 Everything happens inside one job, in shell variables - no report files are written to disk and
 no pipeline artifacts are produced. The MR comment is the only output.
@@ -103,6 +103,22 @@ always >= characters for UTF-8, so this never truncates later than the real limi
 on a line boundary, closes a dangling Markdown code fence if the cut landed inside one (otherwise
 everything after it would render as code), and appends a truncation notice.
 
+## Job failures
+
+The `flow-diff` job is marked `allow_failure: true`, so a failed run does not block a merge request. GitLab marks the
+failed job with a warning, and the pipeline still passes.
+
+A failed run leaves the sticky comment unchanged, so the comment can describe an earlier push. Its `Commit:` line names
+the source branch commit the comment describes. Compare it with the latest commit of the merge request before relying
+on the comment.
+
+In a project with **Pipelines must succeed** turned on, a merge request that changes nothing under `FLOW_DIFF_PATH`
+gets no pipeline from this standalone file, and GitLab does not merge a merge request without a pipeline. To avoid
+that, merge the job into a `.gitlab-ci.yml` whose other jobs run on every merge request.
+
+To make the flow diff a required check, remove `allow_failure: true` from the job and turn on **Pipelines must succeed**
+in the project's merge request settings.
+
 ## Automated test
 
 The `flow-diff-pipeline-test` GitHub workflow runs this pipeline against a real GitLab. It builds the image, starts
@@ -111,23 +127,25 @@ GitLab and a runner with `.github/docker/flow-diff-gitlab/docker-compose.yaml`, 
 
 | Merge request | Asserts |
 | --- | --- |
-| A changed processor property | The pipeline succeeds and posts one note naming the changed property. |
-| A second push onto the same branch | The same note is updated in place, rather than a second one added. |
-| Rewritten `instanceIdentifier` values only | The note reads `No significant NiFi flow changes detected.` |
+| A changed processor property | The pipeline and its `flow-diff` job succeed, and the job posts one note naming the changed property and the commit. |
+| A second push onto the same branch | The same note is updated in place, rather than a second one added, and names the new commit. |
+| Rewritten `instanceIdentifier` values only | The note reads `No significant NiFi flow changes detected.` and names the commit. |
 | A file outside `FLOW_DIFF_PATH` | No `flow-diff` job runs and no note appears. |
 
 The last is opened before the other three and asserted after them, so a GitLab that is merely slow to create
 pipelines cannot pass it.
 
 Editing this file needs no matching edit in the test: it reads `FLOW_DIFF_PATH` out of the `variables:` block and
-overwrites the job's `image:` whatever it points at. Only the three strings the test asserts - the
-`<!-- nifi-flow-diff -->` marker and the two note bodies - are written out in the test as well, so that rewording one
-fails the setup step instead of quietly passing.
+overwrites the job's `image:` whatever it points at. Only the four strings the test asserts - the
+`<!-- nifi-flow-diff -->` marker, the `Commit:` label, and the two note bodies - are written out in the test as well,
+so that rewording one fails the setup step instead of quietly passing.
 
 ### What the suite does not reach
 
 | Not covered | Consequence |
 | --- | --- |
+| `allow_failure: true` on the job | Every `flow-diff` job the suite runs succeeds, so removing the key would not fail the suite. |
+| The source branch commit in a merged results pipeline | GitLab CE runs no merged results pipelines, so naming `CI_COMMIT_SHA` in every pipeline would not fail the suite. |
 | `environmental`, `addedFlows`, `removedFlows` in the totals gate | Only `significant` is ever non-zero, so dropping one of the others would not fail the suite. |
 | Comment truncation | The 990,000-byte path is never taken. |
 | The `git fetch` fallback for a missing base commit | `GIT_DEPTH: "0"` always leaves the base commit present. |
