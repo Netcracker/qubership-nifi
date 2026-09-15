@@ -95,17 +95,19 @@ everything after it would render as code), and appends a truncation notice.
 
 ## Job failures
 
-The `flow-diff` job is marked `allow_failure: true`, so a failed run does not block a merge request, even in a project
-that requires pipelines to succeed. GitLab marks the failed job with a warning, and the pipeline still passes.
+The `flow-diff` job is marked `allow_failure: true`, so a failed run does not block a merge request. GitLab marks the
+failed job with a warning, and the pipeline still passes.
 
 A failed run leaves the sticky comment unchanged, so the comment can describe an earlier push. Its `Commit:` line names
 the source branch commit the comment describes. Compare it with the latest commit of the merge request before relying
 on the comment.
 
+In a project with **Pipelines must succeed** turned on, a merge request that changes nothing under `FLOW_DIFF_PATH`
+gets no pipeline from this standalone file, and GitLab does not merge a merge request without a pipeline. To avoid
+that, merge the job into a `.gitlab-ci.yml` whose other jobs run on every merge request.
+
 To make the flow diff a required check, remove `allow_failure: true` from the job and turn on **Pipelines must succeed**
-in the project's merge request settings. With that setting on, a merge request that changes nothing under
-`FLOW_DIFF_PATH` gets no pipeline from this standalone file, and GitLab does not merge a merge request without a
-pipeline. Merge the job into a `.gitlab-ci.yml` whose other jobs run on every merge request to avoid that.
+in the project's merge request settings.
 
 ## Automated test
 
