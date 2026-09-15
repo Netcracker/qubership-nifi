@@ -12,16 +12,16 @@ the pipeline:
    against the merge-base commit.
 2. Filters out purely technical/cosmetic differences, keeping only significant and environmental
    changes (plus added/removed flows).
-3. Posts a single sticky comment on the merge request with the result (updating the same comment
-   on re-runs instead of adding a new one each time).
+3. Posts a single sticky comment on the merge request with the result and the commit it describes
+   (updating the same comment on re-runs instead of adding a new one each time).
 
 Everything happens inside one job, in shell variables - no report files are written to disk and
 no pipeline artifacts are produced. The MR comment is the only output.
 
 **Status:** prototype.
 
-**Note:** non-prototype version is available in the `flow-diff-ci-cd-pipeline` directory.
-See flow-diff-ci-cd-pipeline [documentation](../../flow-diff-ci-cd-pipeline/README.md) for more details.
+**Note:** a maintained version of this pipeline, with a published image and an automated test, is in
+[`flow-diff-ci-cd-pipeline`](../../flow-diff-ci-cd-pipeline/README.md).
 
 ## Files in this directory
 

@@ -44,15 +44,20 @@ flow-diff:
         --branch "${BASE_SHA}" --format md --output /dev/stdout)"
 
     - |
+      # The commit line tells a reader which push the note describes, since a failed run leaves the
+      # previous note in place. A merged results pipeline checks out a merge commit, so the line
+      # names the source branch commit the merge request shows instead.
+      HEAD_SHA="${CI_MERGE_REQUEST_SOURCE_BRANCH_SHA:-${CI_COMMIT_SHA}}"
+      HEADER="$(printf '%s\n## NiFi flow diff\n\nCommit: %s\n' "${MARKER}" "${HEAD_SHA:0:8}")"
       sum="$(jq -e '
             [.totals.significant, .totals.environmental, .totals.addedFlows, .totals.removedFlows]
             | if any(type != "number") then null else add end
           ' <<< "${REPORT_JSON}")"
       if [ "${sum}" -gt 0 ]; then
-        COMMENT="$(printf '%s\n## NiFi flow diff\n\nSignificant and environmental changes to the NiFi flows modified in this MR:\n\n%s\n' \
-          "${MARKER}" "${REPORT_MD}")"
+        COMMENT="$(printf '%s\n\nSignificant and environmental changes to the NiFi flows modified in this MR:\n\n%s\n' \
+          "${HEADER}" "${REPORT_MD}")"
       else
-        COMMENT="$(printf '%s\n## NiFi flow diff\n\nNo significant NiFi flow changes detected.\n' "${MARKER}")"
+        COMMENT="$(printf '%s\n\nNo significant NiFi flow changes detected.\n' "${HEADER}")"
       fi
 
     - |
