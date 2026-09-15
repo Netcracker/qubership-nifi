@@ -62,6 +62,8 @@ on:
 
 permissions:
   contents: read
+env:
+  CONFIG_FILE: '.qubership/dev-docker.cfg'
 
 jobs:
   dry-run-build:
@@ -136,8 +138,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: read
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
+      packages: ${{ steps.config.outputs.config }}
     steps:
       - name: "Checkout code"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,6 +159,11 @@ jobs:
           fi
           echo "GITHUB_OUTPUT:"
           cat "$GITHUB_OUTPUT"
+      - name: Get Configuration File
+        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@288a6a0d9a78e80dfdefccab1be6497a39deb746 #v2.8.0
+        id: config
+        with:
+          file-path: "${{ env.CONFIG_FILE }}"
 
   docker-build:
     name: "Docker Build and Publish"
@@ -163,6 +172,10 @@ jobs:
       contents: read
       packages: write
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        component: ${{ fromJson(needs.check-dockerfile.outputs.packages) }}
     needs: [check-dockerfile, deploy]
     steps:
       - name: "Prepare Docker tags"
@@ -184,21 +197,11 @@ jobs:
         id: docker_build
         uses: netcracker/qubership-workflow-hub/actions/docker-action@27fd7674286e5f561a6fd8277f2f389ff96ddb9e # v2.6.0
         with:
-          ref: v${{ needs.deploy.outputs.release-version }}
-          download-artifact: true
-          tags: ${{ env.TAGS }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: "Docker Build FlowDiff Image"
-        id: docker_build_flow_diff
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@27fd7674286e5f561a6fd8277f2f389ff96ddb9e # v2.6.0
-        with:
+          component: ${{ toJson(matrix.component) }}
           ref: v${{ needs.deploy.outputs.release-version }}
           download-artifact: true
           download-artifact-name: ${{ github.event.repository.name }}
           tags: ${{ env.TAGS }}
-          component: '[{"name": "qubership-nifi-flow-diff-cli", "dockerfile": "./flow-diff-ci-cd-pipeline/Dockerfile", "build_context": "."}]'
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
