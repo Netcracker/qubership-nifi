@@ -62,6 +62,7 @@ on:
 
 permissions:
   contents: read
+
 env:
   CONFIG_FILE: '.qubership/dev-docker.cfg'
 
@@ -138,7 +139,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: read
     outputs:
       dockerfile_exists: ${{ steps.check_dockerfile.outputs.df_exists }}
       packages: ${{ steps.config.outputs.config }}
@@ -173,7 +173,7 @@ jobs:
       packages: write
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         component: ${{ fromJson(needs.check-dockerfile.outputs.packages) }}
     needs: [check-dockerfile, deploy]

@@ -23,7 +23,7 @@ no pipeline artifacts are produced. The MR comment is the only output.
 | File               | Purpose                                                                                             |
 | ------------------ | --------------------------------------------------------------------------------------------------- |
 | `.gitlab-ci.yml`   | The pipeline itself. Copy this into the target repository's root and adjust the `variables:` block. |
-| `Dockerfile`       | The image used in the pipeline.                                                                     |
+| `Dockerfile`       | Builds the `ghcr.io/netcracker/qubership-nifi-flow-diff-cli` image that the pipeline runs in.       |
 
 ## Setup walkthrough
 
@@ -69,6 +69,16 @@ Adjust the `variables:` block for that repository:
 ```yaml
 variables:
   FLOW_DIFF_PATH: "nifi/versioned-flow"   # directory with the NiFi flow exports to diff
+```
+
+The `flow-diff:` job runs in the `ghcr.io/netcracker/qubership-nifi-flow-diff-cli` image. Every qubership-nifi release
+publishes it, tagged with the release version without the `v` prefix, and the release notes list it under "Release
+artifacts". The copied file pins one released version. To move to a later release, change the tag:
+
+```yaml
+flow-diff:
+  image:
+    name: ghcr.io/netcracker/qubership-nifi-flow-diff-cli:2.8.4
 ```
 
 ### 3. Test it
