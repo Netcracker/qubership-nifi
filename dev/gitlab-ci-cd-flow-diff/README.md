@@ -20,6 +20,9 @@ no pipeline artifacts are produced. The MR comment is the only output.
 
 **Status:** prototype.
 
+**Note:** non-prototype version is available in the `flow-diff-ci-cd-pipeline` directory.
+See flow-diff-ci-cd-pipeline [documentation](../../flow-diff-ci-cd-pipeline/README.md) for more details.
+
 ## Files in this directory
 
 | File               | Purpose                                                                                             |

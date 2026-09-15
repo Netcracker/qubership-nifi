@@ -10,6 +10,7 @@ variables:
 
 flow-diff:
   stage: flow-diff
+  allow_failure: true
   image:
     name: registry.example.com/flow-diff-cli:X.Y.Z
   resource_group: "flow-diff-$CI_MERGE_REQUEST_IID"
