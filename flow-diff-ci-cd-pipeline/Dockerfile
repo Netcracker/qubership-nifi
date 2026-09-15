@@ -4,7 +4,7 @@ ARG BASE_IMAGE_VERSION_SHA256='sha256:dde157e5a55583c4b7bb71582b92118dae95ad33a3
 FROM ghcr.io/netcracker/qubership-java-base:$BASE_IMAGE_VERSION@$BASE_IMAGE_VERSION_SHA256
 
 USER root
-RUN apk add --no-cache git=2.54.0-r0 jq=1.8.2-r0 curl=8.21.0-r0
+RUN apk add --no-cache git=2.54.0-r0 jq=1.8.2-r0 curl=8.22.0-r0
 
 USER 10001
 COPY --chown=10001:10001 qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps/target/lib /opt/flow-diff/lib/
