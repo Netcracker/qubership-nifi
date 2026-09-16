@@ -116,7 +116,7 @@ services:
         - "/opt/nifi-registry/scripts/ready.sh"
     restart: unless-stopped
   consul:
-    image: hashicorp/consul:1.20@sha256:200471c74bc0965cd20c81eacc31a209873d5d9e599fe637ceb856b0cbbc518d
+    image: hashicorp/consul:1.22@sha256:a230dcea0bb107bd7958a912d1429fb7f9d399637de7ffb814b34412b9e8c543
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
