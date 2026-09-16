@@ -320,7 +320,7 @@ services:
       retries: 24
       start_period: 15s
   postgresql:
-    image: postgres:16.8@sha256:301bcb60b8a3ee4ab7e147932723e3abd1cef53516ce5210b39fd9fe5e3602ae
+    image: postgres:16.15@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
     ports:
       - "127.0.0.1:5430:5432"
     volumes:
