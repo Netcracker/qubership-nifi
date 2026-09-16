@@ -1596,6 +1596,150 @@
             ]
         },
         {
+            "name": "python-extensions",
+            "item": [
+                {
+                    "name": "BackupAttributesPython",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Attributes are backed up under the processor.type prefix\", function () {\r",
+                                    "    var attributes = pm.response.json();\r",
+                                    "    pm.expect(attributes[\"BackupAttributesPython.processor.type\"], \"BackupAttributesPython.processor.type\").to.eql(\"BackupAttributesPython\");\r",
+                                    "    pm.expect(attributes[\"BackupAttributesPython.nar.name\"], \"BackupAttributesPython.nar.name\").to.eql(\"python-extensions\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Original attributes are kept\", function () {\r",
+                                    "    var attributes = pm.response.json();\r",
+                                    "    pm.expect(attributes[\"processor.type\"], \"processor.type\").to.eql(\"BackupAttributesPython\");\r",
+                                    "    pm.expect(attributes[\"nar.name\"], \"nar.name\").to.eql(\"python-extensions\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"The path, uuid, and filename attributes are not backed up\", function () {\r",
+                                    "    var keys = Object.keys(pm.response.json());\r",
+                                    "    pm.expect(keys).to.include.members([\"path\", \"uuid\", \"filename\"]);\r",
+                                    "    pm.expect(keys).to.not.include(\"BackupAttributesPython.path\");\r",
+                                    "    pm.expect(keys).to.not.include(\"BackupAttributesPython.uuid\");\r",
+                                    "    pm.expect(keys).to.not.include(\"BackupAttributesPython.filename\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Attributes matching the Excluded Attributes regex are not backed up\", function () {\r",
+                                    "    var attributes = pm.response.json();\r",
+                                    "    pm.expect(attributes[\"http.request.uri\"], \"http.request.uri\").to.eql(\"/test-nars/python-extensions/BackupAttributesPython\");\r",
+                                    "    var httpBackups = Object.keys(attributes).filter(function (key) {\r",
+                                    "        return key.startsWith(\"BackupAttributesPython.http.\");\r",
+                                    "    });\r",
+                                    "    pm.expect(httpBackups).to.eql([]);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Excluded Attributes must match the whole attribute name\", function () {\r",
+                                    "    var attributes = pm.response.json();\r",
+                                    "    // The regex is http.*|Route, and Route matches only part of RouteOnAttribute.Route.\r",
+                                    "    pm.expect(attributes[\"BackupAttributesPython.RouteOnAttribute.Route\"], \"BackupAttributesPython.RouteOnAttribute.Route\").to.eql(\"BackupAttributesPython\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/python-extensions/BackupAttributesPython",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "python-extensions",
+                                "BackupAttributesPython"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "BackupAttributesPython without Excluded Attributes",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"All attributes except path, uuid, and filename are backed up\", function () {\r",
+                                    "    var attributes = pm.response.json();\r",
+                                    "    pm.expect(attributes[\"BackupAttributesPythonNoExclusions.http.request.uri\"], \"BackupAttributesPythonNoExclusions.http.request.uri\").to.eql(\"/test-nars/python-extensions/BackupAttributesPythonNoExclusions\");\r",
+                                    "    pm.expect(attributes[\"BackupAttributesPythonNoExclusions.processor.type\"], \"BackupAttributesPythonNoExclusions.processor.type\").to.eql(\"BackupAttributesPythonNoExclusions\");\r",
+                                    "    pm.expect(Object.keys(attributes)).to.not.include(\"BackupAttributesPythonNoExclusions.uuid\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/python-extensions/BackupAttributesPythonNoExclusions",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "python-extensions",
+                                "BackupAttributesPythonNoExclusions"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "BackupAttributesPython with a missing prefix attribute",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"A FlowFile without the prefix attribute is routed to failure\", function () {\r",
+                                    "    pm.response.to.have.status(500);\r",
+                                    "    pm.expect(pm.response.text()).to.eql(\"Failed to execute test at URI: /test-nars/python-extensions/BackupAttributesPythonMissingPrefix\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.nar-test.url}}/test-nars/python-extensions/BackupAttributesPythonMissingPrefix",
+                            "host": [
+                                "{{nifi.nar-test.url}}"
+                            ],
+                            "path": [
+                                "test-nars",
+                                "python-extensions",
+                                "BackupAttributesPythonMissingPrefix"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "migration-nifi-processors (reporting tasks)",
             "item": [
                 {

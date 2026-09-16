@@ -444,6 +444,9 @@ setup_env_before_tests() {
             else
                 echo "Test NARs not found, skipping copy to extensions directory"
             fi
+            echo "Copying test Python processors to python_extensions directory"
+            mkdir -p ./temp-vol/nifi/per-conf/python_extensions/
+            cp ./.github/configuration/python-extensions/*.py ./temp-vol/nifi/per-conf/python_extensions/
         else
             echo "Test NARs copying to extensions directory is disabled. copyTestNARs = $copyTestNARs"
         fi
