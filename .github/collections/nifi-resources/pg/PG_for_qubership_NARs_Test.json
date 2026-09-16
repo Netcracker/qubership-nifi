@@ -10,6 +10,802 @@
         },
         "processGroups": [
             {
+                "identifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                "instanceIdentifier": "c9a0ae01-7fd5-50f6-81b0-e288d1ef56bc",
+                "name": "python-extensions",
+                "comments": "",
+                "position": {
+                    "x": 1208.0,
+                    "y": 992.0
+                },
+                "processGroups": [],
+                "remoteProcessGroups": [],
+                "processors": [
+                    {
+                        "identifier": "b2b80469-c8f4-5861-b364-65d625a5e83d",
+                        "instanceIdentifier": "70ce83e9-156c-5081-9df6-ad817ecdc46c",
+                        "name": "RouteOnAttribute",
+                        "comments": "",
+                        "position": {
+                            "x": -1576.0,
+                            "y": -152.0
+                        },
+                        "type": "org.apache.nifi.processors.standard.RouteOnAttribute",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "nifi-standard-nar",
+                            "version": "2.6.0"
+                        },
+                        "properties": {
+                            "Routing Strategy": "Route to Property name",
+                            "BackupAttributesPython": "${processor.type:equals('BackupAttributesPython')}",
+                            "BackupAttributesPythonNoExclusions": "${processor.type:equals('BackupAttributesPythonNoExclusions')}",
+                            "BackupAttributesPythonMissingPrefix": "${processor.type:equals('BackupAttributesPythonMissingPrefix')}"
+                        },
+                        "propertyDescriptors": {
+                            "Routing Strategy": {
+                                "name": "Routing Strategy",
+                                "displayName": "Routing Strategy",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "BackupAttributesPython": {
+                                "name": "BackupAttributesPython",
+                                "displayName": "BackupAttributesPython",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "BackupAttributesPythonNoExclusions": {
+                                "name": "BackupAttributesPythonNoExclusions",
+                                "displayName": "BackupAttributesPythonNoExclusions",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "BackupAttributesPythonMissingPrefix": {
+                                "name": "BackupAttributesPythonMissingPrefix",
+                                "displayName": "BackupAttributesPythonMissingPrefix",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 25,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "unmatched"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "36634909-98a6-584e-aadd-aefaf271391e",
+                        "instanceIdentifier": "38327215-3474-5a75-a273-75ea73f2c18f",
+                        "name": "BackupAttributesPython",
+                        "comments": "",
+                        "position": {
+                            "x": -920.0,
+                            "y": -552.0
+                        },
+                        "type": "BackupAttributesPython",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "python-extensions",
+                            "version": "0.0.1-SNAPSHOT"
+                        },
+                        "properties": {
+                            "prefix-attr": "processor.type",
+                            "excluded-attrs-regex": "http.*|Route"
+                        },
+                        "propertyDescriptors": {
+                            "prefix-attr": {
+                                "name": "prefix-attr",
+                                "displayName": "Prefix Attribute",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "excluded-attrs-regex": {
+                                "name": "excluded-attrs-regex",
+                                "displayName": "Excluded Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "original"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "431f552b-2187-55d4-a468-3526448b8aa8",
+                        "instanceIdentifier": "4413913a-45e2-5bbc-b977-10501dfcad52",
+                        "name": "BackupAttributesPythonNoExclusions",
+                        "comments": "",
+                        "position": {
+                            "x": -920.0,
+                            "y": -352.0
+                        },
+                        "type": "BackupAttributesPython",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "python-extensions",
+                            "version": "0.0.1-SNAPSHOT"
+                        },
+                        "properties": {
+                            "prefix-attr": "processor.type"
+                        },
+                        "propertyDescriptors": {
+                            "prefix-attr": {
+                                "name": "prefix-attr",
+                                "displayName": "Prefix Attribute",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "excluded-attrs-regex": {
+                                "name": "excluded-attrs-regex",
+                                "displayName": "Excluded Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "original"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "100296ad-28ba-5f5b-963c-8e50428f5b1a",
+                        "instanceIdentifier": "d6b25ee1-e81d-56b1-9ae0-52153e283fa6",
+                        "name": "BackupAttributesPythonMissingPrefix",
+                        "comments": "",
+                        "position": {
+                            "x": -920.0,
+                            "y": -152.0
+                        },
+                        "type": "BackupAttributesPython",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "python-extensions",
+                            "version": "0.0.1-SNAPSHOT"
+                        },
+                        "properties": {
+                            "prefix-attr": "missing.prefix.attribute",
+                            "excluded-attrs-regex": "http.*"
+                        },
+                        "propertyDescriptors": {
+                            "prefix-attr": {
+                                "name": "prefix-attr",
+                                "displayName": "Prefix Attribute",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "excluded-attrs-regex": {
+                                "name": "excluded-attrs-regex",
+                                "displayName": "Excluded Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "original"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                        "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8",
+                        "name": "AttributesToJSON",
+                        "comments": "",
+                        "position": {
+                            "x": -320.0,
+                            "y": -352.0
+                        },
+                        "type": "org.apache.nifi.processors.standard.AttributesToJSON",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "nifi-standard-nar",
+                            "version": "2.6.0"
+                        },
+                        "properties": {
+                            "Destination": "flowfile-content",
+                            "Include Core Attributes": "true"
+                        },
+                        "propertyDescriptors": {
+                            "Destination": {
+                                "name": "Destination",
+                                "displayName": "Destination",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "Include Core Attributes": {
+                                "name": "Include Core Attributes",
+                                "displayName": "Include Core Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    }
+                ],
+                "inputPorts": [
+                    {
+                        "identifier": "2ba2650b-a313-5ed1-a3c9-b01ea89688c6",
+                        "instanceIdentifier": "cf5ef4fc-fc23-5710-a1c8-24c2a5eabd8b",
+                        "name": "in",
+                        "position": {
+                            "x": -1533.0,
+                            "y": -261.0
+                        },
+                        "type": "INPUT_PORT",
+                        "concurrentlySchedulableTaskCount": 1,
+                        "scheduledState": "ENABLED",
+                        "allowRemoteAccess": false,
+                        "portFunction": "STANDARD",
+                        "componentType": "INPUT_PORT",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    }
+                ],
+                "outputPorts": [
+                    {
+                        "identifier": "e07ad923-cf22-5500-9115-c85a14d46a87",
+                        "instanceIdentifier": "e43053d8-685e-5581-9551-4f3280d33308",
+                        "name": "out_success",
+                        "position": {
+                            "x": 248.0,
+                            "y": -336.0
+                        },
+                        "type": "OUTPUT_PORT",
+                        "concurrentlySchedulableTaskCount": 1,
+                        "scheduledState": "ENABLED",
+                        "allowRemoteAccess": false,
+                        "portFunction": "STANDARD",
+                        "componentType": "OUTPUT_PORT",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                        "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5",
+                        "name": "out_failure",
+                        "position": {
+                            "x": 256.0,
+                            "y": 72.0
+                        },
+                        "type": "OUTPUT_PORT",
+                        "concurrentlySchedulableTaskCount": 1,
+                        "scheduledState": "ENABLED",
+                        "allowRemoteAccess": false,
+                        "portFunction": "STANDARD",
+                        "componentType": "OUTPUT_PORT",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    }
+                ],
+                "connections": [
+                    {
+                        "identifier": "27980371-9723-5623-a32e-5ff60816f5cc",
+                        "instanceIdentifier": "d41a50a1-25f6-5a0a-92bc-fb5c60d8716c",
+                        "name": "",
+                        "source": {
+                            "id": "2ba2650b-a313-5ed1-a3c9-b01ea89688c6",
+                            "type": "INPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "in",
+                            "instanceIdentifier": "cf5ef4fc-fc23-5710-a1c8-24c2a5eabd8b"
+                        },
+                        "destination": {
+                            "id": "b2b80469-c8f4-5861-b364-65d625a5e83d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "RouteOnAttribute",
+                            "comments": "",
+                            "instanceIdentifier": "70ce83e9-156c-5081-9df6-ad817ecdc46c"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 1,
+                        "selectedRelationships": [
+                            ""
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "2c11a883-aac5-5c57-8aa8-7a8ef70b6532",
+                        "instanceIdentifier": "232badc1-d569-5e77-98af-6ec338b79bcd",
+                        "name": "",
+                        "source": {
+                            "id": "b2b80469-c8f4-5861-b364-65d625a5e83d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "RouteOnAttribute",
+                            "comments": "",
+                            "instanceIdentifier": "70ce83e9-156c-5081-9df6-ad817ecdc46c"
+                        },
+                        "destination": {
+                            "id": "36634909-98a6-584e-aadd-aefaf271391e",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPython",
+                            "comments": "",
+                            "instanceIdentifier": "38327215-3474-5a75-a273-75ea73f2c18f"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 2,
+                        "selectedRelationships": [
+                            "BackupAttributesPython"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "a057ce7c-2569-56ad-b3c6-3a62d6496baf",
+                        "instanceIdentifier": "0d840e6d-f5af-50e3-84c6-da1555037268",
+                        "name": "",
+                        "source": {
+                            "id": "36634909-98a6-584e-aadd-aefaf271391e",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPython",
+                            "comments": "",
+                            "instanceIdentifier": "38327215-3474-5a75-a273-75ea73f2c18f"
+                        },
+                        "destination": {
+                            "id": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "AttributesToJSON",
+                            "comments": "",
+                            "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 3,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "4ea46c2d-ce5c-597f-a4e6-10448d817406",
+                        "instanceIdentifier": "fba27024-7ec9-586d-8681-590bc661e10f",
+                        "name": "",
+                        "source": {
+                            "id": "36634909-98a6-584e-aadd-aefaf271391e",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPython",
+                            "comments": "",
+                            "instanceIdentifier": "38327215-3474-5a75-a273-75ea73f2c18f"
+                        },
+                        "destination": {
+                            "id": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                            "type": "OUTPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "out_failure",
+                            "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 4,
+                        "selectedRelationships": [
+                            "failure"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "51eb70e8-5943-5eeb-91a6-588ebd32467b",
+                        "instanceIdentifier": "4b1b81e0-caa1-5787-a8ad-5206d44c3c9d",
+                        "name": "",
+                        "source": {
+                            "id": "b2b80469-c8f4-5861-b364-65d625a5e83d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "RouteOnAttribute",
+                            "comments": "",
+                            "instanceIdentifier": "70ce83e9-156c-5081-9df6-ad817ecdc46c"
+                        },
+                        "destination": {
+                            "id": "431f552b-2187-55d4-a468-3526448b8aa8",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonNoExclusions",
+                            "comments": "",
+                            "instanceIdentifier": "4413913a-45e2-5bbc-b977-10501dfcad52"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 5,
+                        "selectedRelationships": [
+                            "BackupAttributesPythonNoExclusions"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "825559dc-95aa-5ff3-9a5d-bb8501aa3682",
+                        "instanceIdentifier": "276cf4d9-28f0-5225-a9b0-c806e3aac796",
+                        "name": "",
+                        "source": {
+                            "id": "431f552b-2187-55d4-a468-3526448b8aa8",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonNoExclusions",
+                            "comments": "",
+                            "instanceIdentifier": "4413913a-45e2-5bbc-b977-10501dfcad52"
+                        },
+                        "destination": {
+                            "id": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "AttributesToJSON",
+                            "comments": "",
+                            "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 6,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "0d64a6dc-7fb2-5959-a48c-cf8c019346eb",
+                        "instanceIdentifier": "b4944442-c182-5f39-997c-3d5d85520d86",
+                        "name": "",
+                        "source": {
+                            "id": "431f552b-2187-55d4-a468-3526448b8aa8",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonNoExclusions",
+                            "comments": "",
+                            "instanceIdentifier": "4413913a-45e2-5bbc-b977-10501dfcad52"
+                        },
+                        "destination": {
+                            "id": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                            "type": "OUTPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "out_failure",
+                            "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 7,
+                        "selectedRelationships": [
+                            "failure"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "34ce01af-08a0-596e-aa9f-552582d76ac9",
+                        "instanceIdentifier": "07f76e2a-d3a8-5a6e-a4fd-017d37110e58",
+                        "name": "",
+                        "source": {
+                            "id": "b2b80469-c8f4-5861-b364-65d625a5e83d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "RouteOnAttribute",
+                            "comments": "",
+                            "instanceIdentifier": "70ce83e9-156c-5081-9df6-ad817ecdc46c"
+                        },
+                        "destination": {
+                            "id": "100296ad-28ba-5f5b-963c-8e50428f5b1a",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonMissingPrefix",
+                            "comments": "",
+                            "instanceIdentifier": "d6b25ee1-e81d-56b1-9ae0-52153e283fa6"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 8,
+                        "selectedRelationships": [
+                            "BackupAttributesPythonMissingPrefix"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "2078cb96-086c-5670-a853-cdabfcded4a0",
+                        "instanceIdentifier": "500a3d58-07f6-580c-a00a-a12314cd21ae",
+                        "name": "",
+                        "source": {
+                            "id": "100296ad-28ba-5f5b-963c-8e50428f5b1a",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonMissingPrefix",
+                            "comments": "",
+                            "instanceIdentifier": "d6b25ee1-e81d-56b1-9ae0-52153e283fa6"
+                        },
+                        "destination": {
+                            "id": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "AttributesToJSON",
+                            "comments": "",
+                            "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 9,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "4eba5ca8-5e0c-521d-aba2-ac19e19ad147",
+                        "instanceIdentifier": "04cd36ee-9cc3-59e8-9d36-e64f3fb9f6c2",
+                        "name": "",
+                        "source": {
+                            "id": "100296ad-28ba-5f5b-963c-8e50428f5b1a",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "BackupAttributesPythonMissingPrefix",
+                            "comments": "",
+                            "instanceIdentifier": "d6b25ee1-e81d-56b1-9ae0-52153e283fa6"
+                        },
+                        "destination": {
+                            "id": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                            "type": "OUTPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "out_failure",
+                            "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 10,
+                        "selectedRelationships": [
+                            "failure"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "3f03576a-eca8-58fc-814b-80ea255a9f5c",
+                        "instanceIdentifier": "b915fc36-78e1-5e0e-bc93-59d6283a32df",
+                        "name": "",
+                        "source": {
+                            "id": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "AttributesToJSON",
+                            "comments": "",
+                            "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8"
+                        },
+                        "destination": {
+                            "id": "e07ad923-cf22-5500-9115-c85a14d46a87",
+                            "type": "OUTPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "out_success",
+                            "instanceIdentifier": "e43053d8-685e-5581-9551-4f3280d33308"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 11,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    },
+                    {
+                        "identifier": "c964f88d-0948-51be-9d35-97a77e3f3fea",
+                        "instanceIdentifier": "37685d0f-6ab3-53e4-a444-a3b68e7ae604",
+                        "name": "",
+                        "source": {
+                            "id": "be8ea872-3a69-52b0-89dd-b6ce059c7e3d",
+                            "type": "PROCESSOR",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "AttributesToJSON",
+                            "comments": "",
+                            "instanceIdentifier": "6c766199-34fa-5e53-8e8c-a359a98149e8"
+                        },
+                        "destination": {
+                            "id": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                            "type": "OUTPUT_PORT",
+                            "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                            "name": "out_failure",
+                            "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 12,
+                        "selectedRelationships": [
+                            "failure"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d"
+                    }
+                ],
+                "labels": [],
+                "funnels": [],
+                "controllerServices": [],
+                "defaultFlowFileExpiration": "0 sec",
+                "defaultBackPressureObjectThreshold": 10000,
+                "defaultBackPressureDataSizeThreshold": "1 GB",
+                "scheduledState": "ENABLED",
+                "executionEngine": "INHERITED",
+                "maxConcurrentTasks": 1,
+                "statelessFlowTimeout": "1 min",
+                "flowFileConcurrency": "UNBOUNDED",
+                "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+                "componentType": "PROCESS_GROUP",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
+            {
                 "identifier": "ab10e917-df4f-3414-8faf-71f21769fc9c",
                 "instanceIdentifier": "b2d68c5c-d099-3dad-33bc-568e18df4e72",
                 "name": "qubership-nifi-bulk-redis",
@@ -5788,7 +6584,8 @@
                     "qubership-service": "${nar.name:equals('qubership-service')}",
                     "qubership-nifi-bulk-redis": "${nar.name:equals('qubership-nifi-bulk-redis')}",
                     "qubership-nifi-lookup-service": "${nar.name:equals('qubership-nifi-lookup-service')}",
-                    "qubership-nifi-db-processors": "${nar.name:equals('qubership-nifi-db-processors')}"
+                    "qubership-nifi-db-processors": "${nar.name:equals('qubership-nifi-db-processors')}",
+                    "python-extensions": "${nar.name:equals('python-extensions')}"
                 },
                 "propertyDescriptors": {
                     "prepare-db": {
@@ -5839,6 +6636,13 @@
                         "identifiesControllerService": false,
                         "sensitive": false,
                         "dynamic": true
+                    },
+                    "python-extensions": {
+                        "name": "python-extensions",
+                        "displayName": "python-extensions",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": true
                     }
                 },
                 "style": {},
@@ -5863,6 +6667,109 @@
         "inputPorts": [],
         "outputPorts": [],
         "connections": [
+            {
+                "identifier": "5166f455-abef-5400-aaa3-af40aae20bea",
+                "instanceIdentifier": "689a00a0-c7f3-532c-85cf-f12a90c84296",
+                "name": "",
+                "source": {
+                    "id": "9324423e-6c18-34af-89d4-6deb3c967720",
+                    "type": "PROCESSOR",
+                    "groupId": "31be4ebf-005c-3354-892e-75955472311b",
+                    "name": "RouteOnAttribute",
+                    "comments": "",
+                    "instanceIdentifier": "b5e0d037-538a-321e-00c5-9ddf40055213"
+                },
+                "destination": {
+                    "id": "2ba2650b-a313-5ed1-a3c9-b01ea89688c6",
+                    "type": "INPUT_PORT",
+                    "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                    "name": "in",
+                    "instanceIdentifier": "cf5ef4fc-fc23-5710-a1c8-24c2a5eabd8b"
+                },
+                "labelIndex": 0,
+                "zIndex": 23,
+                "selectedRelationships": [
+                    "python-extensions"
+                ],
+                "backPressureObjectThreshold": 10000,
+                "backPressureDataSizeThreshold": "1 GB",
+                "flowFileExpiration": "0 sec",
+                "prioritizers": [],
+                "bends": [],
+                "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                "partitioningAttribute": "",
+                "loadBalanceCompression": "DO_NOT_COMPRESS",
+                "componentType": "CONNECTION",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
+            {
+                "identifier": "11784600-ba64-50fd-b404-57f69c3bc34b",
+                "instanceIdentifier": "166d230f-83e1-5e6f-a6f1-11b3ae03cd80",
+                "name": "",
+                "source": {
+                    "id": "e07ad923-cf22-5500-9115-c85a14d46a87",
+                    "type": "OUTPUT_PORT",
+                    "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                    "name": "out_success",
+                    "instanceIdentifier": "e43053d8-685e-5581-9551-4f3280d33308"
+                },
+                "destination": {
+                    "id": "36145ece-019a-1000-ab96-fd83f383df3a",
+                    "type": "INPUT_PORT",
+                    "groupId": "dc9912eb-cf18-3f0e-a617-df4f55fd7e5b",
+                    "name": "in",
+                    "instanceIdentifier": "8f4955f3-8477-353d-f0ca-840082ad4167"
+                },
+                "labelIndex": 0,
+                "zIndex": 24,
+                "selectedRelationships": [
+                    ""
+                ],
+                "backPressureObjectThreshold": 10000,
+                "backPressureDataSizeThreshold": "1 GB",
+                "flowFileExpiration": "0 sec",
+                "prioritizers": [],
+                "bends": [],
+                "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                "partitioningAttribute": "",
+                "loadBalanceCompression": "DO_NOT_COMPRESS",
+                "componentType": "CONNECTION",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
+            {
+                "identifier": "83b3f3b8-be14-50b9-86ca-676f3344a827",
+                "instanceIdentifier": "0f4e6a38-9aac-5ff3-abda-245bec81a56d",
+                "name": "",
+                "source": {
+                    "id": "3512a0fe-1b46-5ea2-af71-41d43057932b",
+                    "type": "OUTPUT_PORT",
+                    "groupId": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
+                    "name": "out_failure",
+                    "instanceIdentifier": "eabd7a69-9c28-5684-aa5e-2668eee915c5"
+                },
+                "destination": {
+                    "id": "a19002de-a0c9-3045-b3b7-2f8ef1a54dd3",
+                    "type": "INPUT_PORT",
+                    "groupId": "2f50da96-b1a2-32c9-88b1-881c1e0d338c",
+                    "name": "in",
+                    "instanceIdentifier": "dce883f8-173b-3daf-d7a7-a55dd790e894"
+                },
+                "labelIndex": 0,
+                "zIndex": 25,
+                "selectedRelationships": [
+                    ""
+                ],
+                "backPressureObjectThreshold": 10000,
+                "backPressureDataSizeThreshold": "1 GB",
+                "flowFileExpiration": "0 sec",
+                "prioritizers": [],
+                "bends": [],
+                "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                "partitioningAttribute": "",
+                "loadBalanceCompression": "DO_NOT_COMPRESS",
+                "componentType": "CONNECTION",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
             {
                 "identifier": "9622213c-448e-3785-94b3-fc4db66272ee",
                 "instanceIdentifier": "80481d27-6c48-3499-24bd-f076c54a4841",
