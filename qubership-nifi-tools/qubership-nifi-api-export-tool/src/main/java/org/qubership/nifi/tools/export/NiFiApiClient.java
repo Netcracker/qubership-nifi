@@ -51,6 +51,9 @@ public class NiFiApiClient implements Closeable {
 
     private static final int CONNECT_TIMEOUT_SECONDS = 30;
     private static final String TOKEN_PATH = "/nifi-api/access/token";
+    private static final int HTTP_CONFLICT = 409;
+    private static final String SIGNER_NOT_CONFIGURED = "Signer not configured";
+    private static final Duration TOKEN_RETRY_INTERVAL = Duration.ofSeconds(2);
 
     private final String username;
     private final String password;
@@ -106,16 +109,48 @@ public class NiFiApiClient implements Closeable {
     }
 
     /**
-     * Authenticates against the NiFi access token endpoint and stores the bearer token.
+     * Authenticates against the NiFi access token endpoint and stores the bearer token. Sends a
+     * single token request.
      *
      * @throws Exception if the HTTP request fails or authentication is rejected
      */
     public void authenticate() throws Exception {
+        authenticate(Duration.ZERO);
+    }
+
+    /**
+     * Authenticates against the NiFi access token endpoint and stores the bearer token, repeating
+     * the token request while NiFi has not yet configured its JWT signer.
+     *
+     * <p>NiFi generates the signing key on a background thread after its web server starts, so a
+     * freshly started instance can reject the first token request with status 409 and the body
+     * {@code JSON Web Signature Signer not configured}. Only that response is retried; any other
+     * rejection fails on the first attempt.</p>
+     *
+     * @param maxWait how long after this call starts a rejected request may still be retried;
+     *                the last retry can end up to one retry interval later.
+     *                {@link Duration#ZERO} sends a single request
+     * @throws Exception if the HTTP request fails, authentication is rejected, or the signer is
+     *                   still not configured when {@code maxWait} has elapsed
+     */
+    public void authenticate(final Duration maxWait) throws Exception {
+        authenticate(maxWait, TOKEN_RETRY_INTERVAL);
+    }
+
+    final void authenticate(final Duration maxWait, final Duration retryInterval) throws Exception {
         final String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
                 + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
         final URI tokenUri = resolver.resolve(TOKEN_PATH);
-        final NiFiHttpResponse response = httpClient.post(tokenUri, body,
+        final long deadline = System.nanoTime() + maxWait.toNanos();
+        NiFiHttpResponse response = httpClient.post(tokenUri, body,
                 "application/x-www-form-urlencoded", "text/plain");
+        while (isSignerNotConfigured(response) && System.nanoTime() < deadline) {
+            LOG.info("NiFi JWT signer is not configured yet, retrying the token request in {} ms",
+                    retryInterval.toMillis());
+            Thread.sleep(retryInterval);
+            response = httpClient.post(tokenUri, body,
+                    "application/x-www-form-urlencoded", "text/plain");
+        }
         if (!response.isSuccess()) {
             // The token endpoint reports why it rejected the login in the response body, so the
             // excerpt is the only part of the failure a user can act on.
@@ -125,6 +160,11 @@ public class NiFiApiClient implements Closeable {
         }
         authenticator.setToken(response.bodyAsText().trim());
         LOG.info("Authentication successful");
+    }
+
+    private static boolean isSignerNotConfigured(final NiFiHttpResponse response) {
+        return response.statusCode() == HTTP_CONFLICT
+                && response.bodyAsText().contains(SIGNER_NOT_CONFIGURED);
     }
 
     /**

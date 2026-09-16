@@ -29,7 +29,7 @@ mvn exec:java \
 |----------------|---------------------|-----------------------------------------------------------------|
 | `--version`    | `2.7.2`             | NiFi Docker image version tag (used as `apache/nifi:<version>`) |
 | `--output-dir` | `./nifi-api-output` | Directory where JSON output files are written                   |
-| `--timeout`    | `180`               | NiFi container startup timeout in seconds                       |
+| `--timeout`    | `180`               | Timeout in seconds for NiFi startup and for its first token     |
 | `--port`       | `18443`             | Host port bound to NiFi's internal HTTPS port 8443              |
 
 Parameters are optional; omit any to use the default value.
