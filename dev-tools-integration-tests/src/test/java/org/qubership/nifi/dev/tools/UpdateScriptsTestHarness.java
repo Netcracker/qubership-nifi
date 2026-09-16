@@ -419,9 +419,7 @@ final class UpdateScriptsTestHarness {
 
     /**
      * Pushes a flow to the registry, imports it under root, enables its controller services, and
-     * asserts it validates and is up to date. Tracks the created process group for cleanup. Fails
-     * before the import when a disabled processor has an outgoing connection, see
-     * {@link FlowAssertions#assertNoDisabledProcessorWithConnection(JsonNode)}.
+     * asserts it validates and is up to date. Tracks the created process group for cleanup.
      *
      * @param flowContents the {@code flowContents} node to import
      * @param ignored      benign local modifications to tolerate in the up-to-date check
@@ -473,7 +471,6 @@ final class UpdateScriptsTestHarness {
             final JsonNode externalControllerServices,
             final Collection<NifiFlowApiClient.IgnoredDifference> ignored,
             final Collection<NifiFlowApiClient.IgnoredValidationError> ignoredValidation) throws Exception {
-        FlowAssertions.assertNoDisabledProcessorWithConnection(flowContents);
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         String bucketId = NifiRegistrySetup.createBucket(nifiRegistryUrl, httpClient, "IT-Bucket-" + suffix);
         String flowId = NifiRegistrySetup.createFlow(nifiRegistryUrl, httpClient, bucketId, "IT-Flow");

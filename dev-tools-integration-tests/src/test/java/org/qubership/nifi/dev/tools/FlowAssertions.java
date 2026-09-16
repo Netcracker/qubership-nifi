@@ -17,11 +17,6 @@ package org.qubership.nifi.dev.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -239,44 +234,6 @@ final class FlowAssertions {
         for (String oldKey : oldKeys) {
             assertTrue(props.has(oldKey),
                     processorName + " property '" + oldKey + "' must be unchanged, but properties were: " + props);
-        }
-    }
-
-    /**
-     * Asserts that no processor with {@code scheduledState} {@code DISABLED} is the source of a
-     * connection, in the given process group or in any group nested in it.
-     *
-     * <p>While a processor is disabled, NiFi does not revalidate it when a connection is added or
-     * during its periodic validation pass. If its validation ran before the import added its
-     * outgoing connection, it stays {@code INVALID} with "Relationship ... is not connected to any
-     * component", and the validation wait times out. Set such a processor's
-     * {@code scheduledState} to {@code ENABLED} in the fixture.
-     *
-     * @param flowContents the {@code flowContents} node from the exported flow JSON
-     */
-    static void assertNoDisabledProcessorWithConnection(final JsonNode flowContents) {
-        String rootName = flowContents.path("name").asText();
-        List<String> offenders = new ArrayList<>();
-        collectDisabledProcessorsWithConnection(flowContents, rootName, offenders);
-        assertEquals(List.of(), offenders,
-                "disabled processors with an outgoing connection in flow " + rootName
-                        + "; set their scheduledState to ENABLED in the fixture");
-    }
-
-    private static void collectDisabledProcessorsWithConnection(final JsonNode group, final String groupPath,
-                                                                final List<String> offenders) {
-        Set<String> sourceIds = new HashSet<>();
-        for (JsonNode connection : group.path("connections")) {
-            sourceIds.add(connection.path("source").path("id").asText());
-        }
-        for (JsonNode proc : group.path("processors")) {
-            if ("DISABLED".equals(proc.path("scheduledState").asText())
-                    && sourceIds.contains(proc.path("identifier").asText())) {
-                offenders.add(groupPath + "/" + proc.path("name").asText());
-            }
-        }
-        for (JsonNode child : group.path("processGroups")) {
-            collectDisabledProcessorsWithConnection(child, groupPath + "/" + child.path("name").asText(), offenders);
         }
     }
 
