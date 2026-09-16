@@ -534,6 +534,82 @@
                         }
                     },
                     "response": []
+                },
+                {
+                    "name": "Check state of HTTP listeners",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// HandleHttpRequest starts its HTTP server inside its first onTrigger call, and NiFi\r",
+                                    "// counts a task only after onTrigger returns. Once every HandleHttpRequest processor has\r",
+                                    "// a taskCount of at least 1, it has started its server, unless that first start failed.\r",
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "const responseJson = pm.response.json();\r",
+                                    "\r",
+                                    "function collectListeners(groupSnapshot) {\r",
+                                    "    const listeners = (groupSnapshot.processorStatusSnapshots || [])\r",
+                                    "        .map(entity => entity.processorStatusSnapshot)\r",
+                                    "        .filter(processor => processor.type === \"HandleHttpRequest\");\r",
+                                    "    for (const child of groupSnapshot.processGroupStatusSnapshots || []) {\r",
+                                    "        listeners.push(...collectListeners(child.processGroupStatusSnapshot));\r",
+                                    "    }\r",
+                                    "    return listeners;\r",
+                                    "}\r",
+                                    "\r",
+                                    "let attempt = pm.environment.get(\"polling_attempt\") || 1;\r",
+                                    "const maxAttempts = 30;\r",
+                                    "\r",
+                                    "pm.test(`Attempt ${attempt}: Checking that HTTP listeners are started`, function () {\r",
+                                    "    const listeners = collectListeners(responseJson.processGroupStatus.aggregateSnapshot);\r",
+                                    "    const allStarted = listeners.length > 0 && listeners.every(listener => listener.taskCount > 0);\r",
+                                    "    const listenerStates = JSON.stringify(listeners.map(listener => ({ name: listener.name, taskCount: listener.taskCount })));\r",
+                                    "\r",
+                                    "    if (!allStarted && attempt < maxAttempts) {\r",
+                                    "        console.log(`Not all HandleHttpRequest processors have run yet: ${listenerStates}. Retry in 1 second (try ${attempt + 1})`);\r",
+                                    "        pm.environment.set(\"polling_attempt\", attempt + 1);\r",
+                                    "\r",
+                                    "        setTimeout(() => {\r",
+                                    "            pm.execution.setNextRequest(\"Check state of HTTP listeners\");\r",
+                                    "        }, 1000);\r",
+                                    "    } else {\r",
+                                    "        pm.expect(allStarted, `every HandleHttpRequest processor has run at least once, found ${listeners.length}: ${listenerStates}`).to.be.true;\r",
+                                    "        console.log(`All ${listeners.length} HandleHttpRequest processors have started`);\r",
+                                    "        pm.environment.unset(\"polling_attempt\");\r",
+                                    "    }\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{nars.test.pg.id}}/status?recursive=true",
+                            "host": [
+                                "{{nifi.url}}"
+                            ],
+                            "path": [
+                                "nifi-api",
+                                "flow",
+                                "process-groups",
+                                "{{nars.test.pg.id}}",
+                                "status"
+                            ],
+                            "query": [
+                                {
+                                    "key": "recursive",
+                                    "value": "true"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
                 }
             ]
         },
