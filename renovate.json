@@ -69,6 +69,128 @@
       "matchPackageNames": ["ghcr.io/netcracker/qubership-nifi-registry"],
       "matchFileNames": [".github/docker/**"],
       "enabled": false
+    },
+    {
+      "description": [
+        "Spring Boot, Spring Framework, and Spring Cloud majors break APIs, so they are upgraded by hand after dashboard approval."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.springframework*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Each Spring Boot minor needs a new Spring Cloud release train, which Renovate treats as a major, so Boot minors wait for approval too."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.springframework.boot:*"],
+      "matchUpdateTypes": ["minor"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Quarkus majors break extensions and configuration, and the Netcracker Quarkus BOM is imported next to the Quarkus platform BOM, so the two move together."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["io.quarkus*", "com.netcracker.cloud:core-quarkus-*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Jackson 3 changes package names and group IDs, so Jackson majors are upgraded by hand."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.fasterxml.jackson*", "tools.jackson*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "SLF4J majors change how bindings are found, so they must move together with the logging backend."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.slf4j:*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Oracle JDBC majors follow Oracle Database releases and change the supported server versions; ojdbc8 and orai18n move together."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.oracle.database*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "The processors call the json-path and json-schema-validator APIs directly, and majors of both libraries change those APIs."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.jayway.jsonpath:*", "com.networknt:json-schema-validator"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Testcontainers 2 renames artifacts and JUnit 6 raises the Java baseline, so test framework majors are upgraded by hand."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.testcontainers:*", "com.redis:testcontainers-redis", "org.junit*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "HikariCP, Guava, and JGit majors change APIs or the minimum Java version of the NARs and tools that bundle them."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.zaxxer:HikariCP", "com.google.guava:*", "org.eclipse.jgit:*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "The Maven API that the plugins compile against must match the Maven 3 runtime that executes them."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.apache.maven:*", "org.apache.maven.plugin-tools:*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Code quality tool majors add or change rules and can fail the build, so their findings are fixed by hand during the upgrade."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": [
+        "com.puppycrawl.tools:checkstyle",
+        "com.github.spotbugs:*",
+        "org.sonarsource.scanner.maven:*",
+        "net.sourceforge.pmd:*"
+      ],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Micrometer, Netty, and Logback majors change runtime APIs used by the NiFi bundles and consul modules."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["io.micrometer:*", "io.netty:*", "ch.qos.logback:*"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "Majors of third-party images in the test compose files can change data formats and configuration, so they are upgraded by hand."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["**", "!ghcr.io/netcracker/**"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
     }
   ],
   "vulnerabilityAlerts": {
