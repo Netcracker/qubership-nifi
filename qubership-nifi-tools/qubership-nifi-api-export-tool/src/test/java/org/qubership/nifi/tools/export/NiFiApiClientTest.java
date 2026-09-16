@@ -17,6 +17,7 @@
 package org.qubership.nifi.tools.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
@@ -41,6 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * the MockWebServer's HTTP address to avoid needing real HTTPS certificates.
  */
 class NiFiApiClientTest {
+
+    private static final Duration RETRY_INTERVAL = Duration.ofMillis(10);
 
     private MockWebServer server;
     private NiFiApiClient client;
@@ -91,6 +94,81 @@ class NiFiApiClientTest {
         // The rejection reason only ever reaches the user through the response body excerpt.
         assertTrue(failure.getMessage().contains("Unable to validate the supplied credentials"),
                 "Message must carry the response body: " + failure.getMessage());
+    }
+
+    @Test
+    void authenticateRetriesWhileSignerIsNotConfigured() throws Exception {
+        server.enqueue(signerNotConfigured());
+        server.enqueue(signerNotConfigured());
+        server.enqueue(new MockResponse().setResponseCode(201).setBody("late-token"));
+        server.enqueue(new MockResponse().setResponseCode(200).setBody("{}"));
+
+        client.authenticate(Duration.ofSeconds(5), RETRY_INTERVAL);
+        client.get("/nifi-api/flow/about");
+
+        assertEquals(4, server.getRequestCount(), "token requests plus one GET");
+        server.takeRequest();
+        server.takeRequest();
+        server.takeRequest();
+        assertEquals("Bearer late-token", server.takeRequest().getHeader("Authorization"));
+    }
+
+    @Test
+    void authenticateFailsWhenSignerIsStillNotConfiguredAfterMaxWait() {
+        server.setDispatcher(new Dispatcher() {
+            @Override
+            public MockResponse dispatch(final RecordedRequest request) {
+                return signerNotConfigured();
+            }
+        });
+
+        NiFiApiException failure = assertThrows(NiFiApiException.class,
+                () -> client.authenticate(Duration.ofMillis(200), RETRY_INTERVAL));
+
+        assertEquals(409, failure.getStatusCode());
+        assertTrue(server.getRequestCount() > 1,
+                "token requests sent before giving up: " + server.getRequestCount());
+    }
+
+    @Test
+    void authenticateDoesNotRetryOtherConflict() {
+        server.enqueue(new MockResponse().setResponseCode(409)
+                .setBody("Access tokens are only issued over HTTPS"));
+        server.enqueue(new MockResponse().setResponseCode(201).setBody("unexpected-token"));
+
+        NiFiApiException failure = assertThrows(NiFiApiException.class,
+                () -> client.authenticate(Duration.ofSeconds(5), RETRY_INTERVAL));
+
+        assertEquals(409, failure.getStatusCode());
+        assertEquals(1, server.getRequestCount(), "token requests sent");
+    }
+
+    @Test
+    void authenticateDoesNotRetrySignerMessageWithOtherStatus() {
+        server.enqueue(new MockResponse().setResponseCode(500)
+                .setBody("JSON Web Signature Signer not configured"));
+        server.enqueue(new MockResponse().setResponseCode(201).setBody("unexpected-token"));
+
+        NiFiApiException failure = assertThrows(NiFiApiException.class,
+                () -> client.authenticate(Duration.ofSeconds(5), RETRY_INTERVAL));
+
+        assertEquals(500, failure.getStatusCode());
+        assertEquals(1, server.getRequestCount(), "token requests sent");
+    }
+
+    @Test
+    void authenticateWithoutWaitSendsSingleRequest() {
+        server.enqueue(signerNotConfigured());
+        server.enqueue(new MockResponse().setResponseCode(201).setBody("unexpected-token"));
+
+        NiFiApiException failure = assertThrows(NiFiApiException.class, () -> client.authenticate());
+
+        assertEquals(409, failure.getStatusCode());
+        assertEquals(1, server.getRequestCount(), "token requests sent");
+    }
+
+    private static MockResponse signerNotConfigured() {
+        return new MockResponse().setResponseCode(409).setBody("JSON Web Signature Signer not configured");
     }
 
     @Test

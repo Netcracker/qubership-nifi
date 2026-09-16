@@ -20,6 +20,7 @@ import org.qubership.nifi.tools.nifi.common.api.NiFiComponentKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -90,7 +91,7 @@ public final class Main {
             String baseUrl = containerManager.getBaseUrl();
             NiFiContainerManager.TruststoreData truststoreData = containerManager.readTruststore();
             try (NiFiApiClient apiClient = new NiFiApiClient(baseUrl, username, password, truststoreData)) {
-                apiClient.authenticate();
+                apiClient.authenticate(Duration.ofSeconds(timeout));
 
                 ComponentDescriptorCollector collector = new ComponentDescriptorCollector(apiClient);
                 OutputWriter writer = new OutputWriter(outputDir);
