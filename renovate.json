@@ -188,7 +188,7 @@
         "Majors of third-party images in the test compose files can change data formats and configuration, so they are upgraded by hand."
       ],
       "matchManagers": ["docker-compose"],
-      "matchPackageNames": ["**", "!ghcr.io/netcracker/**"],
+      "matchPackageNames": ["**"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     }
