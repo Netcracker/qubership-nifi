@@ -33,6 +33,6 @@ jobs:
           persist-credentials: false
 
       - name: "Assign Reviewers"
-        uses: netcracker/qubership-workflow-hub/actions/pr-assigner@cabbb90e9471163cfac84bd50ff0296b2803b44c #2.3.0
+        uses: netcracker/qubership-workflow-hub/actions/pr-assigner@288a6a0d9a78e80dfdefccab1be6497a39deb746 # v2.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
