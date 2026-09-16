@@ -582,7 +582,7 @@
                                     "    pm.response.to.have.status(200);\r",
                                     "});\r",
                                     "\r",
-                                    "pm.test(\"Response is JSON and property is setted\", function () {\r",
+                                    "pm.test(\"Response is JSON and property is set\", function () {\r",
                                     "    var jsonData = pm.response.json();\r",
                                     "    pm.expect(jsonData.component.name).to.eql(\"ComponentPrometheusReportingTaskWithCs\");\r",
                                     "    pm.environment.set(\"reporting.task.cs.version\", jsonData.revision.version);\r",
