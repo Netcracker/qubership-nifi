@@ -375,9 +375,9 @@ public class NifiFlowApiClient {
     private record InvalidProcessor(String name, List<String> errors) { }
 
     /**
-     * Waits (up to 45 s) for the process group to have no invalid components, then asserts none
-     * remain. Equivalent to {@link #waitForPgValidation(String, Collection)} with no tolerated
-     * errors.
+     * Waits (up to 45 s) for the process group to have no invalid enabled processors, then asserts
+     * none remain. Equivalent to {@link #waitForPgValidation(String, Collection)} with no tolerated
+     * errors; its Javadoc explains why disabled processors are not checked.
      *
      * @param pgId process group id
      */
@@ -386,14 +386,19 @@ public class NifiFlowApiClient {
     }
 
     /**
-     * Waits (up to 45 s) for the process group to have no invalid components other than the ones in
-     * {@code ignored}, then asserts none remain. An invalid processor counts as tolerated only when
-     * every one of its validation errors matches an {@link IgnoredValidationError}; any non-matching
-     * error still fails the check.
+     * Waits (up to 45 s) for the process group to have no invalid enabled processors other than the
+     * ones in {@code ignored}, then asserts none remain. An invalid processor counts as tolerated
+     * only when every one of its validation errors matches an {@link IgnoredValidationError}; any
+     * non-matching error still fails the check.
+     *
+     * <p>Disabled processors are not checked, in this process group or in any nested one. While a
+     * processor is disabled, NiFi does not revalidate it when a connection is added or during its
+     * periodic validation pass, so an imported disabled processor can keep a stale
+     * {@code INVALID} or {@code VALIDATING} status indefinitely.
      *
      * @param pgId    process group id
      * @param ignored validation errors to tolerate (never {@code null}; an empty collection requires
-     *                a fully valid process group)
+     *                every enabled processor to be valid)
      */
     public void waitForPgValidation(final String pgId, final Collection<IgnoredValidationError> ignored)
             throws IOException, InterruptedException {
@@ -425,7 +430,7 @@ public class NifiFlowApiClient {
         long nonIgnored = countNonIgnored(invalidProcessors, ignored);
         if (nonIgnored == 0) {
             if (invalidProcessors.isEmpty()) {
-                LOG.info("PG {} has no invalid components", pgId);
+                LOG.info("PG {} has no invalid enabled processors", pgId);
             } else {
                 LOG.warn("PG {} has only ignored invalid components: {}", pgId,
                         buildValidationErrorsMessage(invalidProcessors));
@@ -497,6 +502,11 @@ public class NifiFlowApiClient {
                 getResponseJson.path("processGroupFlow").path("id").asText());
         for (JsonNode processorNode : (ArrayNode) processorsNode) {
             JsonNode component = processorNode.path("component");
+            if ("DISABLED".equals(component.path("state").asText())) {
+                LOG.info("Skipping disabled processor name = {} with validationStatus = {}",
+                        component.path("name").asText(), component.path("validationStatus").asText());
+                continue;
+            }
             if ("INVALID".equals(component.path("validationStatus").asText())) {
                 List<String> errors = new ArrayList<>();
                 for (JsonNode validationError : (ArrayNode) component.path("validationErrors")) {

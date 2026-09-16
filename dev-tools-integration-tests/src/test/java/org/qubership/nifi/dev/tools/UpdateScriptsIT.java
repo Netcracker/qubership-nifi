@@ -79,7 +79,10 @@ class UpdateScriptsIT {
     /**
      * Validates the transformation result, pushes the flow to NiFi Registry,
      * imports the process group via registry reference,
-     * validates that all components are valid and deletes the process group afterward.
+     * validates that all enabled processors are valid and deletes the process group afterward.
+     *
+     * <p>The fixture's {@code GenerateFlowFile} is disabled and has an outgoing connection, so the
+     * import includes a disabled processor, which the validation wait skips.
      */
     @Test
     void testTransformAndImport() throws Exception {
@@ -96,7 +99,7 @@ class UpdateScriptsIT {
 
     /**
      * Pushes the flow to NiFi Registry, imports the process group via registry reference,
-     * validates that all components are valid and deletes the process group afterward.
+     * validates that all enabled processors are valid and deletes the process group afterward.
      *
      * <p>On NiFi 2.5.0, {@code PutS3Object} reports its sensitive dynamic properties as unsupported,
      * so that validation error is tolerated. On newer versions {@code PutS3Object} is valid and the
