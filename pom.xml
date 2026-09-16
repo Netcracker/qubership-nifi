@@ -79,7 +79,7 @@
         <lombok.version>1.18.48</lombok.version>
         <jgit.version>7.6.0.202603022253-r</jgit.version>
         <snakeyaml.version>2.5</snakeyaml.version>
-        <commons-csv.version>1.8</commons-csv.version>
+        <commons-csv.version>1.14.1</commons-csv.version>
         <micrometer.version>1.12.13</micrometer.version>
         <!--jackson and slf4j versions for direct dependencies-->
         <!--NiFi NARs use imported dependencies from NiFi BOMs-->
