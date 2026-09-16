@@ -1,0 +1,4 @@
+# Negative control: limits below the baseline use, so the run must fail with OutOfMemoryError.
+-XX:+UseSerialGC
+-Xmx8m
+-XX:MaxMetaspaceSize=12m

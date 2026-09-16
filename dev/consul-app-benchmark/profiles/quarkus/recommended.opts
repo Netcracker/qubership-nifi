@@ -1,0 +1,13 @@
+# Recommended CONSUL_CONFIG_JAVA_OPTIONS, the same for the Spring and Quarkus apps.
+# Limits are the spring/tuned-v1 values, which passed the soak for both apps.
+-XX:+UseSerialGC
+-Xms16m
+-Xmx64m
+-XX:MaxMetaspaceSize=64m
+-XX:CompressedClassSpaceSize=16m
+-XX:TieredStopAtLevel=1
+-XX:CICompilerCount=1
+-XX:ReservedCodeCacheSize=24m
+-Xss512k
+-XX:MaxDirectMemorySize=16m
+-XX:+UseCompactObjectHeaders

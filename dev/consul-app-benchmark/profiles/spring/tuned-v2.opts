@@ -1,0 +1,13 @@
+# Second tuned candidate for the Spring app: tuned-v1 with smaller limits.
+# tuned-v1 peaks: live heap after GC 26 MiB, metaspace 43.6 MiB, code cache 8.9 MiB.
+-XX:+UseSerialGC
+-Xms16m
+-Xmx48m
+-XX:MaxMetaspaceSize=56m
+-XX:CompressedClassSpaceSize=16m
+-XX:TieredStopAtLevel=1
+-XX:CICompilerCount=1
+-XX:ReservedCodeCacheSize=16m
+-Xss512k
+-XX:MaxDirectMemorySize=16m
+-XX:+UseCompactObjectHeaders

@@ -1,0 +1,14 @@
+# Control: the recommended options with a 3 MiB code cache, below the 9 MiB the Spring app uses.
+# The JVM does not report a full code cache; it unloads compiled code in full collections instead,
+# and startup and CPU time go up.
+-XX:+UseSerialGC
+-Xms16m
+-Xmx64m
+-XX:MaxMetaspaceSize=64m
+-XX:CompressedClassSpaceSize=16m
+-XX:TieredStopAtLevel=1
+-XX:CICompilerCount=1
+-XX:ReservedCodeCacheSize=3m
+-Xss512k
+-XX:MaxDirectMemorySize=16m
+-XX:+UseCompactObjectHeaders

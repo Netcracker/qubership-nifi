@@ -1,0 +1,16 @@
+# First tuned candidate for the Spring app.
+# Serial GC has the smallest native overhead and is enough for a single-threaded workload.
+-XX:+UseSerialGC
+-Xms16m
+-Xmx64m
+# Class metadata: baseline peak use was 38.6 MiB, of which class space was 5 MiB.
+-XX:MaxMetaspaceSize=64m
+-XX:CompressedClassSpaceSize=16m
+# JIT: C1 only, one compiler thread, and a code cache sized for C1 code.
+-XX:TieredStopAtLevel=1
+-XX:CICompilerCount=1
+-XX:ReservedCodeCacheSize=24m
+# Thread stacks and direct buffers.
+-Xss512k
+-XX:MaxDirectMemorySize=16m
+-XX:+UseCompactObjectHeaders
