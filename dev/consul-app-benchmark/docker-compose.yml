@@ -1,0 +1,32 @@
+---
+# Consul and the consul app under test. Podman needs the fully qualified image name for Consul.
+# run-benchmark.sh sets FRAMEWORK, CONSUL_URL, and JAVA_OPTS.
+services:
+  consul:
+    image: docker.io/hashicorp/consul:1.22@sha256:a230dcea0bb107bd7958a912d1429fb7f9d399637de7ffb814b34412b9e8c543
+    container_name: consul-app-bench-consul
+    hostname: consul
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  consul-app:
+    image: consul-app-benchmark:${FRAMEWORK:-spring}
+    container_name: consul-app-bench-app
+    profiles:
+      - app
+    environment:
+      - FRAMEWORK=${FRAMEWORK:-spring}
+      - CONSUL_URL=${CONSUL_URL:-consul:8500}
+      - NAMESPACE=local
+      - MICROSERVICE_NAME=qubership-nifi
+      - CONSUL_ACL_TOKEN=${CONSUL_ACL_TOKEN:-}
+      - JAVA_OPTS=${JAVA_OPTS:-}
+    depends_on:
+      consul:
+        condition: service_healthy

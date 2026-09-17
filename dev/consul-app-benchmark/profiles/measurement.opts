@@ -1,0 +1,9 @@
+# Measurement options added to every profile, so that they affect every run equally.
+# Native memory tracking and the code cache report print at JVM exit; docker stop triggers the exit.
+-XX:NativeMemoryTracking=summary
+-XX:+UnlockDiagnosticVMOptions
+-XX:+PrintNMTStatistics
+-XX:+PrintCodeCache
+-Xlog:gc*,gc+metaspace:file=/tmp/bench/gc.log:uptime,level,tags
+-Xlog:codecache=info:file=/tmp/bench/codecache.log:uptime,level,tags
+-XX:+ExitOnOutOfMemoryError
