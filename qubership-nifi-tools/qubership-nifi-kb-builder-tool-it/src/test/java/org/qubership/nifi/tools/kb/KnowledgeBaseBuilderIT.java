@@ -99,6 +99,10 @@ class KnowledgeBaseBuilderIT {
     private Path caFile;
     private SSLContext targetSslContext;
     private int expectedComponentCount;
+    private Path sharedDir;
+    // Null until sharedCatalogKnowledgeBase() runs the shared build.
+    private Integer sharedCatalogExitCode;
+    private Path sharedCatalogDir;
 
     protected String image() {
         return NIFI_IMAGE;
@@ -117,7 +121,8 @@ class KnowledgeBaseBuilderIT {
     private Path tempDir;
 
     @BeforeAll
-    void startNiFi(@TempDir final Path sharedDir) throws Exception {
+    void startNiFi(@TempDir final Path classDir) throws Exception {
+        sharedDir = classDir;
         final String password = UUID.randomUUID().toString();
         container = new NiFiContainerManager(image(), USERNAME, password,
                 STARTUP_TIMEOUT_SECONDS, port());
@@ -143,10 +148,8 @@ class KnowledgeBaseBuilderIT {
 
     @Test
     void buildsCatalogOnlyKnowledgeBaseWithTokenAuth() throws Exception {
-        final Path outputDir = tempDir.resolve("kb-catalog");
-        final int code = run(outputDir, true);
+        final Path outputDir = sharedCatalogKnowledgeBase();
 
-        assertThat(code).isZero();
         assertCatalogStructure(outputDir);
         assertThat(outputDir.resolve("guides")).doesNotExist();
 
@@ -175,17 +178,38 @@ class KnowledgeBaseBuilderIT {
 
     @Test
     void replacesPreexistingKnowledgeBase() throws Exception {
+        final Path existingDir = sharedCatalogKnowledgeBase();
         final Path outputDir = tempDir.resolve("kb-replace");
-
-        assertThat(run(outputDir, true)).isZero();
+        copyDirectory(existingDir, outputDir);
         assertThat(outputDir.resolve("manifest.json")).exists();
+        final Path staleFile = Files.writeString(outputDir.resolve("stale.txt"), "left by an earlier run");
 
-        // A second run must replace the existing directory in place without an overwrite flag.
-        String firstFingerprint = fingerprintOf(outputDir);
+        // A run over an existing Knowledge Base must replace the directory in place without an overwrite flag.
+        String firstFingerprint = fingerprintOf(existingDir);
         assertThat(run(outputDir, true)).isZero();
+        assertThat(staleFile).doesNotExist();
         assertThat(fingerprintOf(outputDir)).isEqualTo(firstFingerprint);
         assertCatalogStructure(outputDir);
         assertThat(fingerprintOf(outputDir)).startsWith("sha256:");
+    }
+
+    // Runs the catalog-only build once per class, on the first call, and returns its output directory.
+    // Callers only read the directory; a test that needs to modify a Knowledge Base works on a copy.
+    private Path sharedCatalogKnowledgeBase() throws Exception {
+        if (sharedCatalogExitCode == null) {
+            sharedCatalogDir = sharedDir.resolve("kb-catalog");
+            sharedCatalogExitCode = run(sharedCatalogDir, true);
+        }
+        assertThat(sharedCatalogExitCode).as("exit code of the shared catalog-only build").isZero();
+        return sharedCatalogDir;
+    }
+
+    private static void copyDirectory(final Path source, final Path target) throws IOException {
+        try (Stream<Path> paths = Files.walk(source)) {
+            for (final Path path : paths.toList()) {
+                Files.copy(path, target.resolve(source.relativize(path).toString()));
+            }
+        }
     }
 
     private void assertGuideStatuses(final JsonNode manifest, final String expectedMode,

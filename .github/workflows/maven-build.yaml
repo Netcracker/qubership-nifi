@@ -94,6 +94,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Input parameters
         run: |
@@ -147,16 +148,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run tools integration tests
-        if: ${{ !inputs.skip-tools-it }}
-        run: |
-          # Run mvn install before tests to ensure all artifacts are published
-          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true
-          # Run integration tests
-          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -P tools-integration-tests
-        env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Upload test results
         if: failure() || cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -164,8 +155,6 @@ jobs:
           name: maven-unit-test-logs
           path: |
             **/target/surefire-reports/**/*.xml
-            **/target/failsafe-reports/**/*.xml
-            **/target/failsafe-reports/**/*.txt
           retention-days: 2
       - name: Upload all Maven target directories
         if: ${{ inputs.upload-artifact }}
@@ -174,3 +163,50 @@ jobs:
           name: ${{ inputs.artifact-id }}
           path: '**/target'
           retention-days: 1
+
+  # Runs in parallel with maven-build-and-test to cut the wall-clock time of the workflow.
+  tools-integration-tests:
+    if: ${{ !inputs.skip-tools-it }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Cache Maven dependencies
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up JDK
+        uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          java-version: ${{ inputs.java-version || '25' }}
+          distribution: 'temurin'
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+      - name: Run tools integration tests
+        run: |
+          # The integration tests need every module in the local repository, so install them first
+          mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dpmd.skip=true
+          # Run integration tests with 2 threads:
+          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dpmd.skip=true -P tools-integration-tests -T2
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload test results
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: maven-integration-test-logs
+          path: |
+            **/target/surefire-reports/**/*.xml
+            **/target/failsafe-reports/**/*.xml
+            **/target/failsafe-reports/**/*.txt
+          retention-days: 2
