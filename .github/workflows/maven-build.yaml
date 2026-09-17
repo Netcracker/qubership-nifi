@@ -193,8 +193,8 @@ jobs:
         run: |
           # The integration tests need every module in the local repository, so install them first
           mvn --batch-mode install -DskipUnitTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dpmd.skip=true
-          # Run integration tests
-          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dpmd.skip=true -P tools-integration-tests
+          # Run integration tests with 2 threads:
+          mvn --batch-mode verify -DskipUnitTests=true -Dgpg.skip=true -Dmaven.javadoc.skip=true -Dmaven.source.skip=true -Dpmd.skip=true -P tools-integration-tests -T2
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
