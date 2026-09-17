@@ -55,6 +55,7 @@
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
         <failsafe-plugin.version>3.5.4</failsafe-plugin.version>
         <compiler-plugin.version>3.15.0</compiler-plugin.version>
+        <jar-plugin.version>3.5.1</jar-plugin.version>
         <central-publishing.plugin.version>0.11.0</central-publishing.plugin.version>
         <nifi.version>2.10.0</nifi.version>
         <nifi-api.version>2.9.0</nifi-api.version>
@@ -435,6 +436,11 @@
                             <version>13.11.0</version>
                         </dependency>
                     </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${jar-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
