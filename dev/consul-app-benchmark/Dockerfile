@@ -14,6 +14,7 @@
 
 # run-benchmark.sh passes the base image pinned in the repository Dockerfile.
 ARG BASE_IMAGE
+# checkov:skip=CKV_DOCKER_7: base image comes from the argument and it's not latest.
 FROM ${BASE_IMAGE}
 
 ARG FRAMEWORK
