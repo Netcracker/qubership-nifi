@@ -1,6 +1,12 @@
 ---
 name: nifi-flow-builder
-description: Build, modify, review or debug Apache NiFi flow definition JSON using a version-matched NiFi Knowledge Base as the source of truth for component types, bundle coordinates, property keys, allowable values, relationships and controller service APIs. Use this whenever the user wants to create or edit a NiFi flow, add or reconfigure a processor or controller service, wire connections, work with a flow.json, versioned flow snapshot or process group export, or asks which NiFi processor or controller service fits a task - even when they never mention the Knowledge Base or NIFI_KB_PATH. Reach for it before writing any NiFi component type, bundle version or property key by hand, because those are exactly the details that get guessed wrong and then fail silently on import.
+description: Build, modify, review or debug Apache NiFi flow definition JSON using a version-matched NiFi Knowledge Base
+  as the source of truth for component types, bundle coordinates, property keys, allowable values, relationships
+  and controller service APIs. Use this whenever the user wants to create or edit a NiFi flow, add or reconfigure
+  a processor or controller service, wire connections, work with a flow.json, versioned flow snapshot or
+  process group export, or asks which NiFi processor or controller service fits a task - even when they never mention
+  the Knowledge Base or NIFI_KB_PATH. Reach for it before writing any NiFi component type, bundle version or
+  property key by hand, because those are exactly the details that get guessed wrong and then fail silently on import.
 ---
 
 # Building and modifying NiFi flows
