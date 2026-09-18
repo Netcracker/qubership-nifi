@@ -1,5 +1,6 @@
 import argparse
 import json
+from pathlib import Path
 
 import pytest
 
@@ -214,20 +215,70 @@ def test_a_flow_with_no_org_apache_nifi_bundle_has_no_version(tmp_path):
     assert kb.flow_nifi_version(path) is None
 
 
-def test_the_knowledge_base_matching_the_flow_version_is_chosen(tmp_path, monkeypatch):
+@pytest.fixture
+def workspace(tmp_path, monkeypatch):
+    """A workspace rooted at tmp_path/ws, with no KB path or project dir from the environment."""
+    root = tmp_path / "ws"
+    (root / ".git").mkdir(parents=True)
     monkeypatch.delenv("NIFI_KB_PATH", raising=False)
-    _write_kb(tmp_path / "kb-1", "1.28.1", [])
-    _write_kb(tmp_path / "kb-2", "2.10.0", [])
-    chosen = kb.discover(search_from=tmp_path, flow_version="1.28.1")
-    assert chosen == (tmp_path / "kb-1").resolve()
+    monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+    monkeypatch.chdir(root)
+    return root.resolve()
 
 
-def test_several_knowledge_bases_and_no_version_match_is_an_error(tmp_path, monkeypatch):
-    monkeypatch.delenv("NIFI_KB_PATH", raising=False)
-    _write_kb(tmp_path / "kb-1", "1.28.1", [])
-    _write_kb(tmp_path / "kb-2", "2.10.0", [])
+def test_the_knowledge_base_matching_the_flow_version_is_chosen(workspace):
+    _write_kb(workspace / "kb-1", "1.28.1", [])
+    _write_kb(workspace / "kb-2", "2.10.0", [])
+    chosen = kb.discover(search_from=workspace, flow_version="1.28.1")
+    assert chosen == workspace / "kb-1"
+
+
+def test_several_knowledge_bases_and_no_version_match_is_an_error(workspace):
+    _write_kb(workspace / "kb-1", "1.28.1", [])
+    _write_kb(workspace / "kb-2", "2.10.0", [])
     with pytest.raises(kb.KbError, match="Several Knowledge Bases"):
-        kb.discover(search_from=tmp_path, flow_version="1.27.0")
+        kb.discover(search_from=workspace, flow_version="1.27.0")
+
+
+def test_a_knowledge_base_next_to_a_flow_inside_the_workspace_is_found(workspace):
+    # Three levels below the workspace root, so only the scan of the flow's directory reaches it.
+    flows = workspace / "a" / "b" / "flows"
+    _write_kb(flows / "kb", "2.10.0", [])
+    assert kb.discover(search_from=flows) == flows / "kb"
+
+
+def test_a_knowledge_base_next_to_a_flow_outside_the_workspace_is_not_found(workspace, tmp_path):
+    outside = tmp_path / "elsewhere"
+    _write_kb(outside / "kb", "2.10.0", [])
+    with pytest.raises(kb.KbError, match="does not leave the workspace"):
+        kb.discover(search_from=outside)
+
+
+def test_claude_project_dir_sets_the_workspace_boundary(workspace, tmp_path, monkeypatch):
+    project = tmp_path / "project"
+    _write_kb(project / "kb", "2.10.0", [])
+    _write_kb(workspace / "kb", "1.28.1", [])
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(project))
+    assert kb.discover() == (project / "kb").resolve()
+
+
+def test_the_workspace_is_the_nearest_ancestor_of_the_current_directory_with_git(
+        workspace, monkeypatch):
+    deeper = workspace / "sub" / "dir"
+    deeper.mkdir(parents=True)
+    monkeypatch.chdir(deeper)
+    assert kb._workspace_root() == workspace
+
+
+def test_the_workspace_is_the_current_directory_when_no_ancestor_has_git(
+        tmp_path, monkeypatch):
+    # The drive or filesystem root has no ancestors, so its own .git is the only one checked.
+    anchor = Path(tmp_path.anchor)
+    if (anchor / ".git").exists():
+        pytest.skip("%s holds a .git entry, so it is a repository root" % anchor)
+    monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+    monkeypatch.setattr(kb.Path, "cwd", classmethod(lambda cls: anchor))
+    assert kb._workspace_root() == anchor.resolve()
 
 
 # ---------------------------------------------------------------------------
@@ -275,13 +326,15 @@ def test_normalize_writes_port_function_only_for_2x(version, expected):
     assert group["inputPorts"][0].get("portFunction") == expected
 
 
-def _validate(tmp_path, capsys, kb_version, processor):
+def _validate(tmp_path, capsys, kb_version, processor, type_name="org.example.P",
+              input_requirement="INPUT_ALLOWED", flow=None):
     definition = {"definitionFormat": "normalized-nifi-1x",
-                  "definition": _processor_1x(type="org.example.P", supportedRelationships=[],
-                                              inputRequirement="INPUT_ALLOWED")}
+                  "definition": _processor_1x(type=type_name, supportedRelationships=[],
+                                              inputRequirement=input_requirement)}
     knowledge_base = kb.Kb(
-        _write_kb(tmp_path / "kb", kb_version, [("PROCESSOR", "org.example.P", definition)]))
-    flow = _flow([dict(processor, type="org.example.P")], version=kb_version)
+        _write_kb(tmp_path / "kb", kb_version, [("PROCESSOR", type_name, definition)]))
+    if flow is None:
+        flow = _flow([dict(processor, type=type_name)], version=kb_version)
     kb.normalize_group(knowledge_base, flow["flowContents"])
     path = tmp_path / "flow.json"
     path.write_text(json.dumps(flow), encoding="utf-8")
@@ -305,3 +358,89 @@ def test_event_driven_on_a_processor_that_is_not_event_driven_is_an_error(tmp_pa
         "schedulingStrategy": "EVENT_DRIVEN", "runDurationMillis": 25})
     assert "ERROR  flowContents.processors[P]: schedulingStrategy 'EVENT_DRIVEN' is not " \
            "supported. Available: TIMER_DRIVEN, CRON_DRIVEN." in out
+
+
+@pytest.mark.parametrize("type_name, warned", [
+    pytest.param("org.example.GetThing", True, id="a polling source"),
+    pytest.param("org.example.ListThing", True, id="a lister is still a polling source"),
+    pytest.param("org.example.ListenThing", False, id="a listener"),
+    pytest.param("org.example.ConsumeThing", False, id="a consumer"),
+])
+def test_a_zero_period_source_is_warned_about_unless_it_listens_or_consumes(
+        tmp_path, capsys, type_name, warned):
+    out = _validate(tmp_path, capsys, "1.28.1", {
+        "identifier": "43c7acbe-5c5a-431e-980e-caf91e2ac6cf", "name": "P",
+        "schedulingPeriod": "0 sec", "runDurationMillis": 25},
+        type_name=type_name, input_requirement="INPUT_FORBIDDEN")
+    assert ("source processor scheduled every '0 sec'" in out) is warned
+
+
+def _parent_and_child_flow(child_context):
+    """A flow whose root is bound to `ctx` and whose child group references #{db.url}."""
+    child = {"identifier": "5d8f8a51-1f7e-4c2a-9a55-3c0f6f1b2d10", "name": "Child",
+             "parameterContextName": child_context,
+             "processors": [{"identifier": "43c7acbe-5c5a-431e-980e-caf91e2ac6cf", "name": "P",
+                             "type": "org.example.P", "runDurationMillis": 25,
+                             "properties": {"p": "#{db.url}"},
+                             "bundle": {"group": "org.apache.nifi",
+                                        "artifact": "nifi-standard-nar", "version": "1.28.1"}}]}
+    return {"flowContents": {"identifier": "b051f24c-f9ff-4fde-b160-9b0b84af3e96",
+                             "parameterContextName": "ctx", "processors": [],
+                             "processGroups": [child]},
+            "parameterContexts": {"ctx": {"name": "ctx", "parameters": [
+                {"name": "db.url", "sensitive": False, "value": "x"}]}}}
+
+
+def test_a_parameter_context_on_the_parent_group_does_not_bind_a_child_group(tmp_path, capsys):
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=_parent_and_child_flow(None))
+    assert "ERROR  flowContents.Child: properties reference parameter(s) db.url but no " \
+           "parameterContextName is set on this group" in out
+
+
+def test_a_child_group_bound_to_its_own_parameter_context_is_valid(tmp_path, capsys):
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=_parent_and_child_flow("ctx"))
+    assert "flowContents.Child: properties reference parameter(s)" not in out
+
+
+@pytest.mark.parametrize("period, strategy, invalid, source_warned", [
+    pytest.param("0", "TIMER_DRIVEN", True, False, id="a bare 0 has no unit"),
+    pytest.param("0 sec", "TIMER_DRIVEN", False, True, id="zero with a unit"),
+    pytest.param("0ms", "TIMER_DRIVEN", False, True, id="zero with an unspaced unit"),
+    pytest.param("100 millis", "TIMER_DRIVEN", False, False, id="a real period"),
+    pytest.param("10 micros", "TIMER_DRIVEN", False, False, id="a less common unit"),
+    pytest.param("1 Milli", "TIMER_DRIVEN", False, False, id="a unit in mixed case"),
+    pytest.param("0.5 sec", "TIMER_DRIVEN", False, False, id="a decimal period"),
+    pytest.param("5 fortnights", "TIMER_DRIVEN", True, False, id="an unknown unit"),
+    pytest.param("* * * * * ?", "CRON_DRIVEN", False, False, id="a cron expression"),
+])
+def test_a_timer_driven_period_is_checked_for_a_time_unit(
+        tmp_path, capsys, period, strategy, invalid, source_warned):
+    out = _validate(tmp_path, capsys, "1.28.1", {
+        "identifier": "43c7acbe-5c5a-431e-980e-caf91e2ac6cf", "name": "P",
+        "schedulingStrategy": strategy, "schedulingPeriod": period, "runDurationMillis": 25},
+        type_name="org.example.GetThing", input_requirement="INPUT_FORBIDDEN")
+    assert ("is not a valid time duration" in out) is invalid, out
+    assert ("source processor scheduled every" in out) is source_warned, out
+
+
+ROOT = {"identifier": "g", "processors": []}
+
+
+@pytest.mark.parametrize("doc", [
+    pytest.param({"flowContents": ROOT}, id="NiFi download"),
+    pytest.param({"flowContents": ROOT, "snapshotMetadata": {"version": 3}}, id="Registry export"),
+])
+def test_root_group_accepts_a_top_level_flow_contents(doc):
+    assert kb.root_group(doc) == (ROOT, doc)
+
+
+@pytest.mark.parametrize("doc", [
+    pytest.param({"versionedFlowSnapshot": {"flowContents": ROOT}},
+                 id="VersionedFlowSnapshotEntity"),
+    pytest.param({"snapshot": {"flowContents": ROOT}}, id="snapshot wrapper"),
+    pytest.param(ROOT, id="bare process group"),
+    pytest.param({"flowContents": None}, id="null flowContents"),
+])
+def test_root_group_refuses_anything_without_a_top_level_flow_contents(doc):
+    with pytest.raises(kb.KbError, match="top-level 'flowContents'"):
+        kb.root_group(doc)

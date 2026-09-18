@@ -42,12 +42,15 @@ A downloaded flow definition wraps the root process group:
 ```
 
 A file you downloaded from NiFi carries one more key, `"latest": false`. It is metadata
-about the download, not part of the flow: NiFi Registry snapshots never contain it, and no
-importer reads it. Leave it out, and one file loads into both products. `kb.py normalize`
-removes it if you started from a NiFi download.
+about the download, not part of the flow. NiFi and NiFi Registry 2.10 both accept a file that
+carries it, but leave it out of a flow you commit. `kb.py normalize` removes it if you started
+from a NiFi download.
 
-`kb.py validate` also accepts a bare process group object and a registry snapshot that nests
-`flowContents` under `snapshot`.
+A flow version exported from NiFi Registry has the same top-level `flowContents`, plus
+Registry metadata such as `snapshotMetadata`, and the scripts accept it too. `kb.py` and
+`verify_live.py` both require a top-level `flowContents` and reject any other shape, such as a
+bare process group object or a `VersionedFlowSnapshotEntity` that nests the snapshot under
+`versionedFlowSnapshot`.
 
 ## Process group
 
@@ -81,17 +84,14 @@ written out rather than omitted.
 ```
 
 Set `parameterContextName` to a key of `parameterContexts` if anything in the group references
-a parameter; leave it `null` otherwise. Child groups inherit the nearest ancestor's binding.
+a parameter; leave it `null` otherwise. The binding applies to that group only. A child group
+is not bound to its parent's context, so every group whose components reference a parameter
+sets `parameterContextName` itself.
 
-There is no `variables` key in 2.x. The Variable Registry was removed in NiFi 2.0, so a 2.x
-export has no such field and a 2.x import ignores one you supply. That last part is what makes
-it worth stating: a flow carrying variables loads without complaint, and every `${name}` that
-reads one silently evaluates to nothing at runtime. Parameters replace them - declare a
-parameter context and reference it as `#{name}`.
-
-A 1.x export writes a `variables` map of names to values on every process group, empty when
-the group has none, and NiFi 1.x reads it on import. Variables are deprecated in 1.x: a new
-flow uses parameters, and an existing flow keeps the variables it has.
+NiFi 2.x does not support variables. A 2.x import ignores a `variables` map, and a `${name}`
+that referred to a variable evaluates to an empty string at runtime. Use parameters instead:
+declare them in a parameter context and reference them as `#{name}`. NiFi 1.x still reads the
+`variables` map that its exports write on every process group, but deprecates it.
 
 ## Processor
 
@@ -140,7 +140,10 @@ Field notes:
   labels shown in the UI. A property left at its default may be omitted or set to `null`.
 - `propertyDescriptors` mirrors `properties`, one entry per key you set:
   `{"name": ..., "displayName": ..., "identifiesControllerService": false,
-  "sensitive": false, "dynamic": false}`. It looks redundant, but the importer reads it
+  "sensitive": false, "dynamic": false}`. Take the values from the Knowledge Base: `name` is
+  the `JSON KEY` from `kb.py props`, and `displayName`, `sensitive` and
+  `identifiesControllerService` (true for a service-typed property) come from that property's
+  descriptor in the KB. It looks redundant, but the importer reads it
   and omitting the field, or setting it to `null`, fails the upload with HTTP 500. An
   empty map is accepted, and so is one that covers only some of the properties - NiFi
   does not read the contents at import. Write the full mirror anyway, because that is
@@ -149,7 +152,8 @@ Field notes:
   sometimes with a `resourceDefinition`; NiFi 1.28.1 accepts the shorter map that
   `normalize` writes.
 - `dynamic` marks a property as user-defined rather than one the component declares, so
-  it is `true` exactly for the keys you added under `dynamic properties: yes`. NiFi 2.x
+  it is `true` exactly for the keys that `kb.py props` does not list, which you may add only
+  when it reports `dynamic properties: yes`. NiFi 2.x
   writes it; 1.x exports have no such field, and `kb.py normalize` follows the Knowledge
   Base version rather than adding a key the target NiFi never produces. Let `normalize`
   generate all of this from the catalog rather than writing it by hand.
@@ -158,15 +162,29 @@ Field notes:
   supports it. `PRIMARY_NODE_ONLY` is deprecated in 1.x and gone in 2.x; express it as
   `executionNode: "PRIMARY"` instead. A `CRON_DRIVEN` period is a Quartz cron expression,
   such as `* * * * * ?`.
+- A `TIMER_DRIVEN` `schedulingPeriod` is a number with a time unit, such as `0 sec`,
+  `100 millis` or `5 mins`. A bare `0` imports, but NiFi marks the processor invalid because
+  "Scheduling Period is not a valid time duration", and the UI does not accept it.
   `TIMER_DRIVEN` with `schedulingPeriod: "0 sec"` means run as often as possible. That is
   the right setting for a processor fed by a connection, because an empty queue stops it
-  being scheduled anyway, and the wrong one for a source: with no upstream queue, nothing
-  throttles it and it holds a thread polling nothing. Give a source the default `kb.py
-  props` prints, or an explicit period.
+  being scheduled anyway, and usually the wrong one for a source, a processor whose
+  `inputRequirement` is `INPUT_FORBIDDEN`. With no upstream queue, nothing throttles a
+  source: the task is rescheduled the instant it returns and holds a thread polling nothing.
+  The cost is invisible in a test flow and obvious on a busy cluster. `kb.py props` prints
+  the component's default period under `sched`; take it when it is not zero, and choose one
+  yourself when it is, since several sources, `GetFile` among them, ship with a zero
+  default. A 1.x KB records no default of the component's own, so there `props` shows the
+  framework's `0 sec` for every processor and the choice is always yours. 100 millis is a
+  common floor for a source that must react quickly, and seconds are normal for a directory
+  poll. Listeners and consumers such as `ListenHTTP` and `ConsumeKafka` are the exception:
+  `0 sec` is the normal setting for them, and `kb.py validate` does not warn about a
+  `Listen*` or `Consume*` processor.
 - `runDurationMillis` trades latency for throughput on processors that support batching,
-  which `kb.py props` reports. Above zero, NiFi handles several FlowFiles per session
-  instead of paying the framework cost per file; 25 is the usual value. It must stay 0 on
-  a processor that does not support batching.
+  which `kb.py props` reports. Above zero, NiFi handles several FlowFiles in one session
+  instead of paying the framework cost once per file, which is most of the cost of a cheap
+  operation such as setting an attribute. 25 is the usual value and the one NiFi's UI
+  offers. Leave it at 0 when a FlowFile must pass through with the least possible latency.
+  It must stay 0 on a processor that does not support batching.
 - `executionNode` is `ALL` or `PRIMARY`. Use `PRIMARY` when `kb.py props` reports the
   processor as primary-node-only, otherwise it runs on every node of a cluster.
 - `scheduledState` is `ENABLED`, `DISABLED` or `RUNNING`.
@@ -245,12 +263,14 @@ process group boundary means connecting to a port, not to a component inside the
 `selectedRelationships` applies to a processor source and must name relationships that
 processor declares.
 
-## Ports, funnels and labels
+## Input and output ports
 
 ```json
 {
   "identifier": "<uuid>",
+  "instanceIdentifier": "<uuid>",
   "name": "In",
+  "comments": "",
   "position": {"x": 0.0, "y": 0.0},
   "type": "INPUT_PORT",
   "concurrentlySchedulableTaskCount": 1,
@@ -266,8 +286,44 @@ Set `type` and `componentType` to `OUTPUT_PORT` for an output port. `portFunctio
 `STANDARD` or `FAILURE`. It exists from NiFi 2.0: a 1.x port has no such field, and a 1.x
 flow leaves it out.
 
-Funnels are minimal: `identifier`, `position`, `componentType: "FUNNEL"` and
-`groupIdentifier`. Labels add `label`, `width` and `height`, and affect nothing at runtime.
+A connection into or out of a child process group names the child's port as its endpoint,
+with `groupId` set to the child group's identifier.
+
+## Funnels
+
+A funnel merges several connections into one and has no configuration of its own:
+
+```json
+{
+  "identifier": "<uuid>",
+  "instanceIdentifier": "<uuid>",
+  "position": {"x": 0.0, "y": 0.0},
+  "componentType": "FUNNEL",
+  "groupIdentifier": "<process-group-identifier>"
+}
+```
+
+Connect to and from it with `type: "FUNNEL"` on the connection endpoint. A funnel has no
+relationships, so a connection whose source is a funnel leaves `selectedRelationships` empty.
+
+## Labels
+
+A label is a note on the canvas and affects nothing at runtime:
+
+```json
+{
+  "identifier": "<uuid>",
+  "instanceIdentifier": "<uuid>",
+  "position": {"x": 0.0, "y": 0.0},
+  "label": "Loads orders into the warehouse",
+  "width": 300.0,
+  "height": 60.0,
+  "zIndex": 0,
+  "style": {"font-size": "12px"},
+  "componentType": "LABEL",
+  "groupIdentifier": "<process-group-identifier>"
+}
+```
 
 ## Parameter contexts and secrets
 
@@ -299,7 +355,7 @@ Bind the context by setting `parameterContextName` on the process group to the c
 
 Reference a parameter from a property as `#{db.password}`. Sensitive parameter values are not
 exported, so `value` is `null` in a downloaded flow and should stay `null` in a flow you
-write. Set the real value in the target NiFi.
+write.
 
 Without the binding, every referencing component is invalid with "Property references one or
 more Parameters but no Parameter Context is currently set on the Process Group" - the
@@ -326,9 +382,16 @@ reference instead of the definition:
 }
 ```
 
-The type is absent, so neither NiFi nor `kb.py validate` can confirm the service implements
-the API the referencing property needs. That check moves to import time, where an unresolved
-reference leaves the component invalid.
+The type is absent, so `kb.py validate` cannot confirm from this file alone that the service
+implements the API the referencing property needs. Where the check can happen depends on where
+the service is defined:
+
+- In another file of the same repository, such as the parent group's flow or a standalone
+  controller service export: read the service's `type` there and check it with
+  `kb.py services <Name> --property "<Property>"`.
+- In another flow in the registry, or only in the target NiFi: nothing you hold has the type.
+  NiFi resolves the reference when the flow is imported into a group that can see the service,
+  and a reference it cannot resolve leaves the referencing component invalid.
 
 ## Identifiers
 
@@ -341,8 +404,10 @@ mints a random UUID for every component it creates, so this is also what a real 
 looks like.
 
 Numbered placeholders such as `00000000-0000-0000-0000-000000000010` do import, which is
-why they are tempting, but they are not a convention local to the file. NiFi keeps the
-identifier you write: it survives the import and comes back unchanged in the next export.
-Reuse the same numbered set in a second flow and the two become indistinguishable to
-anything that keys on the identifier - registry version diffs, external service references,
-flow comparison tooling. `kb.py validate` warns when it sees one.
+why they are tempting, but they are not a convention local to the file. NiFi keeps an
+identifier you write when nothing else in the target uses it: it survives the import and
+comes back unchanged in the next export. Reuse the same numbered set in a second flow and
+two things can go wrong. The two flows become indistinguishable to anything that keys on the
+identifier - registry version diffs, external service references, flow comparison tooling.
+And where the identifiers collide within one NiFi, NiFi may deduplicate them and generate
+new ones, so the next export no longer carries the identifiers you wrote. `kb.py validate` warns when it sees one.

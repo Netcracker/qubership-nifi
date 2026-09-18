@@ -209,45 +209,33 @@ class Client:
 # ---------------------------------------------------------------------------
 
 
-def registry_snapshot(flow_bytes, bucket_id, flow_id, comments):
-    """Wrap a flow definition in the envelope the Registry versions API expects.
+def load_flow(flow_bytes):
+    """Parse a flow definition, refusing any file without a top-level `flowContents` object.
 
-    A NiFi download, a registry snapshot and a bare process group all describe the same
-    thing in slightly different wrappers, so unwrap whichever arrived. The `latest` field a
-    NiFi download carries has no place here and is simply not copied across.
+    A NiFi download and a Registry export both carry one; other shapes are not accepted.
     """
     try:
         doc = json.loads(flow_bytes)
     except ValueError as exc:
         raise LiveError("Flow file is not valid JSON: %s" % exc)
 
-    contents = None
-    if isinstance(doc, dict):
-        if isinstance(doc.get("flowContents"), dict):
-            contents = doc["flowContents"]
-        elif "processors" in doc or "processGroups" in doc:
-            contents, doc = doc, {}
-        else:
-            for key in ("snapshot", "versionedFlowSnapshot"):
-                nested = doc.get(key)
-                if isinstance(nested, dict) and isinstance(nested.get("flowContents"), dict):
-                    doc, contents = nested, nested["flowContents"]
-                    break
-    if contents is None:
+    if not isinstance(doc, dict) or not isinstance(doc.get("flowContents"), dict):
         raise LiveError(
-            "This file is not a flow definition. Expected a 'flowContents' object or a "
-            "process group with 'processors'."
+            "This file is not a flow definition. Expected a top-level 'flowContents' object."
         )
+    return doc
 
-    return {
-        "snapshotMetadata": {"bucketIdentifier": bucket_id, "flowIdentifier": flow_id,
-                             "version": 1, "comments": comments},
-        "flowContents": contents,
-        "externalControllerServices": doc.get("externalControllerServices") or {},
-        "parameterContexts": doc.get("parameterContexts") or {},
-        "parameterProviders": doc.get("parameterProviders") or {},
-        "flowEncodingVersion": doc.get("flowEncodingVersion") or "1.0",
-    }
+
+def registry_snapshot(flow_bytes, bucket_id, flow_id, comments):
+    """The flow definition with `snapshotMetadata` for the temporary flow set on it.
+
+    The file must pass `load_flow`. Every other field is sent as the file has it, so the
+    Registry judges the file itself; any `snapshotMetadata` already present is replaced.
+    """
+    doc = load_flow(flow_bytes)
+    doc["snapshotMetadata"] = {"bucketIdentifier": bucket_id, "flowIdentifier": flow_id,
+                               "version": 1, "comments": comments}
+    return doc
 
 
 def resolve_bucket(client, args, label):
@@ -482,7 +470,7 @@ def flow_relationships(flow_bytes):
         doc = json.loads(flow_bytes)
     except ValueError:
         return {}
-    root = doc.get("flowContents", doc)
+    root = (doc.get("flowContents") or {}) if isinstance(doc, dict) else {}
     handled = {}
 
     def walk(group):
@@ -509,7 +497,7 @@ def flow_properties(flow_bytes):
         doc = json.loads(flow_bytes)
     except ValueError:
         return {}
-    root = doc.get("flowContents", doc)
+    root = (doc.get("flowContents") or {}) if isinstance(doc, dict) else {}
     found = {}
 
     def walk(group):
@@ -625,6 +613,8 @@ def main(argv=None):
         context = build_context(args, workdir)
         headers = auth_headers(args)
         flow_bytes = flow_path.read_bytes()
+        # Refuse a file of the wrong shape before writing anything to either target.
+        load_flow(flow_bytes)
         worst = 0
 
         if args.nifi_url:

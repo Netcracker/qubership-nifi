@@ -6,7 +6,8 @@ description: Build, modify, review or debug Apache NiFi flow definition JSON usi
   a processor or controller service, wire connections, work with a flow.json, versioned flow snapshot or
   process group export, or asks which NiFi processor or controller service fits a task - even when they never mention
   the Knowledge Base or NIFI_KB_PATH. Reach for it before writing any NiFi component type, bundle version or
-  property key by hand, because those are exactly the details that get guessed wrong and then fail silently on import.
+  property key by hand, because those are exactly the details that get guessed wrong and then surface only at import
+  or at run time.
 ---
 
 # Building and modifying NiFi flows
@@ -16,12 +17,15 @@ running NiFi instance. It tells you the fully qualified type of every processor 
 service, the bundle that ships it, the property keys NiFi actually matches on, the allowable
 values, and which relationships exist. Use it instead of recalling NiFi from memory.
 
-Recalled NiFi knowledge is version-blurred, and the mistakes it produces are quiet ones. A
-flow that names `org.apache.nifi.processors.standard.JoltTransformJSON` imports into NiFi 2.x
-as a ghost component, because the class moved to `org.apache.nifi.processors.jolt`. A
-`ConsumeKafka` property written as `"Auto Offset Reset"`, the label the UI shows, is dropped
-on load and the processor starts on the default, because the key NiFi matches on is
-`auto.offset.reset`. Neither failure looks like a failure until the flow runs.
+Recalled NiFi knowledge is version-blurred, and the mistakes it produces show up only once
+the flow is in NiFi. A flow that names `org.apache.nifi.processors.standard.JoltTransformJSON`
+imports into NiFi 2.x as a ghost component, because the class moved to
+`org.apache.nifi.processors.jolt`. A Kafka offset policy written under its UI label rather than
+its key, `auto.offset.reset`, is read as a dynamic property. In 2.x, `ConsumeKafka` takes no
+dynamic properties, so `"Auto Offset Reset"` leaves the processor invalid. In 1.x,
+`ConsumeKafka_2_6` accepts dynamic properties and passes them to the Kafka client, so
+`"Offset Reset"` validates and runs, and the processor consumes from the default offset. That
+second failure looks like a working flow until someone checks which messages it read.
 
 Which of the two a component wants is not a rule you can derive, and it moves between
 versions: the same JoltTransformJSON that took `jolt-spec` in 1.x takes `Jolt Specification`
@@ -38,7 +42,11 @@ kb.py locate
 ```
 
 This resolves the KB in order: the `--kb` argument, then `$NIFI_KB_PATH`, then a scan of the
-current directory and the enclosing repository. It prints the path, the NiFi version, the
+flow's directory (the current directory for a command that takes no flow, such as `locate`)
+and the workspace root, two levels deep. The workspace root is
+`$CLAUDE_PROJECT_DIR` when set, otherwise the git repository that contains the current
+directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
+kept elsewhere needs `--kb` or `NIFI_KB_PATH`. It prints the path, the NiFi version, the
 definition format and the component counts. A KB built from NiFi 1.x (`normalized-nifi-1x`)
 answers every command below the same way as one built from 2.x (`native-nifi-2x`); where the
 two versions differ, this document says so.
@@ -104,12 +112,18 @@ a flow from scratch. The rules below are the ones that decide whether NiFi accep
 
 **Property keys are descriptor names, not UI labels.** The `JSON KEY` column of `kb.py props`
 is what belongs in `properties`. Where a property's UI label differs, `props` prints the label
-underneath and marks it as not the key. NiFi silently ignores an unmatched key, so this
-mistake surfaces only as a component running on defaults.
+underneath and marks it as not the key. NiFi treats a key that matches no descriptor as a
+dynamic property. On a component that takes no dynamic properties, that makes the component
+invalid. On one that does, the component validates and runs, but the value is used as a
+dynamic property, and the property you meant stays at its default.
 
-**Copy bundle coordinates verbatim** from `kb.py props` or `find`. Group, artifact and version
-all matter. The version is the NiFi version of the KB for built-in components, but bundled
-extensions carry their own, so do not pattern-match it across components.
+**Copy bundle coordinates verbatim** from `kb.py props` or `find`. The group and artifact must
+exist on the target NiFi. The version matters less on import: when a flow is imported from a
+Registry or uploaded as a process group, NiFi replaces a version it does not have with the one
+it has installed, as long as the group, artifact and type match. Still build for one target
+NiFi and write the KB's version. The version is the NiFi version of the KB for built-in
+components, but bundled extensions carry their own, so do not pattern-match it across
+components.
 
 **Handle every relationship.** Each relationship a processor declares must either appear in
 `autoTerminatedRelationships` or be carried by an outgoing connection, and never both. NiFi
@@ -119,8 +133,9 @@ refuses to start a processor with an unhandled relationship.
 have an incoming connection; `INPUT_REQUIRED` components must have one.
 
 **Reference controller services by identifier.** A service-typed property holds the
-`identifier` of a service defined in the flow, or a key in `externalControllerServices`. It
-never holds a service name or type.
+identifier of a controller service: the `identifier` of a service defined in the flow, or the
+identifier of a service outside the exported group, which is a key in
+`externalControllerServices`. It never holds a service name or type.
 
 **Use Expression Language only where it is allowed.** The `EL` column gives the scope. In a
 `NONE` property, `${...}` is stored as literal text. A 1.x KB uses the same scope names:
@@ -137,36 +152,18 @@ connection's `source.id` and `destination.id` must match identifiers that exist 
 Numbered placeholders import without complaint, so nothing stops you, but NiFi keeps the
 identifier you write through import and re-export: it becomes the component's permanent
 portable id, and a second flow built from the same numbers collides with the first in every
-tool that compares flows.
+tool that compares flows. Where the numbers collide inside one NiFi, NiFi may also replace
+them with generated identifiers, so the ids you wrote are gone after the import.
 
 **Do not invent properties.** Add a key outside the descriptor list only when `kb.py props`
 reports `dynamic properties: yes`.
 
-**Give a source processor a real schedule.** A processor whose `inputRequirement` is
-`INPUT_FORBIDDEN` has no upstream queue to throttle it, so `schedulingPeriod: "0 sec"`
-reschedules the task the instant it returns and burns a thread spinning on empty polls.
-That cost is invisible in a test flow and obvious on a busy cluster. `kb.py props` prints
-the component's default under `sched`; take it when it is non-zero, and choose one
-yourself when it is not - several sources, `GetFile` among them, ship with a zero default.
-A 1.x KB records no default of the component's own, so there `props` shows the framework's
-`0 sec` for every processor and the choice is always yours.
-100 millis is a common floor for a source that must react quickly, and seconds are normal
-for a directory poll. A processor fed by a
-connection is different: an empty queue already stops it being scheduled, so `0 sec` is
-the normal setting there.
-
-**Use a scheduling strategy from the `supported` list** that `kb.py props` prints under
-`sched`. NiFi 2.x offers `TIMER_DRIVEN` and `CRON_DRIVEN`; 1.x adds `EVENT_DRIVEN` for the
-processors that support it. Never write `PRIMARY_NODE_ONLY`, which 1.x deprecates and 2.0
-removed: use `TIMER_DRIVEN` with `executionNode: "PRIMARY"`.
-
-**Batch where the processor allows it.** `kb.py props` reports whether a component supports
-batching. When it does, `runDurationMillis` above zero lets NiFi handle several FlowFiles
-in a single session rather than paying the framework cost once per file, which is most of
-the cost for a cheap operation like setting an attribute. 25 ms is the usual choice and
-what NiFi's own UI offers. Leave it at 0 when a FlowFile must move through with the least
-possible latency, or when the processor does not support batching - there the field has to
-stay 0.
+**Take the schedule from the catalog.** Set `schedulingStrategy`, `schedulingPeriod`,
+`executionNode` and `runDurationMillis` from the `sched` lines of `kb.py props`, following the
+Processor field notes in `references/flow-json.md`. Those notes cover the supported strategies,
+the period a source processor needs, and when to batch. `kb.py validate` reports an
+unsupported strategy or an invalid period as an error, and warns about a source scheduled
+every `0 sec` and about processors that could batch but do not.
 
 **Write every field the templates show, not just the ones that carry meaning.** NiFi's
 importer deserializes the file into Java objects and reads enums, integers and maps without
@@ -178,13 +175,14 @@ is the usual casualty: it looks redundant next to `properties`, and leaving it o
 
 **Bind a parameter context whenever you use `#{...}`.** Set `parameterContextName` on the
 process group to the name of an entry in `parameterContexts`, and declare every parameter you
-reference. Without the binding NiFi marks the component invalid with "Property references one
-or more Parameters but no Parameter Context is currently set on the Process Group".
+reference. The binding applies to that group only: a child group is not bound to its
+parent's context, so set it on every group whose components reference a parameter. Without
+the binding NiFi marks the component invalid with "Property references one or more
+Parameters but no Parameter Context is currently set on the Process Group".
 
-**Parameters are the only substitution mechanism in NiFi 2.x.** The Variable Registry went
-away in 2.0, and a `variables` map in a 2.x flow is accepted and then ignored, which makes it
-worse than an error: the flow imports cleanly and every `${name}` reading a variable resolves
-to nothing once it runs. If the user asks for variables, give them a parameter context.
+**NiFi 2.x does not support variables.** A 2.x import ignores a `variables` map, and every
+`${name}` that referred to a variable evaluates to an empty string at runtime. If the user
+asks for variables, give them a parameter context.
 
 In NiFi 1.x the Variable Registry still works but is deprecated: a `variables` map on a
 process group is read, and `${name}` resolves a variable in any property whose EL scope is
@@ -215,7 +213,7 @@ a 1.x flow keeps `variables: {}` on every group, and gets no `portFunction` on p
 `dynamic` in `propertyDescriptors`, because 1.x has neither field.
 
 It also removes the top-level `latest`, which belongs to a NiFi download rather than to the
-flow and which Registry snapshots never carry. For 2.x it removes an empty `variables` map
+flow. For 2.x it removes an empty `variables` map
 too, since nothing in 2.x reads one. A `variables` map with entries in it is left alone and,
 for 2.x, reported by `validate`, because deleting it would throw away values the user meant
 to keep.
@@ -234,8 +232,8 @@ Warnings deserve a decision rather than a reflex. Three are worth reading closel
   `Processing Strategy` is `RECORD` - and the published definition lists only the static set.
   NiFi will refuse to start the processor with that relationship unhandled, so treat this as
   probably real.
-- A sensitive property holding a literal, or an external service whose type cannot be checked.
-  Either may be what the user wants.
+- A sensitive property holding a literal value rather than a `#{...}` parameter reference, or
+  an external service whose type cannot be checked. Either may be what the user wants.
 - A required sensitive property with no value. NiFi leaves sensitive values out of a
   downloaded flow, so every export shows this. In a flow you write, reference a parameter.
 

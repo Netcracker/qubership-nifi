@@ -38,6 +38,16 @@ EL_TOKEN = re.compile(r"(?<!\$)\$\{")
 PARAM_TOKEN = re.compile(r"(?<!#)#\{")
 # The all-zero prefix that hand-written flows reach for when they number components.
 PLACEHOLDER_ID = re.compile(r"^0{8}-0{4}-0{4}-0{4}-", re.IGNORECASE)
+# A time duration as NiFi parses it: a number and one of the units that
+# org.apache.nifi.time.DurationFormat (2.x) and org.apache.nifi.util.FormatUtils (1.x) accept,
+# matched case-insensitively. A bare number has no unit and is invalid.
+TIME_DURATION = re.compile(
+    r"^\s*([0-9]+(?:\.[0-9]+)?)\s*(ns|nano|nanos|nanosecond|nanoseconds|micro|micros|"
+    r"microsecond|microseconds|ms|milli|millis|millisecond|milliseconds|s|sec|secs|second|"
+    r"seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days|w|wk|wks|week|weeks)"
+    r"\s*$",
+    re.IGNORECASE,
+)
 
 # The definitionFormat of a component.json built from NiFi 1.x. It combines the 1.x instance API
 # with details taken from the component HTML, and its field names and shapes differ from those of
@@ -90,21 +100,49 @@ def _is_kb_root(path):
     return "schemaVersion" in data and "version" in data.get("nifi", {})
 
 
+def _workspace_root():
+    """The directory a Knowledge Base scan must stay inside.
+
+    $CLAUDE_PROJECT_DIR when set, otherwise the git repository that contains the current
+    directory, otherwise the current directory itself.
+    """
+    project = os.environ.get("CLAUDE_PROJECT_DIR")
+    if project:
+        return Path(project).expanduser().resolve()
+    cwd = Path.cwd().resolve()
+    for candidate in [cwd] + list(cwd.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return cwd
+
+
+def _is_within(path, root):
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def _search_roots(start):
-    """Directories worth scanning for a Knowledge Base, nearest first."""
-    roots = [start]
-    for parent in start.parents:
-        if (parent / ".git").exists():
-            roots.append(parent)
-            break
-    return roots
+    """Directories worth scanning for a Knowledge Base, nearest first.
+
+    `start` is scanned only when it lies inside the workspace, so a flow file kept elsewhere
+    never makes the scan leave it.
+    """
+    workspace = _workspace_root()
+    if start != workspace and _is_within(start, workspace):
+        return [start, workspace]
+    return [workspace]
 
 
 def discover(explicit=None, search_from=None, flow_version=None):
-    """Resolve the Knowledge Base: --kb, then NIFI_KB_PATH, then the repository.
+    """Resolve the Knowledge Base: --kb, then NIFI_KB_PATH, then a scan of the workspace.
 
-    When the repository holds several Knowledge Bases, `flow_version` picks the one whose NiFi
-    version equals it. Without an exact match the choice is left to the caller.
+    The scan covers `search_from` (the current directory by default) when it lies inside the
+    workspace, then the workspace root; see `_workspace_root`. When the scan finds several
+    Knowledge Bases, `flow_version` picks the one whose NiFi version equals it. Without an
+    exact match the choice is left to the caller.
     """
     if explicit:
         path = Path(explicit).expanduser().resolve()
@@ -138,8 +176,9 @@ def discover(explicit=None, search_from=None, flow_version=None):
 
     if not found:
         raise KbError(
-            "No NiFi Knowledge Base found. Set NIFI_KB_PATH, pass --kb <path>, or build "
-            "one with %s-tool." % BUILDER_PREFIX
+            "No NiFi Knowledge Base found in %s. The search does not leave the workspace, so "
+            "for a Knowledge Base kept elsewhere set NIFI_KB_PATH or pass --kb <path>. To "
+            "build one, use %s-tool." % (_workspace_root(), BUILDER_PREFIX)
         )
     if len(found) > 1 and flow_version:
         matching = [p for p in found
@@ -322,13 +361,18 @@ def _ambiguous(query, matches):
     )
 
 
-def zero_period(period):
-    """Whether a scheduling period means 'run again immediately'.
+def valid_duration(period):
+    """Whether NiFi accepts a value as a time duration, such as a timer-driven Run Schedule."""
+    return isinstance(period, str) and bool(TIME_DURATION.match(period))
 
-    NiFi accepts '0 sec', '0 ms', or a bare '0'; all of them mean the task is rescheduled
-    the instant it returns.
+
+def zero_period(period):
+    """Whether a timer-driven scheduling period means 'run again immediately'.
+
+    Only a zero with a time unit, such as '0 sec' or '0 millis', counts. A bare '0' is not a
+    valid time duration, so NiFi marks the processor invalid rather than running it.
     """
-    match = re.match(r"\s*([0-9]+(?:\.[0-9]+)?)", str(period or ""))
+    match = TIME_DURATION.match(period) if isinstance(period, str) else None
     return bool(match) and float(match.group(1)) == 0
 
 
@@ -353,7 +397,8 @@ def identifier_problem(identifier):
     identifier survives import and comes back unchanged on the next export, so it is the
     component's portable identity rather than a label local to this file. Two flows built
     from the same numbered placeholders end up indistinguishable to anything that keys on
-    it - registry version diffs, external service references, flow comparison tooling.
+    it - registry version diffs, external service references, flow comparison tooling - and
+    where they collide inside one NiFi, NiFi may replace them with generated identifiers.
     """
     if not isinstance(identifier, str) or not identifier:
         return "is missing"
@@ -721,18 +766,14 @@ class Report:
 
 
 def root_group(doc):
-    """Accept a versioned flow snapshot, a registry export, or a bare process group."""
-    if isinstance(doc, dict):
-        if "flowContents" in doc:
-            return doc["flowContents"], doc
-        for key in ("snapshot", "versionedFlowSnapshot"):
-            if isinstance(doc.get(key), dict) and "flowContents" in doc[key]:
-                return doc[key]["flowContents"], doc[key]
-        if "processors" in doc or "processGroups" in doc:
-            return doc, doc
+    """The root process group and the envelope of a flow definition or a Registry export.
+
+    Both carry the root group as a top-level `flowContents`; any other shape is refused.
+    """
+    if isinstance(doc, dict) and isinstance(doc.get("flowContents"), dict):
+        return doc["flowContents"], doc
     raise KbError(
-        "This file is not a NiFi flow definition. Expected a 'flowContents' object or a "
-        "process group with 'processors'."
+        "This file is not a NiFi flow definition. Expected a top-level 'flowContents' object."
     )
 
 
@@ -973,8 +1014,10 @@ def _check_parameters(report, root, envelope):
     """A #{...} reference needs a context bound to the group and declaring the parameter."""
     contexts = envelope.get("parameterContexts") or {}
 
-    def walk(group, path, inherited):
-        bound = group.get("parameterContextName") or inherited
+    # A parameter context binds only the group that names it; a child group is not bound to
+    # its parent's context.
+    def walk(group, path):
+        bound = group.get("parameterContextName")
         references = {}
         for component in (group.get("processors") or []) + (group.get("controllerServices") or []):
             for key, value in (component.get("properties") or {}).items():
@@ -987,7 +1030,8 @@ def _check_parameters(report, root, envelope):
                 report.error(
                     path,
                     "properties reference parameter(s) %s but no parameterContextName is set on "
-                    "this group or an ancestor. NiFi reports 'Property references one or more "
+                    "this group, and a child group is not bound to its parent's context. NiFi "
+                    "reports 'Property references one or more "
                     "Parameters but no Parameter Context is currently set on the Process Group'."
                     % ", ".join(sorted(references)),
                 )
@@ -1007,9 +1051,9 @@ def _check_parameters(report, root, envelope):
                             % (name, bound),
                         )
         for child in group.get("processGroups") or []:
-            walk(child, "%s.%s" % (path, child.get("name") or child.get("identifier", "?")), bound)
+            walk(child, "%s.%s" % (path, child.get("name") or child.get("identifier", "?")))
 
-    walk(root, "flowContents", None)
+    walk(root, "flowContents")
 
 
 def cmd_validate(kb, args):
@@ -1027,9 +1071,9 @@ def cmd_validate(kb, args):
     if "latest" in envelope:
         report.warn(
             "flow",
-            "top-level 'latest' is metadata NiFi adds when you download a flow. A NiFi "
-            "Registry snapshot never carries it and no importer reads it, so leaving it "
-            "out is what makes one file loadable by both. `kb.py normalize` removes it.",
+            "top-level 'latest' is metadata NiFi adds when you download a flow, not part of "
+            "the flow. NiFi and NiFi Registry 2.10 both accept a file that carries it, but a "
+            "committed flow is cleaner without it. `kb.py normalize` removes it.",
         )
 
     # Every other component is checked as part of its parent's collections; the root
@@ -1245,7 +1289,20 @@ def cmd_validate(kb, args):
                     "schedulingStrategy '%s' is not supported. Available: %s."
                     % (strategy, ", ".join(supported_strategies)),
                 )
+            period = processor.get("schedulingPeriod")
+            if (processor.get("schedulingStrategy", "TIMER_DRIVEN") == "TIMER_DRIVEN"
+                    and period is not None and not valid_duration(period)):
+                report.error(
+                    where,
+                    "schedulingPeriod %r is not a valid time duration. NiFi imports it but marks "
+                    "the processor invalid: \"'Run Schedule' validated against %r is invalid "
+                    "because Scheduling Period is not a valid time duration\". Give a number "
+                    "with a unit, such as '0 sec' or '100 millis'." % (period, period),
+                )
+            # Listeners and consumers run normally at a zero period. The catalog has no flag
+            # that identifies them, so the type name prefix does.
             if (definition.get("inputRequirement") == "INPUT_FORBIDDEN"
+                    and not simple_name(entry["type"]).startswith(("Listen", "Consume"))
                     and processor.get("schedulingStrategy", "TIMER_DRIVEN") == "TIMER_DRIVEN"
                     and zero_period(processor.get("schedulingPeriod"))):
                 default_period = (definition.get("defaultSchedulingPeriodBySchedulingStrategy")
@@ -1503,8 +1560,8 @@ def cmd_normalize(kb, args):
     envelope.setdefault("parameterContexts", {})
     envelope.setdefault("parameterProviders", {})
     envelope.setdefault("flowEncodingVersion", "1.0")
-    # `latest` is metadata NiFi adds on download; a Registry snapshot never carries it and
-    # no importer reads it. Removing it is what lets one file load into both.
+    # `latest` is metadata NiFi adds on download, not part of the flow. NiFi and NiFi Registry
+    # 2.10 both accept a file that carries it; it is dropped to keep the committed flow clean.
     envelope.pop("latest", None)
     normalize_group(kb, root)
 
