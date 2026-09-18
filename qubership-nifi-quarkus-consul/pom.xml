@@ -47,8 +47,8 @@
         <skipUnitTests>false</skipUnitTests>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!--libraries versions-->
-        <quarkus.platform.version>3.27.2</quarkus.platform.version>
-        <quarkus-plugin.version>3.27.2</quarkus-plugin.version>
+        <quarkus.platform.version>3.33.3.1</quarkus.platform.version>
+        <quarkus-plugin.version>3.33.3.1</quarkus-plugin.version>
         <core-quarkus-external-bom.version>1.0.9</core-quarkus-external-bom.version>
         <netty.version>4.1.138.Final</netty.version>
         <jackson.version>2.21.4</jackson.version>
