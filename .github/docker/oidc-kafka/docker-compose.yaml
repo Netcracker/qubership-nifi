@@ -125,7 +125,7 @@ services:
       timeout: 3s
       retries: 12
   keycloak:
-    image: keycloak/keycloak:26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761
+    image: keycloak/keycloak:26.7.2@sha256:9d1f1b2b7261ff53c66cb1092dfcdc34a5fb77e81f9e6a6e75b8b6a795de8067
     hostname: keycloak
     restart: on-failure:3
     depends_on:
