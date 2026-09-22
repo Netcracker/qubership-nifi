@@ -108,9 +108,6 @@ def unpack_pkcs12(path, password, workdir):
 
 def build_context(args, workdir):
     context = ssl.create_default_context(cafile=args.ca_file)
-    if args.insecure:
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
     if args.auth == "certificate":
         if not args.certificate_file:
             raise LiveError("--auth certificate requires --certificate-file <pkcs12-path>")
@@ -591,8 +588,6 @@ def main(argv=None):
     parser.add_argument("--auth", required=True, choices=["certificate", "token", "cookie"])
     parser.add_argument("--certificate-file", help="PKCS#12 file (certificate mode)")
     parser.add_argument("--ca-file", help="PEM file of trusted CA certificates")
-    parser.add_argument("--insecure", action="store_true",
-                        help="Skip TLS verification. Local development only.")
     parser.add_argument("--parent-group", default="root",
                         help="Process group to import into (default: root)")
     parser.add_argument("--timeout", type=int, default=60,
@@ -639,8 +634,8 @@ def main(argv=None):
         print(str(exc), file=sys.stderr)
         return 2
     except ssl.SSLError as exc:
-        print("TLS failed: %s\nPass --ca-file with the CA chain, or --insecure for a local "
-              "development instance." % exc, file=sys.stderr)
+        print("TLS failed: %s\nPass --ca-file with the CA chain that signed the server "
+              "certificate." % exc, file=sys.stderr)
         return 3
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

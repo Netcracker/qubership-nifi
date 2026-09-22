@@ -271,8 +271,7 @@ Run both when the flow is destined for a registry, and quote both results.
 
 `--auth token` and `--auth cookie` read `NIFI_ACCESS_TOKEN` and
 `NIFI_AUTHORIZATION_BEARER_COOKIE`; no secret is ever passed as an argument. One certificate
-and one CA file serve both targets. Use `--insecure` only against a local development
-instance.
+and one CA file serve both targets.
 
 Because it writes to both targets, ask before pointing it at anything shared, and say which
 instances you used. Messages about disabled controller services are suppressed: services
