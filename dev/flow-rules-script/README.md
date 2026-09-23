@@ -11,6 +11,9 @@ and configured properties already match the configuration is left as it is, exce
 but `VALID` is enabled, which repairs a rule left disabled by an earlier failed run. A rule that differs is
 disabled, updated, and enabled again, and the script prints what it changed.
 
+A rule that NiFi reports as not `VALID` stays `DISABLED` and enforces nothing. The script still processes every
+other entry, then prints the names of those rules and exits with a non-zero code.
+
 Example of running the script:
 
 ```bash
@@ -64,9 +67,13 @@ The path to the configuration file stays a required argument, and the file is th
 A key that exists but holds an unusable value is a misconfiguration, so the script reports it instead of falling
 back to the file, which would hide it.
 
-The key name does not start with `nifi`, and a replacement must not either. The Consul integration of the
-qubership-nifi image copies every key of this folder whose name starts with `nifi` into the `nifi.properties`
-it generates, and the value of this key is a multi-line JSON array.
+The key name does not start with `nifi` or `logger.`, and a replacement must not either. The Consul integration of
+the qubership-nifi image copies every key of this folder whose name starts with `nifi` into the `nifi.properties`
+it generates, and turns every key whose name starts with `logger.` into a `logback.xml` logger. The value of this
+key is a multi-line JSON array, which fits neither.
+
+The script has no TLS options for Consul. An `https://` `CONSUL_URL` works only when `curl` already trusts the
+certificate of the Consul server.
 
 Writing the rules to Consul:
 
@@ -101,7 +108,7 @@ A JSON array of objects, one per flow analysis rule.
 | Policy   | Y        | Enforcement policy: `Warn` or `Enforce` (case-insensitive).                                                                                                                                                                   |
 | Property | Y        | Array of `{ "name": ..., "value": ... }` objects with the rule properties. Use `[]` when the rule has no properties. A value written as a number or a boolean is sent as its string form, because that is how NiFi stores it. |
 
-Example (`flowAnalysisRuleConf.json`):
+Minimal example of the format:
 
 ```json
 [
@@ -114,35 +121,57 @@ Example (`flowAnalysisRuleConf.json`):
   {
     "Name": "RestrictBackpressureSettings",
     "Type": "org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings",
-    "Policy": "Warn",
+    "Policy": "Enforce",
     "Property": [
-      { "name": "Minimum Backpressure Object Count Threshold", "value": "1" },
       { "name": "Maximum Backpressure Object Count Threshold", "value": "20000" },
-      { "name": "Minimum Backpressure Data Size Threshold", "value": "1 MB" },
       { "name": "Maximum Backpressure Data Size Threshold", "value": "1 GB" }
-    ]
-  },
-  {
-    "Name": "RestrictSourceProcessorRunSchedule",
-    "Type": "org.qubership.nifi.flowanalysis.scheduling.RestrictSourceProcessorRunSchedule",
-    "Policy": "Warn",
-    "Property": [
-      { "name": "Run Schedule Threshold", "value": "100 ms" }
     ]
   }
 ]
 ```
 
 The repository ships a `flowAnalysisRuleConf.json` with the six custom qubership-nifi rules plus the
-built-in `RestrictBackpressureSettings` as a starting point.
+built-in `RestrictBackpressureSettings` as a starting point. Review it against your flows before you apply it:
+some of its rules are set to `Enforce`, as described under
+[Rules the shipped configuration enforces](#rules-the-shipped-configuration-enforces).
+
+Each entry must have a unique `Name`. A configuration that lists a name twice fails the run before any rule is
+created or updated.
 
 Property names must match the rule's property descriptor names exactly. An unknown property name
-makes the rule invalid: the script prints the validation errors and leaves the rule disabled.
-Verify the names in the NiFi UI (Controller Settings -> Flow Analysis Rules) if a rule ends up
+makes the rule invalid: the script prints the validation errors, leaves the rule disabled, and exits with a
+non-zero code. Verify the names in the NiFi UI (Controller Settings -> Flow Analysis Rules) if a rule ends up
 in this state.
 
 Only the properties an entry lists are compared against an existing rule. A property the entry leaves out keeps
-whatever value the rule has, so it never counts as a difference.
+whatever value the rule has, so it never counts as a difference. A sensitive property always counts as a
+difference, because NiFi never returns its value.
+
+A property `value` must not be `null`, because NiFi keeps the current value of a required property that an update
+sets to `null`. To reset a property, write its default value. A configuration with a `null` value fails the run
+before any rule is created or updated.
+
+## Rules the shipped configuration enforces
+
+Nothing applies `flowAnalysisRuleConf.json` automatically. Once you run the script with it, three rules are set to
+`Enforce`, and a component that violates an enforced rule becomes invalid and cannot be started. Check your flows
+against the limits below before you run the script, including on a NiFi where an earlier run created these rules
+with `Warn`: the script updates a rule whose policy differs from the configuration.
+
+| Rule                                 | A component passes when                                                                                                                             |
+|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `UniqueControllerServiceNames`       | No other controller service with the same name exists in its process group or in a descendant process group.                                        |
+| `RestrictBackpressureSettings`       | The connection's back pressure object threshold is between 1 and 20000, and its data size threshold is between 1 MB and 1 GB.                       |
+| `RestrictSourceProcessorRunSchedule` | The source processor (timer driven, with no incoming connection) has a Run Schedule above `50 millis`, or its type is in `Ignored Processor Types`. |
+
+`Ignored Processor Types` lists the processors that can run as a source and, while idle, either wait inside
+`onTrigger` with a timeout above 20 ms or yield, so a Run Schedule of `0 sec` costs little CPU. Listeners that
+return from `onTrigger` without such a wait or a yield, such as `HandleHttpRequest`, `ListenTCP`, `ListenUDP`, and `ListenSyslog`, are left
+out on purpose: at `0 sec` NiFi calls them constantly and idle CPU usage goes up. Give them a Run Schedule above
+`50 millis`.
+
+To keep one of these rules at `Warn` while you fix the flows, write a copy of the configuration with `"Policy":
+"Warn"` for that rule to the Consul key and run the script again.
 
 ## Running the tests
 
@@ -184,33 +213,37 @@ export DEV_SCRIPTS_BASH="C:/Program Files/Git/bin/bash.exe"
 1. Checks that the configuration file exists.
 2. Reads the rules from Consul or from the configuration file, as described under
    [Reading the configuration from Consul](#reading-the-configuration-from-consul).
-3. `GET /nifi-api/flow/flow-analysis-rule-types` - resolves the bundle coordinates for each rule
+3. Checks that the rules are a JSON array in which no `Name` appears twice and no property value is `null`. A
+   failed check ends the run before any request to NiFi.
+4. `GET /nifi-api/flow/flow-analysis-rule-types` - resolves the bundle coordinates for each rule
    type. A type that is not installed in the target NiFi is a fatal error.
-4. `GET /nifi-api/controller/flow-analysis-rules` - the rules that already exist, matched against the
+5. `GET /nifi-api/controller/flow-analysis-rules` - the rules that already exist, matched against the
    configuration by `Name`.
-5. For each entry whose `Name` already exists:
+6. For each entry whose `Name` already exists:
    - A rule whose type differs from the configured `Type` is a fatal error. The type of a rule is fixed once it
      is created, so the rule has to be deleted before the script can create it again.
    - The configured enforcement policy and properties are compared against the rule. One that matches on every
-     configured value is left alone, except that a rule which is `DISABLED` but `VALID` is enabled.
+     configured value is left alone, except that a rule which is `DISABLED` but `VALID` is enabled, and a rule
+     which is `DISABLED` and not `VALID` fails the run.
    - A rule that differs is brought in line with the configuration, and the differences are printed. NiFi
      accepts the change only while the rule is disabled, so the script sends
      `PUT /nifi-api/controller/flow-analysis-rules/{id}/run-status` with `state: "DISABLED"`, polls
      `GET /nifi-api/controller/flow-analysis-rules/{id}` until NiFi reports `DISABLED`, sends
      `PUT /nifi-api/controller/flow-analysis-rules/{id}` with the new policy and properties, and enables the
-     rule again.
-6. For each entry whose `Name` does not exist yet:
+     rule again. A rule the update leaves not `VALID` stays disabled and fails the run.
+7. For each entry whose `Name` does not exist yet:
    - `POST /nifi-api/controller/flow-analysis-rules` with the type, bundle, name, enforcement
      policy, and properties (expects HTTP 201).
    - NiFi validates the new rule asynchronously, so the script polls
      `GET /nifi-api/controller/flow-analysis-rules/{id}` (up to 10 times, 1 second apart) until
      validation settles. A rule still `VALIDATING` after that is a fatal error.
    - If the rule is not `VALID` (for example an invalid property value), it is left disabled, the
-     validation errors are printed, and the script continues.
+     validation errors are printed, and the script continues with the next entry.
    - `PUT /nifi-api/controller/flow-analysis-rules/{id}/run-status` with `state: "ENABLED"`
      (expects HTTP 200).
-7. Prints a summary: how many rules were created, how many were updated, and how many were skipped because they
+8. Prints a summary: how many rules were created, how many were updated, and how many were skipped because they
    already matched the configuration.
+9. Exits with a non-zero code if any rule was left `DISABLED` because it is not `VALID`, and names those rules.
 
 On any unexpected HTTP response the script prints the response body, removes its temporary files,
 and exits with a non-zero code.

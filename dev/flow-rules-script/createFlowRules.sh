@@ -22,9 +22,10 @@ NIFI_TARGET_URL="${NIFI_TARGET_URL:-https://localhost:8443}"
 NIFI_CERT="${NIFI_CERT:-}"
 CONSUL_URL="${CONSUL_URL:-}"
 NAMESPACE="${NAMESPACE:-local}"
-# The leaf must not start with "nifi": the Consul integration of the qubership-nifi image copies
-# every key of this folder whose name starts with that prefix into the nifi.properties it
-# generates, and the value here is a multi-line JSON array.
+# The leaf must not start with "nifi" or "logger.": the Consul integration of the qubership-nifi
+# image copies every key of this folder with the first prefix into the nifi.properties it generates,
+# and turns every key with the second into a logback.xml logger. The value here is a multi-line JSON
+# array, which fits neither.
 CONSUL_KEY="config/$NAMESPACE/qubership-nifi/flow-analysis-rules"
 
 # Path the rules are read from, set by resolve_config.
@@ -53,12 +54,18 @@ get_consul_token() {
 # prints the HTTP response code, writes the response body to <output-file>
 call_consul_api() {
     local baseUrl="$1" kvPath="$2" outFile="$3"
-    local token tokenHeader=()
+    local token
     token=$(get_consul_token)
+    # ?raw returns the stored value as it is, rather than base64-encoded inside a JSON envelope.
+    local url="$baseUrl/v1/kv/$kvPath?raw"
     if [ -n "$token" ]; then
-        tokenHeader=(--header "X-Consul-Token: $token")
+        # curl reads the header from stdin, so the token stays off its command line, which any user
+        # of the machine can list.
+        printf 'X-Consul-Token: %s\n' "$token" \
+            | curl -sS -w '%{response_code}' -o "$outFile" --header @- "$url"
+    else
+        curl -sS -w '%{response_code}' -o "$outFile" "$url"
     fi
-    curl -sS -w '%{response_code}' -o "$outFile" "${tokenHeader[@]}" "$baseUrl/v1/kv/$kvPath"
 }
 
 # Sets effectiveConfig to the configuration the rules are read from: the Consul key when CONSUL_URL
@@ -93,12 +100,6 @@ resolve_config() {
         cat "$TMP_CONSUL" >&2
         handle_error "Error: failed to read '$CONSUL_KEY' from Consul. Response code = $respCode."
     fi
-
-    # A KV read returns a single-element array whose Value holds the base64-encoded configuration.
-    local decoded
-    decoded=$(jq -r '.[0].Value // "" | @base64d' "$TMP_CONSUL") \
-        || handle_error "Error: the value of '$CONSUL_KEY' in Consul is not valid base64."
-    printf '%s' "$decoded" > "$TMP_CONSUL"
 
     # A key that exists but holds something unusable is a misconfiguration, so it is reported
     # instead of falling back to the file, which would hide it.
@@ -253,6 +254,24 @@ fi
 #Choose between the Consul key and the configuration file
 resolve_config
 
+if ! jq -e 'type == "array"' "$effectiveConfig" > /dev/null 2>&1; then
+    handle_error "Error: the configuration file '$configPath' is not a JSON array of rules."
+fi
+# The loop matches entries by Name against the rules read once before it starts, so a second entry
+# with the same Name would create a duplicate rule or update the first one with a stale revision.
+if ! jq -e '[.[].Name | select(. != null)] | length == (unique | length)' "$effectiveConfig" > /dev/null; then
+    duplicateNames=$(jq -r '[.[].Name | select(. != null)] | group_by(.) | map(select(length > 1) | .[0])
+        | join(", ")' "$effectiveConfig")
+    handle_error "Error: the configuration lists more than one rule named: $duplicateNames."
+fi
+# NiFi keeps the current value of a required property when an update sets it to null, so a null
+# cannot reset a property, and such an entry would be updated again on every run.
+if ! jq -e 'all(.[]; all(.Property[]?; .value != null))' "$effectiveConfig" > /dev/null; then
+    nullProperties=$(jq -r '[.[] | .Name as $rule | .Property[]? | select(.value == null)
+        | "\(.name) (rule \($rule))"] | join(", ")' "$effectiveConfig")
+    handle_error "Error: the configuration sets a property value to null: $nullProperties. Write the property's default value instead."
+fi
+
 #Read the installed flow analysis rule types (type -> bundle mapping)
 respCode=$(call_nifi_api GET "/flow/flow-analysis-rule-types" "" "$TMP_RULE_TYPES")
 if [ "$respCode" != "200" ]; then
@@ -272,6 +291,8 @@ fi
 created=0
 updated=0
 skipped=0
+# Names of the rules this run leaves DISABLED because NiFi reports them as not VALID.
+leftDisabled=()
 
 #Process the config and create the rules
 while read -r entry; do
@@ -291,14 +312,14 @@ while read -r entry; do
 
     # Build the properties object from the Property array. NiFi stores every property value as a
     # string, so a value the configuration writes as a number or a boolean is converted here; left
-    # as it is, it would differ from the stored value on every run. A null value is kept, because
-    # NiFi reads it as a request to reset the property to its default.
-    properties=$(echo "$entry" | jq -c         '[.Property[]? | {(.name): (if .value == null then null else (.value | tostring) end)}] | add // {}')
+    # as it is, it would differ from the stored value on every run.
+    properties=$(echo "$entry" | jq -c '[.Property[]? | {(.name): (.value | tostring)}] | add // {}')
 
     # Where a rule with this Name already exists, NiFi accepts a change to its configured values
     # only while the rule is disabled, so a rule that differs is disabled, updated and enabled
     # again. A rule that matches is left as it is, except that a DISABLED but VALID one is enabled,
-    # which repairs a rule left disabled by an earlier failed run.
+    # which repairs a rule left disabled by an earlier failed run, and a DISABLED one that is not
+    # VALID fails the run.
     existingRule=$(jq -c --arg name "$name" \
         '[.flowAnalysisRules[]? | select(.component.name == $name)] | first // empty' "$TMP_EXISTING")
     if [ -n "$existingRule" ]; then
@@ -317,8 +338,21 @@ while read -r entry; do
         if [ -z "$differences" ]; then
             echo "Rule '$name' already matches the configuration (state = $existingState," \
                 "validationStatus = $existingValidationStatus), skipping."
-            if [ "$existingState" = "DISABLED" ] && [ "$existingValidationStatus" = "VALID" ]; then
-                enable_rule "$existingId" "$existingVersion" "$name"
+            if [ "$existingState" = "DISABLED" ]; then
+                if [ "$existingValidationStatus" = "VALIDATING" ]; then
+                    wait_for_validation "$existingId"
+                    existingRule=$(jq -c '.' "$TMP_RESPONSE")
+                    existingVersion=$(echo "$existingRule" | jq -r '.revision.version')
+                    existingValidationStatus=$(echo "$existingRule" | jq -r '.component.validationStatus // "UNKNOWN"')
+                fi
+                if [ "$existingValidationStatus" = "VALID" ]; then
+                    enable_rule "$existingId" "$existingVersion" "$name"
+                else
+                    echo "  Warning: rule '$name' is $existingValidationStatus, leaving it DISABLED." \
+                        "Validation errors:" >&2
+                    echo "$existingRule" | jq -r '.component.validationErrors[]? | "    - " + .' >&2
+                    leftDisabled+=("$name")
+                fi
             fi
             skipped=$((skipped + 1))
             continue
@@ -344,6 +378,7 @@ while read -r entry; do
         if [ "$validationStatus" != "VALID" ]; then
             echo "  Warning: rule '$name' is $validationStatus, leaving it DISABLED. Validation errors:" >&2
             jq -r '.component.validationErrors[]? | "    - " + .' "$TMP_RESPONSE" >&2
+            leftDisabled+=("$name")
             updated=$((updated + 1))
             continue
         fi
@@ -398,6 +433,7 @@ while read -r entry; do
     if [ "$validationStatus" != "VALID" ]; then
         echo "  Warning: rule '$name' is $validationStatus, leaving it DISABLED. Validation errors:" >&2
         jq -r '.component.validationErrors[]? | "    - " + .' "$TMP_RESPONSE" >&2
+        leftDisabled+=("$name")
         created=$((created + 1))
         continue
     fi
@@ -409,3 +445,11 @@ done < <(jq -c '.[]' "$effectiveConfig")
 delete_tmp_file
 
 echo "Done. Created: $created, updated: $updated, skipped (unchanged): $skipped."
+
+# A rule that is not VALID enforces nothing, so a run that leaves one DISABLED fails. The check runs
+# after the loop, so every other entry is still applied.
+if [ "${#leftDisabled[@]}" -gt 0 ]; then
+    disabledNames=$(printf "'%s', " "${leftDisabled[@]}")
+    echo "Error: ${#leftDisabled[@]} rule(s) left DISABLED because they are not VALID: ${disabledNames%, }." >&2
+    exit 1
+fi

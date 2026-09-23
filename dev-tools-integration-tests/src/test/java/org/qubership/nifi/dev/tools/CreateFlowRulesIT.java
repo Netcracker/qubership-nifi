@@ -67,7 +67,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Two things this suite does not establish. Consul runs with ACLs disabled here, so no test
  * shows that a real token is accepted or that a wrong one is rejected;
- * {@link #prefersTheConsulConfigurationOverTheFile()} only shows the token header is well-formed.
+ * {@link #prefersTheConsulConfigurationOverTheFile()} only shows that setting a token does not
+ * break the request.
  * And the shipped {@code flowAnalysisRuleConf.json} is not exercised, because its custom rule types
  * exist only in the locally built image.
  *
@@ -89,6 +90,8 @@ final class CreateFlowRulesIT {
     private static final String MAX_COUNT = "Maximum Backpressure Object Count Threshold";
     private static final String MIN_SIZE = "Minimum Backpressure Data Size Threshold";
     private static final String MAX_SIZE = "Maximum Backpressure Data Size Threshold";
+    /** A property name {@code RestrictBackpressureSettings} does not support, which makes the rule INVALID. */
+    private static final String UNSUPPORTED_PROPERTY = "No Such Backpressure Property";
 
     /** Namespace segment of the Consul key, matching the {@code NAMESPACE} of the compose stack. */
     private static final String NAMESPACE = "local";
@@ -146,26 +149,30 @@ final class CreateFlowRulesIT {
 
     @AfterEach
     void deleteRulesOfThisTest() throws Exception {
-        for (JsonNode rule : api.getFlowAnalysisRules()) {
-            String name = rule.path("component").path("name").asText();
-            if (!name.startsWith(namePrefix)) {
-                continue;
+        try {
+            for (JsonNode rule : api.getFlowAnalysisRules()) {
+                String name = rule.path("component").path("name").asText();
+                if (!name.startsWith(namePrefix)) {
+                    continue;
+                }
+                String id = rule.path("id").asText();
+                String version = rule.path("revision").path("version").asText();
+                if (!"DISABLED".equals(rule.path("component").path("state").asText())) {
+                    version = api.setFlowAnalysisRuleState(id, version, "DISABLED")
+                            .path("revision").path("version").asText(version);
+                    api.waitForFlowAnalysisRuleState(id, "DISABLED");
+                    version = api.getFlowAnalysisRuleById(id).path("revision").path("version").asText(version);
+                }
+                api.deleteFlowAnalysisRule(id, version);
+                assertNull(api.findFlowAnalysisRuleByName(name),
+                    "Teardown left rule " + name + " behind; a later test would fail on state this one created");
+                LOG.info("Deleted flow analysis rule {}", name);
             }
-            String id = rule.path("id").asText();
-            String version = rule.path("revision").path("version").asText();
-            if (!"DISABLED".equals(rule.path("component").path("state").asText())) {
-                version = api.setFlowAnalysisRuleState(id, version, "DISABLED")
-                        .path("revision").path("version").asText(version);
-                api.waitForFlowAnalysisRuleState(id, "DISABLED");
-                version = api.getFlowAnalysisRuleById(id).path("revision").path("version").asText(version);
-            }
-            api.deleteFlowAnalysisRule(id, version);
-            assertNull(api.findFlowAnalysisRuleByName(name),
-                "Teardown left rule " + name + " behind; a later test would fail on state this one created");
-            LOG.info("Deleted flow analysis rule {}", name);
+        } finally {
+            //The Consul key has no per-test prefix, so it is removed even when a rule could not be.
+            consul.delete(CONSUL_KEY);
+            deleteRecursively(workDir);
         }
-        consul.delete(CONSUL_KEY);
-        deleteRecursively(workDir);
     }
 
     // -------------------------------------------------------------------------
@@ -207,6 +214,53 @@ final class CreateFlowRulesIT {
                 () -> "The error must name the type:\n" + run.output()),
             () -> assertNull(api.findFlowAnalysisRuleByName(withProperties()),
                 "No rule must be created when the type is not installed"));
+    }
+
+    /**
+     * A rule NiFi reports as not VALID is left DISABLED, where it enforces nothing, so every run
+     * that finds it in that state fails: the one that creates it, and the next one, which finds it
+     * already matching the configuration.
+     */
+    @Test
+    void failsOnEveryRunWhileANewRuleIsInvalid() throws Exception {
+        Path config = writeConfig("invalid.json",
+            rule(withProperties(), "Enforce", Map.of(MIN_COUNT, "1", UNSUPPORTED_PROPERTY, "1")));
+        ScriptRun create = runScript(config);
+
+        ScriptRun rerun = runScript(config);
+
+        assertAll("an invalid rule is left disabled and fails each run",
+            () -> assertNotEquals(0, create.exitCode(), () -> "Expected the creating run to fail:\n" + create.output()),
+            () -> assertTrue(create.output().contains("Done. Created: 1, updated: 0, skipped (unchanged): 0."),
+                () -> "The run must still process the entry:\n" + create.output()),
+            () -> assertTrue(create.output().contains("left DISABLED because they are not VALID: '"
+                    + withProperties() + "'"),
+                () -> "The failure must name the rule:\n" + create.output()),
+            () -> assertNotEquals(0, rerun.exitCode(), () -> "Expected the second run to fail:\n" + rerun.output()),
+            () -> assertTrue(rerun.output().contains("skipped (unchanged): 1."),
+                () -> "The second run must find the rule unchanged:\n" + rerun.output()),
+            () -> assertEquals("DISABLED", stateOf(requireRule(withProperties()))));
+    }
+
+    /**
+     * Two entries named alike would be matched against the same existing rule, so the script
+     * refuses the configuration before it sends any request to NiFi.
+     */
+    @Test
+    void failsWhenTwoEntriesShareAName() throws Exception {
+        Path config = writeConfig("duplicate.json",
+            rule(withProperties(), "Warn", Map.of(MIN_COUNT, "1")),
+            rule(withoutProperties(), "Warn", Map.of()),
+            rule(withProperties(), "Enforce", Map.of(MIN_COUNT, "2")));
+
+        ScriptRun run = runScript(config);
+
+        assertAll("a duplicate Name is rejected",
+            () -> assertNotEquals(0, run.exitCode(), () -> "Expected a failure:\n" + run.output()),
+            () -> assertTrue(run.output().contains("more than one rule named: " + withProperties() + "."),
+                () -> "The error must name the duplicate:\n" + run.output()),
+            () -> assertNull(api.findFlowAnalysisRuleByName(withoutProperties()),
+                "No rule must be created from a configuration with a duplicate name"));
     }
 
     @Test
@@ -318,6 +372,34 @@ final class CreateFlowRulesIT {
             () -> assertEquals("3 GB", propertyOf(rule, MAX_SIZE)));
     }
 
+    /**
+     * A property name the rule type does not support is a typo that NiFi accepts and marks INVALID.
+     * The rule stays DISABLED after the update, so the run fails rather than leave an enforced rule
+     * switched off behind a zero exit code.
+     */
+    @Test
+    void failsAndLeavesTheRuleDisabledWhenAnUpdateMakesItInvalid() throws Exception {
+        Path created = writeConfig("created.json",
+            rule(withProperties(), "Enforce", Map.of(MIN_COUNT, "1", MAX_COUNT, "20000")));
+        ScriptRun create = runScript(created);
+        assertEquals(0, create.exitCode(), () -> "The first run must create the rule:\n" + create.output());
+
+        Path changed = writeConfig("changed.json",
+            rule(withProperties(), "Enforce", Map.of(MIN_COUNT, "1", UNSUPPORTED_PROPERTY, "1")));
+        ScriptRun run = runScript(changed);
+
+        assertAll("an update that makes the rule invalid fails the run",
+            () -> assertNotEquals(0, run.exitCode(), () -> "Expected a failure:\n" + run.output()),
+            () -> assertEquals("DISABLED", stateOf(requireRule(withProperties()))),
+            () -> assertTrue(run.output().contains("Done. Created: 0, updated: 1, skipped (unchanged): 0."),
+                () -> "The rule was updated before it turned out invalid:\n" + run.output()),
+            () -> assertTrue(run.output().contains("'" + UNSUPPORTED_PROPERTY + "' is not a supported property"),
+                () -> "The run must print the validation error naming the property:\n" + run.output()),
+            () -> assertTrue(run.output().contains("left DISABLED because they are not VALID: '"
+                    + withProperties() + "'"),
+                () -> "The failure must name the rule:\n" + run.output()));
+    }
+
     @Test
     void reEnablesARuleLeftDisabled() throws Exception {
         Path config = writeConfig("rules.json",
@@ -387,6 +469,27 @@ final class CreateFlowRulesIT {
                 () -> "Missing summary:\n" + run.output()));
     }
 
+    /**
+     * NiFi keeps the current value of a required property that an update sets to null, so a null
+     * cannot reset a property. The script refuses such a configuration before it creates any rule,
+     * including the entries listed ahead of the null.
+     */
+    @Test
+    void failsWhenAPropertyValueIsNull() throws Exception {
+        ObjectNode entry = rule(withProperties(), "Warn", Map.of(MIN_COUNT, "1"));
+        entry.withArray("Property").addObject().put("name", MAX_COUNT).putNull("value");
+        Path config = writeConfig("null.json", rule(withoutProperties(), "Warn", Map.of()), entry);
+
+        ScriptRun run = runScript(config);
+
+        assertAll("a null property value is rejected",
+            () -> assertNotEquals(0, run.exitCode(), () -> "Expected a failure:\n" + run.output()),
+            () -> assertTrue(run.output().contains(MAX_COUNT + " (rule " + withProperties() + ")"),
+                () -> "The error must name the property and the rule:\n" + run.output()),
+            () -> assertNull(api.findFlowAnalysisRuleByName(withoutProperties()),
+                "No rule must be created from a configuration with a null value"));
+    }
+
     // -------------------------------------------------------------------------
     // Choosing between Consul and the file
     // -------------------------------------------------------------------------
@@ -400,8 +503,8 @@ final class CreateFlowRulesIT {
 
         Map<String, String> environment = scriptEnvironment();
         environment.put("CONSUL_URL", consulUrl);
-        //ACLs are off on this Consul, so the token is ignored. The run succeeding is what shows the
-        //script builds a well-formed X-Consul-Token header rather than a broken curl argument.
+        //ACLs are off on this Consul, so the token is ignored. The run succeeding shows only that
+        //setting a token does not break the request.
         environment.put("CONSUL_ACL_TOKEN", "a-token-this-consul-ignores");
         ScriptRun run = runner.run(workDir, environment, BashScriptRunner.forBash(file));
 
