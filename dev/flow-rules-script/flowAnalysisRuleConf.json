@@ -8,7 +8,7 @@
   {
     "Name": "RestrictBackpressureSettings",
     "Type": "org.apache.nifi.flowanalysis.rules.RestrictBackpressureSettings",
-    "Policy": "Warn",
+    "Policy": "Enforce",
     "Property": [
       { "name": "Minimum Backpressure Object Count Threshold", "value": "1" },
       { "name": "Maximum Backpressure Object Count Threshold", "value": "20000" },
@@ -31,15 +31,16 @@
   {
     "Name": "UniqueControllerServiceNames",
     "Type": "org.qubership.nifi.flowanalysis.unique.UniqueControllerServiceNames",
-    "Policy": "Warn",
+    "Policy": "Enforce",
     "Property": []
   },
   {
     "Name": "RestrictSourceProcessorRunSchedule",
     "Type": "org.qubership.nifi.flowanalysis.scheduling.RestrictSourceProcessorRunSchedule",
-    "Policy": "Warn",
+    "Policy": "Enforce",
     "Property": [
-      { "name": "Run Schedule Threshold", "value": "100 millis" }
+      { "name": "Run Schedule Threshold", "value": "40 millis" },
+      { "name": "Ignored Processor Types", "value": "org.apache.nifi.processors.standard.ListenHTTP,org.apache.nifi.processors.standard.ListenFTP,org.apache.nifi.snmp.processors.ListenTrapSNMP,org.apache.nifi.processors.websocket.ListenWebSocket,org.apache.nifi.processors.websocket.ConnectWebSocket,org.apache.nifi.processors.slack.ListenSlack,org.apache.nifi.kafka.processors.ConsumeKafka,org.apache.nifi.jms.processors.ConsumeJMS,org.apache.nifi.amqp.processors.ConsumeAMQP,org.apache.nifi.processors.mqtt.ConsumeMQTT,org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub,org.apache.nifi.processors.azure.eventhub.GetAzureEventHub,org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream,org.apache.nifi.processors.aws.kinesis.ConsumeKinesis,org.apache.nifi.processors.box.ConsumeBoxEvents,org.apache.nifi.processors.twitter.ConsumeTwitter" }
     ]
   },
   {
