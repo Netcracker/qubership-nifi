@@ -105,10 +105,10 @@ If your machine cannot satisfy the prerequisites, leave the ITs out by not passi
 
 A class-level failure cannot catch a class that was never selected, so the `upgrade-advisor-test` workflow also checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
 
-On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `UPGRADE_ADVISOR_BASH` at a `bash` that shares a filesystem with the repository:
+On Windows, the first `bash` on the `PATH` is often the one from WSL, which cannot see native paths. Point `DEV_SCRIPTS_BASH` at a `bash` that shares a filesystem with the repository:
 
 ```bash
-export UPGRADE_ADVISOR_BASH="C:/Program Files/Git/bin/bash.exe"
+export DEV_SCRIPTS_BASH="C:/Program Files/Git/bin/bash.exe"
 ```
 
 ### Adding a Check

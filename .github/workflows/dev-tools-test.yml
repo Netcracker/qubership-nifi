@@ -8,6 +8,7 @@ on:
       - 'dev/update-scripts-prop-2.x/**'
       - 'dev/update-scripts-flow-2.x/**'
       - 'dev/update-scripts-autotest/**'
+      - 'dev/flow-rules-script/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/oidc/docker-compose.yaml'
@@ -17,6 +18,7 @@ on:
       - 'dev/update-scripts-prop-2.x/**'
       - 'dev/update-scripts-flow-2.x/**'
       - 'dev/update-scripts-autotest/**'
+      - 'dev/flow-rules-script/**'
       - 'dev-tools-integration-tests/**'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/oidc/docker-compose.yaml'
@@ -31,18 +33,23 @@ jobs:
       fail-fast: false
       matrix:
         nifi:
-          # Apache NiFi 1.28.1
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '1.0.7', build-local: false }
+          # Apache NiFi 1.28.1; no flow analysis rules API before NiFi 2.0
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '1.0.7', build-local: false,
+              flow-rules: false }
           # Apache NiFi 2.5.0
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.0.0', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.0.0', build-local: false,
+              flow-rules: true }
           # Apache NiFi 2.6.0
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.3.4', build-local: false,
+              flow-rules: true }
           # Apache NiFi 2.7.2
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.5.4', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.5.4', build-local: false,
+              flow-rules: true }
           # Apache NiFi 2.9.0
-          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.6.3', build-local: false }
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.6.3', build-local: false,
+              flow-rules: true }
           # Apache NiFi 2.10.0 (current), add more versions to this after upgrades
-          - { image: 'local-nifi', tag: 'test', build-local: true }
+          - { image: 'local-nifi', tag: 'test', build-local: true, flow-rules: true }
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -106,6 +113,22 @@ jobs:
             "-Dscripts.docker.network=$NETWORK_NAME"
         env:
           NETWORK_NAME: ${{ steps.network.outputs.name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The flow rules script runs on the runner, against the NiFi and the Consul this stack
+      # already exposes on localhost, so this reuses what "Start NiFi environment and wait for health" brought up.
+      - name: Run flow rules script tests
+        if: ${{ matrix.nifi.flow-rules }}
+        run: |
+          NIFI_CLIENT_PASSWORD=$(cat ./temp-vol/tls-cert/nifi/CN=admin_OU=NIFI.password)
+          export NIFI_CLIENT_PASSWORD
+          WORKDIR=$(pwd)
+          mvn verify -pl dev-tools-integration-tests -P flow-rules-tests \
+            -DskipUnitTests=true -Dgpg.skip=true -DskipITs=false \
+            "-Dnifi.cert.dir=$WORKDIR/temp-vol/tls-cert/nifi" \
+            -Dconsul.url=http://localhost:8500
+        env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

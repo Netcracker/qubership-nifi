@@ -271,6 +271,144 @@ public class NifiFlowApiClient {
     }
 
     // -------------------------------------------------------------------------
+    // Flow analysis rules
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the installed flow analysis rule types, i.e. the {@code flowAnalysisRuleTypes} array
+     * from {@code GET /nifi-api/flow/flow-analysis-rule-types}.
+     *
+     * @return {@code flowAnalysisRuleTypes} JSON array node
+     */
+    public JsonNode fetchFlowAnalysisRuleTypes() throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/flow/flow-analysis-rule-types"))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when getting flow analysis rule types. Response: " + resp.body());
+        return MAPPER.readTree(resp.body()).path("flowAnalysisRuleTypes");
+    }
+
+    /**
+     * Returns every flow analysis rule of the NiFi controller, i.e. the {@code flowAnalysisRules}
+     * array from {@code GET /nifi-api/controller/flow-analysis-rules}. Flow analysis rules are
+     * controller-level, so this is the whole instance, not a slice of it.
+     *
+     * @return {@code flowAnalysisRules} JSON array node
+     */
+    public JsonNode getFlowAnalysisRules() throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller/flow-analysis-rules"))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when getting flow analysis rules. Response: " + resp.body());
+        return MAPPER.readTree(resp.body()).path("flowAnalysisRules");
+    }
+
+    /**
+     * Returns the flow analysis rule with the given name, or {@code null} when the controller has
+     * none.
+     *
+     * @param name rule name as shown in {@code component.name}
+     * @return the rule entity, or {@code null} if no rule carries that name
+     */
+    public JsonNode findFlowAnalysisRuleByName(final String name) throws IOException, InterruptedException {
+        for (JsonNode rule : getFlowAnalysisRules()) {
+            if (name.equals(rule.path("component").path("name").asText())) {
+                return rule;
+            }
+        }
+        return null;
+    }
+
+    public JsonNode getFlowAnalysisRuleById(final String id) throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller/flow-analysis-rules/" + id))
+                .header("Accept", "application/json")
+                .GET()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when getting flow analysis rule " + id + ". Response: " + resp.body());
+        return MAPPER.readTree(resp.body());
+    }
+
+    /**
+     * Changes the run status of a flow analysis rule.
+     *
+     * @param id          flow analysis rule id
+     * @param version     current revision version
+     * @param targetState desired state ({@code "ENABLED"} or {@code "DISABLED"})
+     * @return full response JSON (includes the updated {@code revision})
+     */
+    public JsonNode setFlowAnalysisRuleState(final String id, final String version, final String targetState)
+            throws IOException, InterruptedException {
+        ObjectNode revision = MAPPER.createObjectNode();
+        revision.put("version", Long.parseLong(version));
+
+        ObjectNode body = MAPPER.createObjectNode();
+        body.set("revision", revision);
+        body.put("state", targetState);
+        body.put("disconnectedNodeAcknowledged", Boolean.TRUE);
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller/flow-analysis-rules/" + id + "/run-status"))
+                .header("Content-Type", "application/json")
+                .header("Accept", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(MAPPER.writeValueAsString(body)))
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        LOG.info("Change flow analysis rule {} to state {}: status={}", id, targetState, resp.statusCode());
+        assertEquals(HTTP_OK, resp.statusCode(),
+                "Expected HTTP 200 when changing flow analysis rule " + id + " state to " + targetState
+                        + ". Response: " + resp.body());
+        return MAPPER.readTree(resp.body());
+    }
+
+    /**
+     * Waits (up to 30 s) for a flow analysis rule to reach {@code targetState}.
+     *
+     * @param id          flow analysis rule id
+     * @param targetState desired state (e.g. {@code "ENABLED"} or {@code "DISABLED"})
+     */
+    public void waitForFlowAnalysisRuleState(final String id, final String targetState) {
+        LOG.info("Waiting for flow analysis rule {} to reach state {}", id, targetState);
+        Awaitility.await()
+                .atMost(30, TimeUnit.SECONDS)
+                .until(() -> targetState.equals(
+                        getFlowAnalysisRuleById(id).path("component").path("state").asText()));
+        LOG.info("Flow analysis rule {} reached state {}", id, targetState);
+    }
+
+    /**
+     * Deletes a flow analysis rule. NiFi refuses to delete an enabled rule, so the caller disables
+     * it first.
+     *
+     * @param id      flow analysis rule id
+     * @param version current revision version
+     */
+    public void deleteFlowAnalysisRule(final String id, final String version)
+            throws IOException, InterruptedException {
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(nifiUrl + "/nifi-api/controller/flow-analysis-rules/" + id
+                        + "?version=" + version + "&disconnectedNodeAcknowledged=true"))
+                .header("Accept", "application/json")
+                .DELETE()
+                .build();
+        HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+        if (resp.statusCode() != HTTP_OK) {
+            LOG.warn("DELETE flow analysis rule {} returned status {}; body: {}",
+                    id, resp.statusCode(), resp.body());
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Process groups
     // -------------------------------------------------------------------------
 

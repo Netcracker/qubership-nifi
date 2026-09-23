@@ -37,6 +37,7 @@
         <it.include.pattern>**/*IT.java</it.include.pattern>
         <!-- Defaults; override with -Dnifi.url=... or -Dscripts.docker.network=... -->
         <nifi.url>https://localhost:8080</nifi.url>
+        <consul.url>http://localhost:8500</consul.url>
         <nifi.registry.url>https://localhost:18080</nifi.registry.url>
         <scripts.docker.network>oidc_default</scripts.docker.network>
         <nifi.cert.dir>${maven.multiModuleProjectDirectory}/temp-vol/tls-cert/nifi</nifi.cert.dir>
@@ -98,6 +99,7 @@
                     </environmentVariables>
                     <systemPropertyVariables>
                         <nifi.url>${nifi.url}</nifi.url>
+                        <consul.url>${consul.url}</consul.url>
                         <nifi.registry.url>${nifi.registry.url}</nifi.registry.url>
                         <nifi.registry.int.url>${nifi.registry.int.url}</nifi.registry.int.url>
                         <nifi.cert.dir>${nifi.cert.dir}</nifi.cert.dir>
@@ -119,15 +121,23 @@
 
     <profiles>
         <!--
-            The two IT families have incompatible prerequisites: the update-script tests need a live
-            NiFi, a Registry and mTLS certificates, while the upgrade advisor tests need only bash,
-            jq and a purpose-built image. Each workflow activates exactly one profile so it never
-            runs the other family.
+            The three IT families have incompatible prerequisites: the update-script tests need a
+            live NiFi, a Registry and mTLS certificates; the flow-rules tests need a live NiFi, mTLS
+            certificates and a reachable Consul, but no Registry, and no NiFi older than 2.0, which
+            is where flow analysis rules arrived; the upgrade advisor tests need only bash, jq and a
+            purpose-built image. Each workflow activates exactly one profile so it never runs
+            another family.
         -->
         <profile>
             <id>update-scripts-tests</id>
             <properties>
                 <it.include.pattern>**/UpdateScripts*IT.java</it.include.pattern>
+            </properties>
+        </profile>
+        <profile>
+            <id>flow-rules-tests</id>
+            <properties>
+                <it.include.pattern>**/CreateFlowRules*IT.java</it.include.pattern>
             </properties>
         </profile>
         <profile>
