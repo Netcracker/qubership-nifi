@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-24T14:45:33.644183+00:00'
+generated_at: '2026-09-24T15:00:58.196315+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
