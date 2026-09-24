@@ -71,3 +71,38 @@ def test_registry_snapshot_replaces_the_snapshot_metadata_of_a_registry_export()
     assert _snapshot(doc)["snapshotMetadata"] == {
         "bucketIdentifier": "bucket", "flowIdentifier": "flow", "version": 1,
         "comments": "note"}
+
+
+class _FlowClient:
+    """Serves /flow/process-groups/{id} from a map of group id to (ports, child ids)."""
+
+    def __init__(self, groups):
+        self._groups = groups
+
+    def get(self, path, params=None):
+        ports, children = self._groups[path.rsplit("/", 1)[1]]
+        return {"processGroupFlow": {"flow": {
+            "inputPorts": [p for p in ports if p["component"]["type"] == "INPUT_PORT"],
+            "outputPorts": [p for p in ports if p["component"]["type"] == "OUTPUT_PORT"],
+            "processGroups": [{"id": child} for child in children]}}}
+
+
+def _port(name, kind, errors=()):
+    return {"component": {"name": name, "type": kind, "validationErrors": list(errors)}}
+
+
+def test_ports_are_collected_from_every_nested_group():
+    client = _FlowClient({
+        "root": ([_port("in_root", "INPUT_PORT")], ["child"]),
+        "child": ([_port("out_child", "OUTPUT_PORT")], ["grandchild"]),
+        "grandchild": ([_port("in_grandchild", "INPUT_PORT")], []),
+    })
+    names = [p["component"]["name"] for p in verify_live.collect_ports(client, "root")]
+    assert sorted(names) == ["in_grandchild", "in_root", "out_child"]
+
+
+def test_a_port_validation_error_is_reported_as_a_real_error(capsys):
+    port = _port("in_items", "INPUT_PORT", ["Port 'in_items' has no outgoing connections"])
+    code = verify_live.report([], [], "g", json.dumps({"flowContents": CONTENTS}).encode(), [port])
+    assert code == 1
+    assert "ERROR  input port 'in_items': Port 'in_items' has no outgoing connections"         in capsys.readouterr().out

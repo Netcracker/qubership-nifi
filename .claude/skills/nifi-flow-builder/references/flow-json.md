@@ -55,7 +55,10 @@ bare process group object or a `VersionedFlowSnapshotEntity` that nests the snap
 ## Process group
 
 `flowContents` and every entry in `processGroups` share this shape. Empty collections are
-written out rather than omitted.
+written out rather than omitted. A child group in `processGroups` is a full process group
+object: it sets `groupIdentifier` to its parent's identifier and binds its own
+`parameterContextName`. "Wiring a child group" under "Input and output ports" shows how its
+ports connect to the parent.
 
 ```json
 {
@@ -263,6 +266,33 @@ process group boundary means connecting to a port, not to a component inside the
 `selectedRelationships` applies to a processor source and must name relationships that
 processor declares.
 
+### Bends and the canvas
+
+`bends` is a list of points, `[{"x": 692, "y": -152}]`, in the canvas coordinates of the
+group that holds the connection. The canvas draws the connection from the source box through
+each bend in order to the destination box. `labelIndex` is the index of the bend that carries
+the connection's label. With no bends, the line runs straight between the two boxes.
+
+A component's `position` is the top-left corner of its box. The NiFi 2.x canvas draws the
+boxes at these sizes, in pixels:
+
+| Component | Width x height |
+| --- | --- |
+| Processor | 352 x 128 |
+| Process group, remote process group | 384 x 176 |
+| Input or output port | 240 x 48 |
+| Funnel | 48 x 48 |
+| Connection label (approximate; its height grows with the rows it shows) | 224 x 100 |
+
+The label is centered on the bend that `labelIndex` names, or on the midpoint of a straight
+connection. Two connected components therefore need about 260 px of free space between their
+boxes, or the label covers one of them.
+
+A connection to a port of a child group ends at the child group's box on the parent's canvas,
+so two connections between ports of the same two child groups share one line unless bends
+separate them. `kb.py normalize` adds those bends, and `kb.py validate` warns about any
+overlap it finds.
+
 ## Input and output ports
 
 ```json
@@ -288,6 +318,71 @@ flow leaves it out.
 
 A connection into or out of a child process group names the child's port as its endpoint,
 with `groupId` set to the child group's identifier.
+
+Port names are unique within a group. Input port names start with `in_` and output port
+names with `out_`, as in `in_accepted` and `out_stored`.
+
+### Wiring a child group
+
+The parent below holds a processor `Receive`, a processor `Respond`, and a child group
+`Store` that receives FlowFiles on `in_accepted` and emits them on `out_stored`. Three
+connections wire it; placeholders stand for the identifiers.
+
+```json
+{
+  "identifier": "<parent-id>",
+  "name": "Parent",
+  "processors": [
+    {"identifier": "<receive-id>", "name": "Receive", "...": "..."},
+    {"identifier": "<respond-id>", "name": "Respond", "...": "..."}
+  ],
+  "processGroups": [
+    {
+      "identifier": "<store-id>",
+      "name": "Store",
+      "groupIdentifier": "<parent-id>",
+      "parameterContextName": "app-context",
+      "inputPorts": [
+        {"identifier": "<in-accepted-id>", "name": "in_accepted", "type": "INPUT_PORT",
+         "componentType": "INPUT_PORT", "groupIdentifier": "<store-id>", "...": "..."}
+      ],
+      "outputPorts": [
+        {"identifier": "<out-stored-id>", "name": "out_stored", "type": "OUTPUT_PORT",
+         "componentType": "OUTPUT_PORT", "groupIdentifier": "<store-id>", "...": "..."}
+      ],
+      "processors": [
+        {"identifier": "<insert-id>", "name": "Insert", "groupIdentifier": "<store-id>",
+         "...": "..."}
+      ],
+      "connections": [
+        {"source": {"id": "<in-accepted-id>", "type": "INPUT_PORT", "groupId": "<store-id>"},
+         "destination": {"id": "<insert-id>", "type": "PROCESSOR", "groupId": "<store-id>"},
+         "selectedRelationships": [], "groupIdentifier": "<store-id>", "...": "..."},
+        {"source": {"id": "<insert-id>", "type": "PROCESSOR", "groupId": "<store-id>"},
+         "destination": {"id": "<out-stored-id>", "type": "OUTPUT_PORT", "groupId": "<store-id>"},
+         "selectedRelationships": ["success"], "groupIdentifier": "<store-id>", "...": "..."}
+      ]
+    }
+  ],
+  "connections": [
+    {"source": {"id": "<receive-id>", "type": "PROCESSOR", "groupId": "<parent-id>"},
+     "destination": {"id": "<in-accepted-id>", "type": "INPUT_PORT", "groupId": "<store-id>"},
+     "selectedRelationships": ["success"], "groupIdentifier": "<parent-id>", "...": "..."},
+    {"source": {"id": "<out-stored-id>", "type": "OUTPUT_PORT", "groupId": "<store-id>"},
+     "destination": {"id": "<respond-id>", "type": "PROCESSOR", "groupId": "<parent-id>"},
+     "selectedRelationships": [], "groupIdentifier": "<parent-id>", "...": "..."}
+  ]
+}
+```
+
+- The two connections that cross the boundary live in the parent's `connections`. Each names
+  the port by its own identifier, and gives the child's identifier as the port's `groupId`.
+- The connections from `in_accepted` and to `out_stored` live in the child's `connections`.
+- A connection whose source is a port leaves `selectedRelationships` empty, because a port
+  has no relationships.
+- `Store` sets `parameterContextName` itself, since the parent's binding does not reach it.
+- `Insert` can reference a controller service defined on `Parent` or on `Store`, but not one
+  defined in a sibling of `Store`.
 
 ## Funnels
 

@@ -338,14 +338,26 @@ def collect_components(client, group_id):
     services = client.get("/flow/process-groups/%s/controller-services" % group_id,
                           {"includeAncestorGroups": "false",
                            "includeDescendantGroups": "true"})["controllerServices"]
-    return processors, services
+    return processors, services, collect_ports(client, group_id)
 
 
-def error_signature(processors, services):
+def collect_ports(client, group_id):
+    """The input and output ports of a group and of every group below it.
+
+    NiFi has no descendant listing for ports, so this walks the groups one level at a time.
+    """
+    flow = client.get("/flow/process-groups/%s" % group_id)["processGroupFlow"]["flow"]
+    ports = list(flow.get("inputPorts") or []) + list(flow.get("outputPorts") or [])
+    for child in flow.get("processGroups") or []:
+        ports += collect_ports(client, child["id"])
+    return ports
+
+
+def error_signature(components):
     """The set of validation messages currently reported, for comparing two polls."""
     return frozenset(
         (entity["component"].get("name"), message)
-        for entity in processors + services
+        for entity in components
         for message in entity["component"].get("validationErrors") or []
     )
 
@@ -417,12 +429,12 @@ def verify(client, args, flow_bytes, flow_name):
         # or the same errors twice running.
         deadline = time.time() + args.timeout
         previous, repeats = None, 0
-        processors, services = collect_components(client, group_id)
+        processors, services, ports = collect_components(client, group_id)
         while time.time() < deadline:
-            pending = [c for c in processors + services
+            pending = [c for c in processors + services + ports
                        if c["component"].get("validationStatus") == "VALIDATING"]
             if not pending:
-                signature = error_signature(processors, services)
+                signature = error_signature(processors + services + ports)
                 if not signature:
                     break
                 # NiFi revalidates a component on its own schedule, so a stale complaint can
@@ -433,9 +445,9 @@ def verify(client, args, flow_bytes, flow_name):
                 if repeats >= SETTLE_REPEATS:
                     break
             time.sleep(SETTLE_INTERVAL)
-            processors, services = collect_components(client, group_id)
+            processors, services, ports = collect_components(client, group_id)
 
-        return report(processors, services, group_name, flow_bytes)
+        return report(processors, services, group_name, flow_bytes, ports)
     finally:
         if args.keep:
             print("\nLeft %s in place as requested (--keep)." % group_name)
@@ -512,11 +524,13 @@ def flow_properties(flow_bytes):
     return found
 
 
-def report(processors, services, group_name, flow_bytes):
+def report(processors, services, group_name, flow_bytes, ports=()):
     properties = flow_properties(flow_bytes)
     relationships = flow_relationships(flow_bytes)
     real, noise, pending, stale = [], [], [], []
     labelled = [("controller service", e) for e in services] + [("processor", e) for e in processors]
+    labelled += [("input port" if e["component"].get("type") == "INPUT_PORT" else "output port", e)
+                 for e in ports]
     for kind, entity in labelled:
         component = entity["component"]
         name = component.get("name", "?")
@@ -540,7 +554,8 @@ def report(processors, services, group_name, flow_bytes):
                 real.append((kind, name, message))
 
     print("Imported as %s and read back from NiFi." % group_name)
-    print("%d processor(s), %d controller service(s)." % (len(processors), len(services)))
+    print("%d processor(s), %d controller service(s), %d port(s)."
+          % (len(processors), len(services), len(ports)))
     print()
 
     for kind, name, message in real:

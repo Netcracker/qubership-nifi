@@ -56,6 +56,21 @@ FORMAT_1X = "normalized-nifi-1x"
 
 EL_SCOPES = ("NONE", "ENVIRONMENT", "FLOWFILE_ATTRIBUTES")
 
+# The NARs of the scripted components. Their "Script Body" has EL scope NONE, so NiFi passes a
+# Groovy "${...}" to the script engine unchanged, and validate does not report it.
+SCRIPTING_ARTIFACTS = ("nifi-groovyx-nar", "nifi-scripting-nar")
+
+# The kinds of resource a property can reference, as resourceDefinition names them.
+RESOURCE_TYPES = {"FILE": "file", "DIRECTORY": "directory", "URL": "URL", "TEXT": "text"}
+
+# A bundle group that only a qubership-nifi image ships. A Knowledge Base built from such an image
+# may use what the image adds to Apache NiFi, described in references/qubership-nifi.md.
+QUBERSHIP_GROUP = "org.qubership.nifi"
+
+# A soft limit: a process group with more processors than this gets a warning suggesting
+# child process groups, because the canvas becomes hard to read.
+LARGE_GROUP_PROCESSORS = 12
+
 # NiFi 1.x reports Expression Language support as a display label. In 1.x, ENVIRONMENT covers the
 # Variable Registry as well as environment variables and system properties.
 EL_SCOPE_1X = {
@@ -438,6 +453,10 @@ def cmd_locate(kb, args):
         if isinstance(value, dict) and value.get("status") == "collected"
     ]
     print("Guides         : %s" % (", ".join(collected) if collected else "none"))
+    if any(entry["group"] == QUBERSHIP_GROUP for entry in kb.index):
+        print("Platform       : qubership-nifi (see references/qubership-nifi.md)")
+    else:
+        print("Platform       : Apache NiFi")
     return 0
 
 
@@ -659,6 +678,13 @@ def _print_properties(definition):
             values = dependency.get("dependentValues") or []
             condition = (" in %s" % ", ".join(values)) if values else " is set"
             print("    only applies when '%s'%s" % (dependency.get("propertyName", "?"), condition))
+        resource = descriptor.get("resourceDefinition")
+        if resource:
+            kinds = [RESOURCE_TYPES.get(t, t.lower()) for t in resource.get("resourceTypes") or []]
+            kinds = " or ".join(kinds) if len(kinds) < 3 else "%s, or %s" % (", ".join(kinds[:-1]),
+                                                                            kinds[-1])
+            several = " (comma-separated list)" if resource.get("cardinality") == "MULTIPLE" else ""
+            print("    takes: %s%s" % (kinds, several))
 
 
 def cmd_props(kb, args):
@@ -860,7 +886,9 @@ def _check_properties(kb, report, where, component, entry):
             continue
 
         scope = descriptor.get("expressionLanguageScope", "NONE")
-        if isinstance(value, str) and EL_TOKEN.search(value) and scope == "NONE":
+        script_body = key == "Script Body" and entry["artifact"] in SCRIPTING_ARTIFACTS
+        if (isinstance(value, str) and EL_TOKEN.search(value) and scope == "NONE"
+                and not script_body):
             report.error(
                 where,
                 "property '%s' contains Expression Language but its EL scope is NONE. "
@@ -909,7 +937,13 @@ def _check_properties(kb, report, where, component, entry):
         )
 
 
-def _check_service_refs(kb, report, where, component, entry, services, external):
+def _check_service_refs(kb, report, where, component, entry, services, external, scope=None):
+    """Check each service-typed property against the services the flow defines.
+
+    `scope`, when given, is a pair: the identifiers of the groups whose services the
+    component can see (its own group and every ancestor), and a map from each service
+    identifier to its group's identifier and path.
+    """
     definition = kb.definition(entry)["definition"]
     descriptors = definition.get("propertyDescriptors", {})
     for key, value in (component.get("properties") or {}).items():
@@ -936,6 +970,18 @@ def _check_service_refs(kb, report, where, component, entry, services, external)
                 "externalControllerServices." % (key, api, value),
             )
             continue
+        if scope is not None:
+            visible, service_groups = scope
+            owner_id, owner_path = service_groups.get(value, (None, None))
+            if owner_id is not None and owner_id not in visible:
+                report.error(
+                    where,
+                    "property '%s' references controller service '%s', which is defined in %s. "
+                    "A component can use only the services of its own group and of that "
+                    "group's ancestors, so NiFi leaves the reference unresolved. Move the "
+                    "service to a group that contains both." % (key, target.get("name"), owner_path),
+                )
+                continue
         target_entry = kb.lookup("CONTROLLER_SERVICE", target.get("type", ""))
         if target_entry is None:
             continue
@@ -1056,6 +1102,121 @@ def _check_parameters(report, root, envelope):
     walk(root, "flowContents")
 
 
+def _ancestry(group_id, parent_of):
+    """The identifiers of a group and of every group above it."""
+    groups = set()
+    while group_id is not None and group_id not in groups:
+        groups.add(group_id)
+        group_id = parent_of.get(group_id)
+    return groups
+
+
+def _check_group_size(report, group_path, group):
+    count = len(group.get("processors") or [])
+    if count > LARGE_GROUP_PROCESSORS:
+        report.warn(
+            group_path,
+            "%d processors in one process group. Above %d the canvas gets hard to read; "
+            "consider moving each stage of the flow into a child process group connected "
+            "through ports. See SKILL.md, \"Split large groups into child process groups\"."
+            % (count, LARGE_GROUP_PROCESSORS),
+        )
+
+
+def _check_port_names(report, group_path, group):
+    for collection, kind, prefix in (("inputPorts", "input port", "in_"),
+                                     ("outputPorts", "output port", "out_")):
+        seen = set()
+        for port in group.get(collection) or []:
+            name = port.get("name") or ""
+            if name in seen:
+                report.error(
+                    group_path,
+                    "two %ss are named '%s'. Port names must be unique within a process "
+                    "group, and NiFi rejects the import." % (kind, name),
+                )
+            seen.add(name)
+            if not name.startswith(prefix):
+                report.warn(
+                    group_path,
+                    "%s '%s' does not follow the naming convention: %s names start with "
+                    "'%s', followed by what passes through the port, such as '%sstored'."
+                    % (kind, name, kind, prefix, prefix),
+                )
+
+
+def _check_endpoint_scope(report, where, role, endpoint, group_id, group_of, parent_of,
+                          group_paths, port_kinds):
+    """A connection joins components of its own group, or a port of a direct child group."""
+    component_id = endpoint["id"]
+    owner = group_of.get(component_id)
+    declared = endpoint.get("groupId")
+    if declared and declared != owner:
+        report.error(
+            where,
+            "%s.groupId is %s, but component %s is in %s. Set groupId to the identifier of "
+            "the group that contains the component."
+            % (role, declared, component_id, group_paths.get(owner, owner)),
+        )
+    kind = port_kinds.get(component_id)
+    if owner == group_id:
+        # Inside its own group an input port only emits FlowFiles and an output port only
+        # receives them.
+        if (role, kind) in (("source", "OUTPUT_PORT"), ("destination", "INPUT_PORT")):
+            label = "an output port" if kind == "OUTPUT_PORT" else "an input port"
+            report.error(
+                where,
+                "the %s %s is %s of this connection's own group. Inside its group, %s can "
+                "only be a connection's %s."
+                % (role, component_id, label, label,
+                   "destination" if role == "source" else "source"),
+            )
+        return
+    if parent_of.get(owner) == group_id and kind:
+        expected = "OUTPUT_PORT" if role == "source" else "INPUT_PORT"
+        if kind != expected:
+            report.error(
+                where,
+                "the %s is %s of child group %s. From the parent group, a connection "
+                "leaves a child through an output port and enters it through an input port."
+                % (role, kind, group_paths.get(owner, owner)),
+            )
+        return
+    report.error(
+        where,
+        "the %s %s is in %s, but this connection belongs to %s. A connection can join "
+        "components of its own group, or a port of a direct child group; to reach anything "
+        "else, route the FlowFiles through ports."
+        % (role, component_id, group_paths.get(owner, owner), group_paths.get(group_id, group_id)),
+    )
+
+
+def _check_port_connections(report, root, outgoing, incoming, group_of, parent_of, group_paths):
+    """NiFi marks a port invalid unless a connection meets it on each side."""
+    root_id = root.get("identifier")
+    for group_path, group in walk_groups(root):
+        is_root = group.get("identifier") == root_id
+        for collection, kind in (("inputPorts", "input port"), ("outputPorts", "output port")):
+            for port in group.get(collection) or []:
+                port_id = port.get("identifier")
+                emits = port_id in outgoing
+                receives = port_id in incoming
+                inner, outer = (emits, receives) if kind == "input port" else (receives, emits)
+                if not inner:
+                    report.error(
+                        group_path,
+                        "%s '%s' has no connection inside its group. NiFi marks the port "
+                        "invalid and cannot start it." % (kind, port.get("name")),
+                    )
+                # The root group's outer side is whatever the flow is imported into.
+                if not outer and not is_root:
+                    report.error(
+                        group_path,
+                        "%s '%s' has no connection in the parent group. NiFi marks the port "
+                        "invalid and cannot start it." % (kind, port.get("name")),
+                    )
+
+
 def cmd_validate(kb, args):
     path = Path(args.flow)
     if not path.is_file():
@@ -1110,8 +1271,25 @@ def cmd_validate(kb, args):
     # Collected rather than reported one by one: run duration is a tuning decision for the
     # flow as a whole, not a defect in any single processor.
     unbatched = []
+    # Where each component lives, for the checks that cross a group boundary: connection
+    # endpoints, ports, and which controller services a component can reference.
+    group_of = {}
+    parent_of = {}
+    group_paths = {}
+    port_kinds = {}
+    service_groups = {}
 
     for group_path, group in walk_groups(root):
+        group_id = group.get("identifier")
+        group_paths[group_id] = group_path
+        for child in group.get("processGroups") or []:
+            parent_of[child.get("identifier")] = group_id
+        for kind, collection in (("INPUT_PORT", "inputPorts"), ("OUTPUT_PORT", "outputPorts")):
+            for port in group.get(collection) or []:
+                port_kinds[port.get("identifier")] = kind
+        _check_group_size(report, group_path, group)
+        _check_port_names(report, group_path, group)
+        _check_layout(report, group_path, group)
         if "variables" in group and nifi_major(kb) != 1:
             if group["variables"]:
                 report.error(
@@ -1128,6 +1306,7 @@ def cmd_validate(kb, args):
             external_groups[group.get("identifier")] = group.get("name") or "?"
         for service in group.get("controllerServices") or []:
             services[service.get("identifier")] = service
+            service_groups[service.get("identifier")] = (group_id, group_path)
         for collection in (
             "processors",
             "controllerServices",
@@ -1149,6 +1328,7 @@ def cmd_validate(kb, args):
                         % (identifier, identifiers[identifier], item.get("name", collection)),
                     )
                 identifiers[identifier] = item.get("name", collection)
+                group_of[identifier] = group_id
                 problem = identifier_problem(identifier)
                 if problem:
                     report.warn(
@@ -1160,7 +1340,7 @@ def cmd_validate(kb, args):
                         % (item.get("name", collection), problem, identifier),
                     )
         for connection in group.get("connections") or []:
-            connections.append((group_path, connection))
+            connections.append((group_path, group_id, connection))
             source = (connection.get("source") or {}).get("id")
             destination = (connection.get("destination") or {}).get("id")
             outgoing.setdefault(source, set()).update(connection.get("selectedRelationships") or [])
@@ -1170,6 +1350,7 @@ def cmd_validate(kb, args):
     bundle_mismatch = []
 
     for group_path, group in walk_groups(root):
+        scope = (_ancestry(group.get("identifier"), parent_of), service_groups)
         for service in group.get("controllerServices") or []:
             where = "%s.controllerServices[%s]" % (group_path, service.get("name", "?"))
             _check_import_fields(report, where, service, "controllerServices")
@@ -1181,7 +1362,7 @@ def cmd_validate(kb, args):
                 continue
             _check_bundle(report, where, service, entry, bundle_mismatch)
             _check_properties(kb, report, where, service, entry)
-            _check_service_refs(kb, report, where, service, entry, services, external)
+            _check_service_refs(kb, report, where, service, entry, services, external, scope)
             if entry.get("deprecated"):
                 report.warn(where, "%s is deprecated in NiFi %s." % (simple_name(entry["type"]), kb.nifi_version))
 
@@ -1196,7 +1377,7 @@ def cmd_validate(kb, args):
 
             _check_bundle(report, where, processor, entry, bundle_mismatch)
             _check_properties(kb, report, where, processor, entry)
-            _check_service_refs(kb, report, where, processor, entry, services, external)
+            _check_service_refs(kb, report, where, processor, entry, services, external, scope)
 
             definition = kb.definition(entry)["definition"]
             if entry.get("deprecated"):
@@ -1337,12 +1518,16 @@ def cmd_validate(kb, args):
                     % simple_name(entry["type"]),
                 )
 
-    for group_path, connection in connections:
+    for group_path, group_id, connection in connections:
         where = "%s.connections[%s]" % (group_path, connection.get("name") or "unnamed")
         _check_import_fields(report, where, connection, "connections")
         for role in ("source", "destination"):
             endpoint = connection.get(role) or {}
-            if not endpoint.get("id") or endpoint["id"] in identifiers:
+            if not endpoint.get("id"):
+                continue
+            if endpoint["id"] in identifiers:
+                _check_endpoint_scope(report, where, role, endpoint, group_id, group_of,
+                                      parent_of, group_paths, port_kinds)
                 continue
             # A child group under version control is exported as a reference, not inlined,
             # so its ports are absent from this file by design. A connection into one is
@@ -1354,6 +1539,8 @@ def cmd_validate(kb, args):
                 where,
                 "%s id %s matches no component in this flow." % (role, endpoint["id"]),
             )
+
+    _check_port_connections(report, root, outgoing, incoming, group_of, parent_of, group_paths)
 
     if unbatched:
         report.warn(
@@ -1538,6 +1725,302 @@ def normalize_group(kb, group):
         normalize_group(kb, child)
 
 
+# ---------------------------------------------------------------------------
+# Canvas layout: connection bends
+# ---------------------------------------------------------------------------
+
+# Box sizes on the NiFi 2.x canvas, in pixels. A component's `position` is its top-left
+# corner. Labels are left out: they are background notes, and connections may cross them.
+CANVAS_SIZES = {
+    "processors": (352.0, 128.0),
+    "processGroups": (384.0, 176.0),
+    "remoteProcessGroups": (384.0, 176.0),
+    "inputPorts": (240.0, 48.0),
+    "outputPorts": (240.0, 48.0),
+    "funnels": (48.0, 48.0),
+}
+# Approximate size of the label the canvas draws on every connection (name, from, to,
+# relationships, queued count). Its height grows with the rows it shows. The label is
+# centered on the bend that `labelIndex` names, or on the midpoint of a straight line.
+CONNECTION_LABEL = (224.0, 100.0)
+# Free space that two connected components need between their boxes to fit the label.
+LABEL_CLEARANCE = 260.0
+# Gap between the labels of neighboring connections in one bundle, and the steps
+# `route_group` tries when a line has to go around a component.
+PARALLEL_SPACING = 20.0
+DETOUR_STEP = 120.0
+DETOUR_TRIES = 6
+# Routed lines keep this far from other boxes; validate reports only a real crossing.
+ROUTE_MARGIN = 20.0
+
+
+def _canvas_boxes(group):
+    """Map each connectable identifier to (owner identifier, box) on the group's canvas.
+
+    The box is (x, y, width, height). A port of a child group maps to the child group's
+    box, because the parent canvas draws a connection to that port as ending at the group.
+    """
+    boxes = {}
+    for collection, (width, height) in CANVAS_SIZES.items():
+        for component in group.get(collection) or []:
+            position = component.get("position") or {}
+            box = (float(position.get("x", 0.0)), float(position.get("y", 0.0)), width, height)
+            owner = component.get("identifier")
+            boxes[owner] = (owner, box)
+            if collection in ("processGroups", "remoteProcessGroups"):
+                for port in (component.get("inputPorts") or []) + (component.get("outputPorts") or []):
+                    boxes[port.get("identifier")] = (owner, box)
+    return boxes
+
+
+def _center(box):
+    x, y, width, height = box
+    return (x + width / 2.0, y + height / 2.0)
+
+
+def _connection_ends(connection, boxes):
+    source = boxes.get((connection.get("source") or {}).get("id"))
+    destination = boxes.get((connection.get("destination") or {}).get("id"))
+    if source is None or destination is None:
+        return None
+    return source, destination
+
+
+def _connection_path(connection, boxes):
+    ends = _connection_ends(connection, boxes)
+    if ends is None:
+        return None
+    (_, source_box), (_, destination_box) = ends
+    bends = [(float(b.get("x", 0.0)), float(b.get("y", 0.0)))
+             for b in connection.get("bends") or []]
+    return [_center(source_box)] + bends + [_center(destination_box)]
+
+
+def _segment_hits_box(start, end, box, margin=0.0):
+    """Whether the segment from `start` to `end` enters `box` grown by `margin` on each side."""
+    x, y, width, height = box
+    left, top, right, bottom = x - margin, y - margin, x + width + margin, y + height + margin
+    (x0, y0), (x1, y1) = start, end
+    dx, dy = x1 - x0, y1 - y0
+    low, high = 0.0, 1.0
+    # Liang-Barsky clipping: narrow [low, high] to the part of the segment inside the box.
+    for p, q in ((-dx, x0 - left), (dx, right - x0), (-dy, y0 - top), (dy, bottom - y0)):
+        if p == 0:
+            if q < 0:
+                return False
+            continue
+        t = q / p
+        if p < 0:
+            low = max(low, t)
+        else:
+            high = min(high, t)
+        if low > high:
+            return False
+    return True
+
+
+def _obstacles(boxes, *owners):
+    """The distinct boxes on the canvas other than those of `owners`."""
+    seen = {}
+    for owner, box in boxes.values():
+        if owner not in owners:
+            seen[owner] = box
+    return list(seen.values())
+
+
+def _boxes_overlap(first, second, margin=0.0):
+    ax, ay, aw, ah = first
+    bx, by, bw, bh = second
+    return (ax - margin < bx + bw and bx < ax + aw + margin
+            and ay - margin < by + bh and by < ay + ah + margin)
+
+
+def _label_box(path, label_index):
+    """The box of the label the canvas draws on a connection with this path."""
+    bends = path[1:-1]
+    if bends:
+        x, y = bends[min(max(label_index, 0), len(bends) - 1)]
+    else:
+        (x0, y0), (x1, y1) = path[0], path[-1]
+        x, y = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    width, height = CONNECTION_LABEL
+    return (x - width / 2.0, y - height / 2.0, width, height)
+
+
+def _path_is_clear(path, obstacles, margin):
+    return not any(_segment_hits_box(start, end, box, margin)
+                   for start, end in zip(path, path[1:]) for box in obstacles)
+
+
+def _offsets(base):
+    """Perpendicular offsets to try for one connection, nearest first.
+
+    A connection already pushed to one side by its bundle keeps moving to that side, so
+    neighbors in the bundle cannot swap places and land on each other.
+    """
+    yield base
+    for step in range(1, DETOUR_TRIES + 1):
+        if base > 0:
+            yield base + step * DETOUR_STEP
+        elif base < 0:
+            yield base - step * DETOUR_STEP
+        else:
+            yield step * DETOUR_STEP
+            yield -step * DETOUR_STEP
+
+
+def route_group(group):
+    """Add bends to the connections of `group` and its descendants that would overlap.
+
+    Only connections with no bends are changed, so bends drawn by a user or exported by
+    NiFi stay as they are, and routing a routed flow changes nothing. Returns the number
+    of connections that received bends.
+    """
+    routed = 0
+    boxes = _canvas_boxes(group)
+    bundles = {}
+    # Labels already on the canvas. A new route must not put its label on top of one.
+    placed = [_label_box(_connection_path(c, boxes), c.get("labelIndex") or 0)
+              for c in group.get("connections") or []
+              if c.get("bends") and _connection_ends(c, boxes) is not None]
+    for connection in group.get("connections") or []:
+        ends = _connection_ends(connection, boxes)
+        if ends is None:
+            continue
+        (source_owner, source_box), (destination_owner, _) = ends
+        if source_owner == destination_owner:
+            if not connection.get("bends"):
+                # Far enough right that the label, centered on the first bend, clears the box.
+                x, y, width, height = source_box
+                right = x + width + CONNECTION_LABEL[0] / 2.0 + ROUTE_MARGIN * 2
+                middle = y + height / 2.0
+                connection["bends"] = [{"x": round(right), "y": round(middle - 40.0)},
+                                       {"x": round(right), "y": round(middle + 40.0)}]
+                connection["labelIndex"] = 0
+                placed.append(_label_box(_connection_path(connection, boxes), 0))
+                routed += 1
+            continue
+        bundles.setdefault(tuple(sorted((source_owner, destination_owner))), []).append(connection)
+
+    for (first, second), members in sorted(bundles.items()):
+        members.sort(key=lambda c: c.get("identifier") or "")
+        # One perpendicular for the whole bundle, taken from the owners in sorted order, so
+        # two connections in opposite directions are pushed to opposite sides.
+        (ax, ay), (bx, by) = _center(boxes[first][1]), _center(boxes[second][1])
+        length = ((bx - ax) ** 2 + (by - ay) ** 2) ** 0.5 or 1.0
+        normal = (-(by - ay) / length, (bx - ax) / length)
+        middle = ((ax + bx) / 2.0, (ay + by) / 2.0)
+        obstacles = _obstacles(boxes, first, second)
+        count = len(members)
+        # Neighbors in a bundle sit far enough apart that their labels do not cover each
+        # other: a label's width across a vertical line, its height across a horizontal one.
+        label_width, label_height = CONNECTION_LABEL
+        spacing = (abs(normal[0]) * label_width + abs(normal[1]) * label_height
+                   + PARALLEL_SPACING)
+        for index, connection in enumerate(members):
+            if connection.get("bends"):
+                continue
+            base = (index - (count - 1) / 2.0) * spacing
+            source, destination = _connection_path(connection, boxes)
+            for offset in _offsets(base):
+                bend = (round(middle[0] + normal[0] * offset), round(middle[1] + normal[1] * offset))
+                path = [source, destination] if offset == 0 else [source, bend, destination]
+                label = _label_box(path, 0)
+                if (_path_is_clear(path, obstacles, ROUTE_MARGIN)
+                        and not any(_boxes_overlap(label, box, ROUTE_MARGIN) for box in obstacles)
+                        and not any(_boxes_overlap(label, box) for box in placed)):
+                    placed.append(label)
+                    if offset != 0:
+                        connection["bends"] = [{"x": bend[0], "y": bend[1]}]
+                        connection["labelIndex"] = 0
+                        routed += 1
+                    break
+
+    for child in group.get("processGroups") or []:
+        routed += route_group(child)
+    return routed
+
+
+def _connection_label(connection):
+    source = connection.get("source") or {}
+    destination = connection.get("destination") or {}
+    return "%s -> %s" % (source.get("name") or source.get("id"),
+                         destination.get("name") or destination.get("id"))
+
+
+def _check_layout(report, group_path, group):
+    """Warn about what hides part of the canvas: overlapping boxes and connections."""
+    boxes = _canvas_boxes(group)
+    owners = {}
+    for owner, box in boxes.values():
+        owners[owner] = box
+    names = {c.get("identifier"): c.get("name") or c.get("identifier")
+             for collection in CANVAS_SIZES for c in group.get(collection) or []}
+    ordered = sorted(owners)
+    for i, first in enumerate(ordered):
+        for second in ordered[i + 1:]:
+            if _boxes_overlap(owners[first], owners[second]):
+                report.warn(
+                    group_path,
+                    "'%s' and '%s' overlap on the canvas. Move one of them so that both are "
+                    "visible." % (names.get(first), names.get(second)),
+                )
+
+    drawn = {}
+    labels_drawn = []
+    for connection in group.get("connections") or []:
+        path = _connection_path(connection, boxes)
+        if path is None:
+            continue
+        (source_owner, _), (destination_owner, _) = _connection_ends(connection, boxes)
+        label = _connection_label(connection)
+        label_box = _label_box(path, connection.get("labelIndex") or 0)
+        covered = [names.get(owner) for owner in ordered
+                   if _boxes_overlap(label_box, owners[owner])]
+        if covered:
+            report.warn(
+                group_path,
+                "the label of connection %s covers part of %s. Move the connected components "
+                "apart, leaving about %d px between their boxes, or move the component the "
+                "label covers." % (label, ", ".join("'%s'" % n for n in covered), LABEL_CLEARANCE),
+            )
+        for other_label, other_box in labels_drawn:
+            if _boxes_overlap(label_box, other_box):
+                report.warn(
+                    group_path,
+                    "the labels of connections %s and %s cover each other. Add bends that "
+                    "separate the two lines, or move the components apart."
+                    % (other_label, label),
+                )
+        labels_drawn.append((label, label_box))
+        if source_owner == destination_owner:
+            if not connection.get("bends"):
+                report.warn(
+                    group_path,
+                    "connection %s loops back to its source with no bends, so the canvas does "
+                    "not show it. `kb.py normalize` adds bends for it." % label,
+                )
+            continue
+        # A path drawn in the opposite direction covers the same pixels.
+        key = min(tuple(path), tuple(reversed(path)))
+        drawn.setdefault(key, []).append(label)
+        obstacles = _obstacles(boxes, source_owner, destination_owner)
+        if not _path_is_clear(path, obstacles, 0.0):
+            report.warn(
+                group_path,
+                "connection %s passes through another component on the canvas, which hides "
+                "part of it. `kb.py normalize` adds a bend around the component, or move the "
+                "components apart." % label,
+            )
+    for labels in drawn.values():
+        if len(labels) > 1:
+            report.warn(
+                group_path,
+                "connections %s are drawn on top of each other. `kb.py normalize` adds bends "
+                "that separate them." % ", ".join(labels),
+            )
+
+
 def cmd_ids(args):
     """Mint identifiers for a flow being written by hand.
 
@@ -1564,6 +2047,7 @@ def cmd_normalize(kb, args):
     # 2.10 both accept a file that carries it; it is dropped to keep the committed flow clean.
     envelope.pop("latest", None)
     normalize_group(kb, root)
+    routed = route_group(root)
 
     body = json.dumps(doc, indent=2) + "\n"
     target = Path(args.output) if args.output else path
@@ -1572,6 +2056,9 @@ def cmd_normalize(kb, args):
     print("Filled the fields NiFi writes on export, using each component's own defaults from the")
     print("Knowledge Base, and removed the fields that belong to a NiFi download rather than to")
     print("the flow. Run `kb.py validate` next.")
+    if routed:
+        print("Added bends to %d connection(s) that would otherwise overlap another connection "
+              "or run through a component on the canvas." % routed)
     return 0
 
 

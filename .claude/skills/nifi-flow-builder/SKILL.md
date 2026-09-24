@@ -47,7 +47,8 @@ and the workspace root, two levels deep. The workspace root is
 `$CLAUDE_PROJECT_DIR` when set, otherwise the git repository that contains the current
 directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
 kept elsewhere needs `--kb` or `NIFI_KB_PATH`. It prints the path, the NiFi version, the
-definition format and the component counts. A KB built from NiFi 1.x (`normalized-nifi-1x`)
+definition format, the component counts, and the platform: `qubership-nifi` when the KB has
+`org.qubership.nifi` bundles, otherwise `Apache NiFi`. A KB built from NiFi 1.x (`normalized-nifi-1x`)
 answers every command below the same way as one built from 2.x (`native-nifi-2x`); where the
 two versions differ, this document says so.
 
@@ -194,7 +195,101 @@ When a property shows `only applies when ...`, it is dependent: NiFi hides it un
 controlling property holds one of the listed values. Do not set a dependent property whose
 condition is not met, and do not treat one as required when it is inactive.
 
-## 5. Normalize, then validate
+**Write a script only when no component does the job.** Search the catalog first, by format
+and by role: `kb.py find xlsx`, `kb.py find --tag writer`. When a script is still needed and
+the data is records, write a scripted record component, such as a `ScriptedRecordSetWriter`,
+so that `QueryRecord`, `ConvertRecord` and the other record processors can use it. A
+standalone `ExecuteScript` or `ExecuteGroovyScript` is the last choice.
+
+**Build a file format with a library, never from string templates.** XML, JSON, CSV and the
+ZIP-based Office formats have escaping and structure rules that a hand-written template gets
+wrong. Use `groovy.json.JsonOutput` for JSON, `groovy.xml.MarkupBuilder` or StAX for XML, and
+Apache POI for XLS and XLSX.
+
+**A script can use only the libraries its component can load.** Every NAR has its own class
+loader, whose parent is the class loader of the NAR it depends on. A component therefore
+loads classes from its own NAR, from that NAR's ancestors, and from the JDK, and from no other
+NAR. A script in `ExecuteScript` cannot import the POI classes that `ExcelReader` uses in
+`nifi-poi-nar`. To use a library from elsewhere, point the component's classpath property at
+the jars on the NiFi host. `kb.py props` prints `takes: ...` under a property that takes files
+or directories, and its description says whether they go on the classpath. Some classpath
+properties declare no resource type, so read the descriptions as well. When
+`guides/developer-guide.md` in the KB has the "NiFi Archives (NARs)" and "Per-Instance
+ClassLoading" sections, grep for them for the details.
+
+**Where the jars are depends on the NiFi installation, not on the catalog.** When
+`kb.py locate` prints `Platform : qubership-nifi`, read `references/qubership-nifi.md`: the
+image puts the libraries of some NARs in fixed directories, POI among them. On plain Apache
+NiFi, ask the user for a directory of jars on the NiFi host. If there is none, use the JDK and
+the libraries of the scripting NAR, and say so in your summary.
+
+**Groovy `${...}` in `Script Body` is not Expression Language.** The property's EL scope is
+`NONE`, so NiFi passes the text to the script engine as written, and `kb.py validate` does
+not report it. Keep Groovy string interpolation where it makes the script easier to read.
+
+## 5. Split large groups into child process groups
+
+A process group with more than roughly 10-12 processors is hard to read on the NiFi canvas.
+When a flow grows past that, give each stage of it a child process group, and connect the
+children through ports. The threshold is a judgment call rather than a rule: a 13-processor
+linear pipeline can stay flat, and a 9-processor group that holds two unrelated paths can
+split. Do not create groups for a small flow, and do not nest deeper than two levels unless
+the flow needs it. `kb.py validate` warns when one group holds more than 12 processors.
+
+**Cut along stages a reader would name**: accept the request, transform, persist, respond,
+downstream or asynchronous processing, error handling. Each child should do one job, hold
+about 3-8 processors, and have 1-3 ports. Cut where few connections cross the boundary, and
+keep a tight loop inside one group: a retry that routes back to its processor, a split with
+its merge, a `Wait` with its `Notify`.
+
+**The parent holds what the children share**: the controller services, the child groups,
+the connections between their ports, and the labels. Ideally it holds no processors; one or
+two that join the children are fine.
+
+**Wire the children the way NiFi requires:**
+
+- A connection belongs to the group that contains it, and it can join components of that
+  group or a port of a direct child. To cross a boundary, connect to the child's port: the
+  connection sits in the parent's `connections`, and the endpoint has `type` `INPUT_PORT` or
+  `OUTPUT_PORT` and `groupId` set to the child's identifier. From the parent, FlowFiles enter
+  a child through an input port and leave it through an output port.
+- Port names are unique within a group. An input port name starts with `in_` and an output
+  port name with `out_`, followed by a snake_case name for what passes through the port:
+  `in_accepted`, `out_stored`, `out_failure`. Never name a port just `in` or `out`.
+- Every port needs a connection inside its group and one in the parent. Otherwise NiFi marks
+  the port invalid and cannot start it. A port of the root group is the exception on the outer side, because the import
+  places the root group inside another group.
+- A child group is not bound to its parent's parameter context. Every child that references
+  `#{...}` sets `parameterContextName` itself, usually to the parent's context.
+- A component can reference a controller service of its own group or of an ancestor, never
+  one of a sibling group. Define a service the children share on the parent.
+- Give each child that can fail an `out_failure` output port (`portFunction` `STANDARD`), and
+  handle failures in one place, in the parent or in a child of their own, rather than with a
+  logger in every child.
+- `HandleHttpRequest` and `HandleHttpResponse` can sit in different children. They share the
+  `StandardHttpContextMap` defined on the parent.
+
+**Lay the children out in flow order** on the parent's canvas, and leave room for connection
+labels. The canvas draws a label of about 224 x 100 px on every connection, centered on its
+midpoint, so two connected components need about 260 px of free space between their boxes in
+the direction of the connection. That gives these grid steps:
+
+- child groups (384 x 176) side by side: about 700 px apart, as in x = 0, 700, 1400;
+- processors (352 x 128) in a column: about 300 px apart vertically;
+- columns of processors: about 640 px apart horizontally.
+
+Inside a child, put the input ports on the top row and the output ports on the bottom row.
+`kb.py validate` warns when a label would cover a component or another label. Where you can, place components so that a connection runs between neighbors rather
+than across a third component. The canvas draws a connection with no `bends` as a straight
+line between the two boxes, so two connections between the same pair of components cover
+each other, and a line across a third component is hidden behind it. `kb.py normalize` adds
+bends for both cases (section 6), so you do not have to compute them. Keep any bends a user
+drew.
+
+`references/flow-json.md` has a worked example of a child group with its ports and the three
+connections that wire it.
+
+## 6. Normalize, then validate
 
 ```bash
 kb.py normalize <flow.json>     # fill the fields NiFi writes on export
@@ -206,6 +301,15 @@ kb.py validate  <flow.json>     # check the result against the catalog
 defaults) rather than a fixed guess, and generates `propertyDescriptors` for the properties
 you set. It edits in place unless you pass `-o`. Running it on a flow that is already complete
 changes nothing, so it is safe on a file you are editing.
+
+`normalize` also adds `bends` to connections that would be hard to see on the canvas. It
+spreads two or more connections between the same two components (or between ports of the
+same two child groups) to either side of the straight line. It routes a line that would cross
+a third component around it, and gives a connection from a processor back to itself a loop
+to the right. Each bend is placed so that the connection's label clears other components and
+other labels. It changes only connections that have no bends, so bends drawn by a user or
+exported by NiFi stay as they are. It never moves a component: when two connected components
+are too close for the label, `validate` reports it, and the fix is to move them apart.
 
 A 1.x KB records none of those per-component defaults, so for 1.x `normalize` writes NiFi's
 framework defaults instead. It also writes the fields of the KB's NiFi version and no others:
@@ -221,7 +325,13 @@ to keep.
 `validate` checks types, bundles, property keys, allowable values, EL scope, dependent and
 required properties, controller service API compatibility, relationship handling, input
 requirements, scheduling strategies, parameter context binding, duplicate identifiers,
-connection endpoints, and the fields the importer needs. It exits non-zero on any error.
+connection endpoints, and the fields the importer needs. For child groups it also checks that
+each connection stays in its group or reaches a port of a direct child, that port names are
+unique and prefixed, that every port is connected on both sides, and that each service
+reference points to the component's own group or an ancestor. On the canvas of each group, it
+warns about components whose boxes overlap, connections drawn on top of each other, lines
+that cross another component, labels that cover a component or another label, and loops with
+no bends. It exits non-zero on any error.
 
 Run them, fix what is reported, and run again until clean. Then say so and quote the counts.
 
@@ -237,7 +347,7 @@ Warnings deserve a decision rather than a reflex. Three are worth reading closel
 - A required sensitive property with no value. NiFi leaves sensitive values out of a
   downloaded flow, so every export shows this. In a flow you write, reference a parameter.
 
-## 6. Verify against a live NiFi and Registry when they are reachable
+## 7. Verify against a live NiFi and Registry when they are reachable
 
 The catalog cannot tell you everything. Conditional relationships and import-time failures
 only appear when real NiFi parses the file.
@@ -253,8 +363,9 @@ verify_live.py <flow.json> \
 The two targets answer different questions, and either may be given on its own. The same
 command works against NiFi 1.x and 2.x.
 
-`--nifi-url` imports the flow into a temporary process group, reads back every component's
-validation state, and deletes the group again. This is the check that knows what a component
+`--nifi-url` imports the flow into a temporary process group, reads back the validation state
+of every processor, controller service, and port in it and in its child groups, and deletes
+the group again. This is the check that knows what a component
 is: a wrong property key, an unhandled relationship, a service reference that does not
 resolve.
 
@@ -280,6 +391,8 @@ always import disabled, so they say nothing about the flow.
 ## Reference
 
 - `references/flow-json.md` - flow definition structure, element templates, field meanings.
+- `references/qubership-nifi.md` - what the qubership-nifi image adds to Apache NiFi: the
+  library directories a script can put on its classpath, and a tested XLSX record writer.
 - `scripts/kb.py` - catalog queries, `normalize`, and static `validate`.
 - `scripts/verify_live.py` - import into a running NiFi and read back validation state, and
   store into a running NiFi Registry to prove the file is a valid snapshot.

@@ -34,18 +34,23 @@ def _adapted_descriptor(**fields):
 
 
 def _write_kb(root, version, components):
-    """Write a Knowledge Base holding `components`, each a (kind, type, component.json) triple."""
+    """Write a Knowledge Base holding `components`.
+
+    Each is a (kind, type, component.json) triple, or a quadruple whose fourth item overrides the
+    bundle group or artifact in the index.
+    """
     (root / "components").mkdir(parents=True)
     index = []
-    for number, (kind, type_name, component) in enumerate(components):
+    for number, (kind, type_name, component, *bundle) in enumerate(components):
         path = "processors/C%d" % number
         (root / "components" / path).mkdir(parents=True)
         (root / "components" / path / "component.json").write_text(
             json.dumps(component), encoding="utf-8")
-        index.append({"kind": kind, "group": "org.apache.nifi", "artifact": "nifi-standard-nar",
-                      "version": version, "type": type_name, "tags": [], "deprecated": False,
-                      "controllerServiceApis": [], "path": path,
-                      "additionalDetailsAvailable": False})
+        index.append(dict({"kind": kind, "group": "org.apache.nifi",
+                           "artifact": "nifi-standard-nar", "version": version,
+                           "type": type_name, "tags": [], "deprecated": False,
+                           "controllerServiceApis": [], "path": path,
+                           "additionalDetailsAvailable": False}, **(bundle[0] if bundle else {})))
     (root / "components" / "index.json").write_text(json.dumps(index), encoding="utf-8")
     (root / "manifest.json").write_text(
         json.dumps({"schemaVersion": "2", "nifi": {"version": version}}), encoding="utf-8")
@@ -444,3 +449,398 @@ def test_root_group_accepts_a_top_level_flow_contents(doc):
 def test_root_group_refuses_anything_without_a_top_level_flow_contents(doc):
     with pytest.raises(kb.KbError, match="top-level 'flowContents'"):
         kb.root_group(doc)
+
+
+# ---------------------------------------------------------------------------
+# Child process groups: size, ports, connections across a boundary, service scope
+# ---------------------------------------------------------------------------
+
+ROOT_ID = "b051f24c-f9ff-4fde-b160-9b0b84af3e96"
+CHILD_ID = "5d8f8a51-1f7e-4c2a-9a55-3c0f6f1b2d10"
+SOURCE_ID = "38cc498e-6284-481e-a2a0-ef7dd961740f"
+SINK_ID = "f75c0f2a-f002-42df-9003-b2dbcd0523bf"
+INNER_ID = "cb9336e7-fced-4124-a99c-3768b66abed8"
+IN_PORT_ID = "df03ecd1-b095-404b-bb4a-b08ab0e3be41"
+OUT_PORT_ID = "4543f24f-fbd2-4461-96a7-b98ef5d83375"
+CONNECTION_IDS = ["92b38ac3-399a-451d-90eb-2912ece98136", "e39f266b-0944-48c2-8488-8a2e554f8c71",
+                  "5c2dc5b0-d93e-43ba-bc4e-8b391747663b", "4b6237f8-0cdf-41a8-aad4-18e85baf5194"]
+
+
+def _processor(identifier, name, x=0.0, y=0.0):
+    return {"identifier": identifier, "name": name, "type": "org.example.P", "runDurationMillis": 25,
+            "position": {"x": x, "y": y},
+            "bundle": {"group": "org.apache.nifi", "artifact": "nifi-standard-nar",
+                       "version": "1.28.1"}}
+
+
+def _port(identifier, name, x=0.0, y=0.0):
+    return {"identifier": identifier, "name": name, "position": {"x": x, "y": y}}
+
+
+def _connection(identifier, source, destination):
+    """`source` and `destination` are (component id, group id) pairs."""
+    return {"identifier": identifier, "selectedRelationships": [],
+            "source": {"id": source[0], "groupId": source[1]},
+            "destination": {"id": destination[0], "groupId": destination[1]}}
+
+
+def _nested_flow(root_connections=None, input_ports=None):
+    """Root: Source -> child `in_items` -> Inner -> child `out_items` -> Sink."""
+    if root_connections is None:
+        root_connections = [
+            _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), (IN_PORT_ID, CHILD_ID)),
+            _connection(CONNECTION_IDS[1], (OUT_PORT_ID, CHILD_ID), (SINK_ID, ROOT_ID)),
+        ]
+    child = {"identifier": CHILD_ID, "name": "Child", "position": {"x": 0.0, "y": 400.0},
+             "processors": [_processor(INNER_ID, "Inner", 0.0, 300.0)],
+             "inputPorts": input_ports or [_port(IN_PORT_ID, "in_items")],
+             "outputPorts": [_port(OUT_PORT_ID, "out_items", 0.0, 700.0)],
+             "connections": [
+                 _connection(CONNECTION_IDS[2], (IN_PORT_ID, CHILD_ID), (INNER_ID, CHILD_ID)),
+                 _connection(CONNECTION_IDS[3], (INNER_ID, CHILD_ID), (OUT_PORT_ID, CHILD_ID)),
+             ]}
+    return {"flowContents": {"identifier": ROOT_ID, "name": "Root",
+                             "processors": [_processor(SOURCE_ID, "Source"),
+                                            _processor(SINK_ID, "Sink", 0.0, 900.0)],
+                             "processGroups": [child], "connections": root_connections}}
+
+
+def test_a_child_group_wired_through_its_ports_is_valid(tmp_path, capsys):
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=_nested_flow())
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+def test_a_connection_from_the_parent_into_a_processor_of_a_child_is_an_error(tmp_path, capsys):
+    flow = _nested_flow(root_connections=[
+        _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), (INNER_ID, CHILD_ID)),
+        _connection(CONNECTION_IDS[1], (OUT_PORT_ID, CHILD_ID), (SINK_ID, ROOT_ID)),
+    ])
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "ERROR  flowContents.connections[unnamed]: the destination %s is in " \
+           "flowContents.Child, but this connection belongs to flowContents." % INNER_ID in out, out
+
+
+def test_an_endpoint_group_id_naming_the_wrong_group_is_an_error(tmp_path, capsys):
+    flow = _nested_flow(root_connections=[
+        _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), (IN_PORT_ID, ROOT_ID)),
+        _connection(CONNECTION_IDS[1], (OUT_PORT_ID, CHILD_ID), (SINK_ID, ROOT_ID)),
+    ])
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "destination.groupId is %s, but component %s is in flowContents.Child" \
+           % (ROOT_ID, IN_PORT_ID) in out, out
+
+
+def test_leaving_a_child_through_its_input_port_is_an_error(tmp_path, capsys):
+    flow = _nested_flow(root_connections=[
+        _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), (IN_PORT_ID, CHILD_ID)),
+        _connection(CONNECTION_IDS[1], (IN_PORT_ID, CHILD_ID), (SINK_ID, ROOT_ID)),
+    ])
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "the source is INPUT_PORT of child group flowContents.Child" in out, out
+
+
+def test_two_input_ports_with_one_name_in_a_group_are_an_error(tmp_path, capsys):
+    flow = _nested_flow(input_ports=[
+        {"identifier": IN_PORT_ID, "name": "in_items"},
+        {"identifier": "1a259b26-b48a-4b31-af44-898bacd1a528", "name": "in_items"},
+    ])
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "ERROR  flowContents.Child: two input ports are named 'in_items'" in out, out
+
+
+@pytest.mark.parametrize("collection, name, warned", [
+    pytest.param("inputPorts", "items", True, id="input port without in_"),
+    pytest.param("inputPorts", "in_items", False, id="input port with in_"),
+    pytest.param("inputPorts", "out_items", True, id="input port with out_"),
+    pytest.param("outputPorts", "items", True, id="output port without out_"),
+    pytest.param("outputPorts", "out_items", False, id="output port with out_"),
+])
+def test_a_port_name_without_its_direction_prefix_is_warned_about(collection, name, warned):
+    report = kb.Report()
+    kb._check_port_names(report, "flowContents.Child",
+                         {collection: [{"identifier": IN_PORT_ID, "name": name}]})
+    assert any("does not follow the naming convention" in message
+               for _, message in report.warnings) is warned, report.warnings
+
+
+def test_a_child_port_with_no_connection_in_the_parent_is_an_error(tmp_path, capsys):
+    flow = _nested_flow(root_connections=[
+        _connection(CONNECTION_IDS[1], (OUT_PORT_ID, CHILD_ID), (SINK_ID, ROOT_ID)),
+    ])
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "ERROR  flowContents.Child: input port 'in_items' has no connection in the " \
+           "parent group" in out, out
+
+
+def test_a_root_group_port_needs_no_connection_in_a_parent(tmp_path, capsys):
+    flow = {"flowContents": {
+        "identifier": ROOT_ID, "name": "Root",
+        "processors": [_processor(SOURCE_ID, "Source", 0.0, 200.0)],
+        "inputPorts": [_port(IN_PORT_ID, "in_items")],
+        "connections": [_connection(CONNECTION_IDS[0], (IN_PORT_ID, ROOT_ID), (SOURCE_ID, ROOT_ID))],
+    }}
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+@pytest.mark.parametrize("count, warned", [
+    pytest.param(12, False, id="12 processors"),
+    pytest.param(13, True, id="13 processors"),
+])
+def test_a_group_with_more_than_12_processors_is_warned_about(count, warned):
+    report = kb.Report()
+    kb._check_group_size(report, "flowContents",
+                         {"processors": [{"name": "P%d" % n} for n in range(count)]})
+    assert any("processors in one process group" in message
+               for _, message in report.warnings) is warned, report.warnings
+
+
+class _PoolKb(_OneDefinitionKb):
+    """A processor with one property that takes an org.example.Pool service."""
+
+    def __init__(self):
+        super().__init__({"propertyDescriptors": {"Pool": {
+            "name": "Pool", "typeProvidedByValue": {"type": "org.example.Pool"}}}})
+
+    def lookup(self, kind, type_name):
+        return {"controllerServiceApis": ["org.example.Pool"]}
+
+
+@pytest.mark.parametrize("service_group, errors", [
+    pytest.param(ROOT_ID, 0, id="service in the parent group"),
+    pytest.param(CHILD_ID, 0, id="service in the same group"),
+    pytest.param("c36ae982-4ddd-493f-8ad8-a2d2ae278585", 1, id="service in a sibling group"),
+])
+def test_a_service_is_visible_from_its_own_group_and_its_descendants(service_group, errors):
+    report = kb.Report()
+    service_id = "38fbf344-04e2-4ec4-a8d1-6b97576ce68c"
+    kb._check_service_refs(
+        _PoolKb(), report, "flowContents.Child.processors[P]",
+        {"properties": {"Pool": service_id}}, {"type": "org.example.P"},
+        {service_id: {"name": "Pool A", "type": "org.example.PoolImpl"}}, {},
+        ({CHILD_ID, ROOT_ID}, {service_id: (service_group, "flowContents.Other")}))
+    assert len(report.errors) == errors, report.errors
+
+
+# ---------------------------------------------------------------------------
+# Canvas layout: bends added by normalize, overlaps reported by validate
+# ---------------------------------------------------------------------------
+
+# Processor boxes are 352 x 128, so a processor at y=0 is centered on (176, 64).
+TOP, BOTTOM, MIDDLE = "a-top", "c-bottom", "b-middle"
+
+
+def _layout(connections, processors=((TOP, 0.0), (BOTTOM, 800.0)), groups=()):
+    return {"identifier": ROOT_ID, "name": "Root", "connections": connections,
+            "processors": [_processor(identifier, identifier, 0.0, y) for identifier, y in processors],
+            "processGroups": list(groups)}
+
+
+def _between(source, destination, *identifiers):
+    return [_connection(identifier, (source, ROOT_ID), (destination, ROOT_ID))
+            for identifier in identifiers]
+
+
+def _bend_x(connection):
+    return [bend["x"] for bend in connection.get("bends", [])]
+
+
+def test_a_single_unobstructed_connection_stays_straight():
+    group = _layout(_between(TOP, BOTTOM, "c1"))
+    assert kb.route_group(group) == 0
+    assert group["connections"][0].get("bends", []) == []
+
+
+def test_two_connections_between_the_same_processors_are_pushed_to_opposite_sides():
+    group = _layout(_between(TOP, BOTTOM, "c1", "c2"))
+    assert kb.route_group(group) == 2
+    first, second = group["connections"]
+    # The line runs vertically through x=176, so the offsets are horizontal: half of a
+    # label's width (224) plus the 20 px gap between labels on each side.
+    assert sorted([_bend_x(first), _bend_x(second)]) == [[54], [298]]
+
+
+def test_the_middle_of_three_parallel_connections_stays_straight():
+    group = _layout(_between(TOP, BOTTOM, "c1", "c2", "c3"))
+    kb.route_group(group)
+    first, middle, last = group["connections"]
+    assert _bend_x(middle) == []
+    assert sorted([_bend_x(first), _bend_x(last)]) == [[-68], [420]]
+
+
+def test_connections_between_ports_of_the_same_two_child_groups_are_parallel():
+    upper = {"identifier": "g-upper", "name": "Upper", "position": {"x": 0.0, "y": 0.0},
+             "outputPorts": [_port("out_a", "out_a"), _port("out_b", "out_b")]}
+    lower = {"identifier": "g-lower", "name": "Lower", "position": {"x": 0.0, "y": 800.0},
+             "inputPorts": [_port("in_a", "in_a"), _port("in_b", "in_b")]}
+    group = _layout([_connection("c1", ("out_a", "g-upper"), ("in_a", "g-lower")),
+                     _connection("c2", ("out_b", "g-upper"), ("in_b", "g-lower"))],
+                    processors=(), groups=(upper, lower))
+    kb.route_group(group)
+    # Group boxes are 384 wide, so both lines would run through x=192.
+    assert sorted(_bend_x(c) for c in group["connections"]) == [[70], [314]]
+
+
+def test_a_connection_through_another_processor_is_routed_around_it():
+    group = _layout(_between(TOP, BOTTOM, "c1"),
+                    processors=((TOP, 0.0), (MIDDLE, 400.0), (BOTTOM, 800.0)))
+    kb.route_group(group)
+    connection = group["connections"][0]
+    assert connection["bends"], "TOP -> BOTTOM runs straight through MIDDLE"
+    path = kb._connection_path(connection, kb._canvas_boxes(group))
+    middle_box = (0.0, 400.0, 352.0, 128.0)
+    assert [kb._segment_hits_box(a, b, middle_box) for a, b in zip(path, path[1:])] == [False, False]
+
+
+def test_a_self_loop_gets_two_bends_right_of_its_processor():
+    group = _layout(_between(TOP, TOP, "c1"), processors=((TOP, 0.0),))
+    kb.route_group(group)
+    # 352 (box) + 112 (half a label) + 40 (margin): the label on the first bend clears the box.
+    assert group["connections"][0]["bends"] == [{"x": 504, "y": 24}, {"x": 504, "y": 104}]
+
+
+def test_bends_already_on_a_connection_are_kept():
+    connections = _between(TOP, BOTTOM, "c1", "c2")
+    connections[0]["bends"] = [{"x": -300, "y": 400}]
+    group = _layout(connections)
+    kb.route_group(group)
+    assert group["connections"][0]["bends"] == [{"x": -300, "y": 400}]
+
+
+def test_routing_a_routed_group_changes_nothing():
+    group = _layout(_between(TOP, BOTTOM, "c1", "c2", "c3"),
+                    processors=((TOP, 0.0), (MIDDLE, 400.0), (BOTTOM, 800.0)))
+    kb.route_group(group)
+    routed = json.loads(json.dumps(group))
+    assert kb.route_group(group) == 0
+    assert group == routed
+
+
+def _layout_warnings(group):
+    report = kb.Report()
+    kb._check_layout(report, "flowContents", group)
+    return [message for _, message in report.warnings]
+
+
+@pytest.mark.parametrize("processors, connections, expected", [
+    pytest.param(((TOP, 0.0), (BOTTOM, 800.0)), _between(TOP, BOTTOM, "c1", "c2"),
+                 "are drawn on top of each other", id="parallel connections"),
+    pytest.param(((TOP, 0.0), (MIDDLE, 400.0), (BOTTOM, 800.0)), _between(TOP, BOTTOM, "c1"),
+                 "passes through another component", id="line through a processor"),
+    pytest.param(((TOP, 0.0),), _between(TOP, TOP, "c1"),
+                 "loops back to its source with no bends", id="self-loop"),
+    pytest.param(((TOP, 0.0), (BOTTOM, 100.0)), [],
+                 "overlap on the canvas", id="overlapping processors"),
+])
+def test_validate_warns_about_what_hides_part_of_the_canvas(processors, connections, expected):
+    warnings = _layout_warnings(_layout(connections, processors=processors))
+    assert any(expected in message for message in warnings), warnings
+
+
+def test_validate_finds_nothing_to_warn_about_once_a_group_is_routed():
+    group = _layout(_between(TOP, BOTTOM, "c1", "c2") + _between(MIDDLE, MIDDLE, "c3"),
+                    processors=((TOP, 0.0), (MIDDLE, 400.0), (BOTTOM, 800.0)))
+    kb.route_group(group)
+    assert _layout_warnings(group) == []
+
+
+def test_a_bend_is_moved_until_its_label_clears_a_nearby_processor():
+    # SIDE sits right of the straight TOP -> BOTTOM line, clear of the line itself, but a
+    # label centered on the line's midpoint (176, 464) would reach x=288 and cover it.
+    group = _layout(_between(TOP, BOTTOM, "c1"),
+                    processors=((TOP, 0.0), (BOTTOM, 800.0)))
+    group["processors"].append(_processor("side", "side", 260.0, 420.0))
+    kb.route_group(group)
+    path = kb._connection_path(group["connections"][0], kb._canvas_boxes(group))
+    label = kb._label_box(path, 0)
+    assert not kb._boxes_overlap(label, (260.0, 420.0, 352.0, 128.0)), label
+
+
+@pytest.mark.parametrize("gap, warned", [
+    pytest.param(50.0, True, id="50 px between the boxes"),
+    pytest.param(300.0, False, id="300 px between the boxes"),
+])
+def test_validate_warns_when_a_label_does_not_fit_between_connected_processors(gap, warned):
+    group = _layout(_between(TOP, BOTTOM, "c1"), processors=((TOP, 0.0), (BOTTOM, 128.0 + gap)))
+    warnings = _layout_warnings(group)
+    assert any("covers part of" in message for message in warnings) is warned, warnings
+
+
+def test_validate_warns_when_two_labels_cover_each_other():
+    connections = _between(TOP, BOTTOM, "c1", "c2")
+    connections[0]["bends"] = [{"x": 150, "y": 464}]
+    connections[1]["bends"] = [{"x": 200, "y": 464}]
+    warnings = _layout_warnings(_layout(connections))
+    assert any("cover each other" in message for message in warnings), warnings
+
+
+# ---------------------------------------------------------------------------
+# Scripted components: Script Body, classpath properties, the platform line
+# ---------------------------------------------------------------------------
+
+def _native_2x(type_name, descriptors):
+    return {"definitionFormat": "native-nifi-2x", "definition": {
+        "type": type_name, "inputRequirement": "INPUT_ALLOWED", "supportedRelationships": [],
+        "supportedSchedulingStrategies": ["TIMER_DRIVEN"], "propertyDescriptors": descriptors}}
+
+
+@pytest.mark.parametrize("artifact, key, reported", [
+    pytest.param("nifi-groovyx-nar", "Script Body", False, id="groovyx script body"),
+    pytest.param("nifi-scripting-nar", "Script Body", False, id="scripting script body"),
+    pytest.param("nifi-groovyx-nar", "Other", True, id="another NONE property of a scripted one"),
+    pytest.param("nifi-standard-nar", "Script Body", True, id="script body outside a scripting NAR"),
+])
+def test_el_in_script_body_of_a_scripted_component_is_not_reported(
+        tmp_path, capsys, artifact, key, reported):
+    type_name = "org.example.Script"
+    definition = _native_2x(type_name, {
+        name: {"name": name, "expressionLanguageScope": "NONE"} for name in ("Script Body", "Other")})
+    knowledge_base = kb.Kb(_write_kb(tmp_path / "kb", "2.10.0", [
+        ("PROCESSOR", type_name, definition, {"artifact": artifact})]))
+    flow = _flow([{"type": type_name, "properties": {key: 'def s = "${name}"'},
+                   "bundle": {"group": "org.apache.nifi", "artifact": artifact,
+                              "version": "2.10.0"}}], version="2.10.0")
+    kb.normalize_group(knowledge_base, flow["flowContents"])
+    path = tmp_path / "flow.json"
+    path.write_text(json.dumps(flow), encoding="utf-8")
+    capsys.readouterr()
+    kb.cmd_validate(knowledge_base, argparse.Namespace(flow=str(path)))
+    out = capsys.readouterr().out
+    assert ("contains Expression Language" in out) == reported, out
+
+
+@pytest.mark.parametrize("resource, line", [
+    pytest.param({"cardinality": "MULTIPLE", "resourceTypes": ["URL", "DIRECTORY", "FILE"]},
+                 "    takes: URL, directory, or file (comma-separated list)", id="several kinds"),
+    pytest.param({"cardinality": "SINGLE", "resourceTypes": ["FILE"]},
+                 "    takes: file", id="one file"),
+])
+def test_props_names_the_resources_a_property_takes(tmp_path, capsys, resource, line):
+    type_name = "org.example.Script"
+    knowledge_base = kb.Kb(_write_kb(tmp_path, "2.10.0", [("PROCESSOR", type_name, _native_2x(
+        type_name, {"Modules": {"name": "Modules", "resourceDefinition": resource}}))]))
+    kb.cmd_props(knowledge_base, argparse.Namespace(name=type_name, kind=None))
+    assert line in capsys.readouterr().out.splitlines()
+
+
+def test_props_prints_no_resource_line_for_a_plain_property(tmp_path, capsys):
+    type_name = "org.example.Script"
+    knowledge_base = kb.Kb(_write_kb(tmp_path, "2.10.0", [("PROCESSOR", type_name, _native_2x(
+        type_name, {"Plain": {"name": "Plain"}}))]))
+    kb.cmd_props(knowledge_base, argparse.Namespace(name=type_name, kind=None))
+    out = capsys.readouterr().out
+    assert "takes:" not in out, out
+
+
+@pytest.mark.parametrize("group, platform", [
+    pytest.param("org.qubership.nifi", "qubership-nifi", id="qubership bundle"),
+    pytest.param("org.apache.nifi", "Apache NiFi", id="apache bundles only"),
+])
+def test_locate_names_the_platform_from_the_bundle_groups(tmp_path, capsys, group, platform):
+    type_name = "org.example.P"
+    knowledge_base = kb.Kb(_write_kb(tmp_path, "2.10.0", [
+        ("PROCESSOR", type_name, _native_2x(type_name, {}), {"group": group})]))
+    kb.cmd_locate(knowledge_base, argparse.Namespace())
+    out = capsys.readouterr().out
+    platform_line = next(line for line in out.splitlines() if line.startswith("Platform"))
+    assert platform in platform_line, out
