@@ -179,9 +179,42 @@ Field notes:
   default. A 1.x KB records no default of the component's own, so there `props` shows the
   framework's `0 sec` for every processor and the choice is always yours. 100 millis is a
   common floor for a source that must react quickly, and seconds are normal for a directory
-  poll. Listeners and consumers such as `ListenHTTP` and `ConsumeKafka` are the exception:
-  `0 sec` is the normal setting for them, and `kb.py validate` does not warn about a
-  `Listen*` or `Consume*` processor.
+  poll. Two kinds of source differ from that rule; see the next two notes.
+- A few sources belong at `0 sec`, because each one waits for the next event inside its own
+  client or server: a zero period costs no idle CPU, and any other period only adds
+  latency. They are exactly the types in the table below, which comes from a review of their
+  source code and from measurements on a qubership-nifi container. A type that the target
+  NiFi lacks does not matter. `kb.py validate` warns about every other source scheduled at
+  `0 sec`, including a `Listen*` or `Consume*` processor that the table leaves out.
+
+  | Type | Present in |
+  | --- | --- |
+  | `org.apache.nifi.processors.standard.ListenHTTP` | 1.x, 2.x |
+  | `org.apache.nifi.processors.standard.ListenFTP` | 1.x, 2.x |
+  | `org.apache.nifi.snmp.processors.ListenTrapSNMP` | 1.x, 2.x |
+  | `org.apache.nifi.processors.websocket.ListenWebSocket` | 1.x, 2.x |
+  | `org.apache.nifi.processors.websocket.ConnectWebSocket` | 1.x, 2.x |
+  | `org.apache.nifi.processors.slack.ListenSlack` | 2.x |
+  | `org.apache.nifi.kafka.processors.ConsumeKafka` | 2.x |
+  | `org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6`, `ConsumeKafkaRecord_2_6` | 1.x; 2.x on qubership-nifi |
+  | `org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_1_0`, `ConsumeKafka_2_0`, `ConsumeKafkaRecord_1_0`, `ConsumeKafkaRecord_2_0` | 1.x |
+  | `org.apache.nifi.jms.processors.ConsumeJMS` | 1.x, 2.x |
+  | `org.apache.nifi.amqp.processors.ConsumeAMQP` | 1.x, 2.x |
+  | `org.apache.nifi.processors.mqtt.ConsumeMQTT` | 1.x, 2.x |
+  | `org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub` | 1.x, 2.x |
+  | `org.apache.nifi.processors.azure.eventhub.GetAzureEventHub` | 1.x, 2.x |
+  | `org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream` | 1.x, 2.x |
+  | `org.apache.nifi.processors.aws.kinesis.ConsumeKinesis` | 2.x |
+  | `org.apache.nifi.processors.box.ConsumeBoxEvents` | 2.x |
+  | `org.apache.nifi.processors.twitter.ConsumeTwitter` | 1.x, 2.x |
+
+- `HandleHttpRequest`, and every `Listen*` processor that the table leaves out (`ListenTCP`,
+  `ListenUDP`, `ListenSyslog` and others), gets `50 millis`. Such a listener polls its
+  internal queue on every run, so at `0 sec` it runs continually: on qubership-nifi, an idle
+  `HandleHttpRequest` adds up to 10% idle CPU usage. The period adds up to 50 ms of latency per
+  request. `HandleHttpRequest` takes one request per run, so one concurrent task handles
+  about 20 requests per second; raise `concurrentlySchedulableTaskCount` for more. Set
+  `0 sec` only when the user asks for the lowest latency.
 - `runDurationMillis` trades latency for throughput on processors that support batching,
   which `kb.py props` reports. Above zero, NiFi handles several FlowFiles in one session
   instead of paying the framework cost once per file, which is most of the cost of a cheap

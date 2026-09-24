@@ -71,6 +71,43 @@ QUBERSHIP_GROUP = "org.qubership.nifi"
 # child process groups, because the canvas becomes hard to read.
 LARGE_GROUP_PROCESSORS = 12
 
+# Sources that belong at a zero run schedule: each one waits for the next event inside its own
+# client or server, so a zero period costs no idle CPU and any other period only adds latency.
+# The list comes from a review of the processors' source code and from measurements on a
+# qubership-nifi container. One set serves 1.x and 2.x: a type the Knowledge Base lacks never
+# matches, and the ConsumeKafka*_2_6 pair also ships with qubership-nifi 2.x. ConnectWebSocket
+# accepts an incoming connection, so the zero-period check never reaches it; it is listed so
+# that the set matches the documentation.
+ZERO_PERIOD_SOURCES = frozenset({
+    "org.apache.nifi.processors.standard.ListenHTTP",
+    "org.apache.nifi.processors.standard.ListenFTP",
+    "org.apache.nifi.snmp.processors.ListenTrapSNMP",
+    "org.apache.nifi.processors.websocket.ListenWebSocket",
+    "org.apache.nifi.processors.websocket.ConnectWebSocket",
+    "org.apache.nifi.processors.slack.ListenSlack",
+    "org.apache.nifi.kafka.processors.ConsumeKafka",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_1_0",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_0",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_1_0",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_0",
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6",
+    "org.apache.nifi.jms.processors.ConsumeJMS",
+    "org.apache.nifi.amqp.processors.ConsumeAMQP",
+    "org.apache.nifi.processors.mqtt.ConsumeMQTT",
+    "org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub",
+    "org.apache.nifi.processors.azure.eventhub.GetAzureEventHub",
+    "org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream",
+    "org.apache.nifi.processors.aws.kinesis.ConsumeKinesis",
+    "org.apache.nifi.processors.box.ConsumeBoxEvents",
+    "org.apache.nifi.processors.twitter.ConsumeTwitter",
+})
+
+# The run schedule for HandleHttpRequest and for a listener that ZERO_PERIOD_SOURCES leaves out.
+# At a zero period such a listener polls its internal queue continually: on an idle qubership-nifi
+# container, HandleHttpRequest adds up to 10% idle CPU usage.
+LISTENER_PERIOD = "50 millis"
+
 # NiFi 1.x reports Expression Language support as a display label. In 1.x, ENVIRONMENT covers the
 # Variable Registry as well as environment variables and system properties.
 EL_SCOPE_1X = {
@@ -1480,35 +1517,45 @@ def cmd_validate(kb, args):
                     "because Scheduling Period is not a valid time duration\". Give a number "
                     "with a unit, such as '0 sec' or '100 millis'." % (period, period),
                 )
-            # Listeners and consumers run normally at a zero period. The catalog has no flag
-            # that identifies them, so the type name prefix does.
+            # The catalog has no flag for a source that belongs at a zero period, so a fixed
+            # list of types identifies them.
             if (definition.get("inputRequirement") == "INPUT_FORBIDDEN"
-                    and not simple_name(entry["type"]).startswith(("Listen", "Consume"))
+                    and entry["type"] not in ZERO_PERIOD_SOURCES
                     and processor.get("schedulingStrategy", "TIMER_DRIVEN") == "TIMER_DRIVEN"
                     and zero_period(processor.get("schedulingPeriod"))):
+                name = simple_name(entry["type"])
+                period = processor.get("schedulingPeriod")
                 default_period = (definition.get("defaultSchedulingPeriodBySchedulingStrategy")
                                   or {}).get("TIMER_DRIVEN")
-                # Some sources ship with a zero default of their own, so citing it as the
-                # remedy would recommend the very setting being complained about. A 1.x
-                # Knowledge Base holds only the framework default, which says nothing either way.
-                if definition.get("schedulingDefaultsFromFramework"):
-                    remedy = ("a 1.x Knowledge Base records no default of %s's own, so choose "
-                              "the period yourself" % simple_name(entry["type"]))
-                elif default_period and not zero_period(default_period):
-                    remedy = ("NiFi's own default for %s is %r"
-                              % (simple_name(entry["type"]), default_period))
+                if name == "HandleHttpRequest" or name.startswith("Listen"):
+                    report.warn(
+                        where,
+                        "source processor scheduled every %r. %s polls its internal queue on "
+                        "every run, so at a zero period it runs continually and costs idle CPU. "
+                        "Set the run schedule to %r; keep '0 sec' only when the user asks for "
+                        "the lowest latency." % (period, name, LISTENER_PERIOD),
+                    )
                 else:
-                    remedy = ("%s ships with a zero default of its own, so this one is a "
-                              "judgment call" % simple_name(entry["type"]))
-                report.warn(
-                    where,
-                    "source processor scheduled every %r. With no incoming connection there "
-                    "is nothing to throttle it, so the task is rescheduled the moment it "
-                    "returns and holds a thread spinning on empty polls. %s; 100 millis is a "
-                    "common floor for a source that must react quickly, and seconds are "
-                    "normal for a directory poll."
-                    % (processor.get("schedulingPeriod"), remedy),
-                )
+                    # Some sources ship with a zero default of their own, so citing it as the
+                    # remedy would recommend the very setting being complained about. A 1.x
+                    # Knowledge Base holds only the framework default, which says nothing
+                    # either way.
+                    if definition.get("schedulingDefaultsFromFramework"):
+                        remedy = ("a 1.x Knowledge Base records no default of %s's own, so "
+                                  "choose the period yourself" % name)
+                    elif default_period and not zero_period(default_period):
+                        remedy = "NiFi's own default for %s is %r" % (name, default_period)
+                    else:
+                        remedy = ("%s ships with a zero default of its own, so this one is a "
+                                  "judgment call" % name)
+                    report.warn(
+                        where,
+                        "source processor scheduled every %r. With no incoming connection there "
+                        "is nothing to throttle it, so the task is rescheduled the moment it "
+                        "returns and holds a thread spinning on empty polls. %s; 100 millis is "
+                        "a common floor for a source that must react quickly, and seconds are "
+                        "normal for a directory poll." % (period, remedy),
+                    )
             if definition.get("supportsBatching") and not processor.get("runDurationMillis"):
                 unbatched.append(processor.get("name") or simple_name(entry["type"]))
             if definition.get("primaryNodeOnly") and processor.get("executionNode") != "PRIMARY":

@@ -365,19 +365,28 @@ def test_event_driven_on_a_processor_that_is_not_event_driven_is_an_error(tmp_pa
            "supported. Available: TIMER_DRIVEN, CRON_DRIVEN." in out
 
 
-@pytest.mark.parametrize("type_name, warned", [
-    pytest.param("org.example.GetThing", True, id="a polling source"),
-    pytest.param("org.example.ListThing", True, id="a lister is still a polling source"),
-    pytest.param("org.example.ListenThing", False, id="a listener"),
-    pytest.param("org.example.ConsumeThing", False, id="a consumer"),
+@pytest.mark.parametrize("type_name, warned, listener_advice", [
+    pytest.param("org.apache.nifi.processors.standard.ListenHTTP", False, False,
+                 id="a listed listener"),
+    pytest.param("org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_2_6", False, False,
+                 id="a listed pubsub Kafka consumer"),
+    pytest.param("org.apache.nifi.processors.standard.HandleHttpRequest", True, True,
+                 id="HandleHttpRequest"),
+    pytest.param("org.apache.nifi.processors.standard.ListenTCP", True, True,
+                 id="a listener missing from the list"),
+    pytest.param("org.example.ConsumeThing", True, False,
+                 id="a consumer missing from the list"),
+    pytest.param("org.example.GetThing", True, False, id="a polling source"),
+    pytest.param("org.example.ListThing", True, False, id="a lister is still a polling source"),
 ])
-def test_a_zero_period_source_is_warned_about_unless_it_listens_or_consumes(
-        tmp_path, capsys, type_name, warned):
+def test_a_zero_period_source_is_warned_about_unless_it_is_a_listed_type(
+        tmp_path, capsys, type_name, warned, listener_advice):
     out = _validate(tmp_path, capsys, "1.28.1", {
         "identifier": "43c7acbe-5c5a-431e-980e-caf91e2ac6cf", "name": "P",
         "schedulingPeriod": "0 sec", "runDurationMillis": 25},
         type_name=type_name, input_requirement="INPUT_FORBIDDEN")
-    assert ("source processor scheduled every '0 sec'" in out) is warned
+    assert ("source processor scheduled every '0 sec'" in out) is warned, out
+    assert ("Set the run schedule to '50 millis'" in out) is listener_advice, out
 
 
 def _parent_and_child_flow(child_context):

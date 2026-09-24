@@ -164,7 +164,10 @@ reports `dynamic properties: yes`.
 Processor field notes in `references/flow-json.md`. Those notes cover the supported strategies,
 the period a source processor needs, and when to batch. `kb.py validate` reports an
 unsupported strategy or an invalid period as an error, and warns about a source scheduled
-every `0 sec` and about processors that could batch but do not.
+every `0 sec` and about processors that could batch but do not. Only the sources listed in
+those notes run at `0 sec`. `HandleHttpRequest` and any other listener get `50 millis`, which
+saves idle CPU at the cost of latency; use `0 sec` for them only when the user asks for the
+lowest latency.
 
 **Write every field the templates show, not just the ones that carry meaning.** NiFi's
 importer deserializes the file into Java objects and reads enums, integers and maps without
