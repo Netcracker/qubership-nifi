@@ -64,6 +64,8 @@ class DeveloperGuideExtractorTest {
             sb.append("### ").append(nested).append("\n\nWhat this type is for.\n\n");
         }
         sb.append("## Common Processor Patterns\n\nPatterns worth copying.\n\n");
+        sb.append("## NiFi Archives (NARs)\n\nHow extensions are packaged.\n\n");
+        sb.append("## Per-Instance ClassLoading\n\nWhen a component needs its own class loader.\n\n");
         sb.append("## Unrelated Section\n\nShould be excluded.\n\n");
         return sb.toString();
     }
