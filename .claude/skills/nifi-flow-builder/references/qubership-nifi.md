@@ -122,9 +122,9 @@ class XlsxRecordSetWriter implements RecordSetWriter {
                 return
             }
             def cell = row.createCell(i)
-            if (value instanceof BigDecimal) {
-                // A cell holds a double, which keeps about 15 significant digits, so exact
-                // values that may need more are written as text.
+            if (value instanceof BigDecimal && ((BigDecimal) value).precision() > 15) {
+                // A cell holds a double, which keeps about 15 significant digits, so a value
+                // with more is written as text to keep it exact.
                 cell.setCellValue(((BigDecimal) value).toPlainString())
             } else if (value instanceof BigInteger
                     || (value instanceof Long && ((Long) value > (1L << 53) || (Long) value < -(1L << 53)))) {

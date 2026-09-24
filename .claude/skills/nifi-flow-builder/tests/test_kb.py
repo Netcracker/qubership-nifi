@@ -316,6 +316,33 @@ def test_a_required_property_with_no_value_is_a_warning_only_when_sensitive(
     assert "required property 'Password'" in (report.warnings + report.errors)[0][1]
 
 
+def test_a_property_key_given_as_the_display_name_is_an_error():
+    definition = {"propertyDescriptors": {
+        "bootstrap.servers": {"name": "bootstrap.servers", "displayName": "Bootstrap Servers"}}}
+    report = kb.Report()
+    kb._check_properties(_OneDefinitionKb(definition), report, "where",
+                         {"properties": {"Bootstrap Servers": "k:9092"}}, {"type": "org.example.P"})
+    assert report.errors == [("where", "property key 'Bootstrap Servers' is the display name. "
+                                       "NiFi matches on the descriptor name - use "
+                                       "'bootstrap.servers'.")]
+
+
+@pytest.mark.parametrize("dynamic, errors", [
+    pytest.param(False, 1, id="no dynamic properties"),
+    pytest.param(True, 0, id="dynamic properties"),
+])
+def test_an_unknown_property_key_is_an_error_only_without_dynamic_properties(dynamic, errors):
+    definition = {"supportsDynamicProperties": dynamic,
+                  "propertyDescriptors": {"Batch Size": {"name": "Batch Size"}}}
+    report = kb.Report()
+    kb._check_properties(_OneDefinitionKb(definition), report, "where",
+                         {"properties": {"Batch Sise": "10"}}, {"type": "org.example.P"})
+    assert len(report.errors) == errors, report.errors
+    if errors:
+        assert "'Batch Sise' is not a property of P and the component takes no dynamic " \
+               "properties. Did you mean: Batch Size?" in report.errors[0][1]
+
+
 class _VersionOnlyKb:
     def __init__(self, version):
         self.nifi_version = version
@@ -559,6 +586,64 @@ def test_a_same_group_endpoint_without_a_group_id_is_valid(tmp_path, capsys):
     assert "groupId is missing" not in out, out
 
 
+REMOTE_ID = "0b6c1e57-3f0a-4d2e-9c1b-7a5e8f2d4c31"
+REMOTE_IN_ID = "a1e9d3c7-5b2f-4e8a-b6d0-3c7f9e1a2b45"
+REMOTE_OUT_ID = "6e2b8f4d-1c9a-4a7e-8d3b-5f0c2e9a7b16"
+
+
+def _remote_flow(to_remote=(REMOTE_IN_ID, REMOTE_ID), from_remote=(REMOTE_OUT_ID, REMOTE_ID)):
+    """Root: Source -> remote input port; remote output port -> Sink."""
+    remote = {"identifier": REMOTE_ID, "name": "Remote", "position": {"x": 0.0, "y": 400.0},
+              "targetUris": "https://remote:8443/nifi",
+              "inputPorts": [{"identifier": REMOTE_IN_ID, "name": "in_items",
+                              "remoteGroupId": REMOTE_ID, "componentType": "REMOTE_INPUT_PORT"}],
+              "outputPorts": [{"identifier": REMOTE_OUT_ID, "name": "out_items",
+                               "remoteGroupId": REMOTE_ID,
+                               "componentType": "REMOTE_OUTPUT_PORT"}]}
+    return {"flowContents": {"identifier": ROOT_ID, "name": "Root",
+                             "processors": [_processor(SOURCE_ID, "Source"),
+                                            _processor(SINK_ID, "Sink", 0.0, 900.0)],
+                             "remoteProcessGroups": [remote],
+                             "connections": [
+                                 _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), to_remote),
+                                 _connection(CONNECTION_IDS[1], from_remote, (SINK_ID, ROOT_ID)),
+                             ]}}
+
+
+def test_a_flow_through_the_ports_of_a_remote_process_group_is_valid(tmp_path, capsys):
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=_remote_flow())
+    assert "ERROR" not in out, out
+
+
+def test_sending_to_a_remote_output_port_is_an_error(tmp_path, capsys):
+    flow = _remote_flow(to_remote=(REMOTE_OUT_ID, REMOTE_ID))
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "the destination is REMOTE_OUTPUT_PORT of remote process group %s" % REMOTE_ID \
+        in out, out
+
+
+def test_receiving_from_a_remote_input_port_is_an_error(tmp_path, capsys):
+    flow = _remote_flow(from_remote=(REMOTE_IN_ID, REMOTE_ID))
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "the source is REMOTE_INPUT_PORT of remote process group %s" % REMOTE_ID in out, out
+
+
+def test_a_remote_port_endpoint_without_a_group_id_is_a_warning(tmp_path, capsys):
+    flow = _remote_flow()
+    del flow["flowContents"]["connections"][0]["destination"]["groupId"]
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow, normalize=False)
+    assert "WARN   flowContents.connections[unnamed]: destination.groupId is missing. The " \
+           "destination is a port of remote process group %s" % REMOTE_ID in out, out
+
+
+def test_a_remote_port_endpoint_whose_group_id_is_not_its_remote_group_is_an_error(
+        tmp_path, capsys):
+    flow = _remote_flow(to_remote=(REMOTE_IN_ID, ROOT_ID))
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
+    assert "destination.groupId is %s, but the destination is a port of remote process group %s" \
+        % (ROOT_ID, REMOTE_ID) in out, out
+
+
 def test_leaving_a_child_through_its_input_port_is_an_error(tmp_path, capsys):
     flow = _nested_flow(root_connections=[
         _connection(CONNECTION_IDS[0], (SOURCE_ID, ROOT_ID), (IN_PORT_ID, CHILD_ID)),
@@ -649,6 +734,24 @@ def test_a_service_is_visible_from_its_own_group_and_its_descendants(service_gro
         {service_id: {"name": "Pool A", "type": "org.example.PoolImpl"}}, {},
         ({CHILD_ID, ROOT_ID}, {service_id: (service_group, "flowContents.Other")}))
     assert len(report.errors) == errors, report.errors
+
+
+class _OtherApiKb(_PoolKb):
+    """Like _PoolKb, but every service implements org.example.Other instead of Pool."""
+
+    def lookup(self, kind, type_name):
+        return {"controllerServiceApis": ["org.example.Other"]}
+
+
+def test_a_service_that_does_not_implement_the_required_api_is_an_error():
+    report = kb.Report()
+    service_id = "38fbf344-04e2-4ec4-a8d1-6b97576ce68c"
+    kb._check_service_refs(
+        _OtherApiKb(), report, "where", {"properties": {"Pool": service_id}},
+        {"type": "org.example.P"},
+        {service_id: {"name": "Cache", "type": "org.example.CacheImpl"}}, {})
+    assert report.errors == [("where", "property 'Pool' requires Pool, but 'Cache' is a "
+                                       "CacheImpl, which does not implement it.")]
 
 
 # ---------------------------------------------------------------------------
@@ -945,27 +1048,171 @@ def test_el_in_the_pre_2_7_groovy_script_body_key_is_not_reported(tmp_path, caps
     assert "contains Expression Language" not in out, out
 
 
-def _router():
-    definition = _native_2x("org.example.Route", {})
+def _router(simple, relationships, controlling=None, default=None):
+    """A processor with dynamic relationships, and optionally the property that shapes them."""
+    descriptors = {}
+    if controlling:
+        descriptors[controlling] = {"name": controlling, "displayName": controlling,
+                                    "expressionLanguageScope": "NONE", "defaultValue": default}
+    definition = _native_2x("org.apache.nifi.processors.standard." + simple, descriptors)
     definition["definition"].update(
-        supportedRelationships=[{"name": "unmatched"}], supportsDynamicProperties=True,
-        supportsDynamicRelationships=True)
+        supportedRelationships=[{"name": name} for name in relationships],
+        supportsDynamicProperties=True, supportsDynamicRelationships=True)
     return definition
 
 
-@pytest.mark.parametrize("auto_terminated, connections, reported", [
-    pytest.param(["unmatched"], (), True, id="dynamic relationship unhandled"),
-    pytest.param(["unmatched", "big"], (), False, id="dynamic relationship auto-terminated"),
-    pytest.param(["unmatched"], (["big"],), False, id="dynamic relationship connected"),
-    pytest.param(["unmatched", "matched"], (), False,
-                 id="routing to matched makes the dynamic property a condition"),
+def _route_on_attribute():
+    return _router("RouteOnAttribute", ["unmatched"], "Routing Strategy", "Route to Property name")
+
+
+def _route_text():
+    return _router("RouteText", ["original", "unmatched"], "Routing Strategy",
+                   "Route to each matching Property Name")
+
+
+BY_PROPERTY_NAME = [
+    pytest.param(_route_on_attribute, {}, ["unmatched"], id="RouteOnAttribute by default"),
+    pytest.param(_route_on_attribute, {"Routing Strategy": "Route to Property name"},
+                 ["unmatched"], id="RouteOnAttribute to property name"),
+    pytest.param(_route_text, {"Routing Strategy": "Route to each matching Property Name"},
+                 ["original", "unmatched"], id="RouteText to each matching property name"),
+    pytest.param(lambda: _router("QueryRecord", ["original", "failure"]), {},
+                 ["original", "failure"], id="QueryRecord"),
+]
+
+TO_MATCHED = [
+    pytest.param(_route_on_attribute, "Route to 'matched' if all match", ["unmatched"],
+                 id="RouteOnAttribute if all match"),
+    pytest.param(_route_on_attribute, "Route to 'matched' if any matches", ["unmatched"],
+                 id="RouteOnAttribute if any matches"),
+    pytest.param(_route_text, "Route to 'matched' if line matches all conditions",
+                 ["original", "unmatched"], id="RouteText if all conditions match"),
+]
+
+
+@pytest.mark.parametrize("router, strategy, fixed", BY_PROPERTY_NAME)
+def test_a_relationship_named_after_a_dynamic_property_must_be_handled(
+        tmp_path, capsys, router, strategy, fixed):
+    out = _validate_2x(tmp_path, capsys, router(),
+                       {"properties": dict(strategy, big="${fileSize:gt(10)}"),
+                        "autoTerminatedRelationships": fixed})
+    assert "relationship 'big' is neither connected nor auto-terminated" in out, out
+
+
+@pytest.mark.parametrize("router, strategy, fixed", BY_PROPERTY_NAME)
+@pytest.mark.parametrize("auto_terminated, connections", [
+    pytest.param(["big"], (), id="auto-terminated"),
+    pytest.param([], (["big"],), id="connected"),
 ])
-def test_a_relationship_created_by_a_dynamic_property_must_be_handled(
-        tmp_path, capsys, auto_terminated, connections, reported):
-    out = _validate_2x(tmp_path, capsys, _router(),
-                       {"properties": {"big": "${fileSize:gt(10)}"},
-                        "autoTerminatedRelationships": auto_terminated}, connections)
-    assert ("relationship 'big' is neither connected nor auto-terminated" in out) is reported, out
+def test_a_handled_relationship_named_after_a_dynamic_property_is_clean(
+        tmp_path, capsys, router, strategy, fixed, auto_terminated, connections):
+    out = _validate_2x(tmp_path, capsys, router(),
+                       {"properties": dict(strategy, big="${fileSize:gt(10)}"),
+                        "autoTerminatedRelationships": fixed + auto_terminated}, connections)
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+@pytest.mark.parametrize("router, strategy, fixed", TO_MATCHED)
+def test_routing_to_matched_requires_matched_and_not_the_dynamic_property(
+        tmp_path, capsys, router, strategy, fixed):
+    out = _validate_2x(tmp_path, capsys, router(),
+                       {"properties": {"Routing Strategy": strategy, "big": "${fileSize:gt(10)}"},
+                        "autoTerminatedRelationships": fixed})
+    assert "relationship 'matched' is neither connected nor auto-terminated" in out, out
+    assert "'big'" not in out, out
+
+
+@pytest.mark.parametrize("router, strategy, fixed", TO_MATCHED)
+def test_routing_to_matched_with_matched_handled_is_clean(
+        tmp_path, capsys, router, strategy, fixed):
+    out = _validate_2x(tmp_path, capsys, router(),
+                       {"properties": {"Routing Strategy": strategy, "big": "${fileSize:gt(10)}"},
+                        "autoTerminatedRelationships": fixed + ["matched"]})
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+def test_routing_to_matched_has_no_relationship_named_after_a_dynamic_property(tmp_path, capsys):
+    out = _validate_2x(tmp_path, capsys, _route_on_attribute(),
+                       {"properties": {"Routing Strategy": "Route to 'matched' if all match",
+                                       "big": "${fileSize:gt(10)}"},
+                        "autoTerminatedRelationships": ["unmatched", "matched", "big"]})
+    assert "relationship 'big' does not exist on RouteOnAttribute" in out, out
+
+
+def _distribute_load():
+    return _router("DistributeLoad", ["1"], "Number of Relationships", "1")
+
+
+@pytest.mark.parametrize("weights", [
+    pytest.param({}, id="no weights"),
+    pytest.param({"3": "2"}, id="a weight for one relationship"),
+])
+def test_distribute_load_has_one_relationship_per_number(tmp_path, capsys, weights):
+    out = _validate_2x(tmp_path, capsys, _distribute_load(),
+                       {"properties": dict(weights, **{"Number of Relationships": "5"}),
+                        "autoTerminatedRelationships": ["1"]})
+    for number in ("2", "3", "4", "5"):
+        assert ("relationship '%s' is neither connected nor auto-terminated" % number) in out, out
+
+
+def test_a_distribute_load_weight_creates_no_relationship(tmp_path, capsys):
+    out = _validate_2x(tmp_path, capsys, _distribute_load(),
+                       {"properties": {"Number of Relationships": "2", "7": "3"},
+                        "autoTerminatedRelationships": ["1", "2"]})
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+def test_distribute_load_with_every_relationship_handled_is_clean(tmp_path, capsys):
+    out = _validate_2x(tmp_path, capsys, _distribute_load(),
+                       {"properties": {"Number of Relationships": "5", "3": "2"},
+                        "autoTerminatedRelationships": ["1", "2", "3", "4", "5"]})
+    assert "0 error(s), 0 warning(s)" in out, out
+
+
+@pytest.mark.parametrize("router, processor, names", [
+    pytest.param(lambda: _router("RouteSomehow", ["unmatched"]),
+                 {"properties": {"big": "${fileSize:gt(10)}"},
+                  "autoTerminatedRelationships": ["unmatched", "matched"]},
+                 "big, matched", id="a processor the check does not know"),
+    pytest.param(_route_on_attribute,
+                 {"properties": {"Routing Strategy": "#{choice}", "big": "${fileSize:gt(10)}"},
+                  "autoTerminatedRelationships": ["unmatched", "matched"]},
+                 "big, matched", id="a routing strategy from a parameter"),
+    pytest.param(_distribute_load,
+                 {"properties": {"Number of Relationships": "#{choice}"},
+                  "autoTerminatedRelationships": ["1", "2"]},
+                 "2", id="a relationship count from a parameter"),
+])
+def test_an_unprovable_relationship_set_is_one_warning(tmp_path, capsys, router, processor,
+                                                       names):
+    out = _validate_2x(tmp_path, capsys, router(), processor,
+                       parameters=[{"name": "choice", "value": "2"}])
+    assert "0 error(s), 1 warning(s)" in out, out
+    assert "cannot work out which ones from its configuration. These names may not match " \
+           "them: %s." % names in out, out
+
+
+def _static_router(type_description=""):
+    definition = _native_2x("org.example.P", {})
+    definition["definition"].update(supportedRelationships=[{"name": "success"}],
+                                    typeDescription=type_description)
+    return definition
+
+
+def test_a_relationship_the_processor_does_not_have_is_an_error(tmp_path, capsys):
+    out = _validate_2x(tmp_path, capsys, _static_router(),
+                       {"autoTerminatedRelationships": ["success", "bogus"]})
+    assert "relationship 'bogus' does not exist on P. Available: success." in out, out
+
+
+def test_a_relationship_named_only_in_the_documentation_is_a_warning(tmp_path, capsys):
+    definition = _static_router("Sends a record it cannot parse to the 'parse failure' "
+                                "relationship.")
+    out = _validate_2x(tmp_path, capsys, definition,
+                       {"autoTerminatedRelationships": ["success", "parse failure"]})
+    assert "0 error(s), 1 warning(s)" in out, out
+    assert "relationship 'parse failure' is not in the catalog for P, but the documentation " \
+           "names it." in out, out
 
 
 def test_a_relationship_auto_terminated_and_connected_is_a_warning(tmp_path, capsys):
@@ -1043,6 +1290,18 @@ def test_normalize_names_the_group_of_each_connection_endpoint(tmp_path):
         "root", "child")
 
 
+def test_normalize_names_the_remote_process_group_of_a_remote_port_endpoint(tmp_path):
+    group = {"identifier": "root",
+             "processors": [{"identifier": "p", "type": "org.example.P"}],
+             "remoteProcessGroups": [{"identifier": "remote",
+                                      "inputPorts": [{"identifier": "remote-in"}]}],
+             "connections": [{"identifier": "c", "source": {"id": "p", "type": "PROCESSOR"},
+                              "destination": {"id": "remote-in",
+                                              "type": "REMOTE_INPUT_PORT"}}]}
+    kb.normalize_group(_one_processor_kb(tmp_path), group)
+    assert group["connections"][0]["destination"]["groupId"] == "remote"
+
+
 def test_normalize_spaces_new_components_on_the_skill_grid(tmp_path):
     group = {"identifier": "g",
              "processors": [{"identifier": "p1", "type": "org.example.P"},
@@ -1056,6 +1315,19 @@ def test_normalize_spaces_new_components_on_the_skill_grid(tmp_path):
         ("p1", {"x": 0.0, "y": 0.0}), ("p2", {"x": 0.0, "y": 300.0}),
         ("i1", {"x": 0.0, "y": -300.0}), ("i2", {"x": 640.0, "y": -300.0}),
         ("o1", {"x": 0.0, "y": 600.0})]
+
+
+def test_normalize_places_a_new_processor_below_an_exported_layout(tmp_path):
+    group = {"identifier": "g",
+             "processors": [{"identifier": "old", "type": "org.example.P",
+                             "position": {"x": 400.0, "y": 800.0}},
+                            {"identifier": "new", "type": "org.example.P"}],
+             "funnels": [{"identifier": "f", "position": {"x": 0.0, "y": 1000.0}}],
+             "outputPorts": [{"identifier": "o"}]}
+    kb.normalize_group(_one_processor_kb(tmp_path), group)
+    assert group["processors"][1]["position"] == {"x": 0.0, "y": 1300.0}
+    assert group["outputPorts"][0]["position"] == {"x": 0.0, "y": 1600.0}
+    assert _layout_warnings(group) == []
 
 
 def test_normalize_writes_non_ascii_text_unescaped(tmp_path):
@@ -1073,3 +1345,52 @@ def test_normalize_reports_a_file_that_is_not_json(tmp_path):
     with pytest.raises(kb.KbError, match="is not valid JSON"):
         kb.cmd_normalize(_one_processor_kb(tmp_path),
                          argparse.Namespace(flow=str(path), output=None))
+
+
+# ---------------------------------------------------------------------------
+# Flow-wide checks: bundle versions and identifiers
+# ---------------------------------------------------------------------------
+
+def _validate_processors(tmp_path, capsys, processors, bundle_version="2.10.0"):
+    knowledge_base = kb.Kb(_write_kb(tmp_path / "kb", "2.10.0", [
+        ("PROCESSOR", "org.example.P", _native_2x("org.example.P", {}))]))
+    flow = _flow([dict({"type": "org.example.P", "runDurationMillis": 25}, **processor)
+                  for processor in processors], version=bundle_version)
+    kb.normalize_group(knowledge_base, flow["flowContents"])
+    path = tmp_path / "flow.json"
+    path.write_text(json.dumps(flow), encoding="utf-8")
+    capsys.readouterr()
+    kb.cmd_validate(knowledge_base, argparse.Namespace(flow=str(path)))
+    return capsys.readouterr().out
+
+
+def _numbered(count):
+    return [{"identifier": "c%d000000-0000-4000-8000-000000000000" % n, "name": "P%d" % n}
+            for n in range(count)]
+
+
+def test_three_bundle_version_mismatches_are_reported_one_by_one(tmp_path, capsys):
+    out = _validate_processors(tmp_path, capsys, _numbered(3), bundle_version="2.9.0")
+    assert out.count("bundle version is 2.9.0 but this Knowledge Base has 2.10.0.") == 3, out
+    assert "components declare bundle version(s)" not in out, out
+
+
+def test_four_bundle_version_mismatches_collapse_into_one_error(tmp_path, capsys):
+    out = _validate_processors(tmp_path, capsys, _numbered(4), bundle_version="2.9.0")
+    assert "4 components declare bundle version(s) 2.9.0, but this Knowledge Base describes " \
+           "NiFi 2.10.0." in out, out
+    assert "bundle version is 2.9.0" not in out, out
+
+
+def test_a_placeholder_identifier_is_a_warning(tmp_path, capsys):
+    out = _validate_processors(tmp_path, capsys, [
+        {"identifier": "00000000-0000-0000-0000-000000000001", "name": "P"}])
+    assert "identifier of 'P' is a constructed placeholder" in out, out
+
+
+def test_an_identifier_used_twice_is_an_error(tmp_path, capsys):
+    identifier = "c0000000-0000-4000-8000-000000000000"
+    out = _validate_processors(tmp_path, capsys, [
+        {"identifier": identifier, "name": "First", "position": {"x": 0.0, "y": 0.0}},
+        {"identifier": identifier, "name": "Second", "position": {"x": 0.0, "y": 300.0}}])
+    assert "identifier %s is used by both 'First' and 'Second'." % identifier in out, out

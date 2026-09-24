@@ -49,9 +49,9 @@ set (Claude Code sets it; other agents do not), otherwise the Git repository tha
 the current directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
 kept elsewhere needs `--kb` or `NIFI_KB_PATH`. It prints the path, the NiFi version, the
 definition format, the component counts, and the platform: `qubership-nifi` when the KB has
-`org.qubership.nifi` bundles, otherwise `Apache NiFi`. A KB built from NiFi 1.x (`normalized-nifi-1x`)
-answers every command below the same way as one built from 2.x (`native-nifi-2x`); where the
-two versions differ, this document says so.
+`org.qubership.nifi` bundles, otherwise `Apache NiFi`. Every command below works the same way
+with a KB built from NiFi 1.x (`normalized-nifi-1x`) and with one built from 2.x
+(`native-nifi-2x`); where the two versions differ, this document says so.
 
 Report the NiFi version to the user before you build anything. Everything downstream is
 correct only for that version, so the user needs to know which one you used.
@@ -105,9 +105,10 @@ For Expression Language and RecordPath syntax, read `guides/expression-language-
 `guides/record-path-guide.md` under the KB root. Grep them for the function you need rather
 than reading them in full.
 
-`kb.py services` answers the question that is easiest to get wrong by reasoning. A property
-that takes a controller service declares the API it requires, and each service declares the
-APIs it implements, so the set of valid choices is a lookup. A `JsonRecordSetWriter` in a
+Use `kb.py services` to choose a controller service, because that choice is the easiest to
+get wrong by reasoning. A property that takes a controller service declares the API it
+requires, and each service declares the APIs it implements, so the set of valid choices is a
+lookup. A `JsonRecordSetWriter` in a
 `Record Reader` slot is a type error, not a matter of judgment.
 
 ## 4. Write the flow JSON
@@ -337,7 +338,9 @@ to keep.
 `validate` checks types, bundles, property keys, allowable values, EL scope, dependent and
 required properties, controller service API compatibility, relationship handling, input
 requirements, scheduling strategies, parameter context binding, duplicate identifiers,
-connection endpoints, and the fields the importer needs. For child groups it also checks that
+connection endpoints, and the fields the importer needs. A connection to a remote process
+group sends to one of its remote input ports or receives from one of its remote output ports,
+with `groupId` set to the remote process group's identifier. For child groups it also checks that
 each connection stays in its group or reaches a port of a direct child, that port names are
 unique and prefixed, that every port is connected on both sides, and that each service
 reference points to the component's own group or an ancestor. On the canvas of each group, it
@@ -347,13 +350,20 @@ no bends. It exits non-zero on any error.
 
 Run them, fix what is reported, and run again until clean. Then say so and quote the counts.
 
-Warnings deserve a decision rather than a reflex. Three are worth reading closely:
+Warnings deserve a decision rather than a reflex. Four are worth reading closely:
 
 - A relationship the documentation names but the catalog does not declare. Some processors
   build their relationship set from property values - `ConsumeKafka` adds `parse failure` when
   `Processing Strategy` is `RECORD` - and the published definition lists only the static set.
   NiFi will refuse to start the processor with that relationship unhandled, so treat this as
   probably real.
+- A processor whose relationships `validate` cannot work out from its configuration. It reads
+  `Routing Strategy` of `RouteOnAttribute` and `RouteText` (one relationship per dynamic
+  property, or `matched`), `Number of Relationships` of `DistributeLoad` (`1` to that number),
+  and the dynamic properties of `QueryRecord`, `RouteOnContent`, and `RouteHL7`. For any other
+  processor with dynamic relationships, or when one of those properties holds a parameter
+  reference or Expression Language, it lists the names that may not match and leaves the
+  answer to `verify_live.py`.
 - A sensitive property holding a literal value rather than a `#{...}` parameter reference, or
   an external service whose type cannot be checked. Either may be what the user wants.
 - A required sensitive property with no value. NiFi leaves sensitive values out of a
@@ -376,10 +386,17 @@ The two targets check different things, and either may be given on its own. The 
 command works against NiFi 1.x and 2.x, except in cookie mode, which supports NiFi 2.x only.
 
 `--nifi-url` imports the flow into a temporary process group, reads back the validation state
-of every processor, controller service, and port in it and in its child groups, and deletes
-the group again. This is the check that knows what a component
-is: a wrong property key, an unhandled relationship, a service reference that does not
-resolve.
+of every processor, controller service, port, and remote process group in it and in its child
+groups, and deletes the group again. It is the only check that runs NiFi's own component
+validation, so it catches a wrong property key, an unhandled relationship, and a service
+reference that does not resolve.
+
+A parameter context whose name already exists on the instance is reused, as a normal import
+reuses it. Every other context the flow declares is created under a name with the temporary
+group's name appended, for example `ctx (kb-verify-20260925-101500-1a2b3c4d)`, and is deleted
+with the group. A context another user creates under the flow's own name during the run is
+therefore never touched. NiFi creates the group and the contexts before it rejects an import,
+so a rejected import is cleaned up too. With `--keep`, the group and the contexts stay.
 
 `--registry-url` stores the flow as version 1 of a temporary versioned flow, then removes it
 along with the bucket it created. The Registry never loads the NARs, so it says nothing about

@@ -1043,22 +1043,61 @@ def _check_service_refs(kb, report, where, component, entry, services, external,
             )
 
 
-def _dynamic_relationships(definition, component):
-    """Whether this processor mints relationships from dynamic properties, and which ones.
+# Processors whose every dynamic property becomes a relationship of the same name.
+PER_PROPERTY_RELATIONSHIPS = {"QueryRecord", "RouteHL7", "RouteOnContent"}
+# Processors whose 'Routing Strategy' decides between one relationship per dynamic property
+# and a single 'matched' relationship, for which the dynamic properties are conditions.
+ROUTING_STRATEGY_RELATIONSHIPS = {"RouteOnAttribute", "RouteText"}
 
-    RouteOnAttribute is the familiar case: every user-defined property becomes a
-    relationship of the same name, so the catalog lists only 'unmatched' and the flow
-    itself declares the rest. Without this, routing a flow through RouteOnAttribute always
-    looks like a reference to a relationship that does not exist.
+
+def _configured(definition, component, label):
+    """The value NiFi sees for the property whose name or display name is `label`."""
+    descriptors = definition.get("propertyDescriptors") or {}
+    for key, descriptor in descriptors.items():
+        if label in (key, descriptor.get("name"), descriptor.get("displayName")):
+            return _effective(descriptors, component.get("properties") or {}, key)
+    return None
+
+
+def _dynamic_relationships(definition, component):
+    """The relationships this processor creates at run time, and whether the set is certain.
+
+    Returns (None, set()) for a processor without dynamic relationships. Otherwise returns
+    ("exact", names) when the configuration fixes the set, or ("unproven", names) with a
+    best guess when it does not: the processor is not one this function knows, or a
+    controlling property holds an expression or a parameter reference.
+
+    The catalog lists only the relationships a processor always has, so without this set a
+    flow routed through RouteOnAttribute always looks like a reference to a relationship
+    that does not exist.
     """
     supported = (definition.get("supportsDynamicRelationships")
                  or definition.get("supportsDynamicRelationship") or False)
     if not supported:
-        return False, set()
+        return None, set()
     declared = {d.get("name") for d in (definition.get("propertyDescriptors") or {}).values()}
     declared |= set(definition.get("propertyDescriptors") or {})
     dynamic = {key for key in (component.get("properties") or {}) if key not in declared}
-    return True, dynamic
+    kind = simple_name(definition.get("type") or component.get("type") or "")
+    if kind in PER_PROPERTY_RELATIONSHIPS:
+        return "exact", dynamic
+    if kind in ROUTING_STRATEGY_RELATIONSHIPS:
+        strategy = _configured(definition, component, "Routing Strategy")
+        if not _is_literal(strategy):
+            return "unproven", dynamic
+        # 'Route to Property name' and 'Route to each matching Property Name' create one
+        # relationship per dynamic property. Every other strategy routes to 'matched'.
+        if "property name" in strategy.lower():
+            return "exact", dynamic
+        return "exact", {"matched"}
+    if kind == "DistributeLoad":
+        # The relationships are named 1 to 'Number of Relationships'. A dynamic property
+        # named after one of them sets its weight and creates nothing.
+        count = _configured(definition, component, "Number of Relationships")
+        if _is_literal(count) and count.strip().isdigit():
+            return "exact", {str(number) for number in range(1, int(count) + 1)}
+        return "unproven", {"1"} | dynamic
+    return "unproven", dynamic
 
 
 def _relationship_key(name):
@@ -1236,12 +1275,43 @@ def _check_port_names(report, group_path, group):
                 )
 
 
+def _check_remote_endpoint(report, where, role, endpoint, kind, remote_group):
+    """A remote input port receives FlowFiles, and a remote output port emits them."""
+    declared = endpoint.get("groupId")
+    if not declared:
+        report.warn(
+            where,
+            "%s.groupId is missing. The %s is a port of remote process group %s, and NiFi "
+            "exports name that group here. `kb.py normalize` fills it in."
+            % (role, role, remote_group),
+        )
+    elif declared != remote_group:
+        report.error(
+            where,
+            "%s.groupId is %s, but the %s is a port of remote process group %s. Set groupId "
+            "to the identifier of the remote process group." % (role, declared, role, remote_group),
+        )
+    expected = "REMOTE_INPUT_PORT" if role == "destination" else "REMOTE_OUTPUT_PORT"
+    if kind != expected:
+        report.error(
+            where,
+            "the %s is %s of remote process group %s. A connection sends FlowFiles to a "
+            "remote input port and receives them from a remote output port."
+            % (role, kind, remote_group),
+        )
+
+
 def _check_endpoint_scope(report, where, role, endpoint, group_id, group_of, parent_of,
-                          group_paths, port_kinds):
-    """A connection joins components of its own group, or a port of a direct child group."""
+                          group_paths, port_kinds, remote_owner):
+    """A connection joins components of its own group, a port of a direct child group, or a
+    port of a remote process group in its own group."""
     component_id = endpoint["id"]
     owner = group_of.get(component_id)
     declared = endpoint.get("groupId")
+    if component_id in remote_owner and owner == group_id:
+        _check_remote_endpoint(report, where, role, endpoint, port_kinds[component_id],
+                               remote_owner[component_id])
+        return
     if declared and declared != owner:
         report.error(
             where,
@@ -1375,6 +1445,9 @@ def cmd_validate(kb, args):
     parent_of = {}
     group_paths = {}
     port_kinds = {}
+    # The remote process group that holds each remote port. A connection endpoint names the
+    # port, and its groupId names the remote process group.
+    remote_owner = {}
     service_groups = {}
 
     for group_path, group in walk_groups(root):
@@ -1385,6 +1458,14 @@ def cmd_validate(kb, args):
         for kind, collection in (("INPUT_PORT", "inputPorts"), ("OUTPUT_PORT", "outputPorts")):
             for port in group.get(collection) or []:
                 port_kinds[port.get("identifier")] = kind
+        remote_ports = []
+        for remote in group.get("remoteProcessGroups") or []:
+            for kind, collection in (("REMOTE_INPUT_PORT", "inputPorts"),
+                                     ("REMOTE_OUTPUT_PORT", "outputPorts")):
+                for port in remote.get(collection) or []:
+                    port_kinds[port.get("identifier")] = kind
+                    remote_owner[port.get("identifier")] = remote.get("identifier")
+                    remote_ports.append(port)
         _check_group_size(report, group_path, group)
         _check_port_names(report, group_path, group)
         _check_layout(report, group_path, group)
@@ -1415,17 +1496,19 @@ def cmd_validate(kb, args):
             "processGroups",
             "remoteProcessGroups",
             "connections",
+            None,
         ):
-            for item in group.get(collection) or []:
+            items = remote_ports if collection is None else group.get(collection) or []
+            for item in items:
                 identifier = item.get("identifier")
                 if identifier in identifiers:
                     report.error(
                         group_path,
                         "identifier %s is used by both '%s' and '%s'. Identifiers must be "
                         "unique across the flow."
-                        % (identifier, identifiers[identifier], item.get("name", collection)),
+                        % (identifier, identifiers[identifier], item.get("name", collection or "remote port")),
                     )
-                identifiers[identifier] = item.get("name", collection)
+                identifiers[identifier] = item.get("name", collection or "remote port")
                 group_of[identifier] = group_id
                 problem = identifier_problem(identifier)
                 if problem:
@@ -1435,7 +1518,7 @@ def cmd_validate(kb, args):
                         "component and keeps the identifier you write through import and "
                         "re-export, so this becomes the component's permanent portable id. "
                         "Generate one per component with `kb.py ids`."
-                        % (item.get("name", collection), problem, identifier),
+                        % (item.get("name", collection or "remote port"), problem, identifier),
                     )
         for connection in group.get("connections") or []:
             connections.append((group_path, group_id, connection))
@@ -1484,23 +1567,18 @@ def cmd_validate(kb, args):
             supported = {r["name"] for r in definition.get("supportedRelationships", [])}
             auto = set(processor.get("autoTerminatedRelationships") or [])
             connected = outgoing.get(processor.get("identifier"), set())
-            dynamic_relationships, dynamic_properties = _dynamic_relationships(
-                definition, processor)
+            certainty, dynamic = _dynamic_relationships(definition, processor)
+            handled = auto | connected
+            # A guessed relationship set cannot make a flow wrong, so what does not match it
+            # is collected into one warning instead of an error per name.
+            unproven = set()
 
             prose_relationships = _prose_relationships(kb, entry, definition)
-            for unknown in sorted((auto | connected) - supported):
-                if unknown in dynamic_properties:
-                    # RouteOnAttribute and its kind create one relationship per dynamic
-                    # property, so this name is declared by the flow itself.
+            for unknown in sorted(handled - supported):
+                if unknown in dynamic:
                     continue
-                if dynamic_relationships:
-                    report.warn(
-                        where,
-                        "relationship '%s' is not in the catalog, and no dynamic property "
-                        "of this processor carries that name either. %s does build "
-                        "relationships from its dynamic properties, so check the two agree."
-                        % (unknown, simple_name(entry["type"])),
-                    )
+                if certainty == "unproven":
+                    unproven.add(unknown)
                     continue
                 if _relationship_key(unknown) in prose_relationships:
                     # The catalog lists only the relationships a processor declares
@@ -1517,15 +1595,23 @@ def cmd_validate(kb, args):
                 report.error(
                     where,
                     "relationship '%s' does not exist on %s. Available: %s."
-                    % (unknown, simple_name(entry["type"]), ", ".join(sorted(supported)) or "none"),
+                    % (unknown, simple_name(entry["type"]),
+                       ", ".join(sorted(supported | dynamic)) or "none"),
                 )
-            # RouteOnAttribute and RouteText create a relationship per dynamic property only
-            # when they route to property names. Their other strategies route to 'matched',
-            # which the catalog does not list, and then the dynamic properties are conditions.
-            per_property = dynamic_relationships and not (
-                (auto | connected) - supported - dynamic_properties)
-            required = supported | (dynamic_properties if per_property else set())
-            for dangling in sorted(required - auto - connected):
+            if certainty == "unproven":
+                unproven |= dynamic - handled
+                required = supported
+            else:
+                required = supported | dynamic
+            if unproven:
+                report.warn(
+                    where,
+                    "%s creates relationships at run time, and this script cannot work out "
+                    "which ones from its configuration. These names may not match them: %s. "
+                    "verify_live.py reports an unhandled one."
+                    % (simple_name(entry["type"]), ", ".join(sorted(unproven))),
+                )
+            for dangling in sorted(required - handled):
                 report.error(
                     where,
                     "relationship '%s' is neither connected nor auto-terminated. NiFi refuses "
@@ -1642,7 +1728,7 @@ def cmd_validate(kb, args):
                 continue
             if endpoint["id"] in identifiers:
                 _check_endpoint_scope(report, where, role, endpoint, group_id, group_of,
-                                      parent_of, group_paths, port_kinds)
+                                      parent_of, group_paths, port_kinds, remote_owner)
                 continue
             # A child group under version control is exported as a reference, not inlined,
             # so its ports are absent from this file by design. A connection into one is
@@ -1718,7 +1804,7 @@ def descriptor_stub(kb, entry, key):
     return stub
 
 
-def normalize_processor(kb, processor, index):
+def normalize_processor(kb, processor):
     entry = kb.lookup("PROCESSOR", processor.get("type", ""))
     definition = kb.definition(entry)["definition"] if entry else {}
     strategy = processor.setdefault(
@@ -1726,7 +1812,6 @@ def normalize_processor(kb, processor, index):
     periods = definition.get("defaultSchedulingPeriodBySchedulingStrategy") or {}
     tasks = definition.get("defaultConcurrentTasksBySchedulingStrategy") or {}
 
-    processor.setdefault("position", {"x": 0.0, "y": float(index * GRID_ROW)})
     processor.setdefault("comments", "")
     processor.setdefault("style", {})
     processor.setdefault("schedulingPeriod", periods.get(strategy, "0 sec"))
@@ -1818,19 +1903,30 @@ def normalize_group(kb, group):
                        "outputPorts", "connections", "labels", "funnels", "controllerServices"):
         group.setdefault(collection, [])
 
-    for index, processor in enumerate(group["processors"]):
+    # A new processor goes on the next row below everything already on the canvas, so one
+    # added to an exported flow does not land on top of the existing layout.
+    placed = [component["position"].get("y", 0.0)
+              for collection in ("processors", "inputPorts", "outputPorts", "funnels", "labels",
+                                 "processGroups", "remoteProcessGroups")
+              for component in group[collection]
+              if isinstance(component.get("position"), dict)]
+    row = max(placed) + GRID_ROW if placed else 0.0
+    for processor in group["processors"]:
         processor.setdefault("groupIdentifier", group.get("identifier"))
-        normalize_processor(kb, processor, index)
+        if "position" not in processor:
+            processor["position"] = {"x": 0.0, "y": float(row)}
+            row += GRID_ROW
+        normalize_processor(kb, processor)
     for index, service in enumerate(group["controllerServices"]):
         service.setdefault("groupIdentifier", group.get("identifier"))
         normalize_service(kb, service, index)
-    # An endpoint is a component of this group or a port of a direct child group, and NiFi
-    # exports name the group that holds it.
+    # An endpoint is a component of this group, a port of a direct child group, or a port of
+    # a remote process group, and NiFi exports name the group that holds it.
     owners = {}
-    for collection in ("processors", "inputPorts", "outputPorts", "funnels", "remoteProcessGroups"):
+    for collection in ("processors", "inputPorts", "outputPorts", "funnels"):
         for component in group[collection]:
             owners[component.get("identifier")] = group.get("identifier")
-    for child in group["processGroups"]:
+    for child in group["processGroups"] + group["remoteProcessGroups"]:
         for port in (child.get("inputPorts") or []) + (child.get("outputPorts") or []):
             owners[port.get("identifier")] = child.get("identifier")
     for connection in group["connections"]:
@@ -1842,7 +1938,7 @@ def normalize_group(kb, group):
                 endpoint.setdefault("groupId", owners[endpoint["id"]])
     # Default positions follow the layout in SKILL.md: input ports on a row above the
     # processor column, output ports on a row below it.
-    bottom = max(len(group["processors"]), 1) * GRID_ROW
+    bottom = max([p["position"].get("y", 0.0) for p in group["processors"]] + [0.0]) + GRID_ROW
     for port_collection, kind, row in (("inputPorts", "INPUT_PORT", -GRID_ROW),
                                        ("outputPorts", "OUTPUT_PORT", bottom)):
         for index, port in enumerate(group[port_collection]):

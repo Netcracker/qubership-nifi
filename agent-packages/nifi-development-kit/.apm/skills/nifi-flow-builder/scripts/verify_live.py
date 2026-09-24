@@ -66,46 +66,60 @@ class LiveError(Exception):
 
 
 def unpack_pkcs12(path, password, workdir):
-    """Split a PKCS#12 file into the PEM cert and key files an SSLContext needs."""
+    """Split a PKCS#12 file into the PEM cert and key files an SSLContext needs.
+
+    The certificate file holds the client certificate first and then the CA chain from the
+    PKCS#12 file, so a certificate issued by an intermediate CA completes the handshake.
+    """
     cert_pem = workdir / "client-cert.pem"
     key_pem = workdir / "client-key.pem"
     try:
         from cryptography.hazmat.primitives.serialization import (
             Encoding, NoEncryption, PrivateFormat, pkcs12,
         )
-        secret = password.encode() if isinstance(password, str) else password
-        key, cert, chain = pkcs12.load_key_and_certificates(path.read_bytes(), secret)
-        if key is None or cert is None:
-            raise LiveError("%s has no private key entry with a certificate." % path)
-        body = cert.public_bytes(Encoding.PEM)
-        for extra in chain or []:
-            body += extra.public_bytes(Encoding.PEM)
-        cert_pem.write_bytes(body)
-        key_pem.write_bytes(key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()))
-        return cert_pem, key_pem
     except ImportError:
-        pass
+        return _unpack_pkcs12_with_openssl(path, password, cert_pem, key_pem)
 
+    secret = password.encode() if isinstance(password, str) else password
+    try:
+        key, cert, chain = pkcs12.load_key_and_certificates(path.read_bytes(), secret)
+    except (ValueError, OSError) as exc:
+        raise LiveError("Cannot read the PKCS#12 file %s: %s. Check the path and the password."
+                        % (path, exc))
+    if key is None or cert is None:
+        raise LiveError("%s has no private key entry with a certificate." % path)
+    body = cert.public_bytes(Encoding.PEM)
+    for extra in chain or []:
+        body += extra.public_bytes(Encoding.PEM)
+    cert_pem.write_bytes(body)
+    key_pem.write_bytes(key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()))
+    return cert_pem, key_pem
+
+
+def _unpack_pkcs12_with_openssl(path, password, cert_pem, key_pem):
     if shutil.which("openssl") is None:
         raise LiveError(
             "Reading a PKCS#12 file needs either the 'cryptography' package or the 'openssl' "
             "command. Install one, or use --auth token."
         )
     env = dict(os.environ, KBPW=password.decode() if isinstance(password, bytes) else password)
-    for args, target in (
-        (["-clcerts", "-nokeys"], cert_pem),
-        (["-nocerts", "-nodes"], key_pem),
-    ):
+    extracted = []
+    for args in (["-clcerts", "-nokeys"], ["-cacerts", "-nokeys"], ["-nocerts", "-nodes"]):
         command = ["openssl", "pkcs12", "-in", str(path), "-passin", "env:KBPW"] + args
         result = subprocess.run(command, capture_output=True, env=env)
         if result.returncode != 0:
             # OpenSSL 3 reads RC2 and 3DES, which keytool used before JDK 12, only with
-            # the legacy provider.
+            # the legacy provider. OpenSSL 1.1 has no -legacy option and rejects it, so the
+            # first error is the one that explains a wrong password or a damaged file.
+            first = result.stderr.decode(errors="replace").strip()
             result = subprocess.run(command + ["-legacy"], capture_output=True, env=env)
-        if result.returncode != 0:
-            raise LiveError("openssl could not read %s: %s"
-                            % (path, result.stderr.decode(errors="replace")[:200]))
-        target.write_bytes(result.stdout)
+            if result.returncode != 0:
+                raise LiveError(
+                    "openssl could not read %s: %s\nThe retry with -legacy also failed: %s"
+                    % (path, first[:200], result.stderr.decode(errors="replace").strip()[:200]))
+        extracted.append(result.stdout)
+    cert_pem.write_bytes(extracted[0] + extracted[1])
+    key_pem.write_bytes(extracted[2])
     return cert_pem, key_pem
 
 
@@ -359,19 +373,24 @@ def collect_components(client, group_id):
     services = client.get("/flow/process-groups/%s/controller-services" % group_id,
                           {"includeAncestorGroups": "false",
                            "includeDescendantGroups": "true"})["controllerServices"]
-    return processors, services, collect_ports(client, group_id)
+    ports, remote_groups = collect_ports(client, group_id)
+    return processors, services, ports, remote_groups
 
 
 def collect_ports(client, group_id):
-    """The input and output ports of a group and of every group below it.
+    """The ports and the remote process groups of a group and of every group below it.
 
-    NiFi has no descendant listing for ports, so this walks the groups one level at a time.
+    NiFi has no descendant listing for either, so this walks the groups one level at a time.
+    Returns (ports, remote process groups).
     """
     flow = client.get("/flow/process-groups/%s" % group_id)["processGroupFlow"]["flow"]
     ports = list(flow.get("inputPorts") or []) + list(flow.get("outputPorts") or [])
+    remote_groups = list(flow.get("remoteProcessGroups") or [])
     for child in flow.get("processGroups") or []:
-        ports += collect_ports(client, child["id"])
-    return ports
+        child_ports, child_remote_groups = collect_ports(client, child["id"])
+        ports += child_ports
+        remote_groups += child_remote_groups
+    return ports, remote_groups
 
 
 def error_signature(components):
@@ -389,26 +408,79 @@ def parameter_contexts(client):
     return {entry["component"]["name"]: entry for entry in listing}
 
 
-def drop_new_parameter_contexts(client, before, declared):
-    """Delete the parameter contexts the import created.
+def temporary_parameter_contexts(flow_bytes, existing, suffix):
+    """Rename the parameter contexts the import would create to names unique to this run.
+
+    NiFi reuses a parameter context whose name already exists on the instance and creates
+    the others. Giving each created context a name with `suffix` proves which contexts this
+    run owns, so cleanup cannot delete one another user creates under the same name while
+    the run is in progress. Contexts named in `existing` keep their names and are reused.
+    Returns the bytes to upload and the set of temporary names.
+    """
+    try:
+        doc = json.loads(flow_bytes)
+    except ValueError:
+        return flow_bytes, set()
+    contexts = (doc.get("parameterContexts") if isinstance(doc, dict) else None) or {}
+    if not isinstance(contexts, dict):
+        return flow_bytes, set()
+    renamed = {}
+    for key, context in contexts.items():
+        name = (context or {}).get("name") or key
+        if name not in existing:
+            renamed[name] = "%s (%s)" % (name, suffix)
+    if not renamed:
+        return flow_bytes, set()
+
+    rewritten = {}
+    for key, context in contexts.items():
+        context = dict(context or {})
+        name = context.get("name") or key
+        context["name"] = renamed.get(name, name)
+        if context.get("inheritedParameterContexts"):
+            context["inheritedParameterContexts"] = [
+                renamed.get(parent, parent) for parent in context["inheritedParameterContexts"]]
+        rewritten[renamed.get(key, key)] = context
+    doc["parameterContexts"] = rewritten
+    groups = [doc.get("flowContents")] if isinstance(doc.get("flowContents"), dict) else []
+    for group in groups:
+        groups.extend(group.get("processGroups") or [])
+        if group.get("parameterContextName") in renamed:
+            group["parameterContextName"] = renamed[group["parameterContextName"]]
+    return json.dumps(doc, ensure_ascii=False).encode("utf-8"), set(renamed.values())
+
+
+def drop_new_parameter_contexts(client, temporary):
+    """Delete the parameter contexts the import created under the names in `temporary`.
 
     Deleting the temporary process group does not remove them: contexts live on the
     instance, not inside the group, so a verify run would otherwise leave one behind
-    every time. Only a context the flow declares and that was absent beforehand is
-    touched. A context the flow shares with the target NiFi, which NiFi reuses by name
-    rather than recreating, survives, and so does one another user created during the run.
+    every time. NiFi refuses to delete a context that another context inherits, so each
+    pass deletes the contexts that no remaining one inherits.
     """
-    for name, entry in parameter_contexts(client).items():
-        if name in before or name not in declared:
-            continue
-        if entry["component"].get("boundProcessGroups"):
-            continue
-        code = client.delete("/parameter-contexts/%s" % entry["id"],
-                             {"version": entry["revision"]["version"],
-                              "clientId": str(uuid.uuid4())})
-        if code >= 300:
-            print("\nWARNING: could not delete parameter context '%s' (HTTP %d). Delete it by "
-                  "hand." % (name, code), file=sys.stderr)
+    remaining = {name: entry for name, entry in parameter_contexts(client).items()
+                 if name in temporary}
+    while remaining:
+        inherited = {reference.get("id") or (reference.get("component") or {}).get("id")
+                     for entry in remaining.values()
+                     for reference in entry["component"].get("inheritedParameterContexts") or []}
+        ready = [name for name, entry in remaining.items()
+                 if entry["id"] not in inherited
+                 and not entry["component"].get("boundProcessGroups")]
+        if not ready:
+            break
+        for name in ready:
+            entry = remaining.pop(name)
+            code = client.delete("/parameter-contexts/%s" % entry["id"],
+                                 {"version": entry["revision"]["version"],
+                                  "clientId": str(uuid.uuid4())})
+            if code >= 300:
+                print("\nWARNING: could not delete parameter context '%s' (HTTP %d). Delete it "
+                      "by hand." % (name, code), file=sys.stderr)
+    for name in sorted(remaining):
+        print("\nWARNING: parameter context '%s' is still bound to a process group or inherited "
+              "by another context, so it was left in place. Delete it by hand." % name,
+              file=sys.stderr)
 
 
 def verify(client, args, flow_bytes, flow_name):
@@ -421,10 +493,12 @@ def verify(client, args, flow_bytes, flow_name):
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     client_id = str(uuid.uuid4())
     group_name = "kb-verify-%s-%s" % (stamp, client_id[:8])
+    upload_bytes, temporary_contexts = temporary_parameter_contexts(
+        flow_bytes, contexts_before, group_name)
 
     status, payload = client.upload(
         "/process-groups/%s/process-groups/upload" % root,
-        group_name + ".json", flow_bytes,
+        group_name + ".json", upload_bytes,
         {"groupName": group_name, "positionX": "0", "positionY": "0",
          "clientId": client_id, "disconnectedNodeAcknowledged": "false"},
     )
@@ -440,6 +514,19 @@ def verify(client, args, flow_bytes, flow_name):
             print("maps directly, so an omitted field arrives as null and throws before any")
             print("validation runs. Run `kb.py normalize <flow.json>` to fill in the mandatory")
             print("fields with NiFi's own defaults, then try again.")
+        # NiFi creates the group and the parameter contexts before the step that fails, and
+        # a rejected upload does not return the group's id, so find the group by its name.
+        if not args.keep:
+            try:
+                children = client.get("/flow/process-groups/%s" % root)
+                children = children["processGroupFlow"]["flow"].get("processGroups") or []
+            except (LiveError, OSError) as exc:
+                print("\nWARNING: could not look for temporary group %s: %s. Delete it by hand "
+                      "if it exists." % (group_name, exc), file=sys.stderr)
+                children = []
+            for child in children:
+                if (child.get("component") or {}).get("name") == group_name:
+                    drop_temporary_group(client, child["id"], group_name, temporary_contexts)
         return 1
 
     group_id = json.loads(payload)["id"]
@@ -451,12 +538,13 @@ def verify(client, args, flow_bytes, flow_name):
         # or the same errors twice running.
         deadline = time.time() + args.timeout
         previous, repeats = None, 0
-        processors, services, ports = collect_components(client, group_id)
+        processors, services, ports, remote_groups = collect_components(client, group_id)
         while time.time() < deadline:
-            pending = [c for c in processors + services + ports
+            everything = processors + services + ports + remote_groups
+            pending = [c for c in everything
                        if c["component"].get("validationStatus") == "VALIDATING"]
             if not pending:
-                signature = error_signature(processors + services + ports)
+                signature = error_signature(everything)
                 if not signature:
                     break
                 # NiFi revalidates a component on its own schedule, so a stale complaint can
@@ -467,28 +555,35 @@ def verify(client, args, flow_bytes, flow_name):
                 if repeats >= SETTLE_REPEATS:
                     break
             time.sleep(SETTLE_INTERVAL)
-            processors, services, ports = collect_components(client, group_id)
+            processors, services, ports, remote_groups = collect_components(client, group_id)
 
-        return report(processors, services, group_name, flow_bytes, ports, args.timeout)
+        return report(processors, services, group_name, flow_bytes, ports, args.timeout,
+                      remote_groups)
     finally:
         if args.keep:
             print("\nLeft %s in place as requested (--keep)." % group_name)
         else:
-            # A failure here must not replace the result the run already computed.
-            try:
-                entity = client.get("/process-groups/%s" % group_id)
-                code = client.delete("/process-groups/%s" % group_id,
-                                     {"version": entity["revision"]["version"],
-                                      "clientId": str(uuid.uuid4())})
-                if code >= 300:
-                    print("\nWARNING: could not delete temporary group %s (HTTP %d). Delete it "
-                          "by hand." % (group_name, code), file=sys.stderr)
-                else:
-                    drop_new_parameter_contexts(client, contexts_before,
-                                                flow_parameter_context_names(flow_bytes))
-            except (LiveError, OSError) as exc:
-                print("\nWARNING: cleanup of %s failed: %s. Delete it by hand."
-                      % (group_name, exc), file=sys.stderr)
+            drop_temporary_group(client, group_id, group_name, temporary_contexts)
+
+
+def drop_temporary_group(client, group_id, group_name, temporary_contexts):
+    """Delete the temporary group, then the parameter contexts the import created.
+
+    A failure is printed as a warning, so it cannot replace the result the run computed.
+    """
+    try:
+        entity = client.get("/process-groups/%s" % group_id)
+        code = client.delete("/process-groups/%s" % group_id,
+                             {"version": entity["revision"]["version"],
+                              "clientId": str(uuid.uuid4())})
+        if code >= 300:
+            print("\nWARNING: could not delete temporary group %s (HTTP %d). Delete it "
+                  "by hand." % (group_name, code), file=sys.stderr)
+        else:
+            drop_new_parameter_contexts(client, temporary_contexts)
+    except (LiveError, OSError) as exc:
+        print("\nWARNING: cleanup of %s failed: %s. Delete it by hand."
+              % (group_name, exc), file=sys.stderr)
 
 
 def _property_key(name):
@@ -546,20 +641,11 @@ def flow_unique_names(flow_bytes):
     """Map name -> identifier for each component name that occurs once in the file."""
     seen = {}
     for group in _flow_groups(flow_bytes):
-        for collection in ("processors", "controllerServices", "inputPorts", "outputPorts"):
+        for collection in ("processors", "controllerServices", "inputPorts", "outputPorts",
+                           "remoteProcessGroups"):
             for component in group.get(collection) or []:
                 seen.setdefault(component.get("name"), []).append(component.get("identifier"))
     return {name: ids[0] for name, ids in seen.items() if len(ids) == 1}
-
-
-def flow_parameter_context_names(flow_bytes):
-    """The names of the parameter contexts the file declares."""
-    try:
-        doc = json.loads(flow_bytes)
-    except ValueError:
-        return set()
-    contexts = (doc.get("parameterContexts") if isinstance(doc, dict) else None) or {}
-    return {(context or {}).get("name") or key for key, context in contexts.items()}
 
 
 def flow_identifier(component, unique_names):
@@ -572,7 +658,8 @@ def flow_identifier(component, unique_names):
     return component.get("versionedComponentId") or unique_names.get(component.get("name"))
 
 
-def report(processors, services, group_name, flow_bytes, ports=(), timeout=None):
+def report(processors, services, group_name, flow_bytes, ports=(), timeout=None,
+           remote_groups=()):
     properties = flow_properties(flow_bytes)
     relationships = flow_relationships(flow_bytes)
     unique_names = flow_unique_names(flow_bytes)
@@ -580,6 +667,7 @@ def report(processors, services, group_name, flow_bytes, ports=(), timeout=None)
     labelled = [("controller service", e) for e in services] + [("processor", e) for e in processors]
     labelled += [("input port" if e["component"].get("type") == "INPUT_PORT" else "output port", e)
                  for e in ports]
+    labelled += [("remote process group", e) for e in remote_groups]
     for kind, entity in labelled:
         component = entity["component"]
         name = component.get("name", "?")
@@ -606,8 +694,8 @@ def report(processors, services, group_name, flow_bytes, ports=(), timeout=None)
                 real.append((kind, name, message))
 
     print("Imported as %s and read back from NiFi." % group_name)
-    print("%d processor(s), %d controller service(s), %d port(s)."
-          % (len(processors), len(services), len(ports)))
+    print("%d processor(s), %d controller service(s), %d port(s), %d remote process group(s)."
+          % (len(processors), len(services), len(ports), len(remote_groups)))
     print()
 
     for kind, name, message in real:
