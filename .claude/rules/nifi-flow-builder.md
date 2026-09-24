@@ -1,0 +1,10 @@
+---
+paths:
+  - "**/*.json"
+---
+
+## Skill trigger: `nifi-flow-builder`
+
+When creating, editing, reviewing, or debugging a NiFi flow definition (a flow JSON file, a versioned flow snapshot, or
+a process group export), or choosing a NiFi processor or controller service for a task, invoke the `nifi-flow-builder`
+skill.
