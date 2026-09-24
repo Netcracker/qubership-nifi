@@ -256,8 +256,9 @@ Field notes:
 ```
 
 A service is available to components in its own process group and every group beneath it.
-Define shared services on the root group. `scheduledState` is `ENABLED` or `DISABLED`; a
-service must be enabled before a component referencing it can start.
+Define a service that several child groups share on their common parent. `scheduledState`
+is `ENABLED` or `DISABLED`; a service must be enabled before a component referencing it can
+start.
 
 ## Connection
 
@@ -332,7 +333,7 @@ overlap it finds.
 {
   "identifier": "<uuid>",
   "instanceIdentifier": "<uuid>",
-  "name": "In",
+  "name": "in_accepted",
   "comments": "",
   "position": {"x": 0.0, "y": 0.0},
   "type": "INPUT_PORT",
@@ -350,7 +351,8 @@ Set `type` and `componentType` to `OUTPUT_PORT` for an output port. `portFunctio
 flow leaves it out.
 
 A connection into or out of a child process group names the child's port as its endpoint,
-with `groupId` set to the child group's identifier.
+with `groupId` set to the child group's identifier. Without that `groupId`, the upload fails
+with HTTP 500 on NiFi 1.28.1 and 2.10.0; `kb.py normalize` fills it in.
 
 Port names are unique within a group. Input port names start with `in_` and output port
 names with `out_`, as in `in_accepted` and `out_stored`.
@@ -531,8 +533,8 @@ Generate a random UUID for each one - `kb.py ids <count>` prints as many as you 
 mints a random UUID for every component it creates, so this is also what a real export
 looks like.
 
-Numbered placeholders such as `00000000-0000-0000-0000-000000000010` do import, which is
-why they are tempting, but they are not a convention local to the file. NiFi keeps an
+Numbered placeholders such as `00000000-0000-0000-0000-000000000010` do import, but they
+are not a convention local to the file. NiFi keeps an
 identifier you write when nothing else in the target uses it: it survives the import and
 comes back unchanged in the next export. Reuse the same numbered set in a second flow and
 two things can go wrong. The two flows become indistinguishable to anything that keys on the

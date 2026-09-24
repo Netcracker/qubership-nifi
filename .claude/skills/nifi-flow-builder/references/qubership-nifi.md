@@ -32,7 +32,7 @@ with `kb.py props <Name>`, because they differ between the scripting NARs:
 | NAR | Property | Value |
 | --- | --- | --- |
 | `nifi-scripting-nar` (`ExecuteScript`, `InvokeScriptedProcessor`, `ScriptedRecordSetWriter`, `ScriptedTransformRecord`, and the other scripted components) | `Module Directory` | `/opt/nifi/nifi-current/auxiliary-cp/nifi-poi-nar-cp` |
-| `nifi-groovyx-nar` (`ExecuteGroovyScript`) | `Additional Classpath` | `/opt/nifi/nifi-current/auxiliary-cp/nifi-poi-nar-cp/*.jar` |
+| `nifi-groovyx-nar` (`ExecuteGroovyScript`) | `Additional Classpath` from NiFi 2.7, `groovyx-additional-classpath` before | `/opt/nifi/nifi-current/auxiliary-cp/nifi-poi-nar-cp/*.jar` |
 
 Each component instance loads its own copy of the jars. Prefer one shared record writer
 service to several scripts that each load POI.
@@ -122,7 +122,14 @@ class XlsxRecordSetWriter implements RecordSetWriter {
                 return
             }
             def cell = row.createCell(i)
-            if (value instanceof Number) {
+            if (value instanceof BigDecimal) {
+                // A cell holds a double, which keeps about 15 significant digits, so exact
+                // values that may need more are written as text.
+                cell.setCellValue(((BigDecimal) value).toPlainString())
+            } else if (value instanceof BigInteger
+                    || (value instanceof Long && ((Long) value > (1L << 53) || (Long) value < -(1L << 53)))) {
+                cell.setCellValue(value.toString())
+            } else if (value instanceof Number) {
                 cell.setCellValue(((Number) value).doubleValue())
             } else if (value instanceof Boolean) {
                 cell.setCellValue((Boolean) value)

@@ -31,8 +31,9 @@ Which of the two a component wants is not a rule you can derive, and it moves be
 versions: the same JoltTransformJSON that took `jolt-spec` in 1.x takes `Jolt Specification`
 in 2.x. Look it up.
 
-Throughout this document, `kb.py` is shorthand for `python <this-skill-directory>/scripts/kb.py`.
-It reads only the KB's JSON files and never contacts a NiFi instance. Every command accepts
+Throughout this document, `kb.py` is shorthand for `python <this-skill-directory>/scripts/kb.py`,
+and `verify_live.py` for `python <this-skill-directory>/scripts/verify_live.py`. `kb.py` reads
+only the KB's JSON files and never contacts a NiFi instance. Every `kb.py` command accepts
 `--kb <path>`.
 
 ## 1. Locate the Knowledge Base
@@ -43,9 +44,9 @@ kb.py locate
 
 This resolves the KB in order: the `--kb` argument, then `$NIFI_KB_PATH`, then a scan of the
 flow's directory (the current directory for a command that takes no flow, such as `locate`)
-and the workspace root, two levels deep. The workspace root is
-`$CLAUDE_PROJECT_DIR` when set, otherwise the Git repository that contains the current
-directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
+and the workspace root, two levels deep. The workspace root is `$CLAUDE_PROJECT_DIR` when
+set (Claude Code sets it; other agents do not), otherwise the Git repository that contains
+the current directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
 kept elsewhere needs `--kb` or `NIFI_KB_PATH`. It prints the path, the NiFi version, the
 definition format, the component counts, and the platform: `qubership-nifi` when the KB has
 `org.qubership.nifi` bundles, otherwise `Apache NiFi`. A KB built from NiFi 1.x (`normalized-nifi-1x`)
@@ -58,8 +59,10 @@ correct only for that version, so the user needs to know which one you used.
 Two cases need a decision rather than a guess:
 
 - **Several KBs found.** `validate` and `normalize` take the one whose NiFi version equals the
-  flow's own bundle version, and name it. Every other command lists them and stops: pick the
-  one whose NiFi version matches the target flow, or ask. Do not default to the first.
+  flow's own bundle version, and name it. Otherwise the KB nearest the flow wins: one in the
+  flow's directory beats one at the workspace root. When that nearest directory holds several,
+  the command lists them and stops: pick the one whose NiFi version matches the target flow,
+  or ask. Do not default to the first.
 - **No KB found.** Stop and say so. Ask the user for `NIFI_KB_PATH`, or point them at
   `qubership-nifi-kb-builder-tool` to build one against their NiFi. Do not carry on from
   memory: producing a plausible flow with wrong bundle coordinates is worse than producing
@@ -68,10 +71,11 @@ Two cases need a decision rather than a guess:
 ## 2. Match the Knowledge Base to the flow
 
 When editing an existing flow, check that its bundle versions match the KB before you touch
-it. `kb.py validate <flow.json>` reports a version mismatch as a single error rather than
-flooding you with one per component.
+it. When more than three components carry a version the KB does not describe,
+`kb.py validate <flow.json>` reports the mismatch as a single error rather than one per
+component.
 
-A mismatch is a real fork in the road, so raise it rather than resolving it silently. Editing
+A mismatch needs a decision, so raise it rather than resolving it silently. Editing
 a NiFi 1.x flow with a 2.x KB means either a deliberate upgrade (types and properties move) or
 the wrong KB. Ask which.
 
@@ -128,7 +132,9 @@ components.
 
 **Handle every relationship.** Each relationship a processor declares must either appear in
 `autoTerminatedRelationships` or be carried by an outgoing connection, and never both. NiFi
-refuses to start a processor with an unhandled relationship.
+refuses to start a processor with an unhandled relationship. For a relationship that is both,
+NiFi keeps the connection and drops the auto-termination on import, so the file no longer
+describes the flow NiFi runs.
 
 **Respect `inputRequirement`.** `INPUT_FORBIDDEN` components such as `GenerateFlowFile` cannot
 have an incoming connection; `INPUT_REQUIRED` components must have one.
@@ -226,9 +232,10 @@ image puts the libraries of some NARs in fixed directories, POI among them. On p
 NiFi, ask the user for a directory of jars on the NiFi host. If there is none, use the JDK and
 the libraries of the scripting NAR, and say so in your summary.
 
-**Groovy `${...}` in `Script Body` is not Expression Language.** The property's EL scope is
-`NONE`, so NiFi passes the text to the script engine as written, and `kb.py validate` does
-not report it. Keep Groovy string interpolation where it makes the script easier to read.
+**Groovy `${...}` in `Script Body` is not Expression Language.** Before NiFi 2.7,
+`ExecuteGroovyScript` names this property `groovyx-script-body`. Its EL scope is `NONE`, so
+NiFi passes the text to the script engine as written, and `kb.py validate` does not report
+it. Keep Groovy string interpolation where it makes the script easier to read.
 
 ## 5. Split large groups into child process groups
 
@@ -260,8 +267,8 @@ two that join the children are fine.
   port name with `out_`, followed by a snake_case name for what passes through the port:
   `in_accepted`, `out_stored`, `out_failure`. Never name a port just `in` or `out`.
 - Every port needs a connection inside its group and one in the parent. Otherwise NiFi marks
-  the port invalid and cannot start it. A port of the root group is the exception on the outer side, because the import
-  places the root group inside another group.
+  the port invalid and cannot start it. A port of the root group is the exception on the
+  outer side, because the import places the root group inside another group.
 - A child group is not bound to its parent's parameter context. Every child that references
   `#{...}` sets `parameterContextName` itself, usually to the parent's context.
 - A component can reference a controller service of its own group or of an ancestor, never
@@ -282,8 +289,9 @@ the direction of the connection. That gives these grid steps:
 - columns of processors: about 640 px apart horizontally.
 
 Inside a child, put the input ports on the top row and the output ports on the bottom row.
-`kb.py validate` warns when a label would cover a component or another label. Where you can, place components so that a connection runs between neighbors rather
-than across a third component. The canvas draws a connection with no `bends` as a straight
+`kb.py validate` warns when a label would cover a component or another label. Where you can,
+place components so that a connection runs between neighbors rather than across a third
+component. The canvas draws a connection with no `bends` as a straight
 line between the two boxes, so two connections between the same pair of components cover
 each other, and a line across a third component is hidden behind it. `kb.py normalize` adds
 bends for both cases (section 6), so you do not have to compute them. Keep any bends a user
@@ -301,9 +309,10 @@ kb.py validate  <flow.json>     # check the result against the catalog
 
 `normalize` fills in what you left out, taking each component's own defaults from the catalog
 (`defaultPenaltyDuration`, `defaultYieldDuration`, `defaultBulletinLevel`, the scheduling
-defaults) rather than a fixed guess, and generates `propertyDescriptors` for the properties
-you set. It edits in place unless you pass `-o`. Running it on a flow that is already complete
-changes nothing, so it is safe on a file you are editing.
+defaults) rather than a fixed guess, and adds a `propertyDescriptors` entry for each property
+you set that has none. It edits in place unless you pass `-o`. The first run rewrites the whole
+file in its own layout (two-space indent); after that, running it on a flow that is already
+complete changes nothing, so it is safe on a file you are editing.
 
 `normalize` also adds `bends` to connections that would be hard to see on the canvas. It
 spreads two or more connections between the same two components (or between ports of the
@@ -363,8 +372,8 @@ verify_live.py <flow.json> \
   --auth certificate --certificate-file <client.p12> --ca-file <ca.pem>
 ```
 
-The two targets answer different questions, and either may be given on its own. The same
-command works against NiFi 1.x and 2.x.
+The two targets check different things, and either may be given on its own. The same
+command works against NiFi 1.x and 2.x, except in cookie mode, which supports NiFi 2.x only.
 
 `--nifi-url` imports the flow into a temporary process group, reads back the validation state
 of every processor, controller service, and port in it and in its child groups, and deletes
@@ -383,9 +392,17 @@ may not create one.
 
 Run both when the flow is destined for a registry, and quote both results.
 
-`--auth token` and `--auth cookie` read `NIFI_ACCESS_TOKEN` and
-`NIFI_AUTHORIZATION_BEARER_COOKIE`; no secret is ever passed as an argument. One certificate
-and one CA file serve both targets.
+No secret is ever passed as an argument. Each mode reads its credentials from the
+environment:
+
+| `--auth` | NiFi | NiFi Registry |
+| --- | --- | --- |
+| `certificate` | `--certificate-file`, password in `NIFI_PKCS12_PASSWORD` | the same certificate |
+| `token` | `NIFI_ACCESS_TOKEN` | `NIFI_REGISTRY_ACCESS_TOKEN`, because the Registry does not accept a NiFi token |
+| `cookie` | `NIFI_AUTHORIZATION_BEARER_COOKIE`, NiFi 2.x only | not supported |
+
+Against NiFi 1.x in cookie mode the script stops before uploading anything, because 1.x
+also requires a CSRF request token on every write. One CA file serves both targets.
 
 Because it writes to both targets, ask before pointing it at anything shared, and say which
 instances you used. Messages about disabled controller services are suppressed: services

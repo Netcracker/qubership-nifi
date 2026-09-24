@@ -17,10 +17,11 @@ on Ctrl+C, but a hard kill can leave something behind; it is all named
 `kb-verify-<timestamp>-<id>` so it is easy to spot and delete.
 
 Auth follows the same convention as qubership-nifi-kb-builder-tool: no secret is ever passed
-as an argument. Certificate mode reads NIFI_PKCS12_PASSWORD, token mode reads
-NIFI_ACCESS_TOKEN, cookie mode reads NIFI_AUTHORIZATION_BEARER_COOKIE.
+as an argument. Certificate mode reads NIFI_PKCS12_PASSWORD and uses the same certificate for
+both targets. Token mode reads NIFI_ACCESS_TOKEN for NiFi and NIFI_REGISTRY_ACCESS_TOKEN for
+the Registry. Cookie mode reads NIFI_AUTHORIZATION_BEARER_COOKIE and supports NiFi 2.x only.
 
-Python 3.8+. Standard library only, except that PKCS#12 unpacking uses `cryptography` when
+Python 3.12+. Standard library only, except that PKCS#12 unpacking uses `cryptography` when
 installed and falls back to the `openssl` command line.
 """
 
@@ -95,10 +96,12 @@ def unpack_pkcs12(path, password, workdir):
         (["-clcerts", "-nokeys"], cert_pem),
         (["-nocerts", "-nodes"], key_pem),
     ):
-        result = subprocess.run(
-            ["openssl", "pkcs12", "-in", str(path), "-passin", "env:KBPW"] + args,
-            capture_output=True, env=env,
-        )
+        command = ["openssl", "pkcs12", "-in", str(path), "-passin", "env:KBPW"] + args
+        result = subprocess.run(command, capture_output=True, env=env)
+        if result.returncode != 0:
+            # OpenSSL 3 reads RC2 and 3DES, which keytool used before JDK 12, only with
+            # the legacy provider.
+            result = subprocess.run(command + ["-legacy"], capture_output=True, env=env)
         if result.returncode != 0:
             raise LiveError("openssl could not read %s: %s"
                             % (path, result.stderr.decode(errors="replace")[:200]))
@@ -130,6 +133,19 @@ def auth_headers(args):
         if not cookie:
             raise LiveError("Cookie mode reads the cookie from NIFI_AUTHORIZATION_BEARER_COOKIE.")
         return {"Cookie": "__Secure-Authorization-Bearer=" + cookie}
+    return {}
+
+
+def registry_auth_headers(args):
+    """Headers for NiFi Registry, which does not accept a token or cookie that NiFi issued."""
+    if args.auth == "token":
+        token = os.environ.get("NIFI_REGISTRY_ACCESS_TOKEN")
+        if not token:
+            raise LiveError("Token mode reads the Registry token from NIFI_REGISTRY_ACCESS_TOKEN.")
+        return {"Authorization": "Bearer " + token}
+    if args.auth == "cookie":
+        raise LiveError("Cookie mode supports NiFi only. For --registry-url, use --auth "
+                        "certificate or --auth token.")
     return {}
 
 
@@ -269,12 +285,17 @@ def registry_rejected(stage, status, payload):
 
 
 def drop_registry_item(client, path, what):
-    """Delete a bucket or flow, which the Registry versions rather than revisions."""
+    """Delete a bucket or flow, which the Registry versions rather than revisions.
+
+    A failure is reported as a warning, so it never replaces the result of the run.
+    """
     try:
         entity = client.get(path)
-    except LiveError:
+        code = client.delete(path, {"version": (entity.get("revision") or {}).get("version", 0)})
+    except (LiveError, OSError) as exc:
+        print("\nWARNING: could not delete %s: %s. Delete it by hand." % (what, exc),
+              file=sys.stderr)
         return
-    code = client.delete(path, {"version": (entity.get("revision") or {}).get("version", 0)})
     if code >= 300:
         print("\nWARNING: could not delete %s (HTTP %d). Delete it by hand." % (what, code),
               file=sys.stderr)
@@ -356,7 +377,7 @@ def collect_ports(client, group_id):
 def error_signature(components):
     """The set of validation messages currently reported, for comparing two polls."""
     return frozenset(
-        (entity["component"].get("name"), message)
+        (entity["component"].get("id"), message)
         for entity in components
         for message in entity["component"].get("validationErrors") or []
     )
@@ -368,16 +389,17 @@ def parameter_contexts(client):
     return {entry["component"]["name"]: entry for entry in listing}
 
 
-def drop_new_parameter_contexts(client, before):
+def drop_new_parameter_contexts(client, before, declared):
     """Delete the parameter contexts the import created.
 
     Deleting the temporary process group does not remove them: contexts live on the
     instance, not inside the group, so a verify run would otherwise leave one behind
-    every time. Only names absent beforehand are touched, so a context the flow shares
-    with the target NiFi - which NiFi reuses by name rather than recreating - survives.
+    every time. Only a context the flow declares and that was absent beforehand is
+    touched. A context the flow shares with the target NiFi, which NiFi reuses by name
+    rather than recreating, survives, and so does one another user created during the run.
     """
     for name, entry in parameter_contexts(client).items():
-        if name in before:
+        if name in before or name not in declared:
             continue
         if entry["component"].get("boundProcessGroups"):
             continue
@@ -447,106 +469,136 @@ def verify(client, args, flow_bytes, flow_name):
             time.sleep(SETTLE_INTERVAL)
             processors, services, ports = collect_components(client, group_id)
 
-        return report(processors, services, group_name, flow_bytes, ports)
+        return report(processors, services, group_name, flow_bytes, ports, args.timeout)
     finally:
         if args.keep:
             print("\nLeft %s in place as requested (--keep)." % group_name)
         else:
-            entity = client.get("/process-groups/%s" % group_id)
-            code = client.delete("/process-groups/%s" % group_id,
-                                 {"version": entity["revision"]["version"],
-                                  "clientId": str(uuid.uuid4())})
-            if code >= 300:
-                print("\nWARNING: could not delete temporary group %s (HTTP %d). Delete it by hand."
-                      % (group_name, code), file=sys.stderr)
-            else:
-                drop_new_parameter_contexts(client, contexts_before)
+            # A failure here must not replace the result the run already computed.
+            try:
+                entity = client.get("/process-groups/%s" % group_id)
+                code = client.delete("/process-groups/%s" % group_id,
+                                     {"version": entity["revision"]["version"],
+                                      "clientId": str(uuid.uuid4())})
+                if code >= 300:
+                    print("\nWARNING: could not delete temporary group %s (HTTP %d). Delete it "
+                          "by hand." % (group_name, code), file=sys.stderr)
+                else:
+                    drop_new_parameter_contexts(client, contexts_before,
+                                                flow_parameter_context_names(flow_bytes))
+            except (LiveError, OSError) as exc:
+                print("\nWARNING: cleanup of %s failed: %s. Delete it by hand."
+                      % (group_name, exc), file=sys.stderr)
 
 
 def _property_key(name):
     return re.sub(r"[\s._-]+", "", (name or "").lower())
 
 
+def _flow_groups(flow_bytes):
+    """Every process group of the file, `flowContents` first, or none for another shape."""
+    try:
+        doc = json.loads(flow_bytes)
+    except ValueError:
+        return []
+    root = doc.get("flowContents") if isinstance(doc, dict) else None
+    groups = [root] if isinstance(root, dict) else []
+    for group in groups:
+        groups.extend(group.get("processGroups") or [])
+    return groups
+
+
 def flow_relationships(flow_bytes):
-    """Map component name -> the relationships the file itself handles.
+    """Map processor identifier -> the relationships the file itself handles.
 
     Handling is either an entry in autoTerminatedRelationships or an outgoing connection
     carrying it. This is the one question the file answers more reliably than the running
     instance does, because NiFi's answer can be a validation verdict computed before the
     connections existed and never recomputed.
     """
-    try:
-        doc = json.loads(flow_bytes)
-    except ValueError:
-        return {}
-    root = (doc.get("flowContents") or {}) if isinstance(doc, dict) else {}
     handled = {}
-
-    def walk(group):
-        names = {}
+    for group in _flow_groups(flow_bytes):
         for processor in group.get("processors") or []:
-            names[processor.get("identifier")] = processor.get("name")
-            handled.setdefault(processor.get("name"), set()).update(
+            handled.setdefault(processor.get("identifier"), set()).update(
                 processor.get("autoTerminatedRelationships") or [])
         for connection in group.get("connections") or []:
             source = (connection.get("source") or {}).get("id")
-            if source in names:
-                handled.setdefault(names[source], set()).update(
-                    connection.get("selectedRelationships") or [])
-        for child in group.get("processGroups") or []:
-            walk(child)
-
-    walk(root)
+            if source in handled:
+                handled[source].update(connection.get("selectedRelationships") or [])
     return handled
 
 
 def flow_properties(flow_bytes):
-    """Map component name -> its properties, so errors can be traced back to the source."""
-    try:
-        doc = json.loads(flow_bytes)
-    except ValueError:
-        return {}
-    root = (doc.get("flowContents") or {}) if isinstance(doc, dict) else {}
+    """Map processor or service identifier -> its properties, to trace errors back to the file."""
     found = {}
-
-    def walk(group):
+    for group in _flow_groups(flow_bytes):
         for component in (group.get("processors") or []) + (group.get("controllerServices") or []):
             # NiFi reports the display name ("Bootstrap Servers") while the flow uses the
             # descriptor name ("bootstrap.servers"), so index on a form that matches both.
-            found[component.get("name")] = {
+            found[component.get("identifier")] = {
                 _property_key(key): value
                 for key, value in (component.get("properties") or {}).items()
             }
-        for child in group.get("processGroups") or []:
-            walk(child)
-
-    walk(root)
     return found
 
 
-def report(processors, services, group_name, flow_bytes, ports=()):
+def flow_unique_names(flow_bytes):
+    """Map name -> identifier for each component name that occurs once in the file."""
+    seen = {}
+    for group in _flow_groups(flow_bytes):
+        for collection in ("processors", "controllerServices", "inputPorts", "outputPorts"):
+            for component in group.get(collection) or []:
+                seen.setdefault(component.get("name"), []).append(component.get("identifier"))
+    return {name: ids[0] for name, ids in seen.items() if len(ids) == 1}
+
+
+def flow_parameter_context_names(flow_bytes):
+    """The names of the parameter contexts the file declares."""
+    try:
+        doc = json.loads(flow_bytes)
+    except ValueError:
+        return set()
+    contexts = (doc.get("parameterContexts") if isinstance(doc, dict) else None) or {}
+    return {(context or {}).get("name") or key for key, context in contexts.items()}
+
+
+def flow_identifier(component, unique_names):
+    """The file's identifier for a live component.
+
+    NiFi gives every imported component a new `id` and records the file's `identifier` as
+    its `versionedComponentId`. The name is used only when that field is missing and no
+    other component in the file has the same name, because names are not unique.
+    """
+    return component.get("versionedComponentId") or unique_names.get(component.get("name"))
+
+
+def report(processors, services, group_name, flow_bytes, ports=(), timeout=None):
     properties = flow_properties(flow_bytes)
     relationships = flow_relationships(flow_bytes)
-    real, noise, pending, stale = [], [], [], []
+    unique_names = flow_unique_names(flow_bytes)
+    real, noise, pending, stale, validating = [], [], [], [], []
     labelled = [("controller service", e) for e in services] + [("processor", e) for e in processors]
     labelled += [("input port" if e["component"].get("type") == "INPUT_PORT" else "output port", e)
                  for e in ports]
     for kind, entity in labelled:
         component = entity["component"]
         name = component.get("name", "?")
+        identifier = flow_identifier(component, unique_names)
+        if component.get("validationStatus") == "VALIDATING":
+            validating.append((kind, name))
         for message in component.get("validationErrors") or []:
             if EXPECTED_NOISE.search(message):
                 noise.append((kind, name, message))
                 continue
             unconnected = UNCONNECTED_RELATIONSHIP.search(message)
-            if unconnected and unconnected.group(1) in relationships.get(name, set()):
+            if unconnected and unconnected.group(1) in relationships.get(identifier, set()):
                 stale.append((kind, name, unconnected.group(1)))
                 continue
             # "'X' is invalid because X is required" against a #{...} value means the
             # parameter has no value in this NiFi, not that the flow is malformed.
             match = re.match(r"'([^']+)'", message)
             key = match.group(1) if match else None
-            value = properties.get(name, {}).get(_property_key(key))
+            value = properties.get(identifier, {}).get(_property_key(key))
             if (key and isinstance(value, str) and value.startswith("#{")
                     and "is required" in message):
                 pending.append((kind, name, key))
@@ -581,11 +633,19 @@ def report(processors, services, group_name, flow_bytes, ports=()):
               % len(noise))
         print("disabled, so this says nothing about the flow.")
 
+    if validating:
+        print()
+        print("NiFi had not finished validating %d component(s) when the %s-second timeout ran "
+              "out, so their state is unknown:" % (len(validating), timeout or "?"))
+        for kind, name in validating:
+            print("  %s '%s'" % (kind, name))
+        print("Run again with a larger --timeout.")
+
     print()
     print("%d real validation error(s)." % len(real))
-    if not real:
+    if not real and not validating:
         print("NiFi accepted the flow and every component validated.")
-    return 1 if real else 0
+    return 1 if real or validating else 0
 
 
 def main(argv=None):
@@ -621,23 +681,30 @@ def main(argv=None):
     workdir = Path(tempfile.mkdtemp(prefix="kb-verify-"))
     try:
         context = build_context(args, workdir)
-        headers = auth_headers(args)
+        # Resolve the credentials for both targets, and refuse a file of the wrong shape,
+        # before writing anything to either target.
+        headers = auth_headers(args) if args.nifi_url else {}
+        registry_headers = registry_auth_headers(args) if args.registry_url else {}
         flow_bytes = flow_path.read_bytes()
-        # Refuse a file of the wrong shape before writing anything to either target.
         load_flow(flow_bytes)
         worst = 0
 
         if args.nifi_url:
             client = Client(args.nifi_url, context, headers)
             about = client.get("/flow/about")["about"]
-            print("NiFi %s at %s" % (about.get("version"), args.nifi_url))
+            version = about.get("version") or ""
+            if args.auth == "cookie" and version.startswith("1."):
+                raise LiveError(
+                    "Cookie mode supports NiFi 2.x only: NiFi %s also requires a CSRF request "
+                    "token on every write. Use --auth certificate or --auth token." % version)
+            print("NiFi %s at %s" % (version, args.nifi_url))
             print()
             worst = max(worst, verify(client, args, flow_bytes, flow_path.name))
 
         if args.registry_url:
             if args.nifi_url:
                 print()
-            registry = Client(args.registry_url, context, headers,
+            registry = Client(args.registry_url, context, registry_headers,
                               api="nifi-registry-api", ui="nifi-registry")
             print("NiFi Registry %s at %s"
                   % (registry.get("/about").get("registryAboutVersion"), args.registry_url))

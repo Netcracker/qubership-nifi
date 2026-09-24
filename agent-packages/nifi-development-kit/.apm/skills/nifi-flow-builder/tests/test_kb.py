@@ -332,7 +332,7 @@ def test_normalize_writes_port_function_only_for_2x(version, expected):
 
 
 def _validate(tmp_path, capsys, kb_version, processor, type_name="org.example.P",
-              input_requirement="INPUT_ALLOWED", flow=None):
+              input_requirement="INPUT_ALLOWED", flow=None, normalize=True):
     definition = {"definitionFormat": "normalized-nifi-1x",
                   "definition": _processor_1x(type=type_name, supportedRelationships=[],
                                               inputRequirement=input_requirement)}
@@ -340,7 +340,8 @@ def _validate(tmp_path, capsys, kb_version, processor, type_name="org.example.P"
         _write_kb(tmp_path / "kb", kb_version, [("PROCESSOR", type_name, definition)]))
     if flow is None:
         flow = _flow([dict(processor, type=type_name)], version=kb_version)
-    kb.normalize_group(knowledge_base, flow["flowContents"])
+    if normalize:
+        kb.normalize_group(knowledge_base, flow["flowContents"])
     path = tmp_path / "flow.json"
     path.write_text(json.dumps(flow), encoding="utf-8")
     capsys.readouterr()
@@ -537,6 +538,25 @@ def test_an_endpoint_group_id_naming_the_wrong_group_is_an_error(tmp_path, capsy
     out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow)
     assert "destination.groupId is %s, but component %s is in flowContents.Child" \
            % (ROOT_ID, IN_PORT_ID) in out, out
+
+
+@pytest.mark.parametrize("role, connection", [
+    pytest.param("destination", 0, id="into a child input port"),
+    pytest.param("source", 1, id="out of a child output port"),
+])
+def test_a_child_port_endpoint_without_a_group_id_is_an_error(tmp_path, capsys, role, connection):
+    flow = _nested_flow()
+    del flow["flowContents"]["connections"][connection][role]["groupId"]
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow, normalize=False)
+    assert "%s.groupId is missing. The %s is a port of child group flowContents.Child" \
+           % (role, role) in out, out
+
+
+def test_a_same_group_endpoint_without_a_group_id_is_valid(tmp_path, capsys):
+    flow = _nested_flow()
+    del flow["flowContents"]["connections"][0]["source"]["groupId"]
+    out = _validate(tmp_path, capsys, "1.28.1", None, flow=flow, normalize=False)
+    assert "groupId is missing" not in out, out
 
 
 def test_leaving_a_child_through_its_input_port_is_an_error(tmp_path, capsys):
@@ -853,3 +873,203 @@ def test_locate_names_the_platform_from_the_bundle_groups(tmp_path, capsys, grou
     out = capsys.readouterr().out
     platform_line = next(line for line in out.splitlines() if line.startswith("Platform"))
     assert platform in platform_line, out
+
+
+def test_a_matching_knowledge_base_at_the_workspace_root_beats_a_mismatched_one_by_the_flow(
+        workspace):
+    flows = workspace / "a" / "b" / "flows"
+    _write_kb(flows / "kb", "1.28.1", [])
+    _write_kb(workspace / "kb", "2.10.0", [])
+    assert kb.discover(search_from=flows, flow_version="2.10.0") == workspace / "kb"
+
+
+def test_the_knowledge_base_nearest_the_flow_wins_without_a_version_match(workspace):
+    flows = workspace / "a" / "b" / "flows"
+    _write_kb(flows / "kb", "1.28.1", [])
+    _write_kb(workspace / "kb", "2.10.0", [])
+    assert kb.discover(search_from=flows, flow_version="1.27.0") == flows / "kb"
+
+
+# ---------------------------------------------------------------------------
+# Relationships, parameters, and Script Body, on a native 2.x definition
+# ---------------------------------------------------------------------------
+
+PROCESSOR_ID = "43c7acbe-5c5a-431e-980e-caf91e2ac6cf"
+ROUTE_SINK_ID = "7f3a9d0e-2b1c-4e5f-8a6b-0c9d8e7f6a5b"
+
+
+def _validate_2x(tmp_path, capsys, definition, processor, connections=(), parameters=None,
+                 artifact="nifi-standard-nar"):
+    """Validate a flow of one processor, plus a sink when `connections` need a destination.
+
+    `parameters` is a list of parameters for a context `ctx` bound to the root group.
+    """
+    type_name = definition["definition"]["type"]
+    sink = _native_2x("org.example.Sink", {})
+    knowledge_base = kb.Kb(_write_kb(tmp_path / "kb", "2.10.0", [
+        ("PROCESSOR", type_name, definition, {"artifact": artifact}),
+        ("PROCESSOR", "org.example.Sink", sink)]))
+    processors = [dict({"identifier": PROCESSOR_ID, "name": "P", "type": type_name,
+                        "runDurationMillis": 25,
+                        "bundle": {"group": "org.apache.nifi", "artifact": artifact,
+                                   "version": "2.10.0"}}, **processor)]
+    if connections:
+        processors.append({"identifier": ROUTE_SINK_ID, "name": "Sink", "type": "org.example.Sink",
+                           "runDurationMillis": 25, "position": {"x": 0.0, "y": 600.0}})
+    flow = _flow(processors, version="2.10.0")
+    flow["flowContents"]["connections"] = [
+        {"identifier": "c%d000000-0000-4000-8000-000000000000" % number,
+         "source": {"id": PROCESSOR_ID, "type": "PROCESSOR"},
+         "destination": {"id": ROUTE_SINK_ID, "type": "PROCESSOR"},
+         "selectedRelationships": list(relationships)}
+        for number, relationships in enumerate(connections)]
+    if parameters is not None:
+        flow["flowContents"]["parameterContextName"] = "ctx"
+        flow["parameterContexts"] = {"ctx": {"name": "ctx", "parameters": parameters}}
+    kb.normalize_group(knowledge_base, flow["flowContents"])
+    path = tmp_path / "flow.json"
+    path.write_text(json.dumps(flow), encoding="utf-8")
+    capsys.readouterr()
+    kb.cmd_validate(knowledge_base, argparse.Namespace(flow=str(path)))
+    return capsys.readouterr().out
+
+
+def test_el_in_the_pre_2_7_groovy_script_body_key_is_not_reported(tmp_path, capsys):
+    # Before NiFi 2.7, ExecuteGroovyScript names the property groovyx-script-body.
+    definition = _native_2x("org.apache.nifi.processors.groovyx.ExecuteGroovyScript", {
+        "groovyx-script-body": {"name": "groovyx-script-body", "displayName": "Script Body",
+                                "expressionLanguageScope": "NONE"}})
+    out = _validate_2x(tmp_path, capsys, definition,
+                       {"properties": {"groovyx-script-body": 'def s = "${name}"'}},
+                       artifact="nifi-groovyx-nar")
+    assert "contains Expression Language" not in out, out
+
+
+def _router():
+    definition = _native_2x("org.example.Route", {})
+    definition["definition"].update(
+        supportedRelationships=[{"name": "unmatched"}], supportsDynamicProperties=True,
+        supportsDynamicRelationships=True)
+    return definition
+
+
+@pytest.mark.parametrize("auto_terminated, connections, reported", [
+    pytest.param(["unmatched"], (), True, id="dynamic relationship unhandled"),
+    pytest.param(["unmatched", "big"], (), False, id="dynamic relationship auto-terminated"),
+    pytest.param(["unmatched"], (["big"],), False, id="dynamic relationship connected"),
+    pytest.param(["unmatched", "matched"], (), False,
+                 id="routing to matched makes the dynamic property a condition"),
+])
+def test_a_relationship_created_by_a_dynamic_property_must_be_handled(
+        tmp_path, capsys, auto_terminated, connections, reported):
+    out = _validate_2x(tmp_path, capsys, _router(),
+                       {"properties": {"big": "${fileSize:gt(10)}"},
+                        "autoTerminatedRelationships": auto_terminated}, connections)
+    assert ("relationship 'big' is neither connected nor auto-terminated" in out) is reported, out
+
+
+def test_a_relationship_auto_terminated_and_connected_is_a_warning(tmp_path, capsys):
+    definition = _native_2x("org.example.P", {})
+    definition["definition"]["supportedRelationships"] = [{"name": "success"}]
+    out = _validate_2x(tmp_path, capsys, definition,
+                       {"autoTerminatedRelationships": ["success"]}, (["success"],))
+    assert ("WARN   flowContents.processors[P]: relationship 'success' is auto-terminated and "
+            "also connected. NiFi imports the connection and drops the auto-termination") in out
+    assert "0 error(s)" in out
+
+
+@pytest.mark.parametrize("reference, reported", [
+    pytest.param("#{'db url'}", False, id="quoted name"),
+    pytest.param("#{db url}", False, id="bare name with a space"),
+    pytest.param("#{'other'}", True, id="quoted name the context does not declare"),
+])
+def test_a_quoted_parameter_reference_is_matched_without_its_quotes(
+        tmp_path, capsys, reference, reported):
+    definition = _native_2x("org.example.P", {"p": {"name": "p"}})
+    out = _validate_2x(tmp_path, capsys, definition, {"properties": {"p": reference}},
+                       parameters=[{"name": "db url", "sensitive": False, "value": "x"}])
+    assert ("which context 'ctx' does not declare" in out) is reported, out
+
+
+@pytest.mark.parametrize("property_sensitive, parameter_sensitive, reported", [
+    pytest.param(True, False, True, id="sensitive property, non-sensitive parameter"),
+    pytest.param(False, True, True, id="non-sensitive property, sensitive parameter"),
+    pytest.param(True, True, False, id="both sensitive"),
+    pytest.param(False, False, False, id="neither sensitive"),
+])
+def test_a_parameter_must_match_the_sensitivity_of_the_property_referencing_it(
+        tmp_path, capsys, property_sensitive, parameter_sensitive, reported):
+    definition = _native_2x("org.example.P", {
+        "p": {"name": "p", "sensitive": property_sensitive}})
+    out = _validate_2x(tmp_path, capsys, definition, {"properties": {"p": "#{secret}"}},
+                       parameters=[{"name": "secret", "sensitive": parameter_sensitive,
+                                    "value": "x"}])
+    assert ("NiFi requires the property and the parameter to be both sensitive or both not"
+            in out) is reported, out
+
+
+# ---------------------------------------------------------------------------
+# normalize: descriptors, endpoint groups, default positions, file handling
+# ---------------------------------------------------------------------------
+
+
+def _one_processor_kb(tmp_path):
+    type_name = "org.example.P"
+    return kb.Kb(_write_kb(tmp_path / "kb", "2.10.0", [("PROCESSOR", type_name, _native_2x(
+        type_name, {"a": {"name": "a", "displayName": "A"},
+                    "b": {"name": "b", "displayName": "B", "sensitive": True}}))]))
+
+
+def test_normalize_adds_a_descriptor_for_a_new_property_and_keeps_the_existing_ones(tmp_path):
+    group = {"identifier": "g", "processors": [{
+        "identifier": "p", "type": "org.example.P", "properties": {"a": "1", "b": "2"},
+        "propertyDescriptors": {"a": {"name": "a", "displayName": "Edited by hand"}}}]}
+    kb.normalize_group(_one_processor_kb(tmp_path), group)
+    assert group["processors"][0]["propertyDescriptors"] == {
+        "a": {"name": "a", "displayName": "Edited by hand"},
+        "b": {"name": "b", "displayName": "B", "identifiesControllerService": False,
+              "sensitive": True, "dynamic": False}}
+
+
+def test_normalize_names_the_group_of_each_connection_endpoint(tmp_path):
+    group = {"identifier": "root",
+             "processors": [{"identifier": "p", "type": "org.example.P"}],
+             "processGroups": [{"identifier": "child", "inputPorts": [{"identifier": "in"}]}],
+             "connections": [{"identifier": "c", "source": {"id": "p", "type": "PROCESSOR"},
+                              "destination": {"id": "in", "type": "INPUT_PORT"}}]}
+    kb.normalize_group(_one_processor_kb(tmp_path), group)
+    connection = group["connections"][0]
+    assert (connection["source"]["groupId"], connection["destination"]["groupId"]) == (
+        "root", "child")
+
+
+def test_normalize_spaces_new_components_on_the_skill_grid(tmp_path):
+    group = {"identifier": "g",
+             "processors": [{"identifier": "p1", "type": "org.example.P"},
+                            {"identifier": "p2", "type": "org.example.P"}],
+             "inputPorts": [{"identifier": "i1"}, {"identifier": "i2"}],
+             "outputPorts": [{"identifier": "o1"}]}
+    kb.normalize_group(_one_processor_kb(tmp_path), group)
+    positions = [(c["identifier"], c["position"]) for collection in
+                 ("processors", "inputPorts", "outputPorts") for c in group[collection]]
+    assert positions == [
+        ("p1", {"x": 0.0, "y": 0.0}), ("p2", {"x": 0.0, "y": 300.0}),
+        ("i1", {"x": 0.0, "y": -300.0}), ("i2", {"x": 640.0, "y": -300.0}),
+        ("o1", {"x": 0.0, "y": 600.0})]
+
+
+def test_normalize_writes_non_ascii_text_unescaped(tmp_path):
+    name = "Zahlungseing\u00e4nge"
+    path = tmp_path / "flow.json"
+    path.write_text(json.dumps({"flowContents": {"identifier": "g", "name": name}}),
+                    encoding="utf-8")
+    kb.cmd_normalize(_one_processor_kb(tmp_path), argparse.Namespace(flow=str(path), output=None))
+    assert '"name": "%s"' % name in path.read_text(encoding="utf-8")
+
+
+def test_normalize_reports_a_file_that_is_not_json(tmp_path):
+    path = tmp_path / "flow.json"
+    path.write_text("{not json", encoding="utf-8")
+    with pytest.raises(kb.KbError, match="is not valid JSON"):
+        kb.cmd_normalize(_one_processor_kb(tmp_path),
+                         argparse.Namespace(flow=str(path), output=None))

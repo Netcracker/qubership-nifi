@@ -6,7 +6,7 @@ exact NiFi version: component types, bundle coordinates, property descriptors,
 relationships and controller service APIs. Everything here is a lookup against
 those files - nothing contacts a NiFi instance.
 
-Python 3.8+, standard library only.
+Python 3.12+, standard library only.
 """
 
 import argparse
@@ -59,6 +59,11 @@ EL_SCOPES = ("NONE", "ENVIRONMENT", "FLOWFILE_ATTRIBUTES")
 # The NARs of the scripted components. Their "Script Body" has EL scope NONE, so NiFi passes a
 # Groovy "${...}" to the script engine unchanged, and validate does not report it.
 SCRIPTING_ARTIFACTS = ("nifi-groovyx-nar", "nifi-scripting-nar")
+
+# Default canvas spacing, from the grid steps in SKILL.md: processors in a column sit 300 px
+# apart, and columns 640 px apart.
+GRID_ROW = 300
+GRID_COLUMN = 640
 
 # The kinds of resource a property can reference, as resourceDefinition names them.
 RESOURCE_TYPES = {"FILE": "file", "DIRECTORY": "directory", "URL": "URL", "TEXT": "text"}
@@ -193,8 +198,9 @@ def discover(explicit=None, search_from=None, flow_version=None):
 
     The scan covers `search_from` (the current directory by default) when it lies inside the
     workspace, then the workspace root; see `_workspace_root`. When the scan finds several
-    Knowledge Bases, `flow_version` picks the one whose NiFi version equals it. Without an
-    exact match the choice is left to the caller.
+    Knowledge Bases, `flow_version` picks the one whose NiFi version equals it. Otherwise the
+    nearest scanned directory that holds a Knowledge Base wins, and several Knowledge Bases
+    in that one directory are an error that lists them.
     """
     if explicit:
         path = Path(explicit).expanduser().resolve()
@@ -215,16 +221,20 @@ def discover(explicit=None, search_from=None, flow_version=None):
         return path
 
     start = Path(search_from or Path.cwd()).resolve()
+    everywhere = []
     found = []
     for root in _search_roots(start):
+        in_root = []
         for manifest in sorted(root.glob("*/manifest.json")) + sorted(
             root.glob("*/*/manifest.json")
         ):
             candidate = manifest.parent
-            if _is_kb_root(candidate) and candidate not in found:
-                found.append(candidate)
-        if found:
-            break
+            if _is_kb_root(candidate) and candidate not in everywhere:
+                everywhere.append(candidate)
+                in_root.append(candidate)
+        # Without a flow version to match, the nearest root that has a Knowledge Base wins.
+        if in_root and not found:
+            found = in_root
 
     if not found:
         raise KbError(
@@ -232,8 +242,8 @@ def discover(explicit=None, search_from=None, flow_version=None):
             "for a Knowledge Base kept elsewhere set NIFI_KB_PATH or pass --kb <path>. To "
             "build one, use %s-tool." % (_workspace_root(), BUILDER_PREFIX)
         )
-    if len(found) > 1 and flow_version:
-        matching = [p for p in found
+    if flow_version and len(everywhere) > 1:
+        matching = [p for p in everywhere
                     if _manifest(p).get("nifi", {}).get("version") == flow_version]
         if len(matching) == 1:
             print("Several Knowledge Bases found; using %s, which matches the flow's NiFi %s."
@@ -690,7 +700,7 @@ def _print_properties(definition):
         print("PROPERTIES: none")
         return
     print("PROPERTIES  (left column is the key to use in the flow JSON)")
-    print("%-38s %-4s %-10s %-16s %s" % ("JSON KEY", "REQ", "EL", "DEFAULT", "ALLOWED / SERVICE API"))
+    print("%-38s %-4s %-10s %-20s %s" % ("JSON KEY", "REQ", "EL", "DEFAULT", "ALLOWED / SERVICE API"))
     print("-" * 112)
     for key, descriptor in descriptors.items():
         required = "yes" if descriptor.get("required") else "no"
@@ -923,7 +933,10 @@ def _check_properties(kb, report, where, component, entry):
             continue
 
         scope = descriptor.get("expressionLanguageScope", "NONE")
-        script_body = key == "Script Body" and entry["artifact"] in SCRIPTING_ARTIFACTS
+        # Matched on the display name, because ExecuteGroovyScript used the key
+        # groovyx-script-body before NiFi 2.7.
+        script_body = (descriptor.get("displayName", key) == "Script Body"
+                       and entry["artifact"] in SCRIPTING_ARTIFACTS)
         if (isinstance(value, str) and EL_TOKEN.search(value) and scope == "NONE"
                 and not script_body):
             report.error(
@@ -1074,27 +1087,55 @@ def _prose_relationships(kb, entry, definition):
 
 
 def _context_parameters(contexts, name, _seen=None):
-    """Parameter names visible in a context, following inheritance."""
+    """Map each parameter name visible in a context to its sensitive flag, following inheritance.
+
+    A parameter the context declares itself takes precedence over an inherited one.
+    """
     _seen = _seen or set()
     if name in _seen or name not in contexts:
-        return set()
+        return {}
     _seen.add(name)
     context = contexts[name]
-    names = set()
+    names = {}
     for parameter in context.get("parameters") or []:
         # NiFi writes either {"name": ...} or {"parameter": {"name": ...}}.
         entry = parameter.get("parameter", parameter)
         if entry.get("name"):
-            names.add(entry["name"])
+            names[entry["name"]] = bool(entry.get("sensitive"))
     for inherited in context.get("inheritedParameterContexts") or []:
         parent = inherited if isinstance(inherited, str) else inherited.get("name")
         if parent:
-            names |= _context_parameters(contexts, parent, _seen)
+            for key, sensitive in _context_parameters(contexts, parent, _seen).items():
+                names.setdefault(key, sensitive)
     return names
 
 
-def _check_parameters(report, root, envelope):
-    """A #{...} reference needs a context bound to the group and declaring the parameter."""
+# A parameter reference: #{name}, or #{'name'} with the name quoted. `##{` escapes it.
+PARAMETER_REFERENCE = re.compile(r"(?<!#)#\{('[^']*'|[^}]+)\}")
+
+
+def _parameter_names(value):
+    return [name[1:-1] if name.startswith("'") and name.endswith("'") else name
+            for name in PARAMETER_REFERENCE.findall(value)]
+
+
+def _property_sensitive(kb, kind, component, key):
+    """Whether a property is sensitive: from the catalog, else from the flow's own descriptor."""
+    entry = kb.lookup(kind, component.get("type", ""))
+    if entry is not None:
+        descriptor = kb.definition(entry)["definition"].get("propertyDescriptors", {}).get(key)
+        if descriptor is not None:
+            return bool(descriptor.get("sensitive"))
+    descriptor = (component.get("propertyDescriptors") or {}).get(key)
+    return bool(descriptor.get("sensitive")) if isinstance(descriptor, dict) else None
+
+
+def _check_parameters(kb, report, root, envelope):
+    """A #{...} reference needs a context bound to the group and declaring the parameter.
+
+    The parameter must also match the property's sensitivity: NiFi lets a sensitive property
+    reference only a sensitive parameter, and a non-sensitive property only a non-sensitive one.
+    """
     contexts = envelope.get("parameterContexts") or {}
 
     # A parameter context binds only the group that names it; a child group is not bound to
@@ -1102,12 +1143,16 @@ def _check_parameters(report, root, envelope):
     def walk(group, path):
         bound = group.get("parameterContextName")
         references = {}
-        for component in (group.get("processors") or []) + (group.get("controllerServices") or []):
+        uses = []
+        components = [("PROCESSOR", c) for c in group.get("processors") or []]
+        components += [("CONTROLLER_SERVICE", c) for c in group.get("controllerServices") or []]
+        for kind, component in components:
             for key, value in (component.get("properties") or {}).items():
                 if isinstance(value, str):
-                    for name in re.findall(r"(?<!#)#\{([^}]+)\}", value):
-                        references.setdefault(name, "%s[%s].%s"
-                                              % (path, component.get("name", "?"), key))
+                    for name in _parameter_names(value):
+                        where = "%s[%s].%s" % (path, component.get("name", "?"), key)
+                        references.setdefault(name, where)
+                        uses.append((name, where, _property_sensitive(kb, kind, component, key)))
         if references:
             if not bound:
                 report.error(
@@ -1132,6 +1177,15 @@ def _check_parameters(report, root, envelope):
                             references[name],
                             "references parameter '%s', which context '%s' does not declare."
                             % (name, bound),
+                        )
+                for name, where, sensitive in uses:
+                    if name in declared and sensitive is not None and sensitive != declared[name]:
+                        report.error(
+                            where,
+                            "a %s property references the %s parameter '%s'. NiFi requires "
+                            "the property and the parameter to be both sensitive or both not."
+                            % ("sensitive" if sensitive else "non-sensitive",
+                               "sensitive" if declared[name] else "non-sensitive", name),
                         )
         for child in group.get("processGroups") or []:
             walk(child, "%s.%s" % (path, child.get("name") or child.get("identifier", "?")))
@@ -1210,6 +1264,13 @@ def _check_endpoint_scope(report, where, role, endpoint, group_id, group_of, par
             )
         return
     if parent_of.get(owner) == group_id and kind:
+        if not declared:
+            report.error(
+                where,
+                "%s.groupId is missing. The %s is a port of child group %s, and NiFi needs "
+                "groupId to find it: without it the upload fails with HTTP 500. `kb.py "
+                "normalize` fills it in." % (role, role, group_paths.get(owner, owner)),
+            )
         expected = "OUTPUT_PORT" if role == "source" else "INPUT_PORT"
         if kind != expected:
             report.error(
@@ -1458,7 +1519,13 @@ def cmd_validate(kb, args):
                     "relationship '%s' does not exist on %s. Available: %s."
                     % (unknown, simple_name(entry["type"]), ", ".join(sorted(supported)) or "none"),
                 )
-            for dangling in sorted(supported - auto - connected):
+            # RouteOnAttribute and RouteText create a relationship per dynamic property only
+            # when they route to property names. Their other strategies route to 'matched',
+            # which the catalog does not list, and then the dynamic properties are conditions.
+            per_property = dynamic_relationships and not (
+                (auto | connected) - supported - dynamic_properties)
+            required = supported | (dynamic_properties if per_property else set())
+            for dangling in sorted(required - auto - connected):
                 report.error(
                     where,
                     "relationship '%s' is neither connected nor auto-terminated. NiFi refuses "
@@ -1467,8 +1534,9 @@ def cmd_validate(kb, args):
             for both in sorted(auto & connected):
                 report.warn(
                     where,
-                    "relationship '%s' is auto-terminated and also connected. NiFi rejects that "
-                    "combination." % both,
+                    "relationship '%s' is auto-terminated and also connected. NiFi imports the "
+                    "connection and drops the auto-termination, so the file no longer matches "
+                    "the flow NiFi runs. Remove it from autoTerminatedRelationships." % both,
                 )
 
             handled = {_relationship_key(r) for r in auto | connected}
@@ -1622,7 +1690,7 @@ def cmd_validate(kb, args):
             "the bundle coordinates." % (len(bundle_mismatch), ", ".join(versions), kb.nifi_version),
         )
 
-    _check_parameters(report, root, envelope)
+    _check_parameters(kb, report, root, envelope)
 
     print("Validating %s against NiFi %s (%s)" % (path, kb.nifi_version, kb.root))
     print()
@@ -1658,7 +1726,7 @@ def normalize_processor(kb, processor, index):
     periods = definition.get("defaultSchedulingPeriodBySchedulingStrategy") or {}
     tasks = definition.get("defaultConcurrentTasksBySchedulingStrategy") or {}
 
-    processor.setdefault("position", {"x": 0.0, "y": float(index * 200)})
+    processor.setdefault("position", {"x": 0.0, "y": float(index * GRID_ROW)})
     processor.setdefault("comments", "")
     processor.setdefault("style", {})
     processor.setdefault("schedulingPeriod", periods.get(strategy, "0 sec"))
@@ -1676,10 +1744,12 @@ def normalize_processor(kb, processor, index):
     processor.setdefault("maxBackoffPeriod", "10 mins")
     processor.setdefault("componentType", "PROCESSOR")
     processor.setdefault("properties", {})
-    if not processor.get("propertyDescriptors"):
-        processor["propertyDescriptors"] = {
-            key: descriptor_stub(kb, entry, key) for key in processor["properties"]
-        }
+    # Existing entries are kept; a property added to an exported flow gets its own.
+    descriptors = processor.get("propertyDescriptors") or {}
+    for key in processor["properties"]:
+        if key not in descriptors:
+            descriptors[key] = descriptor_stub(kb, entry, key)
+    processor["propertyDescriptors"] = descriptors
     if entry and not processor.get("bundle"):
         processor["bundle"] = {"group": entry["group"], "artifact": entry["artifact"],
                                "version": entry["version"]}
@@ -1699,10 +1769,12 @@ def normalize_service(kb, service, index):
                                         "version": a["version"]}}
          for a in definition.get("providedApiImplementations") or []],
     )
-    if not service.get("propertyDescriptors"):
-        service["propertyDescriptors"] = {
-            key: descriptor_stub(kb, entry, key) for key in service["properties"]
-        }
+    # Existing entries are kept; a property added to an exported flow gets its own.
+    descriptors = service.get("propertyDescriptors") or {}
+    for key in service["properties"]:
+        if key not in descriptors:
+            descriptors[key] = descriptor_stub(kb, entry, key)
+    service["propertyDescriptors"] = descriptors
     if entry and not service.get("bundle"):
         service["bundle"] = {"group": entry["group"], "artifact": entry["artifact"],
                              "version": entry["version"]}
@@ -1752,13 +1824,30 @@ def normalize_group(kb, group):
     for index, service in enumerate(group["controllerServices"]):
         service.setdefault("groupIdentifier", group.get("identifier"))
         normalize_service(kb, service, index)
+    # An endpoint is a component of this group or a port of a direct child group, and NiFi
+    # exports name the group that holds it.
+    owners = {}
+    for collection in ("processors", "inputPorts", "outputPorts", "funnels", "remoteProcessGroups"):
+        for component in group[collection]:
+            owners[component.get("identifier")] = group.get("identifier")
+    for child in group["processGroups"]:
+        for port in (child.get("inputPorts") or []) + (child.get("outputPorts") or []):
+            owners[port.get("identifier")] = child.get("identifier")
     for connection in group["connections"]:
         connection.setdefault("groupIdentifier", group.get("identifier"))
         normalize_connection(connection)
-    for port_collection, kind in (("inputPorts", "INPUT_PORT"), ("outputPorts", "OUTPUT_PORT")):
-        for port in group[port_collection]:
+        for role in ("source", "destination"):
+            endpoint = connection.get(role)
+            if isinstance(endpoint, dict) and endpoint.get("id") in owners:
+                endpoint.setdefault("groupId", owners[endpoint["id"]])
+    # Default positions follow the layout in SKILL.md: input ports on a row above the
+    # processor column, output ports on a row below it.
+    bottom = max(len(group["processors"]), 1) * GRID_ROW
+    for port_collection, kind, row in (("inputPorts", "INPUT_PORT", -GRID_ROW),
+                                       ("outputPorts", "OUTPUT_PORT", bottom)):
+        for index, port in enumerate(group[port_collection]):
             port.setdefault("groupIdentifier", group.get("identifier"))
-            port.setdefault("position", {"x": 0.0, "y": 0.0})
+            port.setdefault("position", {"x": float(index * GRID_COLUMN), "y": float(row)})
             port.setdefault("type", kind)
             port.setdefault("componentType", kind)
             port.setdefault("concurrentlySchedulableTaskCount", 1)
@@ -2083,7 +2172,10 @@ def cmd_normalize(kb, args):
     path = Path(args.flow)
     if not path.is_file():
         raise KbError("No such file: %s" % path)
-    doc = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        raise KbError("%s is not valid JSON: %s" % (path, exc))
     root, envelope = root_group(doc)
 
     envelope.setdefault("externalControllerServices", {})
@@ -2096,7 +2188,7 @@ def cmd_normalize(kb, args):
     normalize_group(kb, root)
     routed = route_group(root)
 
-    body = json.dumps(doc, indent=2) + "\n"
+    body = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
     target = Path(args.output) if args.output else path
     target.write_text(body, encoding="utf-8")
     print("Normalized %s -> %s" % (path, target))

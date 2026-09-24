@@ -97,12 +97,13 @@ for the full rule set and its bundled reference files.
 The `nifi-flow-builder` skill builds, modifies, reviews, and debugs NiFi flow definition JSON: flow exports, versioned
 flow snapshots, and process group exports. It takes component types, bundle coordinates, property keys, allowable
 values, and relationships from a NiFi Knowledge Base built from the target NiFi version, not from the agent's memory.
-A paired instructions file triggers the skill when the agent works on a NiFi flow or picks a processor or controller
-service.
+A paired instructions file triggers the skill when the agent creates or edits a NiFi flow definition JSON file. The
+skill's own description also triggers it when the agent picks a processor or controller service.
 
 Requirements and inputs:
 
-- Python 3.8 or later. The bundled scripts use only the standard library.
+- Python 3.12 or later. The bundled scripts use only the standard library, except that certificate mode in
+  `scripts/verify_live.py` needs either the `cryptography` package or the `openssl` command to read the PKCS#12 file.
 - A NiFi Knowledge Base for the target NiFi version, built with
   [`qubership-nifi-kb-builder-tool`](../qubership-nifi-tools/qubership-nifi-kb-builder-tool/README.md). The skill
   looks for it under `--kb`, then `NIFI_KB_PATH`, then inside the workspace.
