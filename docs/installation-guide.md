@@ -44,13 +44,12 @@ See sections below on certificates configuration.
 
 #### Import CA certificate
 
-Self-signed CA certificate is generated in `$PATH_TO_LOCAL_VOLUME/tls-certificate/nifi/nifi-cert.pem`.
+Self-signed CA certificate is generated in `$PATH_TO_LOCAL_VOLUME/tls-certificate/nifi-cert.pem`.
 You can import it in your browser as trusted and then open new window or restart browser for changes to be applied.
 
 #### Import client certificate
 
-Client certificate is generated in `$PATH_TO_LOCAL_VOLUME/tls-certificate/nifi/CN=admin_OU=NIFI.p12`
-in PKCS12 (PFX) format.
-Its password is available in `$PATH_TO_LOCAL_VOLUME/tls-certificate/nifi/CN=admin_OU=NIFI.password`.
+Client certificate is generated in `$PATH_TO_LOCAL_VOLUME/tls-certificate/CN=admin_OU=NIFI.p12` in PKCS12 (PFX) format.
+Password for is available in `$PATH_TO_LOCAL_VOLUME/tls-certificate/CN=admin_OU=NIFI.password`.
 To access qubership-nifi, you need to import it as Personal certificate in your browser.
 After that you may need to open new window or restart browser for changes to be applied.

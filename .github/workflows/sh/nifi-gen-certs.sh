@@ -3,37 +3,10 @@
 # shellcheck source=/dev/null
 # shellcheck disable=SC2034
 
-#tls-toolkit marks basicConstraints on the CA it generates as non-critical, which strict X.509 verifiers reject.
-#tls-toolkit reuses nifi-cert.pem and nifi-key.key when they already exist in its output directory,
-#so the CA is generated here with critical basicConstraints (CA:true) and the same subject as the toolkit default.
-#Callers must stop on a non-zero return: otherwise tls-toolkit silently generates its own non-critical CA.
-generate_ca_cert() {
-    local targetDir="$1"
-    echo "Generating CA certificate in $targetDir..."
-    openssl genrsa -out "$targetDir/nifi-key.key" 2048 || return 1
-    openssl req -x509 -new -key "$targetDir/nifi-key.key" -sha256 -days 825 -out "$targetDir/nifi-cert.pem" \
-        -config <(
-            cat <<EOF
-[req]
-distinguished_name = dn
-x509_extensions = v3_ca
-prompt = no
-[dn]
-OU = NIFI
-CN = localhost
-[v3_ca]
-basicConstraints = critical,CA:true
-keyUsage = critical,digitalSignature,keyCertSign,cRLSign
-subjectKeyIdentifier = hash
-EOF
-        ) || return 1
-}
-
 generate_nifi_certs() {
     if [ ! -f /tmp/tls-certs/nifi/keystore.p12 ]; then
         mkdir -p /tmp/tls-certs/nifi
         chmod 777 /tmp/tls-certs/nifi
-        generate_ca_cert /tmp/tls-certs/nifi || return 1
         echo 'Generating nifi certs...'
         "$NIFI_TOOLKIT_HOME"/bin/tls-toolkit.sh standalone -n "localhost" --subjectAlternativeNames "nifi" \
             -C "CN=admin, OU=NIFI" -P "${TRUSTSTORE_PASSWORD}" -S "${KEYSTORE_PASSWORD_NIFI}" -o /tmp/tls-certs/nifi
@@ -87,7 +60,6 @@ generate_nifi_cluster_node_certs() {
         chmod 777 "$targetDir"
         if [ "$nodeNum" == "0" ]; then
             echo "Node = 0, skip CA certs copying..."
-            generate_ca_cert "$targetDir" || return 1
         else
             echo "Copying CA certificates..."
             cp /tmp/tls-certs/qubership-nifi-0/nifi-cert.pem /tmp/tls-certs/qubership-nifi-0/nifi-key.key \
@@ -113,7 +85,7 @@ generate_nifi_cluster_node_certs() {
 }
 
 generate_nifi_cluster_certs() {
-    generate_nifi_cluster_node_certs 0 || return 1
+    generate_nifi_cluster_node_certs 0
     generate_nifi_cluster_node_certs 1
     generate_nifi_cluster_node_certs 2
 
@@ -225,9 +197,9 @@ generate_consul_token() {
 }
 
 if [ "$IS_CLUSTER" == "true" ]; then
-    generate_nifi_cluster_certs || exit 1
+    generate_nifi_cluster_certs
 else
-    generate_nifi_certs || exit 1
+    generate_nifi_certs
 fi
 create_newman_cert_config
 if [ "$CONSUL_ACL_ENABLED" == "true" ]; then

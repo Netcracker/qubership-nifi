@@ -44,7 +44,7 @@ kb.py locate
 This resolves the KB in order: the `--kb` argument, then `$NIFI_KB_PATH`, then a scan of the
 flow's directory (the current directory for a command that takes no flow, such as `locate`)
 and the workspace root, two levels deep. The workspace root is
-`$CLAUDE_PROJECT_DIR` when set, otherwise the git repository that contains the current
+`$CLAUDE_PROJECT_DIR` when set, otherwise the Git repository that contains the current
 directory, otherwise the current directory. Nothing outside the workspace is scanned, so a KB
 kept elsewhere needs `--kb` or `NIFI_KB_PATH`. It prints the path, the NiFi version, the
 definition format, the component counts, and the platform: `qubership-nifi` when the KB has
@@ -99,7 +99,7 @@ writes.
 
 For Expression Language and RecordPath syntax, read `guides/expression-language-guide.md` and
 `guides/record-path-guide.md` under the KB root. Grep them for the function you need rather
-than reading them end to end.
+than reading them in full.
 
 `kb.py services` answers the question that is easiest to get wrong by reasoning. A property
 that takes a controller service declares the API it requires, and each service declares the
@@ -151,10 +151,10 @@ environment variables and system properties but no FlowFile attributes. `UNDEFIN
 and set `groupIdentifier` to the identifier of the process group that contains it. A
 connection's `source.id` and `destination.id` must match identifiers that exist in the flow.
 Numbered placeholders import without complaint, so nothing stops you, but NiFi keeps the
-identifier you write through import and re-export: it becomes the component's permanent
-portable id, and a second flow built from the same numbers collides with the first in every
+identifier you write through import and every later export: it becomes the component's permanent
+portable ID, and a second flow built from the same numbers collides with the first in every
 tool that compares flows. Where the numbers collide inside one NiFi, NiFi may also replace
-them with generated identifiers, so the ids you wrote are gone after the import.
+them with generated identifiers, so the IDs you wrote are gone after the import.
 
 **Do not invent properties.** Add a key outside the descriptor list only when `kb.py props`
 reports `dynamic properties: yes`.

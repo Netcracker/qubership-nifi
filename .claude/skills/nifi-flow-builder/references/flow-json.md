@@ -150,7 +150,7 @@ Field notes:
   and omitting the field, or setting it to `null`, fails the upload with HTTP 500. An
   empty map is accepted, and so is one that covers only some of the properties - NiFi
   does not read the contents at import. Write the full mirror anyway, because that is
-  what a re-export produces and anything less shows up as diff noise. A 1.x export goes
+  what exporting the flow again produces and anything less shows up as diff noise. A 1.x export goes
   further and lists a descriptor for every property the component declares, set or not,
   sometimes with a `resourceDefinition`; NiFi 1.28.1 accepts the shorter map that
   `normalize` writes.
@@ -523,8 +523,8 @@ the service is defined:
 
 ## Identifiers
 
-`identifier` is the stable, portable id and the one connections and service references point
-at. `instanceIdentifier` is the id of the live component the flow was exported from; it is
+`identifier` is the stable, portable ID and the one connections and service references point
+at. `instanceIdentifier` is the ID of the live component the flow was exported from; it is
 optional in a flow you write by hand, and NiFi assigns a new one on import.
 
 Generate a random UUID for each one - `kb.py ids <count>` prints as many as you need. NiFi
