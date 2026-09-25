@@ -336,10 +336,10 @@ def test_an_unknown_property_key_is_an_error_only_without_dynamic_properties(dyn
                   "propertyDescriptors": {"Batch Size": {"name": "Batch Size"}}}
     report = kb.Report()
     kb._check_properties(_OneDefinitionKb(definition), report, "where",
-                         {"properties": {"Batch Sise": "10"}}, {"type": "org.example.P"})
+                         {"properties": {"Batch Sizing": "10"}}, {"type": "org.example.P"})
     assert len(report.errors) == errors, report.errors
     if errors:
-        assert "'Batch Sise' is not a property of P and the component takes no dynamic " \
+        assert "'Batch Sizing' is not a property of P and the component takes no dynamic " \
                "properties. Did you mean: Batch Size?" in report.errors[0][1]
 
 
