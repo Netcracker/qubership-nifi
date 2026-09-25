@@ -72,7 +72,10 @@ tool prerequisites, configuration lookup, and a manual dry-run example.
 
 ### `nifi-development-kit`
 
-Provides the `nifi-custom-component-developer-skill` skill: conventions and correctness
+Provides two skills: `nifi-custom-component-developer-skill` for custom NiFi components, and `nifi-flow-builder` for
+NiFi flow definitions.
+
+The `nifi-custom-component-developer-skill` skill carries conventions and correctness
 rules for writing or reviewing custom Apache NiFi components (Processors, Controller
 Services, Reporting Tasks), extracted from the existing qubership-nifi codebase rather
 than the generic NiFi API docs.
@@ -90,6 +93,26 @@ The skill applies whenever an agent creates, extends, or reviews a component, co
 See the
 [`nifi-custom-component-developer-skill` skill](nifi-development-kit/.apm/skills/nifi-custom-component-developer-skill/SKILL.md)
 for the full rule set and its bundled reference files.
+
+The `nifi-flow-builder` skill builds, modifies, reviews, and debugs NiFi flow definition JSON: flow exports, versioned
+flow snapshots, and process group exports. It takes component types, bundle coordinates, property keys, allowable
+values, and relationships from a NiFi Knowledge Base built from the target NiFi version, not from the agent's memory.
+A paired instructions file triggers the skill when the agent creates or edits a NiFi flow definition JSON file. The
+skill's own description also triggers it when the agent picks a processor or controller service.
+
+Requirements and inputs:
+
+- Python 3.12 or later. The bundled scripts use only the standard library, except that certificate mode in
+  `scripts/verify_live.py` needs either the `cryptography` package or the `openssl` command to read the PKCS#12 file.
+- A NiFi Knowledge Base for the target NiFi version, built with
+  [`qubership-nifi-kb-builder-tool`](../qubership-nifi-tools/qubership-nifi-kb-builder-tool/README.md). The skill
+  looks for it under `--kb`, then `NIFI_KB_PATH`, then inside the workspace.
+- Optional: a running NiFi instance, to import a flow and read back its validation state with
+  `scripts/verify_live.py`.
+
+See the
+[`nifi-flow-builder` skill](nifi-development-kit/.apm/skills/nifi-flow-builder/SKILL.md)
+for the full workflow and its reference files.
 
 ### `qubership-nifi-docs-maintenance`
 
