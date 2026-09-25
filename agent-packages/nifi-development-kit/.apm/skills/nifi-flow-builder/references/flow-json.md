@@ -11,7 +11,7 @@ from this page. The templates here fix the shape; the Knowledge Base fixes the c
 
 NiFi deserializes a flow definition into Java objects and reads enums, integers and maps
 without null checks. A field you leave out arrives as `null` and throws inside the importer,
-so the API answers `HTTP 500` with a stack trace in `nifi-app.log` and no useful message. This
+so the API answers `HTTP 500` with a stack trace in log and no useful message. This
 happens before any component is validated, which makes it look unrelated to the flow's
 contents.
 
