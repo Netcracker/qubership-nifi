@@ -1,0 +1,4 @@
+name: qubership-nifi-lint-hook
+version: 1.0.0
+description: Codex and Cursor PostToolUse hook that lints each file on write or edit with codespell, checkstyle, markdownlint, editorconfig-checker and textlint.
+author: Qubership

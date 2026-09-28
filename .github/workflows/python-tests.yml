@@ -8,6 +8,8 @@ on:
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
+      - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
+      - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
       - '.github/workflows/python-tests.yml'
   pull_request:
     paths:
@@ -15,6 +17,8 @@ on:
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
+      - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
+      - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
       - '.github/workflows/python-tests.yml'
   workflow_dispatch: null
 
@@ -53,6 +57,12 @@ jobs:
       - name: Run nifi-flow-builder pytest
         if: ${{ !cancelled() }}
         run: python3 -m pytest agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests --junitxml=pytest-results-nifi-flow-builder.xml
+
+      - name: Check that the lint hook script copies are identical
+        if: ${{ !cancelled() }}
+        run: >-
+          cmp agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
+          agent-packages/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py
 
       - name: Upload test results
         if: failure()
