@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code PostToolUse hook: lint the file that was just written/edited.
+"""PostToolUse hook: lint the file that was just written/edited.
 
 Runs codespell and editorconfig-checker on every changed file, checkstyle on
 changed .java files, and markdownlint plus textlint on changed .md files (textlint
@@ -10,13 +10,14 @@ no .editorconfig-checker.json), the same as CI. Test fixtures and APM agent cont
 (skills/rules/commands) are skipped, mirroring the FILTER_REGEX_EXCLUDE filter in
 .github/super-linter.env.
 
-On findings the hook prints a summary to stderr and exits 2 so Claude Code
-feeds the output back to Claude. Missing tools (codespell / editorconfig-checker /
+On findings the hook prints a summary to stderr and exits 2 so the agent
+harness feeds the output back to the agent. Missing tools (codespell / editorconfig-checker /
 java / the checkstyle jar / a markdownlint CLI / textlint) are reported as a note and
 skipped -- they never block edits.
 
-This script ships inside the qubership-nifi-linters APM package and is deployed via
-`apm install` (its command is anchored to ${PLUGIN_ROOT}). Because the deployed location
+This script ships in the qubership-nifi-lint-hook-claude (Claude Code) and
+qubership-nifi-lint-hook (Codex, Cursor) APM packages, whose copies must stay identical,
+and is deployed via `apm install` (its command uses ${PLUGIN_ROOT}). Because the deployed location
 is not fixed relative to the repository, the repo root is discovered at runtime rather than
 from the script's own path: CLAUDE_PROJECT_DIR if set, else the current working directory
 when it contains .github/, else `git rev-parse --show-toplevel`, else the working directory.

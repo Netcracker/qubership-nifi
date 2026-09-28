@@ -55,19 +55,23 @@ for the complete migration procedure and the manual review points.
 
 ### `qubership-nifi-linters`
 
-Provides two linter integrations:
+Provides the `/lint <module-path>` prompt, which runs codespell, checkstyle, markdownlint,
+editorconfig-checker, and textlint against a module, then guides the agent through fixing
+the findings.
 
-- The `/lint <module-path>` prompt runs codespell, checkstyle, markdownlint,
-  editorconfig-checker, and textlint against a module, then guides the agent through
-  fixing the findings.
-- A non-blocking `PostToolUse` hook checks each file after an agent writes or edits it
-  and returns any findings to the agent.
+Since version 2.0.0 the package no longer contains the per-file linter hook. Two companion
+packages provide it: `qubership-nifi-lint-hook-claude` for Claude Code and
+`qubership-nifi-lint-hook` for Codex and Cursor. The non-blocking `PostToolUse` hook checks
+each file after an agent writes or edits it and returns any findings to the agent. Declare
+each hook package with `targets:` so it reaches only its harnesses; the
+[linter hook documentation](qubership-nifi-lint-hook-claude/.apm/hooks/README.md#wiring)
+shows the `apm.yml` entries.
 
-Both integrations reuse the consumer repository's linter configuration and exclude
+The prompt and the hook reuse the consumer repository's linter configuration and exclude
 build output, test data, and deployed APM agent content. A missing linter is reported
 and skipped, so install only the tools required for the checks you want to run.
 
-See the [linter hook documentation](qubership-nifi-linters/.apm/hooks/README.md) for
+See the [linter hook documentation](qubership-nifi-lint-hook-claude/.apm/hooks/README.md) for
 tool prerequisites, configuration lookup, and a manual dry-run example.
 
 ### `nifi-development-kit`
