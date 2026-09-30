@@ -24,6 +24,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 /**
  * Integration test for the {@code --properties} flag in isolation: only the renamed/removed
  * properties must be applied, while component versions and external controller service references
@@ -44,6 +50,15 @@ class UpdateScriptsPropertiesIT {
         {"record-writer", "Record Writer"},
         {"include-zero-record-flowfiles", "Include Zero Record FlowFiles"},
     };
+
+    /** Minimum target minor version that applies the 2.11 mapping step to the AvroSchemaRegistry flow. */
+    private static final int AVRO_VALIDATION_STRATEGY_MINOR = 11;
+
+    /** Flow with two NiFi 1.28.1 AvroSchemaRegistry services: one with Validate Field Names set, one without. */
+    private static final String AVRO_SCHEMA_REGISTRY_FLOW = "flows/flow-with-avro-schema-registry.json";
+
+    /** Name of Validate Field Names after the 2.7 mapping step renamed avro-reg-validated-field-names. */
+    private static final String VALIDATE_FIELD_NAMES = "Validate Field Names";
 
     private static final UpdateScriptsTestHarness HARNESS = new UpdateScriptsTestHarness();
 
@@ -93,5 +108,59 @@ class UpdateScriptsPropertiesIT {
 
         HARNESS.importAndValidate(snapshot.path("flowContents"),
                 List.of());
+    }
+
+    /**
+     * Validate Field Names set to false stays in the flow, so that NiFi 2.11 converts it to the
+     * Validation Strategy value NONE on import. Without the value, Validation Strategy takes its
+     * default VALIDATE, and the service starts validating schemas it accepted before.
+     */
+    @Test
+    void aValidateFieldNamesSetToFalseIsKeptForNiFiToMigrate() throws Exception {
+        assumeAvroValidationStrategyTarget();
+
+        JsonNode registry = controllerService(HARNESS.readFlow(AVRO_SCHEMA_REGISTRY_FLOW),
+                "AvroSchemaRegistryNoValidation");
+        JsonNode props = registry.path("properties");
+
+        assertAll(
+            () -> assertEquals("false", props.path(VALIDATE_FIELD_NAMES).asText(null),
+                    "AvroSchemaRegistryNoValidation properties " + props),
+            () -> assertTrue(registry.path("propertyDescriptors").has(VALIDATE_FIELD_NAMES),
+                    "AvroSchemaRegistryNoValidation propertyDescriptors "
+                            + registry.path("propertyDescriptors")));
+    }
+
+    /**
+     * The Validate Field Names descriptor is removed from a service that carries no value for the
+     * property, and the other descriptors stay.
+     */
+    @Test
+    void anUnsetValidateFieldNamesLosesItsDescriptor() throws Exception {
+        assumeAvroValidationStrategyTarget();
+
+        JsonNode descriptors = controllerService(HARNESS.readFlow(AVRO_SCHEMA_REGISTRY_FLOW),
+                "AvroSchemaRegistryValidationUnset").path("propertyDescriptors");
+
+        assertAll(
+            () -> assertFalse(descriptors.has(VALIDATE_FIELD_NAMES),
+                    "AvroSchemaRegistryValidationUnset propertyDescriptors " + descriptors),
+            () -> assertTrue(descriptors.has("schema1"),
+                    "AvroSchemaRegistryValidationUnset propertyDescriptors " + descriptors));
+    }
+
+    private static void assumeAvroValidationStrategyTarget() {
+        Assumptions.assumeTrue(HARNESS.nifiVersion() != null && HARNESS.nifiVersion().startsWith("2.")
+                && HARNESS.nifiVersionMinor() >= AVRO_VALIDATION_STRATEGY_MINOR,
+            "The 2.11 mapping step only runs on NiFi 2.11 or later targets");
+    }
+
+    private static JsonNode controllerService(final JsonNode snapshot, final String name) {
+        for (JsonNode service : snapshot.path("flowContents").path("controllerServices")) {
+            if (name.equals(service.path("name").asText())) {
+                return service;
+            }
+        }
+        return fail("flow must contain a controller service named " + name);
     }
 }

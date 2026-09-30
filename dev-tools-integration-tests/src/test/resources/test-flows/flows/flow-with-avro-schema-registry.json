@@ -1,0 +1,126 @@
+{
+    "externalControllerServices": {},
+    "flowContents": {
+        "comments": "",
+        "componentType": "PROCESS_GROUP",
+        "connections": [],
+        "controllerServices": [
+            {
+                "bulletinLevel": "WARN",
+                "bundle": {
+                    "artifact": "nifi-registry-nar",
+                    "group": "org.apache.nifi",
+                    "version": "1.28.1"
+                },
+                "comments": "",
+                "componentType": "CONTROLLER_SERVICE",
+                "controllerServiceApis": [
+                    {
+                        "bundle": {
+                            "artifact": "nifi-standard-services-api-nar",
+                            "group": "org.apache.nifi",
+                            "version": "1.28.1"
+                        },
+                        "type": "org.apache.nifi.schemaregistry.services.SchemaRegistry"
+                    }
+                ],
+                "groupIdentifier": "5c1d7a3e-2b8f-3c41-9d6a-0e4f8b2a7c11",
+                "identifier": "88888888-0000-0000-0000-000000000001",
+                "instanceIdentifier": "0b7e4f21-6d3a-3f58-a1c9-5e2d8b40f613",
+                "name": "AvroSchemaRegistryNoValidation",
+                "properties": {
+                    "avro-reg-validated-field-names": "false",
+                    "schema1": "{\"type\": \"record\", \"name\": \"TestRecord\", \"fields\": [{\"name\": \"field1\", \"type\": \"string\"}]}"
+                },
+                "propertyDescriptors": {
+                    "avro-reg-validated-field-names": {
+                        "displayName": "Validate Field Names",
+                        "identifiesControllerService": false,
+                        "name": "avro-reg-validated-field-names",
+                        "sensitive": false
+                    },
+                    "schema1": {
+                        "displayName": "schema1",
+                        "identifiesControllerService": false,
+                        "name": "schema1",
+                        "sensitive": false
+                    }
+                },
+                "scheduledState": "DISABLED",
+                "type": "org.apache.nifi.schemaregistry.services.AvroSchemaRegistry"
+            },
+            {
+                "bulletinLevel": "WARN",
+                "bundle": {
+                    "artifact": "nifi-registry-nar",
+                    "group": "org.apache.nifi",
+                    "version": "1.28.1"
+                },
+                "comments": "",
+                "componentType": "CONTROLLER_SERVICE",
+                "controllerServiceApis": [
+                    {
+                        "bundle": {
+                            "artifact": "nifi-standard-services-api-nar",
+                            "group": "org.apache.nifi",
+                            "version": "1.28.1"
+                        },
+                        "type": "org.apache.nifi.schemaregistry.services.SchemaRegistry"
+                    }
+                ],
+                "groupIdentifier": "5c1d7a3e-2b8f-3c41-9d6a-0e4f8b2a7c11",
+                "identifier": "88888888-0000-0000-0000-000000000002",
+                "instanceIdentifier": "7f2c9a55-1e84-3b6d-8c07-d4a1e6f93b28",
+                "name": "AvroSchemaRegistryValidationUnset",
+                "properties": {
+                    "schema1": "{\"type\": \"record\", \"name\": \"TestRecord\", \"fields\": [{\"name\": \"field1\", \"type\": \"string\"}]}"
+                },
+                "propertyDescriptors": {
+                    "avro-reg-validated-field-names": {
+                        "displayName": "Validate Field Names",
+                        "identifiesControllerService": false,
+                        "name": "avro-reg-validated-field-names",
+                        "sensitive": false
+                    },
+                    "schema1": {
+                        "displayName": "schema1",
+                        "identifiesControllerService": false,
+                        "name": "schema1",
+                        "sensitive": false
+                    }
+                },
+                "scheduledState": "DISABLED",
+                "type": "org.apache.nifi.schemaregistry.services.AvroSchemaRegistry"
+            }
+        ],
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultFlowFileExpiration": "0 sec",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "funnels": [],
+        "identifier": "5c1d7a3e-2b8f-3c41-9d6a-0e4f8b2a7c11",
+        "inputPorts": [],
+        "instanceIdentifier": "3e9b1c70-4a2d-3f86-b5e1-9c7d2a08f4e3",
+        "labels": [],
+        "name": "flow-with-avro-schema-registry",
+        "outputPorts": [],
+        "position": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "processGroups": [],
+        "processors": [],
+        "remoteProcessGroups": [],
+        "variables": {}
+    },
+    "flowEncodingVersion": "1.0",
+    "parameterContexts": {},
+    "parameterProviders": {},
+    "snapshotMetadata": {
+        "author": "anonymous",
+        "comments": "",
+        "timestamp": 1784032595587,
+        "version": 1
+    }
+}

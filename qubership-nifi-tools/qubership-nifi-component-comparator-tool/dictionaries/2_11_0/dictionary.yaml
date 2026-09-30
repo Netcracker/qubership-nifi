@@ -1,0 +1,3 @@
+propertiesToRemoveWhenEmpty:
+  - AvroSchemaRegistry:
+    - Validate Field Names

@@ -55,6 +55,11 @@ deprecatedComponents='{
         "issue": "The ConsumeEWS Processor is not available in Apache NiFi 2.x.",
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
     },
+    "org.apache.nifi.processors.twitter.ConsumeTwitter": {
+        "level": "Error",
+        "issue": "The ConsumeTwitter Processor is not available in Apache NiFi 2.11.0 and later.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
+    },
     "org.apache.nifi.processors.avro.ConvertAvroToJSON": {
         "level": "Warning",
         "issue": "The ConvertAvroToJSON Processor is not available in Apache NiFi 2.x.",
@@ -224,10 +229,9 @@ deprecatedComponents='{
         "solution": "Research if any alternatives can be used instead. If not, create a custom component."
     },
     "org.apache.nifi.processors.twitter.GetTwitter": {
-        "level": "Warning",
-        "version": "1.17.0",
-        "issue": "The GetTwitter Processor is not available in Apache NiFi 2.x.",
-        "solution": "Update the flow to use ConsumeTwitter Processor instead of GetTwitter."
+        "level": "Error",
+        "issue": "The GetTwitter Processor is not available in Apache NiFi 2.x. Its replacement, ConsumeTwitter, is not available in Apache NiFi 2.11.0 and later.",
+        "solution": "Research if any alternatives can be used instead. If not, create a custom component."
     },
     "org.apache.nifi.metrics.reporting.reporter.service.GraphiteMetricReporterService": {
         "level": "Error",
