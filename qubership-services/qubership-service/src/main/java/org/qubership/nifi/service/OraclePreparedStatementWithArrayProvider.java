@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
@@ -92,7 +93,7 @@ public class OraclePreparedStatementWithArrayProvider
     private String dbSchema;
     private String fullCharTypeName;
     private String fullNumTypeName;
-    private volatile OracleApi oracleApi;
+    private final AtomicReference<OracleApi> oracleApi = new AtomicReference<>();
 
     /**
      * Oracle driver members resolved from one classloader.
@@ -159,7 +160,7 @@ public class OraclePreparedStatementWithArrayProvider
      */
     private OracleApi resolveOracleApi(final Connection con) {
         ClassLoader loader = con.getClass().getClassLoader();
-        OracleApi cached = this.oracleApi;
+        OracleApi cached = this.oracleApi.get();
         if (cached != null && cached.loader() == loader) {
             return cached;
         }
@@ -180,7 +181,7 @@ public class OraclePreparedStatementWithArrayProvider
                     + " Check ojdbc jar version");
         }
         OracleApi resolved = new OracleApi(loader, connectionClass, createArrayMethod);
-        this.oracleApi = resolved;
+        this.oracleApi.set(resolved);
         return resolved;
     }
 
