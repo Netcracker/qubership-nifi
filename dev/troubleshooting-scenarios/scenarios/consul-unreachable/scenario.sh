@@ -20,7 +20,22 @@
 # shellcheck disable=SC2034
 
 CONSUL_CONTAINER=ts-consul
-CONSUL_APP_JAR=qubership-nifi-consul-application.jar
+
+# The Spring application takes CONSUL_URL as <host>:<port>, the Quarkus one as a URL with the protocol.
+case "$CONSUL_FRAMEWORK" in
+    spring)
+        CONSUL_URL_PREFIX=
+        CONSUL_APP_JAR=qubership-nifi-consul-application.jar
+        ;;
+    quarkus)
+        CONSUL_URL_PREFIX=http://
+        CONSUL_APP_JAR=quarkus-run.jar
+        ;;
+    *) die "CONSUL_FRAMEWORK must be spring or quarkus, got '$CONSUL_FRAMEWORK'." ;;
+esac
+# Read by docker-compose.yaml of the scenario.
+export NIFI_CONSUL_URL="${CONSUL_URL_PREFIX}consul:8500"
+WRONG_CONSUL_URL="${WRONG_CONSUL_URL:-${CONSUL_URL_PREFIX}consul-wrong:8500}"
 
 case "$CONSUL_FAILURE" in
     # nifi-scripts/start.sh exits with 1 when the Consul integration application terminates.

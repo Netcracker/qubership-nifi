@@ -78,9 +78,19 @@ on `NIFI_CONSUL_INT_FRAMEWORK`:
   [...] ERROR: Consul app java process has terminated prematurely. See logs for details...
   ```
 
-- With `NIFI_CONSUL_INT_FRAMEWORK=quarkus` (the default), the Quarkus-based application logs a different error
-  format. The underlying issue is the same: it cannot connect to the address in `CONSUL_URL`, so the process
-  terminates prematurely.
+- With `NIFI_CONSUL_INT_FRAMEWORK=quarkus` (the default), the Quarkus-based application logs a stack trace similar
+  to this one, for a host that does not resolve:
+
+  ```text
+  ERROR: Failed to start application
+  java.lang.RuntimeException: Failed to start quarkus
+  ...
+  Caused by: java.util.concurrent.CompletionException: java.net.ConnectException
+  ...
+  Caused by: java.net.ConnectException
+  ...
+  Caused by: java.nio.channels.UnresolvedAddressException
+  ```
 
 In both cases, the qubership-nifi startup log contains a line similar to:
 
@@ -90,15 +100,16 @@ In both cases, the qubership-nifi startup log contains a line similar to:
 
 The container exits with **exit code 1**.
 
-With `NIFI_CONSUL_INT_FRAMEWORK=spring`, when Consul accepts the connection but does not respond, the startup hangs
-instead, with no error: the Consul integration application waits for the response without a timeout, and the startup
-log repeats this line once a second:
+When Consul accepts the connection but does not respond, the startup hangs instead, with no error, whichever
+framework `NIFI_CONSUL_INT_FRAMEWORK` selects. The Consul integration application waits for the response, and the
+startup log repeats this line once a second:
 
 ```text
 [...] Checking if consul app main execution completed
 ```
 
-The startup continues if Consul responds later.
+The startup continues if Consul responds later. No timeout was observed: in testing, the startup was still waiting
+after 2 minutes with `spring` and after 9 minutes with `quarkus`.
 
 ### Cause
 
@@ -107,8 +118,8 @@ cannot connect to Consul, so it terminates prematurely. This applies to both the
 application, selected by `NIFI_CONSUL_INT_FRAMEWORK`.
 
 A startup that hangs has a Consul that accepts the connection and does not respond, for example a stalled Consul
-agent or a network path that drops the responses. The Spring-based application waits for the response without a
-timeout.
+agent or a network path that drops the responses. Both the Spring-based and the Quarkus-based application wait for the
+response.
 
 ### Resolution
 
