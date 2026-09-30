@@ -232,6 +232,7 @@ prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/pe
 
 #Update configuration from 1.x version to 2.x
 bash "${scripts_dir}/update_flow_json.sh"
+bash "${scripts_dir}/update_flow_json_ojdbc_location.sh"
 
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
