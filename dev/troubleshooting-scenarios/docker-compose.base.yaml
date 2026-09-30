@@ -1,7 +1,7 @@
 ---
 # Single-node NiFi with TLS and Consul, based on .github/docker/tls/docker-compose.yaml without NiFi Registry.
 # run.sh sets BASE_DIR (the .work directory), GIT_BASE_DIR, and the passwords in .work/docker.env.
-# Each scenario adds its own override file that changes the content repository storage.
+# A scenario may add its own override file that changes the repository storage or the NiFi startup settings.
 services:
   nifi-toolkit:
     image: apache/nifi-toolkit:1.28.1@sha256:7a43836dcc7ac37c5243dd11792da3aaff1b28a1c0e06b41c23cb16118c42652

@@ -1,0 +1,9 @@
+---
+# Passes the JVM argument variables to NiFi and keeps a failed NiFi container stopped, so that run.sh can read
+# its exit code. Both variables are empty on the first start.
+services:
+  nifi:
+    restart: "no"
+    environment:
+      - NIFI_ADDITIONAL_JVM_ARGS=${NIFI_ADDITIONAL_JVM_ARGS:-}
+      - X_JAVA_ARGS=${X_JAVA_ARGS:-}

@@ -13,7 +13,7 @@ The second command runs the same load on a local Docker volume, as a baseline to
 
 ## Symptom
 
-- Archive cleanup runs take much longer than on local storage. With DEBUG level for
+- Archive cleanup runs take much longer than on a local disk. With DEBUG level for
   `org.apache.nifi.controller.repository.FileSystemRepository`, `nifi-app.log` reports the phases of each run. The
   `delete expired` phase walks all archive directories and takes most of the time:
 

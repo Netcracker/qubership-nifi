@@ -32,6 +32,9 @@ FILE_SYSTEM_REPOSITORY_LOGGER="org.apache.nifi.controller.repository.FileSystemR
 # Image for helper containers that need root, such as removing files NiFi wrote; the same Consul image the compose uses.
 HELPER_IMAGE="hashicorp/consul:1.22@sha256:a230dcea0bb107bd7958a912d1429fb7f9d399637de7ffb814b34412b9e8c543"
 
+# Seconds run.sh waits for NiFi to exit after scenario_break.
+NIFI_EXIT_TIMEOUT="${NIFI_EXIT_TIMEOUT:-600}"
+
 # Compose override files of the loaded scenario, relative to its directory. scenario.sh may change the list.
 SCENARIO_COMPOSE_FILES=(docker-compose.yaml)
 
@@ -125,6 +128,40 @@ compose() {
 
 is_nifi_running() {
     [ "$(docker inspect -f '{{.State.Running}}' "$NIFI_CONTAINER" 2>/dev/null)" == "true" ]
+}
+
+is_nifi_exited() {
+    [ "$(docker inspect -f '{{.State.Status}}' "$NIFI_CONTAINER" 2>/dev/null)" == "exited" ]
+}
+
+nifi_exit_code() {
+    docker inspect -f '{{.State.ExitCode}}' "$NIFI_CONTAINER"
+}
+
+# Creates the NiFi container again and starts it without waiting for it to become healthy, for scenario_break.
+# Variables exported by the caller take precedence over .work/docker.env in the compose files.
+# The anonymous volumes of the image, such as logs and conf, are created anew, as for a new pod in Kubernetes;
+# the persistent_conf bind mount keeps flow.json.gz and the sensitive key hash of the first start.
+recreate_nifi() {
+    compose up -d --no-deps --force-recreate --renew-anon-volumes nifi
+}
+
+# Waits for the NiFi container to stop and prints its exit code. Fails when it is still running after the timeout.
+# Usage: wait_nifi_exit TIMEOUT_SECONDS
+wait_nifi_exit() {
+    timeout "$1" docker wait "$NIFI_CONTAINER"
+}
+
+# Records that the current NiFi container has become healthy. collect-evidence.sh calls the REST API only for this
+# container: one that scenario_break created again has not come up, even when Docker later reports it unhealthy.
+mark_nifi_up() {
+    docker inspect -f '{{.Id}}' "$NIFI_CONTAINER" >"$WORK_DIR/nifi-up-container"
+}
+
+# Runs a shell command as root in a helper container with the work directory mounted at /work,
+# for changing files that NiFi wrote as another user.
+helper_run() {
+    docker run --rm -v "$WORK_DIR:/work" --entrypoint sh "$HELPER_IMAGE" -c "$1"
 }
 
 # Calls the NiFi REST API from inside the NiFi container, with the admin client certificate.

@@ -1,0 +1,53 @@
+# Conflicting JVM arguments
+
+`NIFI_ADDITIONAL_JVM_ARGS` and `X_JAVA_ARGS` select two different garbage collectors. The start script checks the
+collector arguments with a trial JVM before it starts NiFi, and exits with code 3 when that JVM refuses them.
+
+```bash
+./run.sh jvm-args-conflict
+```
+
+## Symptom
+
+- The container exits with code 3 about 10 seconds after the start, before NiFi writes `nifi-app.log`.
+- The container output ends with:
+
+  ```text
+  ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS: -XX:+UseG1GC -XX:+UseParallelGC
+  Picked up JAVA_TOOL_OPTIONS: -XX:+UseParallelGC
+  Error occurred during initialization of VM
+  Multiple garbage collectors selected
+  ```
+
+## Cause
+
+The start script adds both variables to `conf/bootstrap.conf` as `java.arg.<n>` entries. It checks only the
+arguments that select a garbage collector (`-XX:+Use...GC`, `-XX:-Use...GC`) and
+`-XX:+UnlockExperimentalVMOptions`. The image entrypoint also exports `X_JAVA_ARGS` as `JAVA_TOOL_OPTIONS`, so every
+JVM in the container picks it up, the trial JVM included; that JVM prints the `Picked up JAVA_TOOL_OPTIONS` line.
+See [Invalid JVM arguments](../../../../docs/troubleshooting-guide.md#1-invalid-jvm-arguments) in the
+troubleshooting guide.
+
+## How the scenario reproduces it
+
+NiFi starts once without the variables. `scenario.sh` then creates the NiFi container again with
+`NIFI_ADDITIONAL_JVM_ARGS` set to `JVM_ARGS_ADDITIONAL` and `X_JAVA_ARGS` set to `JVM_ARGS_X_JAVA`.
+
+| Variable              | Default               | Description                                   |
+|-----------------------|-----------------------|-----------------------------------------------|
+| `JVM_ARGS_ADDITIONAL` | `-XX:+UseG1GC`        | `NIFI_ADDITIONAL_JVM_ARGS` on the second start |
+| `JVM_ARGS_X_JAVA`     | `-XX:+UseParallelGC`  | `X_JAVA_ARGS` on the second start             |
+
+## Expected evidence
+
+| File                    | What to look for                                                                                  |
+|-------------------------|---------------------------------------------------------------------------------------------------|
+| `manifest.txt`          | `nifi_exit_code=3`                                                                                |
+| `container.log`         | `ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS` and `Multiple garbage collectors selected` |
+| `nifi-app.log.gz`       | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                |
+| `scenario-jvm-args.txt` | Both variables, the `java.arg.*` entries of `bootstrap.conf` with the two collectors, and the startup errors |
+
+## Remediation
+
+Keep one `-XX:+Use...GC` option across `NIFI_ADDITIONAL_JVM_ARGS`, `X_JAVA_ARGS`, and `JAVA_TOOL_OPTIONS`, then
+restart NiFi.

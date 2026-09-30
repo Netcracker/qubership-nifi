@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Collects an evidence bundle from the running scenario into .work/evidence/<scenario>/<timestamp>/.
-# The file names are the same for every scenario; README.md lists them.
+# Collects an evidence bundle from the started scenario into .work/evidence/<scenario>/<timestamp>/.
+# The file names are the same for every scenario; README.md lists them. When NiFi has not come up, as after a startup
+# failure that exited or hangs, the steps that need a running NiFi are skipped and listed in manifest.txt.
 #
 # Usage: collect-evidence.sh
 
@@ -23,7 +24,19 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 load_started_scenario
-is_nifi_running || die "Container $NIFI_CONTAINER is not running."
+NIFI_STATE=$(docker inspect -f '{{.State.Status}}' "$NIFI_CONTAINER" 2>/dev/null) ||
+    die "Container $NIFI_CONTAINER does not exist."
+[ "$NIFI_STATE" == "running" ] || [ "$NIFI_STATE" == "exited" ] ||
+    die "Container $NIFI_CONTAINER is $NIFI_STATE; wait until it is running or has exited."
+NIFI_HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$NIFI_CONTAINER")
+# NiFi has come up when run.sh saw this container become healthy (mark_nifi_up). A NiFi that turned unhealthy later
+# is still asked; a container that scenario_break created again is not, since its startup failed or hangs.
+if [ "$NIFI_STATE" == "running" ] &&
+    [ "$(docker inspect -f '{{.Id}}' "$NIFI_CONTAINER")" == "$(cat "$WORK_DIR/nifi-up-container" 2>/dev/null)" ]; then
+    NIFI_UP=true
+else
+    NIFI_UP=false
+fi
 cd "$WORK_DIR"
 
 BUNDLE_DIR="$EVIDENCE_ROOT/$SCENARIO/$(date '+%Y%m%d-%H%M%S')"
@@ -47,10 +60,24 @@ write_manifest() {
     echo "collected_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     echo "nifi_image=$(docker inspect -f '{{.Config.Image}}' "$NIFI_CONTAINER")"
     echo "nifi_image_id=$(docker inspect -f '{{.Image}}' "$NIFI_CONTAINER")"
+    echo "nifi_image_version=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' \
+        "$NIFI_CONTAINER")"
     echo "nifi_started_at=$(docker inspect -f '{{.State.StartedAt}}' "$NIFI_CONTAINER")"
-    echo "nifi_version=$(nifi_api GET /flow/about | jq -r '.about.version')"
-    echo "content_repository_mount=$(docker exec "$NIFI_CONTAINER" awk -v path="$CONTENT_REPO_PATH" \
-        '$2 == path { print $1, $3, $4 }' /proc/mounts)"
+    echo "nifi_state=$NIFI_STATE"
+    echo "nifi_health=$NIFI_HEALTH"
+    echo "nifi_restart_count=$(docker inspect -f '{{.RestartCount}}' "$NIFI_CONTAINER")"
+    [ -z "${SCENARIO_EXPECTED_EXIT_CODE:-}" ] || echo "expected_exit_code=$SCENARIO_EXPECTED_EXIT_CODE"
+    if [ "$NIFI_STATE" == "exited" ]; then
+        echo "nifi_exit_code=$(nifi_exit_code)"
+        echo "nifi_finished_at=$(docker inspect -f '{{.State.FinishedAt}}' "$NIFI_CONTAINER")"
+    fi
+    if [ "$NIFI_UP" == "true" ]; then
+        echo "nifi_version=$(nifi_api GET /flow/about | jq -r '.about.version')"
+        echo "content_repository_mount=$(docker exec "$NIFI_CONTAINER" awk -v path="$CONTENT_REPO_PATH" \
+            '$2 == path { print $1, $3, $4 }' /proc/mounts)"
+    else
+        echo "skipped=${RUNNING_ONLY_FILES[*]} (NiFi has not come up: $NIFI_STATE, health $NIFI_HEALTH)"
+    fi
     scenario_param_names | while read -r name; do
         echo "param.$name=${!name}"
     done
@@ -80,8 +107,27 @@ write_storage() {
 
 # NiFi also writes its application log to stdout. Its lines start with "[<timestamp>][<level>", while the startup
 # scripts (nifi-scripts/logging_api.sh) write "[<timestamp>] [<level>]", so only the application log lines are dropped.
+# When NiFi has not come up, the container output is kept whole: the NiFi lines are few, and the stack trace that
+# ended the startup continues on lines without a timestamp.
 container_output() {
-    docker logs "$NIFI_CONTAINER" 2>&1 | grep -vE '^\[[^]]*\]\[' || true
+    if [ "$NIFI_UP" == "true" ]; then
+        docker logs "$NIFI_CONTAINER" 2>&1 | grep -vE '^\[[^]]*\]\[' || true
+    else
+        docker logs "$NIFI_CONTAINER" 2>&1
+    fi
+}
+
+# Prints one NiFi log from the copy of the logs directory, including the files logback has rolled over, oldest first.
+# Usage: copied_log PREFIX, for example nifi-app or nifi-bootstrap.
+copied_log() {
+    local prefix="$1"
+    local rolled
+    if [ ! -f "$LOGS_COPY/$prefix.log" ]; then
+        echo "$prefix.log does not exist: NiFi did not start far enough to write it."
+        return 0
+    fi
+    mapfile -t rolled < <(find "$LOGS_COPY" -maxdepth 1 -name "${prefix}_*.log" | sort)
+    cat "${rolled[@]}" "$LOGS_COPY/$prefix.log"
 }
 
 # Content repository, warning, and error lines, without the DEBUG lines FileSystemRepository writes for every claim.
@@ -97,24 +143,44 @@ write_diagnostics() {
     docker exec "$NIFI_CONTAINER" cat /tmp/diagnostics.txt
 }
 
+# Files that need a NiFi that has come up: its REST API, or its repositories in the container.
+RUNNING_ONLY_FILES=(storage.txt nifi.properties.content.txt system-diagnostics.json root-status.json bulletins.json
+    diagnostics.txt)
+
+# docker cp works on a stopped container too, so the logs are read from a copy in both states.
+LOGS_COPY="$WORK_DIR/logs-copy"
+rm -rf "$LOGS_COPY"
+if ! docker cp -q "$NIFI_CONTAINER:$NIFI_HOME_IN_CONTAINER/logs" "$LOGS_COPY"; then
+    log "WARNING: failed to copy the NiFi logs directory"
+    mkdir -p "$LOGS_COPY"
+fi
+
 collect manifest.txt write_manifest
-collect storage.txt write_storage
-collect nifi.properties.content.txt docker exec "$NIFI_CONTAINER" \
-    grep -E '^nifi\.content\.' "$NIFI_HOME_IN_CONTAINER/conf/nifi.properties"
-collect nifi-app.log nifi_app_log
+collect nifi-app.log copied_log nifi-app
+collect nifi-bootstrap.log copied_log nifi-bootstrap
 collect container.log container_output
 collect nifi-app.filtered.log filter_app_log
-collect system-diagnostics.json nifi_api GET /system-diagnostics
-collect root-status.json nifi_api GET '/flow/process-groups/root/status?recursive=true'
-collect bulletins.json nifi_api GET /flow/bulletin-board
-collect diagnostics.txt write_diagnostics
-run_hook scenario_evidence "$BUNDLE_DIR"
+if [ "$NIFI_UP" == "true" ]; then
+    collect storage.txt write_storage
+    collect nifi.properties.content.txt docker exec "$NIFI_CONTAINER" \
+        grep -E '^nifi\.content\.' "$NIFI_HOME_IN_CONTAINER/conf/nifi.properties"
+    collect system-diagnostics.json nifi_api GET /system-diagnostics
+    collect root-status.json nifi_api GET '/flow/process-groups/root/status?recursive=true'
+    collect bulletins.json nifi_api GET /flow/bulletin-board
+    collect diagnostics.txt write_diagnostics
+fi
+# Called in a condition, so a failed command in the hook does not stop the collection of the rest.
+if ! run_hook scenario_evidence "$BUNDLE_DIR"; then
+    echo "Failed to collect scenario-* files" >>"$BUNDLE_DIR/collection-errors.txt"
+    log "WARNING: failed to collect scenario-* files"
+fi
+rm -rf "$LOGS_COPY"
 # With DEBUG level for FileSystemRepository the log grows by hundreds of megabytes per hour.
 gzip "$BUNDLE_DIR/nifi-app.log"
 
 echo
 echo "Evidence bundle: $BUNDLE_DIR"
-grep -E '^(nifi_version|content_repository_mount)=' "$BUNDLE_DIR/manifest.txt" || true
-grep -E '^(used_percent|claim_files_)' "$BUNDLE_DIR/storage.txt" || true
+grep -E '^(nifi_version|content_repository_mount|nifi_exit_code|expected_exit_code)=' "$BUNDLE_DIR/manifest.txt" || true
+[ ! -f "$BUNDLE_DIR/storage.txt" ] || grep -E '^(used_percent|claim_files_)' "$BUNDLE_DIR/storage.txt" || true
 echo "Lines in nifi-app.filtered.log: $(wc -l <"$BUNDLE_DIR/nifi-app.filtered.log")"
 [ ! -f "$BUNDLE_DIR/collection-errors.txt" ] || cat "$BUNDLE_DIR/collection-errors.txt"

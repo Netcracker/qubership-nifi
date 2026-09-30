@@ -1,14 +1,15 @@
 # Troubleshooting Guide
 
 Common qubership-nifi startup failures, with the log output each one produces and the steps that fix it. Match the
-container exit code against the summary table to find the relevant section.
+container exit code against the summary table to find the relevant section. A startup that hangs has no exit code;
+see [Invalid Consul URL](#2-invalid-consul-url).
 
 ## Summary
 
 | Error type | Exit code | Description | Details |
 | --- | --- | --- | --- |
 | Invalid JVM arguments | 3 | Conflicting garbage collector arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments) |
-| Invalid Consul URL | 1 | `CONSUL_URL` is incorrect or Consul is unreachable, so the Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url) |
+| Invalid Consul URL | 1, or none when the startup hangs | `CONSUL_URL` is incorrect or Consul is unreachable, so the Consul integration application terminates prematurely, or waits for a Consul that does not respond. | [Invalid Consul URL](#2-invalid-consul-url) |
 | Invalid NIFI_NEW_SENSITIVE_KEY | 3 | The sensitive key does not match the key used on the previous startup. | [Invalid NIFI_NEW_SENSITIVE_KEY](#3-invalid-nifi_new_sensitive_key) |
 | Invalid flow.json.gz | 1 | The persisted NiFi flow configuration (`flow.json.gz`) is corrupted and cannot be parsed. | [Invalid flow.json.gz](#4-invalid-flowjsongz) |
 | Invalid certificate | 1 (Symptom A only) | Keystore/truststore configuration is incorrect, for example a wrong password, or a missing or incomplete truststore. | [Invalid certificate](#5-invalid-certificate) |
@@ -89,11 +90,25 @@ In both cases, the qubership-nifi startup log contains a line similar to:
 
 The container exits with **exit code 1**.
 
+With `NIFI_CONSUL_INT_FRAMEWORK=spring`, when Consul accepts the connection but does not respond, the startup hangs
+instead, with no error: the Consul integration application waits for the response without a timeout, and the startup
+log repeats this line once a second:
+
+```text
+[...] Checking if consul app main execution completed
+```
+
+The startup continues if Consul responds later.
+
 ### Cause
 
 `CONSUL_URL` is incorrect, or the host and port it resolves to are unreachable. The Consul integration application
 cannot connect to Consul, so it terminates prematurely. This applies to both the Spring-based and the Quarkus-based
 application, selected by `NIFI_CONSUL_INT_FRAMEWORK`.
+
+A startup that hangs has a Consul that accepts the connection and does not respond, for example a stalled Consul
+agent or a network path that drops the responses. The Spring-based application waits for the response without a
+timeout.
 
 ### Resolution
 
@@ -102,7 +117,8 @@ application, selected by `NIFI_CONSUL_INT_FRAMEWORK`.
 2. Verify that the Consul host is reachable from the NiFi pod or container, checking DNS resolution and network
    policies.
 3. Verify that `CONSUL_ACL_TOKEN`, if used, matches the target Consul instance configuration.
-4. Restart NiFi after correcting `CONSUL_URL`.
+4. Restart NiFi after correcting `CONSUL_URL`. A startup that hangs continues by itself once Consul responds; restart
+   NiFi if it keeps waiting after Consul is available again.
 
 ## 3. Invalid NIFI_NEW_SENSITIVE_KEY
 

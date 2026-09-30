@@ -1,0 +1,8 @@
+---
+# Lets scenario_break change the Consul address NiFi uses, and keeps a failed NiFi container stopped, so that run.sh
+# can read its exit code.
+services:
+  nifi:
+    restart: "no"
+    environment:
+      - CONSUL_URL=${NIFI_CONSUL_URL:-consul:8500}

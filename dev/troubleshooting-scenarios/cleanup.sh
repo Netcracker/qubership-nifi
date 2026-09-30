@@ -33,14 +33,13 @@ else
 fi
 
 # The toolkit and NiFi write files as other users, so they are removed from a root container.
-# The Consul image is used because the scenario has already pulled it.
 if [ -d "$WORK_DIR" ]; then
     if [ "${1:-}" == "--all" ]; then
         removeCmd="find /work -mindepth 1 -maxdepth 1 -exec rm -rf {} +"
     else
         removeCmd="find /work -mindepth 1 -maxdepth 1 ! -name evidence -exec rm -rf {} +"
     fi
-    docker run --rm -v "$WORK_DIR:/work" --entrypoint sh "$HELPER_IMAGE" -c "$removeCmd"
+    helper_run "$removeCmd"
     log "Removed $WORK_DIR contents$([ "${1:-}" == "--all" ] || echo ' except evidence bundles')."
 fi
 log "Cleanup finished."
