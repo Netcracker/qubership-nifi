@@ -1,0 +1,8 @@
+---
+# Puts the content repository on a local Docker volume, as a baseline for the NFS run.
+services:
+  nifi:
+    volumes:
+      - content-repo:/opt/nifi/nifi-current/persistent_data/content_repository
+volumes:
+  content-repo:
