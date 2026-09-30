@@ -1,140 +1,140 @@
 {
-	"info": {
-		"_postman_id": "48895732-96a0-452b-abc9-522ebf049c45",
-		"name": "NiFi_OJDBC_Location_Check_PG",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Get NiFi version",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});",
-							"const version = pm.response.json().about.version;",
-							"console.log(`NiFi version: ${version}`);",
-							"pm.environment.set(\"ojdbc.nifi.major.version\", version.split(\".\")[0]);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/about",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"about"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Get id of OJDBC location test process group",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});",
-							"pm.test(\"Process group PG_for_OJDBC_location_test exists\", function () {",
-							"    const pg = pm.response.json().processGroups.find(g => g.component.name === \"PG_for_OJDBC_location_test\");",
-							"    pm.expect(pg, \"process group PG_for_OJDBC_location_test in the root process group\").to.exist;",
-							"    pm.environment.set(\"ojdbc.pg.id\", pg.id);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"process-groups",
-						"root",
-						"process-groups"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Check that Oracle pool is enabled and valid",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"const attempt = pm.environment.get(\"ojdbc.polling.attempt\") || 1;",
-							"const maxAttempts = 12;",
-							"const cs = pm.response.json().controllerServices.find(s => s.component.name === \"OracleDBCPConnectionPool\");",
-							"const state = cs ? cs.component.state : \"not found\";",
-							"if (state !== \"ENABLED\" && attempt < maxAttempts) {",
-							"    console.log(`Attempt ${attempt} of ${maxAttempts}: OracleDBCPConnectionPool is ${state}, checking again in 5 seconds`);",
-							"    pm.environment.set(\"ojdbc.polling.attempt\", attempt + 1);",
-							"    setTimeout(() => {}, 5000);",
-							"    postman.setNextRequest(\"Check that Oracle pool is enabled and valid\");",
-							"} else {",
-							"    pm.environment.unset(\"ojdbc.polling.attempt\");",
-							"    pm.test(\"Oracle pool is enabled and valid\", function () {",
-							"        pm.expect(cs, \"controller service OracleDBCPConnectionPool\").to.exist;",
-							"        pm.expect(cs.component.state, `state of OracleDBCPConnectionPool after ${attempt} attempts`).to.eql(\"ENABLED\");",
-							"        pm.expect(cs.component.validationStatus, \"validation status of OracleDBCPConnectionPool\").to.eql(\"VALID\");",
-							"    });",
-							"    if (pm.environment.get(\"ojdbc.nifi.major.version\") === \"1\") {",
-							"        pm.test(\"Oracle pool has no driver location on NiFi 1.x\", function () {",
-							"            pm.expect(cs.component.properties[\"database-driver-locations\"], \"database-driver-locations\").to.be.null;",
-							"        });",
-							"    } else {",
-							"        pm.test(\"Oracle pool has the driver location set at startup\", function () {",
-							"            pm.expect(cs.component.properties[\"Database Driver Locations\"], \"Database Driver Locations\")",
-							"                .to.eql(\"${OJDBC_DRIVER_LOCATION:replaceEmpty(${NIFI_HOME:append('/nifi-config-template')})}\");",
-							"        });",
-							"    }",
-							"}"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{ojdbc.pg.id}}/controller-services",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"process-groups",
-						"{{ojdbc.pg.id}}",
-						"controller-services"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+    "info": {
+        "_postman_id": "48895732-96a0-452b-abc9-522ebf049c45",
+        "name": "NiFi_OJDBC_Location_Check_PG",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get NiFi version",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "const version = pm.response.json().about.version;",
+                            "console.log(`NiFi version: ${version}`);",
+                            "pm.environment.set(\"ojdbc.nifi.major.version\", version.split(\".\")[0]);"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/about",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "about"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Get id of OJDBC location test process group",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"Process group PG_for_OJDBC_location_test exists\", function () {",
+                            "    const pg = pm.response.json().processGroups.find(g => g.component.name === \"PG_for_OJDBC_location_test\");",
+                            "    pm.expect(pg, \"process group PG_for_OJDBC_location_test in the root process group\").to.exist;",
+                            "    pm.environment.set(\"ojdbc.pg.id\", pg.id);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "process-groups",
+                        "root",
+                        "process-groups"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Check that Oracle pool is enabled and valid",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "const attempt = pm.environment.get(\"ojdbc.polling.attempt\") || 1;",
+                            "const maxAttempts = 12;",
+                            "const cs = pm.response.json().controllerServices.find(s => s.component.name === \"OracleDBCPConnectionPool\");",
+                            "const state = cs ? cs.component.state : \"not found\";",
+                            "if (state !== \"ENABLED\" && attempt < maxAttempts) {",
+                            "    console.log(`Attempt ${attempt} of ${maxAttempts}: OracleDBCPConnectionPool is ${state}, checking again in 5 seconds`);",
+                            "    pm.environment.set(\"ojdbc.polling.attempt\", attempt + 1);",
+                            "    setTimeout(() => {}, 5000);",
+                            "    postman.setNextRequest(\"Check that Oracle pool is enabled and valid\");",
+                            "} else {",
+                            "    pm.environment.unset(\"ojdbc.polling.attempt\");",
+                            "    pm.test(\"Oracle pool is enabled and valid\", function () {",
+                            "        pm.expect(cs, \"controller service OracleDBCPConnectionPool\").to.exist;",
+                            "        pm.expect(cs.component.state, `state of OracleDBCPConnectionPool after ${attempt} attempts`).to.eql(\"ENABLED\");",
+                            "        pm.expect(cs.component.validationStatus, \"validation status of OracleDBCPConnectionPool\").to.eql(\"VALID\");",
+                            "    });",
+                            "    if (pm.environment.get(\"ojdbc.nifi.major.version\") === \"1\") {",
+                            "        pm.test(\"Oracle pool has no driver location on NiFi 1.x\", function () {",
+                            "            pm.expect(cs.component.properties[\"database-driver-locations\"], \"database-driver-locations\").to.be.null;",
+                            "        });",
+                            "    } else {",
+                            "        pm.test(\"Oracle pool has the driver location set at startup\", function () {",
+                            "            pm.expect(cs.component.properties[\"Database Driver Locations\"], \"Database Driver Locations\")",
+                            "                .to.eql(\"${OJDBC_DRIVER_LOCATION:replaceEmpty(${NIFI_HOME:append('/nifi-config-template')})}\");",
+                            "        });",
+                            "    }",
+                            "}"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{ojdbc.pg.id}}/controller-services",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "process-groups",
+                        "{{ojdbc.pg.id}}",
+                        "controller-services"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
 }

@@ -44,6 +44,7 @@ ojdbcLocation="\${OJDBC_DRIVER_LOCATION:replaceEmpty(\${NIFI_HOME:append('/nifi-
 # A pool whose bundle version is 2.7 or later gets the new key, and any other pool gets the old one.
 # walk visits the pool object of both export formats: "component" in a controller service export, and each entry of
 # "controllerServices" in a flow export, including nested process groups.
+# shellcheck disable=SC2016
 jqIsTargetPool='def old_driver_keys: {
     "org.apache.nifi.dbcp.DBCPConnectionPool":
         {"class": "Database Driver Class Name", "locations": "database-driver-locations"},

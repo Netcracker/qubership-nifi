@@ -1,131 +1,131 @@
 {
-	"info": {
-		"_postman_id": "ccf6e3ae-0c7b-41fb-ad63-c7ecf2ca93f2",
-		"name": "NiFi_OJDBC_Location_Create_PG",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Import OJDBC location test process group",
-			"event": [
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							"const uuid = pm.variables.replaceIn('{{$guid}}');",
-							"pm.environment.set(\"nifi.client.id\", uuid);"
-						],
-						"type": "text/javascript"
-					}
-				},
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 201\", function () {",
-							"    pm.response.to.have.status(201);",
-							"});",
-							"pm.test(\"Response contains the imported process group\", function () {",
-							"    const jsonData = pm.response.json();",
-							"    pm.expect(jsonData.component.name).to.eql(\"PG_for_OJDBC_location_test\");",
-							"    pm.environment.set(\"ojdbc.pg.id\", jsonData.id);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "file",
-							"type": "file",
-							"src": "./nifi-resources/pg/PG_for_OJDBC_location_test.json"
-						},
-						{
-							"key": "groupName",
-							"value": "PG_for_OJDBC_location_test",
-							"type": "default"
-						},
-						{
-							"key": "positionX",
-							"value": "801",
-							"type": "default"
-						},
-						{
-							"key": "positionY",
-							"value": "301",
-							"type": "default"
-						},
-						{
-							"key": "clientId",
-							"value": "{{nifi.client.id}}",
-							"type": "default"
-						}
-					]
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups/upload",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"process-groups",
-						"root",
-						"process-groups",
-						"upload"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Enable controller services",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"id\": \"{{ojdbc.pg.id}}\",\n    \"state\": \"ENABLED\",\n    \"disconnectedNodeAcknowledged\": false\n}",
-					"options": {
-						"raw": {
-							"language": "json"
-						}
-					}
-				},
-				"url": {
-					"raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{ojdbc.pg.id}}/controller-services",
-					"host": [
-						"{{nifi.url}}"
-					],
-					"path": [
-						"nifi-api",
-						"flow",
-						"process-groups",
-						"{{ojdbc.pg.id}}",
-						"controller-services"
-					]
-				}
-			},
-			"response": []
-		}
-	]
+    "info": {
+        "_postman_id": "ccf6e3ae-0c7b-41fb-ad63-c7ecf2ca93f2",
+        "name": "NiFi_OJDBC_Location_Create_PG",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Import OJDBC location test process group",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [
+                            "const uuid = pm.variables.replaceIn('{{$guid}}');",
+                            "pm.environment.set(\"nifi.client.id\", uuid);"
+                        ],
+                        "type": "text/javascript"
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 201\", function () {",
+                            "    pm.response.to.have.status(201);",
+                            "});",
+                            "pm.test(\"Response contains the imported process group\", function () {",
+                            "    const jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.component.name).to.eql(\"PG_for_OJDBC_location_test\");",
+                            "    pm.environment.set(\"ojdbc.pg.id\", jsonData.id);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "file",
+                            "type": "file",
+                            "src": "./nifi-resources/pg/PG_for_OJDBC_location_test.json"
+                        },
+                        {
+                            "key": "groupName",
+                            "value": "PG_for_OJDBC_location_test",
+                            "type": "default"
+                        },
+                        {
+                            "key": "positionX",
+                            "value": "801",
+                            "type": "default"
+                        },
+                        {
+                            "key": "positionY",
+                            "value": "301",
+                            "type": "default"
+                        },
+                        {
+                            "key": "clientId",
+                            "value": "{{nifi.client.id}}",
+                            "type": "default"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/process-groups/root/process-groups/upload",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "process-groups",
+                        "root",
+                        "process-groups",
+                        "upload"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "Enable controller services",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"id\": \"{{ojdbc.pg.id}}\",\n    \"state\": \"ENABLED\",\n    \"disconnectedNodeAcknowledged\": false\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{nifi.url}}/nifi-api/flow/process-groups/{{ojdbc.pg.id}}/controller-services",
+                    "host": [
+                        "{{nifi.url}}"
+                    ],
+                    "path": [
+                        "nifi-api",
+                        "flow",
+                        "process-groups",
+                        "{{ojdbc.pg.id}}",
+                        "controller-services"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
 }

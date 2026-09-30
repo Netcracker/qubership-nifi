@@ -52,6 +52,7 @@ ojdbc_location="\${OJDBC_DRIVER_LOCATION:replaceEmpty(\${NIFI_HOME:append('/nifi
 # of HikariCPConnectionPool to "Database Driver Class Name". old_driver_keys holds the keys before 2.7.
 # flow.json.gz saved by an earlier version keeps the old keys until NiFi loads it, so both keys are checked.
 # A pool whose bundle version is 2.7 or later gets the new key, and any other pool gets the old one.
+# shellcheck disable=SC2016
 jq_is_target_pool='def old_driver_keys: {
     "org.apache.nifi.dbcp.DBCPConnectionPool":
         {"class": "Database Driver Class Name", "locations": "database-driver-locations"},
