@@ -86,7 +86,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
                 <configuration>
-                    <argLine>@{argLine} -Duser.timezone=UTC</argLine>
+                     <argLine>@{argLine} -Duser.timezone=UTC -XX:+EnableDynamicAgentLoading</argLine>
                     <environmentVariables>
                         <DOCKER_HOST>${env.TEST_DOCKER_URL}</DOCKER_HOST>
                         <testcontainers.environmentprovider.timeout>60</testcontainers.environmentprovider.timeout>
