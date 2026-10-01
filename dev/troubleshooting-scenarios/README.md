@@ -14,6 +14,7 @@ behind.
 | [content-archive-full](scenarios/content-archive-full/)   | Runtime         | Archive cannot be cleaned: live content takes more space than allowed |
 | [content-archive-slow](scenarios/content-archive-slow/)   | Runtime         | Archive cleanup is too slow: many archived claim files on NFS         |
 | [flowfile-repo-full](scenarios/flowfile-repo-full/)       | Runtime         | FlowFile repository file system is full                               |
+| [provenance-repo-full](scenarios/provenance-repo-full/)   | Runtime         | Provenance repository file system is full                             |
 | [consul-unreachable](scenarios/consul-unreachable/)       | Startup failure | Consul cannot be reached: wrong `CONSUL_URL` or no response           |
 | [flow-json-corrupted](scenarios/flow-json-corrupted/)     | Startup failure | `flow.json.gz` cannot be read                                         |
 | [sensitive-key-changed](scenarios/sensitive-key-changed/) | Startup failure | `NIFI_NEW_SENSITIVE_KEY` differs from the key of earlier starts       |
