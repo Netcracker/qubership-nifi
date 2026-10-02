@@ -41,7 +41,9 @@ ojdbcLocation="\${OJDBC_DRIVER_LOCATION:replaceEmpty(\${NIFI_HOME:append('/nifi-
 # The definitions match nifi-scripts/update_flow_json_ojdbc_location.sh; keep the two in sync.
 # NiFi 2.7 renamed the driver location key to "Database Driver Locations" in both pools, and the driver class key
 # of HikariCPConnectionPool to "Database Driver Class Name". old_driver_keys holds the keys before 2.7.
-# A pool whose bundle version is 2.7 or later gets the new key, and any other pool gets the old one.
+# driver_locations_keys returns the driver location keys the pool already has, so a pool with both keys gets the
+# value in both. A pool with neither key gets the new key if its bundle version is 2.7 or later, and the old key
+# otherwise.
 # walk visits the pool object of both export formats: "component" in a controller service export, and each entry of
 # "controllerServices" in a flow export, including nested process groups.
 # shellcheck disable=SC2016
@@ -61,7 +63,13 @@ def is_target_pool:
         and ((.properties["Database Driver Locations"] // "") == "")
         and ((.properties[$old.locations] // "") == ""));
 def uses_new_driver_locations_key:
-    ((.bundle.version // "") | [splits("[.-]")] | .[0:2] | map(tonumber? // 0)) >= [2, 7];'
+    ((.bundle.version // "") | [splits("[.-]")] | .[0:2] | map(tonumber? // 0)) >= [2, 7];
+def driver_locations_keys:
+    uses_new_driver_locations_key as $new
+    | old_driver_keys[.type].locations as $old
+    | (.properties // {}) as $props
+    | [("Database Driver Locations", $old) | select(. as $key | $props | has($key))]
+    | if length > 0 then . elif $new then ["Database Driver Locations"] else [$old] end;'
 
 declare -a exportFlow
 
@@ -71,12 +79,13 @@ mapfile -t exportFlow < <(find "$pathToFlow" -type f -name "*.json" | sort)
 for file in "${exportFlow[@]}"; do
     poolCount=$(jq "$jqIsTargetPool"' [.. | select(is_target_pool)] | length' "$file") \
         || handle_error "Error while searching for Oracle connection pools without driver location in $file"
-    if [ "$poolCount" -eq 0 ]; then
+    # An empty file gives no output, so the count defaults to 0.
+    if [ "${poolCount:-0}" = "0" ]; then
         continue
     fi
     echo "Setting driver location for $poolCount Oracle connection pool(s) in $file"
     tmp=$(mktemp)
-    jq --arg loc "$ojdbcLocation" "$jqIsTargetPool"' walk(if is_target_pool then (if uses_new_driver_locations_key then "Database Driver Locations" else old_driver_keys[.type].locations end) as $key | .properties[$key] = $loc else . end)' "$file" >"$tmp" \
+    jq --arg loc "$ojdbcLocation" "$jqIsTargetPool"' walk(if is_target_pool then reduce driver_locations_keys[] as $key (.; .properties[$key] = $loc) else . end)' "$file" >"$tmp" \
         || { rm -f "$tmp"; handle_error "Error while setting driver location for Oracle connection pools in $file"; }
     if [ "$DEBUG_MODE" = "true" ]; then
         echo "DEBUG: diff between $file and $tmp"

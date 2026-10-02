@@ -14,9 +14,11 @@
 # limitations under the License.
 
 # Sets "Database Driver Location(s)" on each DBCPConnectionPool and HikariCPConnectionPool in flow.json.gz
-# that uses an Oracle driver and has no driver location set. The Oracle JDBC driver is not in the NiFi lib directory, so such a pool
-# cannot load the driver without it.
-# This operation is one-time only. It's skipped, if the script succeeded at least once previously.
+# that uses an Oracle driver and has no driver location set. The Oracle JDBC driver is not in the NiFi lib
+# directory, so such a pool cannot load the driver without it.
+# The script runs once: after it succeeds, the marker file update_ojdbc_location.applied makes later starts skip it.
+# restore_nifi_configurations.sh deletes the marker when it restores flow.json.gz from the archive, so the restored
+# flow gets the same fix on that start.
 
 # shellcheck source=/dev/null
 # shellcheck disable=SC2154
@@ -51,7 +53,9 @@ ojdbc_location="\${OJDBC_DRIVER_LOCATION:replaceEmpty(\${NIFI_HOME:append('/nifi
 # NiFi 2.7 renamed the driver location key to "Database Driver Locations" in both pools, and the driver class key
 # of HikariCPConnectionPool to "Database Driver Class Name". old_driver_keys holds the keys before 2.7.
 # flow.json.gz saved by an earlier version keeps the old keys until NiFi loads it, so both keys are checked.
-# A pool whose bundle version is 2.7 or later gets the new key, and any other pool gets the old one.
+# driver_locations_keys returns the driver location keys the pool already has, so a pool with both keys gets the
+# value in both. A pool with neither key gets the new key if its bundle version is 2.7 or later, and the old key
+# otherwise.
 # shellcheck disable=SC2016
 jq_is_target_pool='def old_driver_keys: {
     "org.apache.nifi.dbcp.DBCPConnectionPool":
@@ -69,12 +73,19 @@ def is_target_pool:
         and ((.properties["Database Driver Locations"] // "") == "")
         and ((.properties[$old.locations] // "") == ""));
 def uses_new_driver_locations_key:
-    ((.bundle.version // "") | [splits("[.-]")] | .[0:2] | map(tonumber? // 0)) >= [2, 7];'
+    ((.bundle.version // "") | [splits("[.-]")] | .[0:2] | map(tonumber? // 0)) >= [2, 7];
+def driver_locations_keys:
+    uses_new_driver_locations_key as $new
+    | old_driver_keys[.type].locations as $old
+    | (.properties // {}) as $props
+    | [("Database Driver Locations", $old) | select(. as $key | $props | has($key))]
+    | if length > 0 then . elif $new then ["Database Driver Locations"] else [$old] end;'
 
 pool_count=$(gzip -dc "$flow_conf_path/flow.json.gz" | jq "$jq_is_target_pool"' [.. | select(is_target_pool)] | length') \
     || handle_error "Error while searching for Oracle connection pools without driver location in flow.json.gz"
 
-if [ "$pool_count" -eq 0 ]; then
+# An empty flow.json.gz gives no output, so the count defaults to 0.
+if [ "${pool_count:-0}" = "0" ]; then
     create_bugfix_marker "File flow.json.gz does not need OJDBC Driver location fix."
     info "No Oracle connection pools without driver location found in flow.json.gz. No changes needed."
     exit 0
@@ -83,18 +94,22 @@ fi
 info "Setting driver location for $pool_count Oracle connection pool(s) in flow.json.gz..."
 
 info "Create backup file for flow.json.gz"
-cp "$flow_conf_path/flow.json.gz" "$flow_conf_path/flow.json.gz_bk_ojdbc_location"
+cp "$flow_conf_path/flow.json.gz" "$flow_conf_path/flow.json.gz_bk_ojdbc_location" \
+    || handle_error "Error while creating backup of flow.json.gz"
 
-info "Unzip flow.json.gz"
-gzip -d "$flow_conf_path/flow.json.gz"
-
-# The key matches the property names of the bundle version the pool records. NiFi renames an old key when it
-# loads the flow, as it does for the other properties of that pool.
-tmp=$(mktemp)
-jq --arg loc "$ojdbc_location" "$jq_is_target_pool"' walk(if is_target_pool then (if uses_new_driver_locations_key then "Database Driver Locations" else old_driver_keys[.type].locations end) as $key | .properties[$key] = $loc else . end)' "$flow_conf_path/flow.json" >"$tmp" || handle_error "Error while setting driver location for Oracle connection pools in flow.json.gz"
-mv "$tmp" "$flow_conf_path/flow.json"
-
-gzip "$flow_conf_path/flow.json"
+# driver_locations_keys picks the keys to write. NiFi renames an old key when it loads the flow, as it does for
+# the other properties of that pool.
+# The new file is written next to flow.json.gz and replaces it only when complete, so a failure leaves the original
+# flow.json.gz in place.
+tmp=$(mktemp -p "$flow_conf_path" flow.json.gz.XXXXXX) \
+    || handle_error "Error while creating temporary file in $flow_conf_path"
+if ! (set -o pipefail; gzip -dc "$flow_conf_path/flow.json.gz" \
+    | jq --arg loc "$ojdbc_location" "$jq_is_target_pool"' walk(if is_target_pool then reduce driver_locations_keys[] as $key (.; .properties[$key] = $loc) else . end)' \
+    | gzip >"$tmp"); then
+    rm -f "$tmp"
+    handle_error "Error while setting driver location for Oracle connection pools in flow.json.gz"
+fi
+mv "$tmp" "$flow_conf_path/flow.json.gz" || handle_error "Error while replacing flow.json.gz"
 
 create_bugfix_marker "File flow.json.gz updated with OJDBC Driver location fix"
 info "Updating driver location for Oracle connection pools in flow.json.gz complete"

@@ -24,13 +24,18 @@ a flow export, including nested process groups, that meets both conditions:
 - Database Driver Class Name is `oracle.jdbc.OracleDriver` or `oracle.jdbc.driver.OracleDriver`.
 - Database Driver Location(s) is empty or missing.
 
+The script compares the literal value of Database Driver Class Name, so it skips a pool that sets the driver class
+through a parameter (`#{db.driver}`) or Expression Language (`${db.driver}`). Set Database Driver Location(s) on such
+a pool by hand.
+
 Such a pool gets this Database Driver Location(s) value:
 
 ```text
 ${OJDBC_DRIVER_LOCATION:replaceEmpty(${NIFI_HOME:append('/nifi-config-template')})}
 ```
 
-The property key depends on the bundle version of the pool in the export:
+If the pool already has `Database Driver Locations` or the old key from the table below, the script writes the value to
+the keys it has. Otherwise, the property key depends on the bundle version of the pool in the export:
 
 | Pool                   | Bundle version below 2.7    | Bundle version 2.7 or later |
 |------------------------|-----------------------------|-----------------------------|
