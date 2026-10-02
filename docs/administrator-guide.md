@@ -149,7 +149,7 @@ from 0 to 100, in which NiFi measures the performance.
 
 With the default `0`, most of these metrics are not reliable. Set `100` to measure every run, as described in
 [Changing NiFi configuration properties](#changing-nifi-configuration-properties).
-With a lower value, some durations are lower than the actual time.
+With a value of 50 or lower, some durations are lower than the actual time.
 The measurement adds system calls to each measured run.
 
 ## NiFi configuration restore

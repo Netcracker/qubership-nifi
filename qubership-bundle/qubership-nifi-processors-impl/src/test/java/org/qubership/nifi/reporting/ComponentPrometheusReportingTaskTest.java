@@ -833,6 +833,40 @@ public class ComponentPrometheusReportingTaskTest {
     }
 
     @Test
+    public void processorPerformanceDurationFollowsTheStatusOfTheLatestRun() {
+        ProcessorStatus earlierStatus = processor("proc-1", "group-1", 200_000_000_000L);
+        earlierStatus.setProcessingPerformanceStatus(performanceStatus(5_000_000_000L, 0L, 0L, 0L, 0L));
+        ProcessGroupStatus earlierGroup = processGroup("group-1");
+        earlierGroup.setProcessorStatus(List.of(earlierStatus));
+        task.registerMetrics(reportingContextFor(processGroup("root", earlierGroup)));
+
+        ProcessorStatus latestStatus = processor("proc-1", "group-1", 200_000_000_000L);
+        latestStatus.setProcessingPerformanceStatus(performanceStatus(8_000_000_000L, 0L, 0L, 0L, 0L));
+        ProcessGroupStatus latestGroup = processGroup("group-1");
+        latestGroup.setProcessorStatus(List.of(latestStatus));
+        task.registerMetrics(reportingContextFor(processGroup("root", latestGroup)));
+
+        assertEquals(8_000_000_000L,
+                gaugeValue("nc_nifi_processor_cpu_duration", "component_id", "proc-1"),
+                "nc_nifi_processor_cpu_duration");
+    }
+
+    @Test
+    public void processGroupPerformanceDurationFollowsTheStatusOfTheLatestRun() {
+        ProcessGroupStatus earlierGroup = processGroup("group-1");
+        earlierGroup.setProcessingPerformanceStatus(performanceStatus(7_000_000_000L, 0L, 0L, 0L, 0L));
+        task.registerMetrics(reportingContextFor(processGroup("root", earlierGroup)));
+
+        ProcessGroupStatus latestGroup = processGroup("group-1");
+        latestGroup.setProcessingPerformanceStatus(performanceStatus(9_000_000_000L, 0L, 0L, 0L, 0L));
+        task.registerMetrics(reportingContextFor(processGroup("root", latestGroup)));
+
+        assertEquals(9_000_000_000L,
+                gaugeValue("nc_nifi_pg_cpu_duration", "group_id", "group-1"),
+                "nc_nifi_pg_cpu_duration");
+    }
+
+    @Test
     public void processorWithoutPerformanceStatusReportsZeroPerformanceDurations() {
         ProcessGroupStatus group = processGroup("group-1");
         group.setProcessorStatus(List.of(processor("proc-1", "group-1", 200_000_000_000L)));

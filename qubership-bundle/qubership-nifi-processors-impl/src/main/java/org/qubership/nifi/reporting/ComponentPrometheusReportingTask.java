@@ -97,7 +97,8 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     private static final String PROCESS_GROUP_ID_TAG = "group_id";
 
     /**
-     * Processing performance gauges registered for each reported processor and process group.
+     * Processing performance gauges registered for each processor above the time threshold
+     * and each process group within the level threshold.
      * NiFi reports the garbage collection time in milliseconds and the other durations in nanoseconds,
      * so the garbage collection gauge converts its value to nanoseconds.
      */
