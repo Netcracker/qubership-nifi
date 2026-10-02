@@ -25,6 +25,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.mock.MockReportingInitializationContext;
@@ -47,13 +48,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import io.micrometer.core.instrument.Tag;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.reporting.metrics.component.ConnectionMetricName;
 import org.qubership.nifi.reporting.metrics.component.ProcessorMetricName;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.CONNECTION_QUEUE_THRESHOLD;
 import static org.qubership.nifi.reporting.ComponentPrometheusReportingTask.PROCESSOR_TIME_THRESHOLD;
@@ -684,5 +688,293 @@ public class ComponentPrometheusReportingTaskTest {
                 tags("parent_id", "TestPGId2#2",
                     "component_id", "12345-67890").
                 gauge().measure().iterator().next().getValue());
+    }
+
+    private static final List<String> PROCESSOR_PERFORMANCE_METRICS = List.of(
+            "nc_nifi_processor_cpu_duration",
+            "nc_nifi_processor_content_read_duration",
+            "nc_nifi_processor_content_write_duration",
+            "nc_nifi_processor_session_commit_duration",
+            "nc_nifi_processor_gc_duration");
+
+    private static final List<String> PROCESS_GROUP_PERFORMANCE_METRICS = List.of(
+            "nc_nifi_pg_cpu_duration",
+            "nc_nifi_pg_content_read_duration",
+            "nc_nifi_pg_content_write_duration",
+            "nc_nifi_pg_session_commit_duration",
+            "nc_nifi_pg_gc_duration");
+
+    private ReportingContext reportingContextFor(ProcessGroupStatus rootStatus) {
+        ReportingContext context = mock(ReportingContext.class);
+        EventAccess eventAccess = mock(EventAccess.class);
+        when(context.getBulletinRepository()).thenReturn(mock(MockBulletinRepository.class));
+        when(eventAccess.getControllerStatus()).thenReturn(rootStatus);
+        when(context.getEventAccess()).thenReturn(eventAccess);
+        return context;
+    }
+
+    private static ProcessGroupStatus processGroup(String id, ProcessGroupStatus... children) {
+        ProcessGroupStatus group = new ProcessGroupStatus();
+        group.setId(id);
+        group.setName("name of " + id);
+        group.setProcessGroupStatus(new ArrayList<>(Arrays.asList(children)));
+        return group;
+    }
+
+    private static ProcessorStatus processor(String id, String groupId, long processingNanos) {
+        ProcessorStatus processor = new ProcessorStatus();
+        processor.setId(id);
+        processor.setName("name of " + id);
+        processor.setGroupId(groupId);
+        processor.setRunStatus(RunStatus.Running);
+        processor.setProcessingNanos(processingNanos);
+        return processor;
+    }
+
+    private static ProcessingPerformanceStatus performanceStatus(long cpuNanos, long contentReadNanos,
+                                                                 long contentWriteNanos, long sessionCommitNanos,
+                                                                 long garbageCollectionMillis) {
+        ProcessingPerformanceStatus status = new ProcessingPerformanceStatus();
+        status.setCpuDuration(cpuNanos);
+        status.setContentReadDuration(contentReadNanos);
+        status.setContentWriteDuration(contentWriteNanos);
+        status.setSessionCommitDuration(sessionCommitNanos);
+        status.setGarbageCollectionDuration(garbageCollectionMillis);
+        return status;
+    }
+
+    private double gaugeValue(String metricName, String idTag, String id) {
+        return task.getMeterRegistry().get(metricName).tag(idTag, id).gauge().value();
+    }
+
+    private List<String> registeredGauges(List<String> metricNames, String idTag, String id) {
+        return metricNames.stream()
+                .filter(name -> task.getMeterRegistry().find(name).tag(idTag, id).gauge() != null)
+                .toList();
+    }
+
+    private Map<String, String> gaugeLabels(String metricName, String idTag, String id) {
+        return task.getMeterRegistry().get(metricName).tag(idTag, id).gauge().getId().getTags().stream()
+                .collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+    }
+
+    @Test
+    public void processorPerformanceDurationHasTheLabelsOfTheProcessor() {
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor("proc-1", "group-1", 200_000_000_000L)));
+
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        assertEquals(
+                Map.of("namespace", "test-namespace",
+                        "hostname", "test-hostname",
+                        "instance", "test-namespace_test-hostname",
+                        "component_id", "proc-1",
+                        "component_name", "name of proc-1",
+                        "component_type", "Processor",
+                        "parent_id", "group-1"),
+                gaugeLabels("nc_nifi_processor_cpu_duration", "component_id", "proc-1"));
+    }
+
+    @Test
+    public void processGroupPerformanceDurationHasTheLabelsOfTheGroup() {
+        ProcessGroupStatus root = processGroup("root", processGroup("level-1", processGroup("level-2")));
+
+        task.registerMetrics(reportingContextFor(root));
+
+        assertEquals(
+                Map.of("namespace", "test-namespace",
+                        "hostname", "test-hostname",
+                        "instance", "test-namespace_test-hostname",
+                        "group_id", "level-2",
+                        "group_name", "name of level-2",
+                        "group_path", "name of level-1/name of level-2"),
+                gaugeLabels("nc_nifi_pg_cpu_duration", "group_id", "level-2"));
+    }
+
+    @Test
+    public void rootProcessGroupReportsNoPerformanceDurations() {
+        ProcessGroupStatus root = processGroup("root", processGroup("group-1"));
+        root.setProcessingPerformanceStatus(
+                performanceStatus(7_000_000_000L, 4_000_000L, 5_000_000L, 6_000_000L, 90L));
+
+        task.registerMetrics(reportingContextFor(root));
+
+        assertEquals(List.of(), registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "root"));
+    }
+
+    @Test
+    public void processorAboveTimeThresholdReportsPerformanceDurationsInNanoseconds() {
+        ProcessorStatus processor = processor("proc-1", "group-1", 200_000_000_000L);
+        processor.setProcessingPerformanceStatus(
+                performanceStatus(5_000_000_000L, 1_000_000L, 2_000_000L, 3_000_000L, 40L));
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor));
+
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        assertAll(
+                () -> assertEquals(5_000_000_000L,
+                        gaugeValue("nc_nifi_processor_cpu_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_cpu_duration"),
+                () -> assertEquals(1_000_000L,
+                        gaugeValue("nc_nifi_processor_content_read_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_content_read_duration"),
+                () -> assertEquals(2_000_000L,
+                        gaugeValue("nc_nifi_processor_content_write_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_content_write_duration"),
+                () -> assertEquals(3_000_000L,
+                        gaugeValue("nc_nifi_processor_session_commit_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_session_commit_duration"),
+                //NiFi reports 40 ms of garbage collection:
+                () -> assertEquals(40_000_000L,
+                        gaugeValue("nc_nifi_processor_gc_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_gc_duration"));
+    }
+
+    @Test
+    public void processorWithoutPerformanceStatusReportsZeroPerformanceDurations() {
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor("proc-1", "group-1", 200_000_000_000L)));
+
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        assertAll(
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_processor_cpu_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_cpu_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_processor_content_read_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_content_read_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_processor_content_write_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_content_write_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_processor_session_commit_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_session_commit_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_processor_gc_duration", "component_id", "proc-1"),
+                        "nc_nifi_processor_gc_duration"));
+    }
+
+    @Test
+    public void processorAtTimeThresholdReportsNoPerformanceDurations() {
+        //the configured threshold is 150 seconds:
+        ProcessorStatus processor = processor("proc-1", "group-1", 150_000_000_000L);
+        processor.setProcessingPerformanceStatus(
+                performanceStatus(5_000_000_000L, 1_000_000L, 2_000_000L, 3_000_000L, 40L));
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor));
+
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        assertEquals(List.of(), registeredGauges(PROCESSOR_PERFORMANCE_METRICS, "component_id", "proc-1"));
+    }
+
+    @Test
+    public void performanceDurationsAreRemovedWhenProcessorDropsBelowTimeThreshold() {
+        ProcessorStatus processor = processor("proc-1", "group-1", 200_000_000_000L);
+        processor.setProcessingPerformanceStatus(
+                performanceStatus(5_000_000_000L, 1_000_000L, 2_000_000L, 3_000_000L, 40L));
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor));
+        ReportingContext context = reportingContextFor(processGroup("root", group));
+        task.registerMetrics(context);
+        assertEquals(PROCESSOR_PERFORMANCE_METRICS,
+                registeredGauges(PROCESSOR_PERFORMANCE_METRICS, "component_id", "proc-1"),
+                "gauges of proc-1 above the threshold");
+
+        processor.setProcessingNanos(0L);
+        task.registerMetrics(context);
+
+        assertEquals(List.of(), registeredGauges(PROCESSOR_PERFORMANCE_METRICS, "component_id", "proc-1"),
+                "gauges of proc-1 below the threshold");
+    }
+
+    @Test
+    public void processGroupWithinLevelThresholdReportsPerformanceDurationsInNanoseconds() {
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessingPerformanceStatus(
+                performanceStatus(7_000_000_000L, 4_000_000L, 5_000_000L, 6_000_000L, 90L));
+
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        assertAll(
+                () -> assertEquals(7_000_000_000L,
+                        gaugeValue("nc_nifi_pg_cpu_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_cpu_duration"),
+                () -> assertEquals(4_000_000L,
+                        gaugeValue("nc_nifi_pg_content_read_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_content_read_duration"),
+                () -> assertEquals(5_000_000L,
+                        gaugeValue("nc_nifi_pg_content_write_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_content_write_duration"),
+                () -> assertEquals(6_000_000L,
+                        gaugeValue("nc_nifi_pg_session_commit_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_session_commit_duration"),
+                //NiFi reports 90 ms of garbage collection:
+                () -> assertEquals(90_000_000L,
+                        gaugeValue("nc_nifi_pg_gc_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_gc_duration"));
+    }
+
+    @Test
+    public void processGroupWithoutPerformanceStatusReportsZeroPerformanceDurations() {
+        task.registerMetrics(reportingContextFor(processGroup("root", processGroup("group-1"))));
+
+        assertAll(
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_pg_cpu_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_cpu_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_pg_content_read_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_content_read_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_pg_content_write_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_content_write_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_pg_session_commit_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_session_commit_duration"),
+                () -> assertEquals(0,
+                        gaugeValue("nc_nifi_pg_gc_duration", "group_id", "group-1"),
+                        "nc_nifi_pg_gc_duration"));
+    }
+
+    @Test
+    public void processGroupDeeperThanLevelThresholdReportsNoPerformanceDurations() {
+        //the configured threshold is 2 levels below the root process group:
+        ProcessGroupStatus root = processGroup("root",
+                processGroup("level-1", processGroup("level-2", processGroup("level-3"))));
+
+        task.registerMetrics(reportingContextFor(root));
+
+        assertAll(
+                () -> assertEquals(PROCESS_GROUP_PERFORMANCE_METRICS,
+                        registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "level-2"),
+                        "gauges of level-2"),
+                () -> assertEquals(List.of(),
+                        registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "level-3"),
+                        "gauges of level-3"));
+    }
+
+    @Test
+    public void performanceDurationsAreRemovedWhenProcessGroupIsDeleted() {
+        ProcessGroupStatus root = processGroup("root", processGroup("kept"), processGroup("deleted"));
+        ReportingContext context = reportingContextFor(root);
+        task.registerMetrics(context);
+        assertEquals(PROCESS_GROUP_PERFORMANCE_METRICS,
+                registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "deleted"),
+                "gauges of the group before it is deleted");
+
+        root.setProcessGroupStatus(new ArrayList<>(List.of(processGroup("kept"))));
+        task.registerMetrics(context);
+
+        assertAll(
+                () -> assertEquals(List.of(),
+                        registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "deleted"),
+                        "gauges of the deleted group"),
+                () -> assertEquals(PROCESS_GROUP_PERFORMANCE_METRICS,
+                        registeredGauges(PROCESS_GROUP_PERFORMANCE_METRICS, "group_id", "kept"),
+                        "gauges of the kept group"));
     }
 }
