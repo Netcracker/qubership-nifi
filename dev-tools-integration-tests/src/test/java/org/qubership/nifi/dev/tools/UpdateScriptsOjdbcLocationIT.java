@@ -26,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -35,9 +36,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * An Oracle DBCPConnectionPool or HikariCPConnectionPool with no driver location leaves the update scripts
- * with the {@code OJDBC_DRIVER_LOCATION} expression under the driver location key of the target NiFi, and
- * enables in that NiFi. Every other controller service keeps its driver location.
+ * On qubership-nifi 2.6.0 or later, an Oracle DBCPConnectionPool or HikariCPConnectionPool with no driver
+ * location leaves the update scripts with the {@code OJDBC_DRIVER_LOCATION} expression under the driver
+ * location key of the target NiFi, and enables in that NiFi. Every other controller service keeps its driver
+ * location. On an older qubership-nifi, no export gets the expression.
+ *
+ * <p>The qubership-nifi version is the bundle version of {@code OraclePreparedStatementWithArrayProvider} in
+ * the target NiFi, which the script reads too. The tests for each of the two ranges skip on the other.
  *
  * <p>The update-scripts container runs its whole pipeline, with
  * {@code dev/update-scripts-ojdbc-location/updateOjdbcDriverLocation.sh} as the first stage, over the
@@ -65,6 +70,10 @@ class UpdateScriptsOjdbcLocationIT {
     private static final String FIXTURE_VERSION = "1.28.1";
     private static final int FIRST_MINOR_WITH_NEW_KEYS = 7;
     private static final int ENABLE_TIMEOUT_SECONDS = 60;
+    private static final String QUBERSHIP_VERSION_TYPE =
+        "org.qubership.nifi.service.OraclePreparedStatementWithArrayProvider";
+    /** First qubership-nifi version on which the script sets the driver location. */
+    private static final String FIRST_QUBERSHIP_VERSION_WITH_LOCATION = "2.6.0";
 
     @BeforeAll
     static void setup() throws Exception {
@@ -72,6 +81,30 @@ class UpdateScriptsOjdbcLocationIT {
             "Skipping: system property 'nifi.cert.dir' is not set.");
         //no flags: run every stage, as a real upgrade does:
         HARNESS.setUp();
+    }
+
+    /**
+     * Below qubership-nifi 2.6.0, the script changes no export, so no property of any Oracle fixture holds
+     * the {@code OJDBC_DRIVER_LOCATION} expression.
+     *
+     * @param relativePath fixture path under the flows directory
+     */
+    @ParameterizedTest
+    @CsvSource({
+        "controller-services/OracleDBCPConnectionPool.json",
+        "controller-services/OracleHikariCPConnectionPool.json",
+        "controller-services/OracleDBCPConnectionPool_2_6.json",
+        "controller-services/OracleDBCPConnectionPool_2_7.json",
+        "controller-services/OracleDBCPConnectionPool_2_10.json",
+        "controller-services/OracleHikariCPConnectionPool_2_10.json",
+        "flows/flow-with-oracle-pools.json",
+        "flows/flow-with-oracle-pool-variants.json",
+    })
+    void exportGetsNoLocationBeforeQubershipNifi260(final String relativePath) throws Exception {
+        Assumptions.assumeFalse(setsLocation(),
+            () -> "qubership-nifi " + qubershipVersion() + " gets the driver location");
+
+        assertEquals(List.of(), pathsHolding(HARNESS.readFlow(relativePath), OJDBC_LOCATION, ""), relativePath);
     }
 
     @AfterAll
@@ -111,6 +144,7 @@ class UpdateScriptsOjdbcLocationIT {
         "OracleHikariCPConnectionPool_2_10.json, 2.10.0",
     })
     void controllerServiceExportGetsLocation(final String fileName, final String exportVersion) throws Exception {
+        assumeQubershipNifiSetsLocation();
         JsonNode component = MAPPER.readTree(
             HARNESS.flowsDir().resolve("controller-services/" + fileName).toFile()).path("component");
         String key = expectedLocationKey(component.path("type").asText(), exportVersion);
@@ -139,6 +173,7 @@ class UpdateScriptsOjdbcLocationIT {
     })
     void updatedControllerServiceExportEnables(final String fileName, final String exportVersion)
             throws Exception {
+        assumeQubershipNifiSetsLocation();
         Assumptions.assumeTrue(compareVersions(HARNESS.nifiVersion(), exportVersion) >= 0,
             () -> fileName + " is newer than the target NiFi " + HARNESS.nifiVersion());
         String id = HARNESS.createControllerServiceFromExport(fileName).path("id").asText();
@@ -154,6 +189,7 @@ class UpdateScriptsOjdbcLocationIT {
      */
     @Test
     void updatedFlowExportImportsAndItsPoolsEnable() throws Exception {
+        assumeQubershipNifiSetsLocation();
         JsonNode flowContents = HARNESS.readFlow("flows/flow-with-oracle-pools.json").path("flowContents");
 
         HARNESS.importAndValidate(flowContents, List.of());
@@ -178,6 +214,7 @@ class UpdateScriptsOjdbcLocationIT {
      */
     @Test
     void flowExportGetsLocationOnOraclePoolsWithoutOne() throws Exception {
+        assumeQubershipNifiSetsLocation();
         JsonNode flow = HARNESS.readFlow("flows/flow-with-oracle-pool-variants.json").path("flowContents");
         String dbcpKey = expectedLocationKey(DBCP_TYPE, FIXTURE_VERSION);
 
@@ -268,6 +305,47 @@ class UpdateScriptsOjdbcLocationIT {
         String[] rightParts = right.split("[.-]");
         int major = Integer.compare(Integer.parseInt(leftParts[0]), Integer.parseInt(rightParts[0]));
         return major != 0 ? major : Integer.compare(Integer.parseInt(leftParts[1]), Integer.parseInt(rightParts[1]));
+    }
+
+    private static void assumeQubershipNifiSetsLocation() {
+        Assumptions.assumeTrue(setsLocation(),
+            () -> "qubership-nifi " + qubershipVersion() + " is older than " + FIRST_QUBERSHIP_VERSION_WITH_LOCATION);
+    }
+
+    private static boolean setsLocation() {
+        return compareVersions(qubershipVersion(), FIRST_QUBERSHIP_VERSION_WITH_LOCATION) >= 0;
+    }
+
+    private static String qubershipVersion() {
+        String version = HARNESS.csVersionMap().get(QUBERSHIP_VERSION_TYPE);
+        if (version == null) {
+            throw new IllegalStateException("Controller service type not found in NiFi: " + QUBERSHIP_VERSION_TYPE);
+        }
+        return version;
+    }
+
+    /**
+     * Returns the JSON Pointer of every text node under {@code node} whose value is {@code value}.
+     *
+     * @param node    node to search
+     * @param value   text to find
+     * @param pointer JSON Pointer of {@code node}
+     * @return the pointers, in document order
+     */
+    private static List<String> pathsHolding(final JsonNode node, final String value, final String pointer) {
+        if (node.isTextual()) {
+            return value.equals(node.asText()) ? List.of(pointer) : List.of();
+        }
+        List<String> paths = new ArrayList<>();
+        if (node.isObject()) {
+            node.properties().forEach(field -> paths.addAll(pathsHolding(field.getValue(), value,
+                pointer + "/" + field.getKey())));
+        } else if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                paths.addAll(pathsHolding(node.get(i), value, pointer + "/" + i));
+            }
+        }
+        return paths;
     }
 
     private static JsonNode childGroups(final String groupId) throws Exception {

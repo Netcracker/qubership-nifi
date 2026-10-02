@@ -2,7 +2,17 @@
 
 The script `updateOjdbcDriverLocation.sh` sets the driver location on Oracle connection pools in NiFi exports, so the
 pools find the Oracle JDBC driver, which is not in the NiFi lib directory. Run it on flow exports and controller
-service exports before you import them into NiFi. The script needs `bash` and `jq`, and does not connect to NiFi.
+service exports before you import them into NiFi. The script needs `bash`, `jq`, `curl`, and access to the API of
+the target NiFi.
+
+The script changes the exports only when the target NiFi runs qubership-nifi 2.6.0 or later. qubership-nifi 2.6.0
+moved to Apache NiFi 2.9.0, which brought the change that makes the driver location necessary; older versions run an
+older Apache NiFi and need no update. The script reads the version from the bundle of
+`OraclePreparedStatementWithArrayProvider` in `/nifi-api/flow/controller-service-types`:
+
+- Below 2.6.0, the script prints `Skipping update.`, leaves the exports unchanged, and exits with code 0.
+- If the target NiFi has no `OraclePreparedStatementWithArrayProvider`, the script exits with an error, because the
+  qubership-nifi version is unknown.
 
 Example of running the script:
 
@@ -50,6 +60,8 @@ At NiFi startup, `nifi-scripts/update_flow_json_ojdbc_location.sh` applies the s
 
 ## Environment variables
 
-| Parameter  | Required | Default | Description                                                         |
-|------------|----------|---------|---------------------------------------------------------------------|
-| DEBUG_MODE | N        | false   | If set to `true`, the script prints a diff of each file it changes. |
+| Parameter       | Required | Default                  | Description                                                                                                                                                                                                                                                                  |
+|-----------------|----------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| NIFI_TARGET_URL | Y        | `https://localhost:8443` | URL of the target NiFi. The script reads the qubership-nifi version from it.                                                                                                                                                                                                 |
+| NIFI_CERT       | N        |                          | TLS arguments `curl` uses to connect to the target NiFi.<br/>The exact set depends on the Linux distribution; see the `curl` documentation on your system.<br/>For Alpine Linux the set is:<br/>`--cert 'client.p12:client.password' --cert-type P12 --cacert nifi-cert.pem` |
+| DEBUG_MODE      | N        | false                    | If set to `true`, the script prints a diff of each file it changes.                                                                                                                                                                                                          |

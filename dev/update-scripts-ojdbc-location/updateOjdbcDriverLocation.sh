@@ -17,6 +17,9 @@
 # under a directory, where the pool uses an Oracle driver and has no driver location set. Works on both flow exports
 # and controller service exports. The Oracle JDBC driver is not in the NiFi lib directory, so such a pool cannot load
 # the driver without it.
+# The script reads the qubership-nifi version of the target NiFi and changes nothing below 2.6.0. qubership-nifi 2.6.0
+# moved to Apache NiFi 2.9.0, which brought the change that makes the location necessary. Older versions run an older
+# Apache NiFi, so their pools need no change.
 # nifi-scripts/update_flow_json_ojdbc_location.sh applies the same change to flow.json.gz at NiFi startup.
 
 handle_error() {
@@ -34,6 +37,43 @@ fi
 if [ ! -d "$pathToFlow" ]; then
     handle_error "Error: The specified directory '$pathToFlow' does not exist."
 fi
+
+if [ -z "$NIFI_TARGET_URL" ]; then
+    echo "NIFI_TARGET_URL is not set. The default value - 'https://localhost:8443' will be set."
+    NIFI_TARGET_URL="https://localhost:8443"
+fi
+
+# The bundle version of this qubership-nifi service is the qubership-nifi version of the target NiFi.
+versionServiceType="org.qubership.nifi.service.OraclePreparedStatementWithArrayProvider"
+csTypesFile=$(mktemp)
+trap 'rm -f "$csTypesFile"' EXIT
+
+respCode=$(eval curl -sS -w '%{response_code}' -o "$csTypesFile" "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/controller-service-types")
+if [[ "$respCode" != "200" ]]; then
+    echo "Failed to GET /nifi-api/flow/controller-service-types. Response code = $respCode. Error message:" >&2
+    cat "$csTypesFile" >&2
+    handle_error "Failed to get controller service types from target NiFi"
+fi
+
+# Prints the highest bundle version of the service and whether it is 2.6.0 or later, or nothing if the type is absent.
+# shellcheck disable=SC2016
+versionInfo=$(jq -r --arg type "$versionServiceType" '
+    def version_parts: [splits("[.-]")] | .[0:3] | map(tonumber? // 0);
+    [.controllerServiceTypes[]? | select(.type == $type) | .bundle.version // empty]
+    | max_by(version_parts)
+    | select(. != null)
+    | "\(.) \(version_parts >= [2, 6, 0])"' "$csTypesFile") \
+    || handle_error "Error while reading the version of $versionServiceType from target NiFi"
+
+if [ -z "$versionInfo" ]; then
+    handle_error "Error: $versionServiceType is not found in target NiFi $NIFI_TARGET_URL, so the qubership-nifi version is unknown."
+fi
+quVersion=${versionInfo% *}
+if [ "${versionInfo#* }" != "true" ]; then
+    echo "qubership-nifi version $quVersion is older than 2.6.0, so Oracle connection pools need no driver location. Skipping update."
+    exit 0
+fi
+echo "qubership-nifi version - $quVersion"
 
 # NiFi Expression Language value, written to the exports as is.
 ojdbcLocation="\${OJDBC_DRIVER_LOCATION:replaceEmpty(\${NIFI_HOME:append('/nifi-config-template')})}"
