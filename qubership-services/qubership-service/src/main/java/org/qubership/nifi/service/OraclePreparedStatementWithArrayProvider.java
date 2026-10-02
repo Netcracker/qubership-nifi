@@ -22,6 +22,7 @@ import java.sql.Array;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -148,12 +149,21 @@ public class OraclePreparedStatementWithArrayProvider
     }
 
     /**
+     * Clears the cached Oracle driver members, so the service keeps no reference to the classloader of a connection
+     * pool that may be disabled or removed.
+     */
+    @OnDisabled
+    public void onDisable() {
+        this.oracleApi.set(null);
+    }
+
+    /**
      * Returns the Oracle driver members as defined by the classloader of the given connection.
      *
      * <p>The driver is loaded by the connection pool, possibly in a classloader of its own, so
      * {@code OracleConnection} has to come from the classloader that defined the connection: a copy from any other
      * classloader is a different class, and {@link Connection#unwrap(Class)} rejects it. The result is cached until a
-     * connection from a different classloader arrives.</p>
+     * connection from a different classloader arrives or the service is disabled.</p>
      *
      * @param con the connection to resolve the driver classes for
      * @return the resolved driver members
