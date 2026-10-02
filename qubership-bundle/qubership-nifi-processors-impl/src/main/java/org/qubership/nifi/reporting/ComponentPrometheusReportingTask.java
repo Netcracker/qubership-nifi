@@ -88,8 +88,23 @@ import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
 
 @Tags({"reporting", "prometheus", "metrics"})
-@CapabilityDescription("Sends components (Processors, Connections, Process Groups) metrics to Prometheus, "
-        + "including processing performance metrics.")
+@CapabilityDescription("Sends components (Processors, Connections, Process Groups) metrics to Prometheus. \n"
+        + "Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count, \n"
+        + "nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration, \n"
+        + "nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration, \n"
+        + "nc_nifi_processor_gc_duration. \n"
+        + "Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes, \n"
+        + "nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes. \n"
+        + "Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count, \n"
+        + "nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count, \n"
+        + "nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration, \n"
+        + "nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration. \n"
+        + "Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued, \n"
+        + "nifi_size_content_queued_total. \n"
+        + "Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total. \n"
+        + "JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage, \n"
+        + "garbage collector metrics with the prefix nifi_jvm_gc_, \n"
+        + "and Micrometer JVM metrics with the prefix jvm_.")
 public class ComponentPrometheusReportingTask extends AbstractPrometheusReportingTask {
 
     private static final String COMPONENT_ID_TAG = "component_id";
