@@ -22,6 +22,7 @@ import java.sql.Array;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
@@ -92,8 +94,17 @@ public class OraclePreparedStatementWithArrayProvider
     private String dbSchema;
     private String fullCharTypeName;
     private String fullNumTypeName;
-    private Class oracleConnection;
-    private Method createArrayMethod;
+    private final AtomicReference<OracleApi> oracleApi = new AtomicReference<>();
+
+    /**
+     * Oracle driver members resolved from one classloader.
+     *
+     * @param loader the classloader that defined the connection class
+     * @param connectionClass {@code oracle.jdbc.OracleConnection} as that classloader defines it
+     * @param createArrayMethod {@code OracleConnection.createOracleArray(String, Object)}
+     */
+    private record OracleApi(ClassLoader loader, Class<?> connectionClass, Method createArrayMethod) {
+    }
 
     /**
      * Constructor for class OraclePreparedStatementWithArrayProvider.
@@ -135,21 +146,53 @@ public class OraclePreparedStatementWithArrayProvider
             this.fullCharTypeName = this.charArrayType;
             this.fullNumTypeName = this.numArrayType;
         }
+    }
+
+    /**
+     * Clears the cached Oracle driver members, so the service keeps no reference to the classloader of a connection
+     * pool that may be disabled or removed.
+     */
+    @OnDisabled
+    public void onDisable() {
+        this.oracleApi.set(null);
+    }
+
+    /**
+     * Returns the Oracle driver members as defined by the classloader of the given connection.
+     *
+     * <p>The driver is loaded by the connection pool, possibly in a classloader of its own, so
+     * {@code OracleConnection} has to come from the classloader that defined the connection: a copy from any other
+     * classloader is a different class, and {@link Connection#unwrap(Class)} rejects it. The result is cached until a
+     * connection from a different classloader arrives or the service is disabled.</p>
+     *
+     * @param con the connection to resolve the driver classes for
+     * @return the resolved driver members
+     */
+    private OracleApi resolveOracleApi(final Connection con) {
+        ClassLoader loader = con.getClass().getClassLoader();
+        OracleApi cached = this.oracleApi.get();
+        if (cached != null && cached.loader() == loader) {
+            return cached;
+        }
+        Class<?> connectionClass;
         try {
-            this.oracleConnection = Class.forName("oracle.jdbc.OracleConnection");
+            connectionClass = Class.forName("oracle.jdbc.OracleConnection", false, loader);
         } catch (ClassNotFoundException ex) {
             getLogger().error("Unable to find OracleConnection", ex);
             throw new RuntimeException("Oracle JDBC driver classes not found. "
-                    + "Check NiFi classpath for presence of ojdbc jar");
+                    + "Check that the Database Driver Locations of the connection pool include the ojdbc jar");
         }
+        Method createArrayMethod;
         try {
-            this.createArrayMethod = this.oracleConnection.getMethod("createOracleArray",
-                    new Class[]{String.class, Object.class});
+            createArrayMethod = connectionClass.getMethod("createOracleArray", String.class, Object.class);
         } catch (NoSuchMethodException | SecurityException ex) {
             getLogger().error("Unable to find createOracleArray method", ex);
             throw new RuntimeException("Oracle JDBC driver connection doesn't have necessary method createOracleArray."
                     + " Check ojdbc jar version");
         }
+        OracleApi resolved = new OracleApi(loader, connectionClass, createArrayMethod);
+        this.oracleApi.set(resolved);
+        return resolved;
     }
 
     /**
@@ -160,6 +203,8 @@ public class OraclePreparedStatementWithArrayProvider
      * @param con Connection to DB
      * @return PreparedStatement
      * @throws SQLException
+     * @throws RuntimeException if the classloader of {@code con} has no Oracle JDBC driver, or its driver has no
+     *         {@code createOracleArray} method
      */
     @Override
     public PreparedStatement createPreparedStatement(
@@ -171,14 +216,15 @@ public class OraclePreparedStatementWithArrayProvider
             int numberOfBinds,
             int bindsOffset
     ) throws SQLException {
-        Object oraCon = con.unwrap(this.oracleConnection);
+        OracleApi api = resolveOracleApi(con);
+        Object oraCon = con.unwrap(api.connectionClass());
         PreparedStatement result = con.prepareStatement(query);
         String arrayType = getArrayType(type);
         Object[] idArray = convertArray(ids, type);
 
         for (int cnt = bindsOffset + 1; cnt < bindsOffset + numberOfBinds + 1; cnt++) {
             try {
-                result.setArray(cnt, (Array) this.createArrayMethod.invoke(oraCon, new Object[]{arrayType, idArray}));
+                result.setArray(cnt, (Array) api.createArrayMethod().invoke(oraCon, new Object[]{arrayType, idArray}));
             } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
                 getLogger().error("Failed to invoke createOracleArray method", ex);
                 throw new RuntimeException("Failed to invoke createOracleArray method "
