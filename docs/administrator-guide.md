@@ -141,6 +141,17 @@ To change NiFi properties:
 
 A detailed description of all supported NiFi properties is available in the Apache NiFi [System Administrator's Guide](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html).
 
+## Processing performance metrics
+
+`ComponentPrometheusReportingTask` reports processing performance metrics for processors and process groups.
+Their values depend on the NiFi property `nifi.performance.tracking.percentage`: the share of processor runs,
+from 0 to 100, in which NiFi measures the performance.
+
+With the default `0`, most of these metrics are not reliable. Set `100` to measure every run, as described in
+[Changing NiFi configuration properties](#changing-nifi-configuration-properties).
+With a value of 50 or lower, some durations are lower than the actual time.
+The measurement adds system calls to each measured run.
+
 ## NiFi configuration restore
 
 qubership-nifi supports automated configuration restore from archived versions.

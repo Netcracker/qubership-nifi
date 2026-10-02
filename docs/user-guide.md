@@ -298,7 +298,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |---|---|---|
 |`ComponentMetricsReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections) metrics to InfluxDB.|
 |`CommonMetricsReportingTask`|migration-nifi-processors-open|Sends Nifi metrics to InfluxDB.|
-|`ComponentPrometheusReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections) metrics to Prometheus.|
+|`ComponentPrometheusReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections, Process Groups) metrics to Prometheus. Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count, nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration, nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration, nc_nifi_processor_gc_duration. Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes, nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes. Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count, nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count, nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration, nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration. Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued, nifi_size_content_queued_total. Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total. JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage, garbage collector metrics with the prefix nifi_jvm_gc_, and Micrometer JVM metrics with the prefix jvm_.|
 
 ## Additional reporting tasks properties description
 
@@ -340,7 +340,23 @@ Sends Nifi metrics to InfluxDB.
 
 ### ComponentPrometheusReportingTask
 
-Sends components (Processors, Connections) metrics to Prometheus.
+Sends components (Processors, Connections, Process Groups) metrics to Prometheus.
+Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count,
+nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration,
+nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration,
+nc_nifi_processor_gc_duration.
+Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes,
+nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes.
+Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count,
+nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count,
+nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration,
+nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration.
+Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued,
+nifi_size_content_queued_total.
+Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total.
+JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage,
+garbage collector metrics with the prefix nifi_jvm_gc_,
+and Micrometer JVM metrics with the prefix jvm_.
 
 |Display Name|API Name|Default Value|Allowable Values|Description|
 |---|---|---|---|---|
