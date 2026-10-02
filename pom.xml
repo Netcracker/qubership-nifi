@@ -57,8 +57,8 @@
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <jar-plugin.version>3.5.1</jar-plugin.version>
         <central-publishing.plugin.version>0.11.0</central-publishing.plugin.version>
-        <nifi.version>2.10.0</nifi.version>
-        <nifi-api.version>2.9.0</nifi-api.version>
+        <nifi.version>2.11.0</nifi.version>
+        <nifi-api.version>2.10.0</nifi-api.version>
         <nifi.nar.plugin.version>2.1.0</nifi.nar.plugin.version>
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
         <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
@@ -88,8 +88,8 @@
         <slf4j.version>2.0.18</slf4j.version>
 
         <!-- Version for provided artifact -->
-        <jedis.version>7.5.2</jedis.version>
-        <spring.data.redis.version>4.1.0</spring.data.redis.version>
+        <jedis.version>7.5.3</jedis.version>
+        <spring.data.redis.version>4.0.6</spring.data.redis.version>
         <!--skipUnitTests default value-->
         <skipUnitTests>false</skipUnitTests>
     </properties>
