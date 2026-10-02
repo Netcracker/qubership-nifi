@@ -184,19 +184,6 @@ fi
 
 call_additional_libs
 
-if [ -n "${X_JAVA_ARGS}" ]; then
-    if [ -z "$i" ]; then
-        i=26
-    fi
-    read -r -a addJvmArgArr2 <<< "$X_JAVA_ARGS"
-    for addJvmArg in "${addJvmArgArr2[@]}"; do
-        info "Add $addJvmArg in bootstrap.conf"
-        echo "java.arg.$i=$addJvmArg" >> "${NIFI_HOME}"/conf/bootstrap.conf
-        echo "" >> "${NIFI_HOME}"/conf/bootstrap.conf
-        i=$((i+1))
-    done
-fi
-
 validate_jvm_args(){
     local paramName="$1"
     shift

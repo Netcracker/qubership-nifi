@@ -2,8 +2,9 @@
 
 A Claude Code [`PostToolUse`](https://docs.claude.com/en/docs/claude-code/hooks) hook that
 lints each file right after Claude writes or edits it, so lint problems are caught locally
-instead of waiting for the CI `super-linter` workflow. It ships as part of the
-`qubership-nifi-linters` APM package and is wired up by `apm install`.
+instead of waiting for the CI `super-linter` workflow. It ships as the
+`qubership-nifi-lint-hook-claude` APM package, with a Codex and Cursor variant in
+`qubership-nifi-lint-hook` (see [Wiring](#wiring)), and is wired up by `apm install`.
 
 - **codespell** runs on every changed file.
 - **editorconfig-checker** runs on every changed file.
@@ -28,54 +29,52 @@ It never hard-blocks your edits.
 
 ## Wiring
 
-This hook is declared next to this `README.md` and deployed by `apm install`. It ships as
-**two** hook definitions rather than one, because Claude Code needs a different command
-than Codex and Cursor:
+The hook ships in two APM packages, because Claude Code needs a different command than
+Codex and Cursor, and APM selects harnesses per package, not per hook file:
 
-- `lint-changed-file-claude-hooks.json` - Claude Code only. Its `command` is anchored to
-  `${CLAUDE_PROJECT_DIR}` (the env var Claude Code sets on every hook subprocess to the true
-  project root - see <https://code.claude.com/docs/en/hooks>), in addition to `${PLUGIN_ROOT}`
-  which APM rewrites to the installed package's own relative location:
+| Package                           | Harnesses     | Hook command                                                                    |
+|-----------------------------------|---------------|---------------------------------------------------------------------------------|
+| `qubership-nifi-lint-hook-claude` | Claude Code   | `python "${CLAUDE_PROJECT_DIR}/${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py"` |
+| `qubership-nifi-lint-hook`        | Codex, Cursor | `python "${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py"`                       |
 
-  ```json
-  {
-      "PostToolUse": [
-          {
-              "matcher": "Write|Edit",
-              "hooks": [
-                  {
-                      "type": "command",
-                      "command": "python \"${CLAUDE_PROJECT_DIR}/${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py\""
-                  }
-              ]
-          }
-      ]
-  }
-  ```
+APM rewrites `${PLUGIN_ROOT}` to the installed package's own relative location. Declare
+both packages in the consumer's `apm.yml` with the object form, and route each one with
+`targets:`. Without `targets:`, APM deploys both hooks to every harness, and Claude Code
+runs the hook twice. For a consumer repository:
 
-  Claude Code hooks run with `cwd` set to wherever the session's working directory happens to
-  be when the hook fires, which drifts away from the repository root whenever the agent `cd`s into a
-  subdirectory (e.g. to run `mvn test -pl <module>`). A bare `${PLUGIN_ROOT}`-relative command
-  then fails outright (`python: can't open file ...`) because the shell can't resolve the
-  script path before Python even starts - `${CLAUDE_PROJECT_DIR}` anchors it regardless of
-  `cwd`.
+```yaml
+dependencies:
+  apm:
+    - Netcracker/qubership-nifi/agent-packages/qubership-nifi-linters#<git-ref>
+    - git: Netcracker/qubership-nifi
+      path: agent-packages/qubership-nifi-lint-hook-claude
+      ref: <git-ref>
+      targets: [claude]
+    - git: Netcracker/qubership-nifi
+      path: agent-packages/qubership-nifi-lint-hook
+      ref: <git-ref>
+      targets: [codex, cursor]
+```
 
-- `lint-changed-file-codex-cursor-hooks.json` - Codex and Cursor. Command stays
-  `${PLUGIN_ROOT}`-relative, unchanged, since neither sets `CLAUDE_PROJECT_DIR` (or an
-  equivalent) and there is no evidence they are exposed to the same `cwd`-drift risk.
+Inside qubership-nifi, the root `apm.yml` uses local `path: ./agent-packages/...` entries
+with the same `targets:`.
 
-The two-file split relies on APM's `*-<harness>-hooks.json` filename-based hook routing.
-That convention is documented as deprecated in favor of a `targets:` field on package
-dependencies, but `targets:` only selects which harnesses receive a whole dependency's
-primitives - it cannot give a single hook a different `command` per harness within one
-active target set, which is what this package needs. The filename convention is still
-functional (it prints an `apm install`-time deprecation warning) and is used the same way
-elsewhere (e.g. the `ai-agent-telemetry` package's `skill-call-*-hooks.json` files). If APM
-removes the convention, this wiring will need to be revisited.
+Claude Code hooks run with `cwd` set to the session's working directory at the moment the
+hook fires, which moves away from the repository root whenever the agent `cd`s into a
+subdirectory (e.g. to run `mvn test -pl <module>`). A bare `${PLUGIN_ROOT}`-relative
+command then fails with `python: can't open file ...`, because the path is resolved before
+Python starts. `${CLAUDE_PROJECT_DIR}`, which Claude Code sets on every hook subprocess to
+the project root (see <https://code.claude.com/docs/en/hooks>), anchors the path regardless
+of `cwd`. Codex and Cursor do not set `CLAUDE_PROJECT_DIR`, so their command stays
+`${PLUGIN_ROOT}`-relative.
+
+Each package bundles its own copy of `lint_changed_file.py`, because APM deploys only files
+inside the package that declares the hook. The two copies must stay identical: edit both,
+and the `python-tests` workflow fails when they differ.
 
 Do not hand-edit the generated `.claude/settings.json` hook entry (or the Cursor / Codex
-equivalents) - APM owns it and tracks it in the `.claude/apm-hooks.json` sidecar. Edit this
-package and re-run `apm install` instead.
+equivalents) - APM owns it and tracks it in the `.claude/apm-hooks.json` sidecar. Edit these
+packages and re-run `apm install` instead.
 
 ## Finding the consumer repository root
 
@@ -136,5 +135,5 @@ Manual dry-run (from the consumer repository root):
 
 ```bash
 echo '{"tool_input":{"file_path":"path/to/File.java"}}' \
-  | python apm_modules/_local/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
+  | python apm_modules/_local/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
 ```
