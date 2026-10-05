@@ -98,6 +98,10 @@ mv "${NIFI_HOME}/persistent_conf/conf/flow.json.gz" "${NIFI_HOME}/persistent_con
 
 cp "${NIFI_HOME}/persistent_conf/conf/archive/${fileName}" "${NIFI_HOME}/persistent_conf/conf/flow.json.gz"
 
+# The archived flow may predate the OJDBC driver location fix. Deleting the marker makes
+# update_flow_json_ojdbc_location.sh check the restored flow on this start.
+rm -f "${NIFI_HOME}/persistent_conf/conf/update_ojdbc_location.applied"
+
 info "Deleting nifi-restore-version from Consul"
 res=$(curl -sS --write-out "%{http_code}" --request DELETE -o /tmp/tmp-nifi/deleteValue.json "$CONSUL_URL"/v1/kv/config/"$NAMESPACE"/"$MICROSERVICE_NAME"/nifi-restore-version?token="$secretId")
 if [ "$res" != "200" ]; then

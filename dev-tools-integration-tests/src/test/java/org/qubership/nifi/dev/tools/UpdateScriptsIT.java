@@ -16,8 +16,6 @@
 package org.qubership.nifi.dev.tools;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -31,7 +29,6 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -49,12 +46,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * <p>Requires the {@code nifi.cert.dir} system property (otherwise the test is skipped) and the
  * {@code NIFI_CLIENT_PASSWORD} environment variable. Optional system properties: {@code nifi.url},
- * {@code nifi.registry.url}, {@code scripts.docker.twork}.
+ * {@code nifi.registry.url}, {@code scripts.docker.network}, {@code nifi.client.cert.file},
+ * {@code nifi.ca.cert.file}.
  */
 class UpdateScriptsIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateScriptsIT.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final UpdateScriptsTestHarness HARNESS = new UpdateScriptsTestHarness();
 
@@ -151,31 +148,8 @@ class UpdateScriptsIT {
     @ParameterizedTest
     @MethodSource("controllerServiceFiles")
     void testControllerService(final String fileName) throws Exception {
-        Path csFile = HARNESS.flowsDir().resolve("controller-services/" + fileName);
-        ObjectNode csJson = (ObjectNode) MAPPER.readTree(csFile.toFile());
-
-        // Clean for creation: remove server-assigned fields, reset revision version
-        csJson.remove("id");
-        csJson.remove("uri");
-        ((ObjectNode) csJson.path("revision")).put("version", 0);
-        ObjectNode component = (ObjectNode) csJson.path("component");
-        component.remove("id");
-        component.remove("parentGroupId");
-
-        // Resolve the actual bundle version from this NiFi instance
-        String csType = component.path("type").asText();
-        String resolvedVersion = HARNESS.csVersionMap().get(csType);
-        if (resolvedVersion == null) {
-            throw new IllegalStateException(
-                "Controller service type not found in NiFi: " + csType);
-        }
-        ((ObjectNode) component.path("bundle")).put("version", resolvedVersion);
-
-        JsonNode respJson = HARNESS.api().createControllerService(MAPPER.writeValueAsString(csJson));
-        LOG.info("Create controller service {}: id={}", fileName, respJson.path("id").asText());
+        JsonNode respJson = HARNESS.createControllerServiceFromExport(fileName);
         String createdId = respJson.path("id").asText();
-        String createdVersion = respJson.path("revision").path("version").asText("0");
-        HARNESS.trackCreatedControllerService(createdId, createdVersion);
         String validationStatus = respJson.path("status").path("validationStatus").asText();
 
         if ("VALIDATING".equals(validationStatus)) {

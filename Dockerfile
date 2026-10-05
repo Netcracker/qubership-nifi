@@ -100,13 +100,16 @@ COPY --chown=10001:0 ./nifi-config/bootstrap.conf ./nifi-config/config-client-te
 
 RUN chmod 774 $NIFI_BASE_DIR/scripts/*.sh \
     && mkdir -p $NIFI_HOME/utility-lib \
+    && mkdir -p $NIFI_HOME/ojdbc-lib \
     && mkdir -p $NIFI_HOME/auxiliary-cp \
     && ln -s $NIFI_HOME/work/nar/extensions/nifi-poi-nar-$NIFI_VERSION.nar-unpacked/NAR-INF/bundled-dependencies $NIFI_HOME/auxiliary-cp/nifi-poi-nar-cp
 
-COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ojdbc8-*.jar ${NIFI_HOME}/lib/ojdbc8.jar
-COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/orai18n-*.jar ${NIFI_HOME}/lib/orai18n.jar
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/ojdbc8-*.jar ${NIFI_HOME}/ojdbc-lib/ojdbc8.jar
+COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/orai18n-*.jar ${NIFI_HOME}/ojdbc-lib/orai18n.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-misc-deps/target/lib/postgresql-*.jar ${NIFI_HOME}/lib/postgresql.jar
 COPY --chown=10001:0 qubership-nifi-deps/qubership-nifi-h2-deps-2-1-210/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-1-214/target/lib/h2-*.jar qubership-nifi-deps/qubership-nifi-h2-deps-2-2-220/target/lib/h2-*.jar ${NIFI_HOME}/utility-lib/
+
+ENV OJDBC_DRIVER_LOCATION=${NIFI_HOME}/ojdbc-lib/ojdbc8.jar,${NIFI_HOME}/ojdbc-lib/orai18n.jar
 
 COPY --chown=10001:0 qubership-consul/qubership-consul-application/target/qubership-consul-application*.jar $NIFI_HOME/utility-lib/qubership-nifi-consul-application.jar
 COPY --chown=10001:0 qubership-nifi-quarkus-consul/qubership-nifi-quarkus-consul-application/target/quarkus-app $NIFI_HOME/utility-lib/qubership-nifi-quarkus-consul-application

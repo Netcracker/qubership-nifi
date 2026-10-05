@@ -297,6 +297,8 @@ mkdir -p "${NIFI_HOME}/provenance_repository/provenance_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/database_repository"
 
 bash "${scripts_dir}/restore_nifi_configurations.sh"
+# Runs after the restore, so a flow restored from the archive gets the driver location too.
+bash "${scripts_dir}/update_flow_json_ojdbc_location.sh"
 
 # Set nifi-toolkit properties files and baseUrl
 export HOME="/opt/nifi/nifi-current/conf/"
