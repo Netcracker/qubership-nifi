@@ -1,0 +1,107 @@
+{
+  "flowContents": {
+    "identifier": "4b000000-0000-0000-0000-000000000001",
+    "instanceIdentifier": "4b000000-1111-0000-0000-000000000001",
+    "name": "flow-with-oracle-pools",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [
+      {
+        "identifier": "4b000000-0000-0000-0000-000000000002",
+        "instanceIdentifier": "4b000000-1111-0000-0000-000000000002",
+        "name": "nested",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [
+          {
+            "identifier": "4b000000-0000-0000-0000-000000000021",
+            "instanceIdentifier": "4b000000-1111-0000-0000-000000000021",
+            "name": "OracleHikariCPConnectionPool",
+            "comments": "",
+            "type": "org.apache.nifi.dbcp.HikariCPConnectionPool",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-dbcp-service-nar",
+              "version": "1.28.1"
+            },
+            "properties": {
+              "hikaricp-connection-url": "jdbc:oracle:thin:@//oracle:1521/XE",
+              "hikaricp-driver-classname": "oracle.jdbc.OracleDriver",
+              "hikaricp-driver-locations": null
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [],
+            "scheduledState": "DISABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "4b000000-0000-0000-0000-000000000002"
+          }
+        ],
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "componentType": "PROCESS_GROUP",
+        "groupIdentifier": "4b000000-0000-0000-0000-000000000001"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [
+      {
+        "identifier": "4b000000-0000-0000-0000-000000000011",
+        "instanceIdentifier": "4b000000-1111-0000-0000-000000000011",
+        "name": "OracleDBCPConnectionPool",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:oracle:thin:@//oracle:1521/XE",
+          "Database Driver Class Name": "oracle.jdbc.OracleDriver",
+          "database-driver-locations": null
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4b000000-0000-0000-0000-000000000001"
+      }
+    ],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}
