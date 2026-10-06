@@ -1,0 +1,2 @@
+# Optional: without it the script reads the PKCS#12 file with the openssl command.
+cryptography>=41

@@ -10,6 +10,7 @@ on:
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
       - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
       - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
+      - 'dev/api-usage-collector/**'
       - '.github/workflows/python-tests.yml'
   pull_request:
     paths:
@@ -19,6 +20,7 @@ on:
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
       - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
       - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
+      - 'dev/api-usage-collector/**'
       - '.github/workflows/python-tests.yml'
   workflow_dispatch: null
 
@@ -43,6 +45,7 @@ jobs:
           cache-dependency-path: |
             agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/requirements-test.txt
             agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/requirements-test.txt
+            dev/api-usage-collector/tests/requirements-test.txt
 
       - name: Install dependencies
         run: python3 -m pip install --require-hashes -r agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/requirements-test.txt
@@ -58,6 +61,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 -m pytest agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests --junitxml=pytest-results-nifi-flow-builder.xml
 
+      - name: Install api-usage-collector dependencies
+        if: ${{ !cancelled() }}
+        run: python3 -m pip install --require-hashes -r dev/api-usage-collector/tests/requirements-test.txt
+
+      - name: Run api-usage-collector pytest
+        if: ${{ !cancelled() }}
+        run: python3 -m pytest dev/api-usage-collector/tests --junitxml=pytest-results-api-usage-collector.xml
+
       - name: Check that the lint hook script copies are identical
         if: ${{ !cancelled() }}
         run: >-
@@ -72,4 +83,5 @@ jobs:
           path: |
             pytest-results-adapt-nifi-flows-to-2-x.xml
             pytest-results-nifi-flow-builder.xml
+            pytest-results-api-usage-collector.xml
           retention-days: 2
