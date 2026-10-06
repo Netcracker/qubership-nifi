@@ -20,14 +20,14 @@
     "org.apache.nifi.websocket.jetty.JettyWebSocketServer" : {
         "max-binary-message-size" : "Max Binary Message Size",
         "login-service" : "Login Service",
-        "Listen Port" : "Port",
         "ssl-context-service" : "SSL Context Service",
-        "SSL Client Authentication" : "Client Authentication",
-        "Enable Basic Authentication" : "Basic Authentication Enabled",
+        "client-authentication" : "Client Authentication",
         "auth-path-spec" : "Basic Authentication Path Spec",
         "auth-roles" : "Basic Authentication Roles",
         "max-text-message-size" : "Max Text Message Size",
-        "input-buffer-size" : "Input Buffer Size"
+        "listen-port" : "Port",
+        "input-buffer-size" : "Input Buffer Size",
+        "basic-auth" : "Basic Authentication Enabled"
     },
     "org.apache.nifi.aws.schemaregistry.AmazonGlueSchemaRegistry" : {
         "cache-expiration" : "Cache Expiration",
@@ -47,18 +47,18 @@
     "org.apache.nifi.websocket.jetty.JettyWebSocketClient" : {
         "max-binary-message-size" : "Max Binary Message Size",
         "ssl-context-service" : "SSL Context Service",
-        "User Name" : "Username",
         "connection-attempt-timeout" : "Connection Attempt Count",
         "proxy-host" : "HTTP Proxy Host",
         "authentication-charset" : "Authentication Header Charset",
         "max-text-message-size" : "Max Text Message Size",
         "websocket-uri" : "WebSocket URI",
         "connection-timeout" : "Connection Timeout",
+        "user-password" : "Password",
         "proxy-port" : "HTTP Proxy Port",
+        "user-name" : "Username",
         "session-maintenance-interval" : "Session Maintenance Interval",
         "custom-authorization" : "Custom Authorization",
-        "input-buffer-size" : "Input Buffer Size",
-        "User Password" : "Password"
+        "input-buffer-size" : "Input Buffer Size"
     },
     "org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider" : {
         "audience" : "Audience",

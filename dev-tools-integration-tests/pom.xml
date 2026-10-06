@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>2.8.6-SNAPSHOT</version>
+        <version>2.8.7-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -41,6 +41,9 @@
         <nifi.registry.url>https://localhost:18080</nifi.registry.url>
         <scripts.docker.network>oidc_default</scripts.docker.network>
         <nifi.cert.dir>${maven.multiModuleProjectDirectory}/temp-vol/tls-cert/nifi</nifi.cert.dir>
+        <!-- Client keystore and CA certificate file names inside nifi.cert.dir -->
+        <nifi.client.cert.file>CN=admin_OU=NIFI.p12</nifi.client.cert.file>
+        <nifi.ca.cert.file>nifi-cert.pem</nifi.ca.cert.file>
         <nifi.registry.int.url>https://nifi-registry:18080</nifi.registry.int.url>
     </properties>
 
@@ -103,6 +106,8 @@
                         <nifi.registry.url>${nifi.registry.url}</nifi.registry.url>
                         <nifi.registry.int.url>${nifi.registry.int.url}</nifi.registry.int.url>
                         <nifi.cert.dir>${nifi.cert.dir}</nifi.cert.dir>
+                        <nifi.client.cert.file>${nifi.client.cert.file}</nifi.client.cert.file>
+                        <nifi.ca.cert.file>${nifi.ca.cert.file}</nifi.ca.cert.file>
                         <scripts.docker.network>${scripts.docker.network}</scripts.docker.network>
                         <project.rootdir>${session.executionRootDirectory}</project.rootdir>
                     </systemPropertyVariables>

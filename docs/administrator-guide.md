@@ -69,6 +69,7 @@ The table below describes environment variables supported by qubership-nifi.
 | NIFI_CLUSTER_LEADER_ELECTION_KUBERNETES_LEASE_PREFIX | N                                  |                              | Prefix for Leases used in cluster leader election. Used only if NIFI_CLUSTER_LEADER_ELECTION_IMPLEMENTATION = KubernetesLeaderElectionManager. Corresponds to property `nifi.cluster.leader.election.kubernetes.lease.prefix` in nifi.properties.                                                                                                                                                                                                                                 |
 | NIFI_KUBERNETES_CONFIGMAP_NAME_PREFIX                | N                                  |                              | Prefix for ConfigMaps used to store cluster-wide components state. Used only if NIFI_STATE_MANAGEMENT_PROVIDER_CLUSTER = kubernetes-provider.                                                                                                                                                                                                                                                                                                                                     |
 | NIFI_ARCHIVE_CONF_MAX_LIST                           | N                                  | 50                           | Maximum number of archived NiFi configuration versions to display in logs during startup. Does not affect the number of versions retained. Setting this to a higher value may impact startup time.                                                                                                                                                                                                                                                                                |
+| OJDBC_DRIVER_LOCATION                                | N                                  | See description              | Comma-separated list of the Oracle JDBC driver files bundled with the image, `/opt/nifi/nifi-current/ojdbc-lib/ojdbc8.jar,/opt/nifi/nifi-current/ojdbc-lib/orai18n.jar` by default. Use it in the Database Driver Location(s) property of a DBCPConnectionPool or HikariCPConnectionPool with an Oracle driver. At startup, qubership-nifi sets this property on such pools where it is empty, see [Oracle JDBC driver location](#oracle-jdbc-driver-location).                   |
 
 ## Extension points
 
@@ -163,6 +164,65 @@ On startup, qubership-nifi performs the following:
    and replaced with the specified archived version.
    Once complete, the `nifi-restore-version` parameter is automatically cleared in Consul to prevent repeated
    restores on subsequent restarts.
+
+## Automatic flow.json.gz updates
+
+At startup, before NiFi loads the flow, qubership-nifi runs one-time updates on
+`/opt/nifi/nifi-current/persistent_conf/conf/flow.json.gz`. Each update does the following:
+
+- Skips the file if it does not exist.
+- Saves a backup copy next to `flow.json.gz` before the first change.
+- Writes a marker file to the same directory when it succeeds, and skips on every later start while the marker exists.
+- Stops the startup if it fails, without writing the marker.
+
+To run an update again, delete its marker file and restart the qubership-nifi container. The rerun replaces the backup
+file, so copy the backup elsewhere first if you need to keep it.
+
+| Update                                                            | Marker file                     | Backup file                      |
+|-------------------------------------------------------------------|---------------------------------|----------------------------------|
+| [Migration from Apache NiFi 1.x](#migration-from-apache-nifi-1x)  | `update_flow_json_2.applied`    | `flow.json.gz_bk`                |
+| [Oracle JDBC driver location](#oracle-jdbc-driver-location)       | `update_ojdbc_location.applied` | `flow.json.gz_bk_ojdbc_location` |
+
+### Migration from Apache NiFi 1.x
+
+This update brings a flow saved by Apache NiFi 1.x to the component types and property names of NiFi 2.x:
+
+- Components whose type was renamed or moved to another NAR in NiFi 2.x get the new type and, where needed, the new
+  NAR. The mapping is in [narMappingConfig.json](../nifi-scripts/narMappingConfig.json).
+- JoltTransformJSON processors get the NiFi 2.x property names, for example `jolt-spec` becomes
+  `Jolt Specification`.
+
+The update runs before the [NiFi configuration restore](#nifi-configuration-restore), so it does not apply to a flow
+restored from the archive. To update a restored flow saved by NiFi 1.x, delete `update_flow_json_2.applied` and
+restart the container once more.
+
+### Oracle JDBC driver location
+
+The Oracle JDBC driver is not in the NiFi `lib` directory, so a DBCPConnectionPool or HikariCPConnectionPool with an
+Oracle driver needs the driver files in its Database Driver Location(s) property. This update sets that property on
+each such pool where it is empty or missing. The pool qualifies when its Database Driver Class Name is
+`oracle.jdbc.OracleDriver` or `oracle.jdbc.driver.OracleDriver`. The property gets this value:
+
+```text
+${OJDBC_DRIVER_LOCATION:replaceEmpty(${NIFI_HOME:append('/nifi-config-template')})}
+```
+
+The value resolves to the files listed in the `OJDBC_DRIVER_LOCATION` environment variable. If the variable is empty or
+not set, the value resolves to the existing `nifi-config-template` directory instead, so the property stays valid and
+the pool reports the missing driver class when it is enabled.
+
+The update runs after the [NiFi configuration restore](#nifi-configuration-restore). When the restore replaces
+`flow.json.gz` with an archived version, it deletes `update_ojdbc_location.applied`, so the restored flow gets the
+same update on that start.
+
+The update skips these pools, which need Database Driver Location(s) set by hand:
+
+- A pool that sets the driver class through a parameter or Expression Language, such as `#{db.driver}`.
+- A pool whose Database Driver Location(s) is already set, including the old path
+  `/opt/nifi/nifi-current/lib/ojdbc8.jar`.
+- A pool added after the update has run, for example in a flow imported from NiFi Registry or created in the UI.
+  For flow and controller service exports, run the
+  [Oracle driver location update script](../dev/update-scripts-ojdbc-location/README.md) before the import.
 
 ## Cluster Configuration
 
