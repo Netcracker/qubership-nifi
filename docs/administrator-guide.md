@@ -147,10 +147,26 @@ A detailed description of all supported NiFi properties is available in the Apac
 Their values depend on the NiFi property `nifi.performance.tracking.percentage`: the share of processor runs,
 from 0 to 100, in which NiFi measures the performance.
 
-With the default `0`, most of these metrics are not reliable. Set `100` to measure every run, as described in
+Each of these metrics is a total over the last 5 minutes, as of the last run of the reporting task. It is not a counter
+since startup, so do not apply `rate()` or `increase()` to it.
+
+The value of a process group includes the processors of all its child groups, so adding up the values of a group and
+its child groups counts the same processors more than once.
+
+By default, performance tracking is disabled (`nifi.performance.tracking.percentage` = `0`). The value changes the
+CPU, content read, content write, and session commit metrics:
+
+- `0`: the content read, content write, and session commit metrics are `0`. The CPU metrics are not `0`, but NiFi
+  extrapolates them from a single measured run, so they are not reliable.
+- `1` to `50`: the content read, content write, and session commit metrics show about the given percentage of the actual
+  time. The CPU metrics are extrapolated from the measured runs.
+- `51` to `100`: NiFi measures every run.
+
+The garbage collection metrics do not depend on the value. To get reliable values, set `100`, as described in
 [Changing NiFi configuration properties](#changing-nifi-configuration-properties).
-With a value of 50 or lower, some durations are lower than the actual time.
-The measurement adds system calls to each measured run.
+
+For more details, including the cost of the measurement, refer to the `Performance Tracking Properties` section in
+[NiFi System Administrator's Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#performance_tracking_properties).
 
 ## NiFi configuration restore
 

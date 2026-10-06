@@ -804,6 +804,25 @@ public class ComponentPrometheusReportingTaskTest {
     }
 
     @Test
+    public void gaugeDescriptionsNameTheWindowTheyCover() {
+        ProcessGroupStatus group = processGroup("group-1");
+        group.setProcessorStatus(List.of(processor("proc-1", "group-1", 200_000_000_000L)));
+        task.registerMetrics(reportingContextFor(processGroup("root", group)));
+
+        List<String> gaugeNames = new ArrayList<>(PROCESSOR_PERFORMANCE_METRICS);
+        gaugeNames.addAll(PROCESS_GROUP_PERFORMANCE_METRICS);
+        gaugeNames.add("nc_nifi_processor_tasks_time_total");
+        List<String> withoutWindow = gaugeNames.stream()
+                .filter(name -> {
+                    String description = task.getMeterRegistry().get(name).gauge().getId().getDescription();
+                    return description == null || !description.contains("over the last 5 minutes");
+                })
+                .toList();
+
+        assertEquals(List.of(), withoutWindow, "gauges whose description does not name the 5-minute window");
+    }
+
+    @Test
     public void processorAboveTimeThresholdReportsPerformanceDurationsInNanoseconds() {
         ProcessorStatus processor = processor("proc-1", "group-1", 200_000_000_000L);
         processor.setProcessingPerformanceStatus(

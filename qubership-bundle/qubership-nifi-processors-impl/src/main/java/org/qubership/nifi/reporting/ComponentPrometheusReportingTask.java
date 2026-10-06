@@ -88,28 +88,31 @@ import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
 
 @Tags({"reporting", "prometheus", "metrics"})
-@CapabilityDescription("Sends components (Processors, Connections, Process Groups) metrics to Prometheus. \n"
-        + "Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count, \n"
-        + "nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration, \n"
-        + "nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration, \n"
-        + "nc_nifi_processor_gc_duration. \n"
-        + "Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes, \n"
-        + "nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes. \n"
-        + "Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count, \n"
-        + "nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count, \n"
-        + "nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration, \n"
-        + "nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration. \n"
-        + "Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued, \n"
-        + "nifi_size_content_queued_total. \n"
-        + "Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total. \n"
-        + "JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage, \n"
-        + "garbage collector metrics with the prefix nifi_jvm_gc_, \n"
-        + "and Micrometer JVM metrics with the prefix jvm_.")
+@CapabilityDescription("""
+        Sends components (Processors, Connections, Process Groups) metrics to Prometheus.\s
+        Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count,\s
+        nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration,\s
+        nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration,\s
+        nc_nifi_processor_gc_duration.\s
+        Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes,\s
+        nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes.\s
+        Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count,\s
+        nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count,\s
+        nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration,\s
+        nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration.\s
+        Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued,\s
+        nifi_size_content_queued_total.\s
+        Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total.\s
+        JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage,\s
+        garbage collector metrics with the prefix nifi_jvm_gc_,\s
+        and Micrometer JVM metrics with the prefix jvm_.""")
 public class ComponentPrometheusReportingTask extends AbstractPrometheusReportingTask {
 
     private static final String COMPONENT_ID_TAG = "component_id";
 
     private static final String PROCESS_GROUP_ID_TAG = "group_id";
+
+    private static final String PROCESSOR_COMPONENT_TYPE = "Processor";
 
     /**
      * Processing performance gauges registered for each processor above the time threshold
@@ -120,23 +123,23 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
     private static final List<PerformanceGauge> PERFORMANCE_GAUGES = List.of(
             new PerformanceGauge(ProcessorMetricName.CPU_DURATION_METRIC_NAME.getName(),
                     CPU_DURATION_PG_METRIC_NAME.getName(),
-                    "Estimated CPU time used, in nanoseconds",
+                    "Estimated CPU time used over the last 5 minutes, in nanoseconds",
                     ProcessingPerformanceStatus::getCpuDuration),
             new PerformanceGauge(ProcessorMetricName.CONTENT_READ_DURATION_METRIC_NAME.getName(),
                     CONTENT_READ_DURATION_PG_METRIC_NAME.getName(),
-                    "Time spent reading from the content repository, in nanoseconds",
+                    "Time spent reading from the content repository over the last 5 minutes, in nanoseconds",
                     ProcessingPerformanceStatus::getContentReadDuration),
             new PerformanceGauge(ProcessorMetricName.CONTENT_WRITE_DURATION_METRIC_NAME.getName(),
                     CONTENT_WRITE_DURATION_PG_METRIC_NAME.getName(),
-                    "Time spent writing to the content repository, in nanoseconds",
+                    "Time spent writing to the content repository over the last 5 minutes, in nanoseconds",
                     ProcessingPerformanceStatus::getContentWriteDuration),
             new PerformanceGauge(ProcessorMetricName.SESSION_COMMIT_DURATION_METRIC_NAME.getName(),
                     SESSION_COMMIT_DURATION_PG_METRIC_NAME.getName(),
-                    "Time spent committing sessions, in nanoseconds",
+                    "Time spent committing sessions over the last 5 minutes, in nanoseconds",
                     ProcessingPerformanceStatus::getSessionCommitDuration),
             new PerformanceGauge(ProcessorMetricName.GC_DURATION_METRIC_NAME.getName(),
                     GC_DURATION_PG_METRIC_NAME.getName(),
-                    "Garbage collection time during processing, in nanoseconds",
+                    "Garbage collection time during processing over the last 5 minutes, in nanoseconds",
                     status -> TimeUnit.MILLISECONDS.toNanos(status.getGarbageCollectionDuration())));
 
     /**
@@ -144,7 +147,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
      *
      * @param processorMetricName name of the gauge registered for a processor
      * @param processGroupMetricName name of the gauge registered for a process group
-     * @param description gauge description, with the unit
+     * @param description gauge description, with the window and the unit
      * @param duration reads the duration, in nanoseconds, from a non-null performance status
      */
     private record PerformanceGauge(String processorMetricName, String processGroupMetricName,
@@ -474,12 +477,13 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                         ProcessorStatus proc = getProcessorByKey(key);
                         return proc == null ? 0 : proc.getProcessingNanos();
                     })
+                    .description("Processing time over the last 5 minutes, in nanoseconds")
                     .tag("namespace", getNamespace())
                     .tag("hostname", getHostname())
                     .tag("instance", getInstance())
                     .tag("component_id", st.getValue().getId())
                     .tag("component_name", st.getValue().getName())
-                    .tag("component_type", "Processor")
+                    .tag("component_type", PROCESSOR_COMPONENT_TYPE)
                     .tag("parent_id", st.getValue().getGroupId())
                     .register(getMeterRegistry());
 
@@ -492,7 +496,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("instance", getInstance())
                     .tag("component_id", st.getValue().getId())
                     .tag("component_name", st.getValue().getName())
-                    .tag("component_type", "Processor")
+                    .tag("component_type", PROCESSOR_COMPONENT_TYPE)
                     .tag("parent_id", st.getValue().getGroupId())
                     .register(getMeterRegistry());
 
@@ -507,7 +511,7 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                         .tag("instance", getInstance())
                         .tag("component_id", st.getValue().getId())
                         .tag("component_name", st.getValue().getName())
-                        .tag("component_type", "Processor")
+                        .tag("component_type", PROCESSOR_COMPONENT_TYPE)
                         .tag("parent_id", st.getValue().getGroupId())
                         .register(getMeterRegistry());
             }
@@ -742,21 +746,25 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_path", groupPath.get(pgSt.getValue().getId()))
                     .register(getMeterRegistry());
 
-            for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
-                Gauge.builder(perfGauge.processGroupMetricName(), () -> {
-                            ProcessGroupStatus procGroup = getProcessGroupStatusByKey(key);
-                            return procGroup == null ? 0
-                                    : perfGauge.valueOf(procGroup.getProcessingPerformanceStatus());
-                        })
-                        .description(perfGauge.description())
-                        .tag("namespace", getNamespace())
-                        .tag("hostname", getHostname())
-                        .tag("instance", getInstance())
-                        .tag("group_id", pgSt.getValue().getId())
-                        .tag("group_name", pgSt.getValue().getName())
-                        .tag("group_path", groupPath.get(pgSt.getValue().getId()))
-                        .register(getMeterRegistry());
-            }
+            registerPerformanceGaugesForProcessGroup(key, pgSt.getValue(), groupPath.get(pgSt.getValue().getId()));
+        }
+    }
+
+    private void registerPerformanceGaugesForProcessGroup(String key, ProcessGroupStatus status, String groupPath) {
+        for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
+            Gauge.builder(perfGauge.processGroupMetricName(), () -> {
+                        ProcessGroupStatus procGroup = getProcessGroupStatusByKey(key);
+                        return procGroup == null ? 0
+                                : perfGauge.valueOf(procGroup.getProcessingPerformanceStatus());
+                    })
+                    .description(perfGauge.description())
+                    .tag("namespace", getNamespace())
+                    .tag("hostname", getHostname())
+                    .tag("instance", getInstance())
+                    .tag("group_id", status.getId())
+                    .tag("group_name", status.getName())
+                    .tag("group_path", groupPath)
+                    .register(getMeterRegistry());
         }
     }
 
