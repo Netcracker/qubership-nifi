@@ -153,19 +153,24 @@ since startup, so do not apply `rate()` or `increase()` to it.
 The value of a process group includes the processors of all its child groups, so adding up the values of a group and
 its child groups counts the same processors more than once.
 
-By default, performance tracking is disabled (`nifi.performance.tracking.percentage` = `0`). The value changes the
-CPU, content read, content write, and session commit metrics:
+By default, performance tracking is disabled (`nifi.performance.tracking.percentage` = `0`).
 
-- `0`: the content read, content write, and session commit metrics are `0`. The CPU metrics are not `0`, but NiFi
-  extrapolates them from a single measured run, so they are not reliable.
-- `1` to `50`: the content read, content write, and session commit metrics show about the given percentage of the actual
-  time. The CPU metrics are extrapolated from the measured runs.
-- `51` to `100`: NiFi measures every run.
+The value is an integer from `0` to `100`: the percentage of processor runs in which NiFi measures the CPU time,
+content read time, content write time, and session commit time. NiFi measures only this share of the runs, because the
+measurement requires system calls, which can be expensive on some systems. For the other runs, NiFi extrapolates the CPU
+time from the measured runs. For example, at `20` NiFi measures about 20% of the runs.
 
-The garbage collection metrics do not depend on the value. To get reliable values, set `100`, as described in
-[Changing NiFi configuration properties](#changing-nifi-configuration-properties).
+The NiFi statistics tracker calculates the number of runs between two measurements as `100` divided by the value,
+rounded down. NiFi measures every N-th run, where N is this number, so the real share of measured runs is `1 / N` and
+can differ from the value.
+For example, `20` gives N = 5 (20%), and `30` gives N = 3 (33%). The values `55` and `75` both give N = 1, so NiFi
+measures every run at any value from `51` to `100`.
 
-For more details, including the cost of the measurement, refer to the `Performance Tracking Properties` section in
+The value of `nifi.performance.tracking.percentage` does not affect the CPU usage of the qubership-nifi container.
+
+To get reliable values, set `100`, as described in
+[Changing NiFi configuration properties](#changing-nifi-configuration-properties). For more details, refer to the
+`Performance Tracking Properties` section in
 [NiFi System Administrator's Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#performance_tracking_properties).
 
 ## NiFi configuration restore
