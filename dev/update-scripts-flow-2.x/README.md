@@ -95,7 +95,6 @@ mappings kept in separate files so each is easy to maintain:
 | 2.7.2  | `csPropConfig_2_7.json`  | `procPropConfig_2_7.json`  |
 | 2.9.0  | `csPropConfig_2_9.json`  | `procPropConfig_2_9.json`  |
 | 2.10.0 | `csPropConfig_2_10.json` | `procPropConfig_2_10.json` |
-| 2.11.0 | `csPropConfig_2_11.json` | `procPropConfig_2_11.json` |
 
 Each config maps a component type to a map of old-to-new property names. To remove a property, set
 its value to `null`.
@@ -122,7 +121,6 @@ The remove-when-empty configs follow the same split and naming scheme, keyed by 
 | 2.7.2  | `csRemoveWhenEmptyConfig_2_7.json`  | `procRemoveWhenEmptyConfig_2_7.json`  |
 | 2.9.0  | `csRemoveWhenEmptyConfig_2_9.json`  | `procRemoveWhenEmptyConfig_2_9.json`  |
 | 2.10.0 | `csRemoveWhenEmptyConfig_2_10.json` | `procRemoveWhenEmptyConfig_2_10.json` |
-| 2.11.0 | `csRemoveWhenEmptyConfig_2_11.json` | `procRemoveWhenEmptyConfig_2_11.json` |
 
 Each config maps a component type to a map of property names with `null` values. A `null` entry marks
 a descriptor to remove only when the matching property is empty.

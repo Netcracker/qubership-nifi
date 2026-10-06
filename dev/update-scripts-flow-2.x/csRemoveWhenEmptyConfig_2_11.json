@@ -1,5 +1,0 @@
-{
-  "org.apache.nifi.schemaregistry.services.AvroSchemaRegistry" : {
-    "Validate Field Names" : null
-  }
-}

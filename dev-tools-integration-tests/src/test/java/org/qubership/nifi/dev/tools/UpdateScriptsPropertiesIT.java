@@ -26,7 +26,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -51,8 +50,8 @@ class UpdateScriptsPropertiesIT {
         {"include-zero-record-flowfiles", "Include Zero Record FlowFiles"},
     };
 
-    /** Minimum target minor version that applies the 2.11 mapping step to the AvroSchemaRegistry flow. */
-    private static final int AVRO_VALIDATION_STRATEGY_MINOR = 11;
+    /** Minimum target minor version whose mapping steps rename avro-reg-validated-field-names. */
+    private static final int VALIDATE_FIELD_NAMES_RENAME_MINOR = 7;
 
     /** Flow with two NiFi 1.28.1 AvroSchemaRegistry services: one with Validate Field Names set, one without. */
     private static final String AVRO_SCHEMA_REGISTRY_FLOW = "flows/flow-with-avro-schema-registry.json";
@@ -117,7 +116,7 @@ class UpdateScriptsPropertiesIT {
      */
     @Test
     void aValidateFieldNamesSetToFalseIsKeptForNiFiToMigrate() throws Exception {
-        assumeAvroValidationStrategyTarget();
+        assumeValidateFieldNamesRenamed();
 
         JsonNode registry = controllerService(HARNESS.readFlow(AVRO_SCHEMA_REGISTRY_FLOW),
                 "AvroSchemaRegistryNoValidation");
@@ -132,27 +131,27 @@ class UpdateScriptsPropertiesIT {
     }
 
     /**
-     * The Validate Field Names descriptor is removed from a service that carries no value for the
-     * property, and the other descriptors stay.
+     * The Validate Field Names descriptor stays on a service that carries no value for the property,
+     * so that NiFi 2.11 removes it on import through its own property migration.
      */
     @Test
-    void anUnsetValidateFieldNamesLosesItsDescriptor() throws Exception {
-        assumeAvroValidationStrategyTarget();
+    void anUnsetValidateFieldNamesKeepsItsDescriptorForNiFiToMigrate() throws Exception {
+        assumeValidateFieldNamesRenamed();
 
         JsonNode descriptors = controllerService(HARNESS.readFlow(AVRO_SCHEMA_REGISTRY_FLOW),
                 "AvroSchemaRegistryValidationUnset").path("propertyDescriptors");
 
         assertAll(
-            () -> assertFalse(descriptors.has(VALIDATE_FIELD_NAMES),
+            () -> assertTrue(descriptors.has(VALIDATE_FIELD_NAMES),
                     "AvroSchemaRegistryValidationUnset propertyDescriptors " + descriptors),
             () -> assertTrue(descriptors.has("schema1"),
                     "AvroSchemaRegistryValidationUnset propertyDescriptors " + descriptors));
     }
 
-    private static void assumeAvroValidationStrategyTarget() {
+    private static void assumeValidateFieldNamesRenamed() {
         Assumptions.assumeTrue(HARNESS.nifiVersion() != null && HARNESS.nifiVersion().startsWith("2.")
-                && HARNESS.nifiVersionMinor() >= AVRO_VALIDATION_STRATEGY_MINOR,
-            "The 2.11 mapping step only runs on NiFi 2.11 or later targets");
+                && HARNESS.nifiVersionMinor() >= VALIDATE_FIELD_NAMES_RENAME_MINOR,
+            "Validate Field Names is renamed only on NiFi 2.7 or later targets");
     }
 
     private static JsonNode controllerService(final JsonNode snapshot, final String name) {
