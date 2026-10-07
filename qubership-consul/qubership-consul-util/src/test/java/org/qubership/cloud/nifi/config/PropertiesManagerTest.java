@@ -13,6 +13,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.autoconfigure.RefreshAutoConfiguration;
 import org.springframework.cloud.consul.config.ConsulConfigAutoConfiguration;
+import org.springframework.core.env.Environment;
 import org.testcontainers.consul.ConsulContainer;
 import org.testcontainers.containers.Container;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
@@ -47,6 +48,12 @@ class PropertiesManagerTest {
     @Autowired
     private PropertiesManager pm;
 
+    /**
+     * Application environment that {@link ConsulPropertiesProvider} reads.
+     */
+    @Autowired
+    private Environment env;
+
 
     private static void putPropertyToConsul(String propertyName, String propertyValue) {
         Container.ExecResult res = null;
@@ -65,6 +72,14 @@ class PropertiesManagerTest {
             LOG.error("Failed to fill initial consul data for property = {}", propertyName, e);
             Assertions.fail("Failed to fill initial consul data for property = " + propertyName, e);
         }
+    }
+
+    private void awaitEnvironmentValue(String propertyName, String expectedValue) {
+        //the Consul config watch refreshes the environment asynchronously,
+        //so a value put to Consul is not visible to PropertiesManager right away:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).untilAsserted(() ->
+                Assertions.assertEquals(expectedValue, env.getProperty(propertyName),
+                        "environment value of " + propertyName));
     }
 
     @BeforeAll
@@ -99,9 +114,7 @@ class PropertiesManagerTest {
             throw new RuntimeException("Failed to delete conf test dir", e);
         }
         putPropertyToConsul("config/local/application/logger.org.qubership2", "DEBUG");
-        //wait for logback.xml to be recreated after refresh:
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
+        awaitEnvironmentValue("logger.org.qubership2", "DEBUG");
         pm.generateNifiProperties();
         Assertions.assertTrue(logbackConfig.exists());
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
@@ -136,6 +149,7 @@ class PropertiesManagerTest {
     void testLoggingLevelsUpdate() throws Exception {
         //initial load:
         putPropertyToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        awaitEnvironmentValue("logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
         final File logbackConfig = new File("./conf/logback.xml");
         Assertions.assertTrue(logbackConfig.exists());
@@ -153,13 +167,11 @@ class PropertiesManagerTest {
         }
         //update consul:
         putPropertyToConsul("config/local/application/logger.org.qubership", "INFO");
-        //wait for logback.xml to be recreated after refresh:
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
-        Assertions.assertTrue(logbackConfig.exists());
-        loggingLevels = parser.getAllLoggingLevels();
-        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
-        Assertions.assertEquals("INFO", loggingLevels.get("org.qubership"));
+        //wait for logback.xml to be recreated with the new level after refresh;
+        //the refresh after the DEBUG put can still write DEBUG:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).ignoreExceptions().untilAsserted(() ->
+                Assertions.assertEquals("INFO", parser.getAllLoggingLevels().get("org.qubership"),
+                        "org.qubership level"));
     }
 
     @AfterEach

@@ -4,6 +4,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.Config;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +44,12 @@ public class PropertiesManagerTest {
      */
     @InjectConsulContainer
     private ConsulContainer consul;
+
+    /**
+     * Application config that {@link ConsulPropertiesProvider} reads.
+     */
+    @Inject
+    private Config config;
 
     @BeforeAll
     static void setup() {
@@ -86,13 +93,21 @@ public class PropertiesManagerTest {
         }
     }
 
+    private void awaitConfigValue(String propertyName, String expectedValue) {
+        //the Consul config source receives a KV change through an asynchronous watch,
+        //so a value put to Consul is not visible to PropertiesManager right away:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).untilAsserted(() ->
+                Assertions.assertEquals(expectedValue,
+                        config.getOptionalValue(propertyName, String.class).orElse(null),
+                        "config value of " + propertyName));
+    }
+
     @Test
     void testPropertiesLoadOnStart() throws Exception {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        awaitConfigValue("logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -128,9 +143,8 @@ public class PropertiesManagerTest {
     void testUpdateLoggingLevels() throws Exception {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        awaitConfigValue("logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -147,22 +161,19 @@ public class PropertiesManagerTest {
         }
         //update consul:
         putToConsul("config/local/application/logger.org.qubership", "INFO");
-        //wait for logback.xml to be recreated after refresh:
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
-        Assertions.assertTrue(logbackConfig.exists());
-        loggingLevels = parser.getAllLoggingLevels();
-        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
-        Assertions.assertEquals("INFO", loggingLevels.get("org.qubership"));
+        //wait for logback.xml to be recreated with the new level after refresh:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).ignoreExceptions().untilAsserted(() -> {
+            Map<String, String> updatedLevels = parser.getAllLoggingLevels();
+            Assertions.assertEquals("INFO", updatedLevels.get("org.qubership"), "org.qubership level");
+        });
     }
 
     @Test
     void testAddLoggingLevels() throws Exception {
         File logbackConfig = new File("./conf/logback.xml");
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
+        awaitConfigValue("logger.org.qubership", "DEBUG");
         pm.generateNifiProperties();
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -179,15 +190,12 @@ public class PropertiesManagerTest {
         }
         //update consul:
         putToConsul("config/local/application/logger.org.qubership2", "INFO");
-        //wait for logback.xml to be recreated after refresh:
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
-        Assertions.assertTrue(logbackConfig.exists());
-        loggingLevels = parser.getAllLoggingLevels();
-        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
-        Assertions.assertEquals("DEBUG", loggingLevels.get("org.qubership"));
-        Assertions.assertTrue(loggingLevels.containsKey("org.qubership2"));
-        Assertions.assertEquals("INFO", loggingLevels.get("org.qubership2"));
+        //wait for logback.xml to be recreated with the new logger after refresh:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).ignoreExceptions().untilAsserted(() -> {
+            Map<String, String> updatedLevels = parser.getAllLoggingLevels();
+            Assertions.assertEquals("DEBUG", updatedLevels.get("org.qubership"), "org.qubership level");
+            Assertions.assertEquals("INFO", updatedLevels.get("org.qubership2"), "org.qubership2 level");
+        });
     }
 
 
@@ -197,9 +205,10 @@ public class PropertiesManagerTest {
         putToConsul("config/local/application/logger.org.qubership", "DEBUG");
         putToConsul("config/local/application/logger.org.qubership2", "WARN");
         putToConsul("config/local/application/logger.org.qubership3", "ERROR");
+        awaitConfigValue("logger.org.qubership", "DEBUG");
+        awaitConfigValue("logger.org.qubership2", "WARN");
+        awaitConfigValue("logger.org.qubership3", "ERROR");
         pm.generateNifiProperties();
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
         Assertions.assertTrue(logbackConfig.exists(), "logback.xml should exist");
         LogbackConfigParser parser = new LogbackConfigParser("./conf/logback.xml");
         Map<String, String> loggingLevels = parser.getAllLoggingLevels();
@@ -223,17 +232,14 @@ public class PropertiesManagerTest {
         //update consul:
         deleteFromConsul("config/local/application/logger.org.qubership2");
         deleteFromConsul("config/local/application/logger.org.qubership3");
-        //wait for logback.xml to be recreated after refresh:
-        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).
-                until(logbackConfig::exists);
-        Assertions.assertTrue(logbackConfig.exists());
-        loggingLevels = parser.getAllLoggingLevels();
-        Assertions.assertTrue(loggingLevels.containsKey("org.qubership"));
-        Assertions.assertEquals("DEBUG", loggingLevels.get("org.qubership"));
-        Assertions.assertFalse(loggingLevels.containsKey("org.qubership2"));
-        Assertions.assertNull(loggingLevels.get("org.qubership2"));
-        Assertions.assertFalse(loggingLevels.containsKey("org.qubership3"));
-        Assertions.assertNull(loggingLevels.get("org.qubership3"));
+        //wait for logback.xml to be recreated without both loggers after refresh;
+        //the refresh after the org.qubership2 delete can still write org.qubership3:
+        Awaitility.await().atMost(25000, TimeUnit.MILLISECONDS).ignoreExceptions().untilAsserted(() -> {
+            Map<String, String> updatedLevels = parser.getAllLoggingLevels();
+            Assertions.assertEquals("DEBUG", updatedLevels.get("org.qubership"), "org.qubership level");
+            Assertions.assertNull(updatedLevels.get("org.qubership2"), "org.qubership2 level");
+            Assertions.assertNull(updatedLevels.get("org.qubership3"), "org.qubership3 level");
+        });
     }
 
     @AfterAll
