@@ -47,6 +47,23 @@ NiFi starts once without the variables. `scenario.sh` then creates the NiFi cont
 | `nifi-app.log.gz`       | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                |
 | `scenario-jvm-args.txt` | Both variables, the `java.arg.*` entries of `bootstrap.conf` with the two collectors, and the startup errors |
 
+## NiFi 1.x
+
+NiFi 1.x has no trial JVM check. The start script adds both variables to `bootstrap.conf`, and the NiFi JVM itself
+fails to start. The container exits with code 0, not 3, about 6 seconds after the start, and its output does not
+name the failure. RunNiFi logs the JVM output to `nifi-app.log`, where the stdout and stderr lines can interleave in
+either order; NiFi 1.x writes no `nifi-bootstrap.log`:
+
+```text
+[INFO ] ... [class=org.apache.nifi.StdOut] ... Error occurred during initialization of VM
+[INFO ] ... [class=org.apache.nifi.StdOut] ... Multiple garbage collectors selected
+[ERROR] ... [class=org.apache.nifi.StdErr] ... Picked up JAVA_TOOL_OPTIONS: -XX:+UseParallelGC
+[INFO ] ... [class=org.apache.nifi.bootstrap.RunNiFi] ... NiFi never started. Will not restart NiFi
+```
+
+`manifest.txt` has `nifi_exit_code=0`, and the startup errors in `scenario-jvm-args.txt` come from `nifi-app.log`.
+The remediation is the same. Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
 ## Remediation
 
 Keep one `-XX:+Use...GC` option across `NIFI_ADDITIONAL_JVM_ARGS`, `X_JAVA_ARGS`, and `JAVA_TOOL_OPTIONS`, then

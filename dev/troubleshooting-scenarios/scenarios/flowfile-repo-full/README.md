@@ -71,6 +71,29 @@ seconds after the start, and the snapshot and the journals take about half of it
 | `storage.txt`                | The content repository far from full                                                                 |
 | `manifest.txt`               | `nifi_state=running`, `nifi_health=healthy`                                                          |
 
+## NiFi 1.x
+
+NiFi 1.x reproduces the issue with the same bulletin, and the messages differ in their text:
+
+- The poisoned journal message has a literal `{}` in place of the exception, which follows on the next line:
+
+  ```text
+  Marking Write-Ahead journal file ./flowfile_repository/journals/15.journal as poisoned due to {}
+  java.io.IOException: No space left on device
+  ```
+
+- The checkpoint errors name the exception in the message:
+
+  ```text
+  Failed to create new journal file ./flowfile_repository/journals/33.journal due to java.io.IOException: No space left on device
+  Unable to checkpoint FlowFile Repository due to java.io.IOException: No space left on device
+  ```
+
+- Each failed session commit also logs `Failed to asynchronously commit session StandardProcessSession[id=<n>] for
+  GenerateFlowFile[id=<id>]`.
+
+Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
 ## Remediation
 
 - Give the FlowFile repository a larger volume. The volume holds a snapshot of all queued FlowFiles and the journals

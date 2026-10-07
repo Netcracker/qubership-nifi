@@ -40,7 +40,23 @@ scenario has no parameters.
 
 The bundle has the hashes of the keys, never the keys.
 
+## NiFi 1.x
+
+The container exits with code 3 as well, with another message:
+
+```text
+oldKeyHash file does not match with newKeyHash and NIFI_PREVIOUS_SENSITIVE_KEY is empty. Terminating start-up...
+```
+
+Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
+The NiFi 1.x start script, `re_encrypt_sensitive_keys.sh`, can also change the key; the scenario does not run this
+path. With `NIFI_PREVIOUS_SENSITIVE_KEY` set to the key whose hash is in `old_key_hash`, it re-encrypts
+`flow.json.gz` with `NIFI_NEW_SENSITIVE_KEY` and saves the hash of the new key. With any other previous key it exits
+with code 3 and `oldKeyHash file does not match with newKeyHash or with NIFI_PREVIOUS_SENSITIVE_KEY_HASH.`
+
 ## Remediation
 
 Set `NIFI_NEW_SENSITIVE_KEY`, or the file at `NIFI_SENSITIVE_KEY_PATH` when the variable is empty, back to the key of
-the first deployment, then restart NiFi.
+the first deployment, then restart NiFi. On NiFi 1.x, to keep the new key instead, set
+`NIFI_PREVIOUS_SENSITIVE_KEY` to the key of the last successful start.

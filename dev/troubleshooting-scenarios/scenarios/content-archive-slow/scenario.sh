@@ -56,6 +56,11 @@ scenario_load() {
     groupId=$(cat "$WORK_DIR/flow-group-id")
     generatorId=$(processor_id "$groupId" "Generate claims")
     dropId=$(processor_id "$groupId" "Drop")
+    # NiFi 1.x writes the FlowFiles of one session into one claim file. One FlowFile per session, 10 times as often,
+    # keeps the rate and gives every FlowFile a claim file of its own, as NiFi 2.x does with the flow as uploaded.
+    if [ "$NIFI_MAJOR_VERSION" == "1" ]; then
+        update_processor "$generatorId" '{"config": {"schedulingPeriod": "10 millis", "properties": {"Batch Size": "1"}}}'
+    fi
 
     log "Writing and dropping content for $LOAD_DURATION seconds on $STORAGE storage..."
     start_processor "$dropId"

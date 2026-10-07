@@ -118,6 +118,15 @@ With 200 MiB of room, `PROVENANCE_MAX_STORAGE_SIZE="56 MB"`, the flow runs for 6
 After the run with too little room, `df` and `system-diagnostics.json` show about 82%, and the `.gz` files of failed
 compressions are smaller than the others in the `du` listing.
 
+## NiFi 1.x
+
+NiFi 1.x logs the same errors and the same bulletin. With the default `PROVENANCE_MAX_STORAGE_SIZE=512 MB` it
+behaves like the run with too little room: after each burst of failed writes the writer rolls over with `WRITER_IS_DIRTY`, the
+compression of the rolled-over file fails, and NiFi deletes the uncompressed file. The usage reaches 100% only for
+moments: samples taken every 5 seconds swung between 62% and 86%, and `df` and `system-diagnostics.json` showed 87%
+at the end of the run. The run counted 150 `No space left on device` lines, where the NiFi 2.10.0 runs counted 3323 to
+124259. Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
 ## Remediation
 
 - Set `nifi.provenance.repository.max.storage.size` below the volume size, with room for the events written in one

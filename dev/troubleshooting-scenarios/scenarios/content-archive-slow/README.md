@@ -29,8 +29,8 @@ The second command runs the same load on a local Docker volume, as a baseline to
 
 The content repository splits claims into 1024 partition directories, each with an `archive` subdirectory. Archive
 cleanup walks these directories with `Files.walkFileTree`: it reads the attributes of every archived file, and deletes
-each file older than the retention period. Each claim is a separate file once it is larger than
-`nifi.content.claim.max.appendable.size` (100 KB by default), so a flow that writes many such FlowFiles leaves many
+each file older than the retention period. On NiFi 2.x each claim is a separate file once it is larger
+than `nifi.content.claim.max.appendable.size` (100 KB by default), so a flow that writes many such FlowFiles leaves many
 archived files. On NFS each attribute read and each deletion is a synchronous call to the server, so a run takes far
 longer than on a local disk. Listing the same files with `find` stays fast, because it does not read their
 attributes or delete them. Older Apache NiFi versions are affected more.
@@ -99,6 +99,24 @@ Measured with the default parameters on NiFi 2.10.0. The NFS server ran on the s
 
 Nearly all of each run is in the `delete expired` phase. The NFS run held fewer archived files at a time than the local
 run, and its runs were still 37 times longer on average.
+
+## NiFi 1.x
+
+NiFi 1.x writes all FlowFiles of one session into one claim file, even past
+`nifi.content.claim.max.appendable.size`, so the uploaded flow, with 10 FlowFiles per
+session, would leave a tenth of the archived files. On NiFi 1.x, `scenario.sh` switches `Generate claims` to one
+FlowFile per session every 10 milliseconds, which keeps the rate of 100 FlowFiles per second and a claim file for each
+one. The cleanup messages are the same as on NiFi 2.x.
+
+Measured with the default parameters on qubership-nifi 1.0.9 (Apache NiFi 1.28.1):
+
+| Storage    | Archived files | Cleanup run, average | Cleanup run, max | `find` over all files |
+|------------|----------------|----------------------|------------------|-----------------------|
+| Local NVMe | 10000 to 14000 | 370 ms               | 461 ms           | 143 ms                |
+| NFS        | 6200 to 9300   | 15337 ms             | 28398 ms         | 517 ms                |
+
+As on NiFi 2.x, the NFS runs were about 40 times longer on average, and the dump caught the `Cleanup Archive for
+default` thread in `unlink`, called from `Files.walkFileTree` in `destroyExpiredArchives`.
 
 ## Remediation
 

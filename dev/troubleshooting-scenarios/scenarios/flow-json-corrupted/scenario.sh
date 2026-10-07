@@ -18,7 +18,12 @@
 # Sourced by run.sh and collect-evidence.sh after lib.sh.
 # shellcheck disable=SC2034
 
-SCENARIO_EXPECTED_EXIT_CODE=1
+# NiFi 2.x exits with 1. In NiFi 1.x, RunNiFi reports "NiFi never started" and nifi-scripts/start.sh exits with 0.
+if [ "$NIFI_MAJOR_VERSION" == "1" ]; then
+    SCENARIO_EXPECTED_EXIT_CODE=0
+else
+    SCENARIO_EXPECTED_EXIT_CODE=1
+fi
 # The persistent_conf/conf directory of NiFi, as the helper container sees it.
 FLOW_CONF_DIR=/work/temp-vol/nifi/per-conf/conf
 
@@ -31,11 +36,13 @@ scenario_break() {
     # On the first start with an existing flow.json.gz, nifi-scripts/update_flow_json.sh migrates NAR coordinates
     # once. If that start found the file with invalid JSON, the migration would fail and NiFi would start with an
     # empty flow instead. A restart before the corruption completes the migration, as on any instance started more
-    # than once.
-    log "Restarting NiFi, so that the start scripts complete their one-time flow.json.gz migration..."
-    compose stop nifi
-    compose up -d --wait --wait-timeout 600 --no-deps nifi ||
-        die "NiFi did not become healthy after the restart, see 'docker logs $NIFI_CONTAINER'."
+    # than once. NiFi 1.x has no such migration.
+    if [ "$NIFI_MAJOR_VERSION" == "2" ]; then
+        log "Restarting NiFi, so that the start scripts complete their one-time flow.json.gz migration..."
+        compose stop nifi
+        compose up -d --wait --wait-timeout 600 --no-deps nifi ||
+            die "NiFi did not become healthy after the restart, see 'docker logs $NIFI_CONTAINER'."
+    fi
     log "Stopping NiFi, so that no running NiFi rewrites flow.json.gz after the corruption..."
     compose stop nifi
     log "Corrupting flow.json.gz ($CORRUPTION)..."
@@ -61,9 +68,13 @@ scenario_evidence() {
         helper_run "gzip -t $FLOW_CONF_DIR/flow.json.gz 2>&1 && echo 'gzip: OK' || echo 'gzip: damaged'"
         echo
         echo "## Errors of the start scripts"
-        grep -F '[ERROR]' "$bundleDir/container.log" || true
+        # Start script lines only, "[<timestamp>] [ERROR]": NiFi 1.x writes its own "[<timestamp>][ERROR]" here too.
+        grep -E '^\[[^]]*\] \[ERROR\]' "$bundleDir/container.log" || true
         echo
         echo "## NiFi startup failure and its causes"
-        grep -E 'Failed to start Server|^[A-Za-z.]+(Exception|Error)|^Caused by' "$bundleDir/nifi-app.log" || true
+        # NiFi 2.x writes "Failed to start Server", NiFi 1.x "Failed to start web server" and "NiFi never started".
+        # NiFi 1.x also logs a DeprecationException stack trace on every start, which is not part of the failure.
+        grep -E 'Failed to start (Server|web server)|NiFi never started|^[A-Za-z.]+(Exception|Error)|^Caused by' \
+            "$bundleDir/nifi-app.log" | grep -v '^org.apache.nifi.deprecation.log.DeprecationException' || true
     } >"$bundleDir/scenario-flow-json.txt"
 }

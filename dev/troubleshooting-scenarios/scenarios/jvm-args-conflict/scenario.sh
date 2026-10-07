@@ -14,12 +14,18 @@
 # limitations under the License.
 
 # Hooks for the jvm-args-conflict scenario: NIFI_ADDITIONAL_JVM_ARGS and X_JAVA_ARGS select two different garbage
-# collectors, so the start script rejects them and NiFi does not start.
+# collectors, so the start script (NiFi 2.x) or the NiFi JVM (NiFi 1.x) rejects them and NiFi does not start.
 # Sourced by run.sh and collect-evidence.sh after lib.sh.
 # shellcheck disable=SC2034
 
-# nifi-scripts/start.sh exits with 3 when a JVM rejects the collector arguments.
-SCENARIO_EXPECTED_EXIT_CODE=3
+# In NiFi 2.x, nifi-scripts/start.sh checks the collector arguments with a JVM and exits with 3 when it rejects them.
+# NiFi 1.x has no such check: the NiFi JVM fails to start, RunNiFi reports "NiFi never started", and the script exits
+# with 0.
+if [ "$NIFI_MAJOR_VERSION" == "1" ]; then
+    SCENARIO_EXPECTED_EXIT_CODE=0
+else
+    SCENARIO_EXPECTED_EXIT_CODE=3
+fi
 
 scenario_break() {
     log "Starting NiFi again with NIFI_ADDITIONAL_JVM_ARGS='$JVM_ARGS_ADDITIONAL' and X_JAVA_ARGS='$JVM_ARGS_X_JAVA'..."
@@ -38,6 +44,9 @@ scenario_evidence() {
             true
         echo
         echo "## Startup errors"
+        # NiFi 2.x: the check of nifi-scripts/start.sh. NiFi 1.x: the NiFi JVM output, which RunNiFi logs to nifi-app.log.
         grep -E -A 5 'Invalid JVM arguments' "$bundleDir/container.log" || true
+        grep -E 'Error occurred during initialization of VM|garbage collectors|JAVA_TOOL_OPTIONS|NiFi never started' \
+            "$bundleDir/nifi-app.log" || true
     } >"$bundleDir/scenario-jvm-args.txt"
 }

@@ -97,8 +97,9 @@ scenario_evidence() {
         echo
         echo "## Provenance repository messages, counted by level, logger, and text"
         # Every failed session commit logs a stack trace, so the messages are counted rather than listed.
+        # NiFi 2.x ends the fields before the message with nifiPgPath, NiFi 1.x with spanId.
         grep -E '^\[[^]]*\]\[(WARN|ERROR|INFO) *\].*\[class=[^]]*provenance' "$bundleDir/nifi-app.log" |
-            sed -E 's/^\[[^]]*\]\[([A-Z]+) *\].*\[class=([^] ]*) *\].*\[nifiPgPath=[^]]*\] */\1 \2 | /; t; d' |
+            sed -E 's/^\[[^]]*\]\[([A-Z]+) *\].*\[class=([^] ]*) *\].*\[(nifiPgPath|spanId)=[^]]*\] */\1 \2 | /; t; d' |
             sed -E 's/[0-9]+/N/g' | sort | uniq -c | sort -rn || true
         echo
         echo "## Message counts"

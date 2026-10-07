@@ -57,34 +57,55 @@ Only one scenario runs at a time. `run.sh` refuses to start while the NiFi conta
 The environment is based on `.github/docker/tls/docker-compose.yaml` without NiFi Registry. These variables apply
 to every scenario:
 
-| Variable            | Default                             | Description                                                      |
-|---------------------|-------------------------------------|------------------------------------------------------------------|
-| `NIFI_IMAGE`        | `ghcr.io/netcracker/qubership-nifi` | NiFi image name                                                  |
-| `NIFI_IMAGE_TAG`    | `latest`                            | NiFi image tag                                                   |
-| `NIFI_EXIT_TIMEOUT` | `600`                               | Seconds a startup failure scenario waits for the NiFi container to exit |
+| Variable             | Default                             | Description                                                                  |
+|----------------------|-------------------------------------|------------------------------------------------------------------------------|
+| `NIFI_IMAGE`         | `ghcr.io/netcracker/qubership-nifi` | NiFi image name                                                              |
+| `NIFI_IMAGE_TAG`     | `latest`                            | NiFi image tag                                                               |
+| `NIFI_EXIT_TIMEOUT`  | `600`                               | Seconds a startup failure scenario waits for the NiFi container to exit      |
+| `NIFI_MAJOR_VERSION` | From the image                      | Apache NiFi major version of the image, `1` or `2`; see [NiFi 1.x](#nifi-1x) |
 
 Each scenario page lists its own variables.
+
+## NiFi 1.x
+
+The scenarios run on qubership-nifi 1.x images too, which are built on Apache NiFi 1.x:
+
+```bash
+NIFI_IMAGE_TAG=1.0.9 ./run.sh content-archive-full
+```
+
+`run.sh` reads the major version from the `org.opencontainers.image.version` label of the image: `1.*` selects
+NiFi 1.x, any other value or no label selects NiFi 2.x. Set `NIFI_MAJOR_VERSION` for an image whose label does not
+match its Apache NiFi version. A scenario page lists what differs on NiFi 1.x, in its messages, exit codes, or
+parameters.
+
+On NiFi 1.x with `AUTH=tls`, NiFi keeps `users.xml` and `authorizations.xml` in the `conf` volume, and their copies
+in `persistent_conf/conf-restore`. A NiFi container started again with a new `conf` volume then fails with
+`Primary file '/opt/nifi/nifi-current/./conf/users.xml' is different than restore file
+'/opt/nifi/nifi-current/./persistent_conf/conf-restore/users.xml'`. So that a startup failure scenario reproduces
+its own failure, `recreate_nifi` removes the copies before it starts NiFi 1.x again, and NiFi creates both files
+anew for the initial admin.
 
 ## Evidence bundle
 
 `run.sh` collects a bundle once the issue is reproduced. Run `./collect-evidence.sh` to take another snapshot of the
 instance. Each bundle is written to `.work/evidence/<scenario>/<timestamp>/`:
 
-| File                          | Content                                                                                    |
-|-------------------------------|--------------------------------------------------------------------------------------------|
-| `manifest.txt`                | Scenario, NiFi image and version, container state and exit code, scenario parameters       |
-| `storage.txt`                 | `df` and `du` of the content repository and its archive directories, claim file counts     |
-| `nifi.properties.content.txt` | Effective `nifi.content.*` properties                                                      |
-| `nifi-app.log.gz`             | Full NiFi application log with the hourly rolled-over files, compressed                    |
-| `nifi-bootstrap.log`          | NiFi bootstrap log with the rolled-over files                                              |
-| `nifi-app.filtered.log`       | Archive, content repository, warning, and error lines, without per-claim DEBUG lines       |
-| `container.log`               | `docker logs` of the NiFi container; for a running NiFi, without the application log lines |
-| `system-diagnostics.json`     | `GET /nifi-api/system-diagnostics`: heap, repository storage usage as NiFi reports it      |
-| `root-status.json`            | `GET /nifi-api/flow/process-groups/root/status?recursive=true`: queues and processor stats |
-| `bulletins.json`              | `GET /nifi-api/flow/bulletin-board`                                                        |
-| `diagnostics.txt`             | Output of `nifi.sh diagnostics --verbose`, including a thread dump                         |
-| `scenario-*`                  | Scenario-specific files, described on the scenario page                                    |
-| `collection-errors.txt`       | Present only when a step failed; names the files that could not be collected               |
+| File                          | Content                                                                                              |
+|-------------------------------|------------------------------------------------------------------------------------------------------|
+| `manifest.txt`                | Scenario, NiFi image, version, and major version, container state and exit code, scenario parameters |
+| `storage.txt`                 | `df` and `du` of the content repository and its archive directories, claim file counts               |
+| `nifi.properties.content.txt` | Effective `nifi.content.*` properties                                                                |
+| `nifi-app.log.gz`             | Full NiFi application log with the hourly rolled-over files, compressed                              |
+| `nifi-bootstrap.log`          | One line: qubership-nifi has no bootstrap log; NiFi 1.x writes the bootstrap lines to `nifi-app.log` |
+| `nifi-app.filtered.log`       | Archive, content repository, warning, and error lines, without per-claim DEBUG lines                 |
+| `container.log`               | `docker logs` of the NiFi container; for a running NiFi, without the application log lines           |
+| `system-diagnostics.json`     | `GET /nifi-api/system-diagnostics`: heap, repository storage usage as NiFi reports it                |
+| `root-status.json`            | `GET /nifi-api/flow/process-groups/root/status?recursive=true`: queues and processor stats           |
+| `bulletins.json`              | `GET /nifi-api/flow/bulletin-board`                                                                  |
+| `diagnostics.txt`             | Output of `nifi.sh diagnostics --verbose`, including a thread dump                                   |
+| `scenario-*`                  | Scenario-specific files, described on the scenario page                                              |
+| `collection-errors.txt`       | Present only when a step failed; names the files that could not be collected                         |
 
 When NiFi has not come up in the current container, the bundle has no `storage.txt`, `nifi.properties.content.txt`,
 `system-diagnostics.json`, `root-status.json`, `bulletins.json`, or `diagnostics.txt`: they need the REST API or the
@@ -132,7 +153,8 @@ and `manifest.txt` records both. For a startup that hangs, set `SCENARIO_WAIT_FO
 instead. The scenario's `docker-compose.yaml` sets `restart: "no"`, so that Docker does not
 restart the failed container.
 
-`lib.sh` has helpers for the hooks: `nifi_api`, `processor_id`, `connection_id`, `start_processor`,
-`stop_processor`, `connection_queued_bytes`, `connection_queued_count`, `content_repo_usage`, `consul_put`,
-`recreate_nifi`, which starts NiFi again with the variables the caller exports, and `helper_run`, which runs a
-command as root with `.work/` mounted at `/work`, to change files NiFi wrote.
+`lib.sh` has helpers for the hooks: `nifi_api`, `processor_id`, `connection_id`, `update_processor`,
+`start_processor`, `stop_processor`, `connection_queued_bytes`, `connection_queued_count`, `content_repo_usage`,
+`consul_put`, `recreate_nifi`, which starts NiFi again with the variables the caller exports, and `helper_run`, which
+runs a command as root with `.work/` mounted at `/work`, to change files NiFi wrote. A hook that differs on NiFi 1.x
+checks `NIFI_MAJOR_VERSION`, which is `1` or `2`.

@@ -26,8 +26,12 @@ case "$CONSUL_FRAMEWORK" in
     spring)
         CONSUL_URL_PREFIX=
         CONSUL_APP_JAR=qubership-nifi-consul-application.jar
+        # NiFi 1.x has the Spring application only, under another name, and ignores NIFI_CONSUL_INT_FRAMEWORK.
+        [ "$NIFI_MAJOR_VERSION" == "2" ] || CONSUL_APP_JAR=qubership-consul-application.jar
         ;;
     quarkus)
+        [ "$NIFI_MAJOR_VERSION" == "2" ] ||
+            die "CONSUL_FRAMEWORK=quarkus needs NiFi 2.x; NiFi 1.x has the Spring Consul integration only."
         CONSUL_URL_PREFIX=http://
         CONSUL_APP_JAR=quarkus-run.jar
         ;;
@@ -61,11 +65,18 @@ scenario_break() {
 
 # Prints the stack of the main thread of the Consul integration application, which waits for Consul.
 consul_app_main_thread() {
-    local pid
+    local pid since
     pid=$(docker exec "$NIFI_CONTAINER" ps -eo pid,args | awk -v jar="$CONSUL_APP_JAR" 'index($0, jar) && !/awk/ { print $1 }')
     [ -n "$pid" ] || { echo "The Consul integration application is not running."; return 0; }
-    docker exec -u appuser "$NIFI_CONTAINER" sh -c "\$JAVA_HOME/bin/jcmd $pid Thread.print" |
-        awk '/^"main"/ { found = 1 } found && /^$/ { exit } found'
+    if docker exec "$NIFI_CONTAINER" sh -c 'test -x "$JAVA_HOME/bin/jcmd"'; then
+        docker exec -u appuser "$NIFI_CONTAINER" sh -c "\$JAVA_HOME/bin/jcmd $pid Thread.print"
+    else
+        # The NiFi 1.x image has no jcmd. On SIGQUIT the JVM prints its thread dump to the container output.
+        since=$(date +%s)
+        docker exec "$NIFI_CONTAINER" kill -3 "$pid"
+        sleep 2
+        docker logs --since "$since" "$NIFI_CONTAINER" 2>&1
+    fi | awk '/^"main"/ { found = 1 } found && /^$/ { exit } found'
 }
 
 scenario_evidence() {

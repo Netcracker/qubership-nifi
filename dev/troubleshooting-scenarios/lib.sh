@@ -34,6 +34,9 @@ HELPER_IMAGE="hashicorp/consul:1.22@sha256:a230dcea0bb107bd7958a912d1429fb7f9d39
 
 # Seconds run.sh waits for NiFi to exit after scenario_break.
 NIFI_EXIT_TIMEOUT="${NIFI_EXIT_TIMEOUT:-600}"
+NIFI_IMAGE="${NIFI_IMAGE:-ghcr.io/netcracker/qubership-nifi}"
+NIFI_IMAGE_TAG="${NIFI_IMAGE_TAG:-latest}"
+export NIFI_IMAGE NIFI_IMAGE_TAG
 
 # Compose override files of the loaded scenario, relative to its directory. scenario.sh may change the list.
 SCENARIO_COMPOSE_FILES=(docker-compose.yaml)
@@ -61,7 +64,22 @@ list_scenarios() {
     done
 }
 
-# Sources scenarios/<name>/scenario.env and scenario.sh, and sets SCENARIO and SCENARIO_DIR.
+# Prints the Apache NiFi major version of the NiFi image: qubership-nifi 1.x is built on Apache NiFi 1.x, and later
+# versions on Apache NiFi 2.x. An image without a version label, such as a local build, is taken for the current one.
+image_nifi_major_version() {
+    local image="$NIFI_IMAGE:$NIFI_IMAGE_TAG"
+    local version
+    docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image" >/dev/null ||
+        die "Cannot pull image $image."
+    version=$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' "$image")
+    case "$version" in
+        1.*) echo 1 ;;
+        *) echo 2 ;;
+    esac
+}
+
+# Sources scenarios/<name>/scenario.env and scenario.sh, and sets SCENARIO, SCENARIO_DIR, and NIFI_MAJOR_VERSION,
+# which scenario.sh may use where Apache NiFi 1.x behaves differently.
 # Values already set in the environment take precedence over the scenario.env defaults.
 load_scenario() {
     SCENARIO="$1"
@@ -69,6 +87,11 @@ load_scenario() {
     SCENARIO_DIR="$TS_DIR/scenarios/$SCENARIO"
     [ -f "$SCENARIO_DIR/scenario.sh" ] ||
         die "Unknown scenario '$SCENARIO'. Available scenarios: $(list_scenarios | tr '\n' ' ')"
+    NIFI_MAJOR_VERSION="${NIFI_MAJOR_VERSION:-$(image_nifi_major_version)}"
+    case "$NIFI_MAJOR_VERSION" in
+        1 | 2) ;;
+        *) die "NIFI_MAJOR_VERSION must be 1 or 2, got '$NIFI_MAJOR_VERSION'." ;;
+    esac
     if [ -f "$SCENARIO_DIR/scenario.env" ]; then
         # Exported, so that the compose files can use the values too.
         set -a
@@ -86,11 +109,12 @@ scenario_param_names() {
         sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' "$SCENARIO_DIR/scenario.env"
 }
 
-# Saves the scenario name and its resolved parameters in the work directory, for load_started_scenario.
+# Saves the scenario name, the NiFi image, and the resolved scenario parameters in the work directory,
+# for load_started_scenario.
 save_started_scenario() {
     local name
     echo "$SCENARIO" >"$WORK_DIR/scenario"
-    scenario_param_names | while read -r name; do
+    { printf '%s\n' NIFI_IMAGE NIFI_IMAGE_TAG NIFI_MAJOR_VERSION; scenario_param_names; } | while read -r name; do
         printf '%s=%q\n' "$name" "${!name}"
     done >"$WORK_DIR/scenario-params.env"
 }
@@ -142,7 +166,17 @@ nifi_exit_code() {
 # Variables exported by the caller take precedence over .work/docker.env in the compose files.
 # The anonymous volumes of the image, such as logs and conf, are created anew, as for a new pod in Kubernetes;
 # the persistent_conf bind mount keeps flow.json.gz and the sensitive key hash of the first start.
+#
+# NiFi 1.x with AUTH=tls keeps users.xml and authorizations.xml in the conf volume, which is created anew, while
+# their copies in persistent_conf/conf-restore remain. NiFi would then refuse to start with "Primary file ... is
+# different than restore file", which hides the failure the scenario reproduces. For NiFi 1.x the copies are removed,
+# and NiFi creates both files again for the initial admin.
 recreate_nifi() {
+    if [ "$NIFI_MAJOR_VERSION" == "1" ]; then
+        compose stop nifi
+        helper_run "rm -f /work/temp-vol/nifi/per-conf/conf-restore/users.xml \
+            /work/temp-vol/nifi/per-conf/conf-restore/authorizations.xml"
+    fi
     compose up -d --no-deps --force-recreate --renew-anon-volumes nifi
 }
 
@@ -246,6 +280,18 @@ set_processor_state() {
     jq -n --argjson version "$version" --arg state "$state" \
         '{revision: {version: $version, clientId: "troubleshooting-scenarios"}, state: $state}' |
         nifi_api_json PUT "/processors/$id/run-status" >/dev/null
+}
+
+# Changes the configuration of a stopped processor. CONFIG is a JSON object with the component fields to change,
+# for example '{"config": {"schedulingPeriod": "1 sec", "properties": {"Batch Size": "1"}}}'.
+update_processor() {
+    local id="$1"
+    local config="$2"
+    local version
+    version=$(nifi_api GET "/processors/$id" | jq -r '.revision.version')
+    jq -n --argjson version "$version" --arg id "$id" --argjson config "$config" \
+        '{revision: {version: $version, clientId: "troubleshooting-scenarios"}, component: ({id: $id} + $config)}' |
+        nifi_api_json PUT "/processors/$id" >/dev/null
 }
 
 start_processor() {

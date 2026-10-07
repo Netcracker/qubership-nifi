@@ -106,6 +106,25 @@ as `<host>:<port>`, the Quarkus-based one as a URL with the protocol, so the sce
 | `nifi-app.log.gz`     | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                         |
 | `scenario-consul.txt` | `CONSUL_URL` of the NiFi container, the state of the Consul container, the startup errors, and for `no-response` the stack of the main thread of the Consul integration application |
 
+## NiFi 1.x
+
+NiFi 1.x has the Spring-based application only, `qubership-consul-application.jar`, and ignores
+`NIFI_CONSUL_INT_FRAMEWORK`; the scenario stops with an error for `CONSUL_FRAMEWORK=quarkus`. Both failures reproduce
+with the same symptoms:
+
+- `wrong-host`: the container exits with code 1 about 8 seconds after the start. The Spring Boot failure report names
+  the same location, `'consul:consul-wrong:8500' does not exist`, and its action names the 1.x jar:
+
+  ```text
+  Check that the value 'consul:consul-wrong:8500' at class path resource [application.yaml] from qubership-consul-application.jar - 69:13 is correct, or prefix it with 'optional:'
+  ```
+
+- `no-response`: the startup hangs with `Checking if consul app main execution completed` once a second, and the main
+  thread waits in `org.springframework.cloud.consul.config.ConsulPropertySource.init`. The NiFi 1.x image has no
+  `jcmd`, so `scenario.sh` sends `SIGQUIT` to the application, which prints its thread dump to the container output.
+
+Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
 ## Remediation
 
 1. Check `CONSUL_URL`. With `NIFI_CONSUL_INT_FRAMEWORK=spring` it is `<host>:<port>`; with `quarkus` it includes

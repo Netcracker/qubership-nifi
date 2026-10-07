@@ -62,6 +62,7 @@ write_manifest() {
     echo "nifi_image_id=$(docker inspect -f '{{.Image}}' "$NIFI_CONTAINER")"
     echo "nifi_image_version=$(docker inspect -f '{{index .Config.Labels "org.opencontainers.image.version"}}' \
         "$NIFI_CONTAINER")"
+    echo "nifi_major_version=$NIFI_MAJOR_VERSION"
     echo "nifi_started_at=$(docker inspect -f '{{.State.StartedAt}}' "$NIFI_CONTAINER")"
     echo "nifi_state=$NIFI_STATE"
     echo "nifi_health=$NIFI_HEALTH"
@@ -123,7 +124,15 @@ copied_log() {
     local prefix="$1"
     local rolled
     if [ ! -f "$LOGS_COPY/$prefix.log" ]; then
-        echo "$prefix.log does not exist: NiFi did not start far enough to write it."
+        # The logback configuration of qubership-nifi has no bootstrap appender. NiFi 1.x writes the bootstrap lines
+        # to nifi-app.log.
+        if [ "$prefix" == "nifi-bootstrap" ] && [ "$NIFI_MAJOR_VERSION" == "1" ]; then
+            echo "$prefix.log does not exist: NiFi 1.x writes the bootstrap log lines to nifi-app.log."
+        elif [ "$prefix" == "nifi-bootstrap" ]; then
+            echo "$prefix.log does not exist: the logback configuration of qubership-nifi has no bootstrap log."
+        else
+            echo "$prefix.log does not exist: NiFi did not start far enough to write it."
+        fi
         return 0
     fi
     mapfile -t rolled < <(find "$LOGS_COPY" -maxdepth 1 -name "${prefix}_*.log" | sort)

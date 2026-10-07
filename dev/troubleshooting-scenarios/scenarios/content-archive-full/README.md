@@ -75,6 +75,12 @@ next dropped claim pushes the usage over the limit again, and the writers wait u
 | `bulletins.json`               | The `Unable to write flowfile content` warning as a bulletin                                                                                                                                                              |
 | `diagnostics.txt`              | A processor thread parked in `FileSystemRepository$ContainerState.waitForArchiveExpiration`                                                                                                                               |
 
+## NiFi 1.x
+
+NiFi 1.x reproduces the issue with the same messages, the same once-a-minute cycle, the same bulletin, and the same
+`waitForArchiveExpiration` thread. The flow definition, exported from NiFi 2.x, loads into NiFi 1.x unchanged.
+Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).
+
 ## Remediation
 
 - Make the content repository larger, so that the content the flow keeps queued stays below the threshold.
