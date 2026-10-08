@@ -144,31 +144,22 @@ A detailed description of all supported NiFi properties is available in the Apac
 ## Processing performance metrics
 
 `ComponentPrometheusReportingTask` reports processing performance metrics for processors and process groups.
+These metrics are listed in the `Processing performance metrics` section of the Additional Details of
+`ComponentPrometheusReportingTask`, available in Help (`Global Menu` -> `Help`) within qubership-nifi.
 Their values depend on the NiFi property `nifi.performance.tracking.percentage`: the share of processor runs,
 from 0 to 100, in which NiFi measures the performance.
 
-Each of these metrics is a total over the last 5 minutes, as of the last run of the reporting task. It is not a counter
-since startup, so do not apply `rate()` or `increase()` to it.
-
-The value of a process group includes the processors of all its child groups, so adding up the values of a group and
-its child groups counts the same processors more than once.
-
 By default, performance tracking is disabled (`nifi.performance.tracking.percentage` = `0`).
 
-The value is an integer from `0` to `100`: the percentage of processor runs in which NiFi measures the CPU time,
-content read time, content write time, and session commit time. NiFi measures only this share of the runs, because the
-measurement requires system calls, which can be expensive on some systems. For the other runs, NiFi extrapolates the CPU
-time from the measured runs. For example, at `20` NiFi measures about 20% of the runs.
-
-The NiFi statistics tracker calculates the number of runs between two measurements as `100` divided by the value,
-rounded down. NiFi measures every N-th run, where N is this number, so the real share of measured runs is `1 / N` and
-can differ from the value.
+The NiFi statistics tracker calculates the number of runs between two measurements as `100` divided by the property
+value, rounded down. NiFi measures every N-th run, where N is this number, so the real share of measured runs is
+`1 / N` and can differ from the value.
 For example, `20` gives N = 5 (20%), and `30` gives N = 3 (33%). The values `55` and `75` both give N = 1, so NiFi
 measures every run at any value from `51` to `100`.
 
-The value of `nifi.performance.tracking.percentage` does not affect the CPU usage of the qubership-nifi container.
+The value of `nifi.performance.tracking.percentage` > 0 may impact the qubership-nifi performance. The magnitude of the impact may depend on the specific NiFi flow configuration and the load profile.
 
-To get reliable values, set `100`, as described in
+To set the value of `nifi.performance.tracking.percentage`, refer to
 [Changing NiFi configuration properties](#changing-nifi-configuration-properties). For more details, refer to the
 `Performance Tracking Properties` section in
 [NiFi System Administrator's Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#performance_tracking_properties).

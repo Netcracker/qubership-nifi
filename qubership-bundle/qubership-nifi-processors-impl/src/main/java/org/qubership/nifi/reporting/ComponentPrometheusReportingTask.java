@@ -90,22 +90,9 @@ import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
 @Tags({"reporting", "prometheus", "metrics"})
 @CapabilityDescription("""
         Sends components (Processors, Connections, Process Groups) metrics to Prometheus.\s
-        Processor metrics: nc_nifi_processor_tasks_time_total, nc_nifi_processor_tasks_count,\s
-        nc_nifi_processor_cpu_duration, nc_nifi_processor_content_read_duration,\s
-        nc_nifi_processor_content_write_duration, nc_nifi_processor_session_commit_duration,\s
-        nc_nifi_processor_gc_duration.\s
-        Connection metrics: nc_nifi_connection_queued_count, nc_nifi_connection_queued_bytes,\s
-        nc_nifi_connection_percent_used_count, nc_nifi_connection_percent_used_bytes.\s
-        Process Group metrics: nc_nifi_pg_component_count, nc_nifi_pg_bulletin_count,\s
-        nc_nifi_pg_bulletin_cnt_total, nc_nifi_pg_active_thread_count, nc_nifi_pg_queued_count,\s
-        nc_nifi_pg_queued_bytes, nc_nifi_pg_cpu_duration, nc_nifi_pg_content_read_duration,\s
-        nc_nifi_pg_content_write_duration, nc_nifi_pg_session_commit_duration, nc_nifi_pg_gc_duration.\s
-        Root Process Group metrics: nifi_amount_threads_active, nifi_amount_items_queued,\s
-        nifi_size_content_queued_total.\s
-        Bulletin metrics: nc_nifi_bulletin_count, nc_nifi_bulletin_cnt_total.\s
-        JVM metrics: nifi_jvm_thread_count, nifi_jvm_uptime, nifi_jvm_heap_usage,\s
-        garbage collector metrics with the prefix nifi_jvm_gc_,\s
-        and Micrometer JVM metrics with the prefix jvm_.""")
+        Metric categories: Processor metrics, Processing performance metrics, Connection metrics,\s
+        Process Group metrics, Root Process Group metrics, Bulletin metrics, JVM metrics.\s
+        The Additional Details page lists the metrics of each category.""")
 public class ComponentPrometheusReportingTask extends AbstractPrometheusReportingTask {
 
     private static final String COMPONENT_ID_TAG = "component_id";
