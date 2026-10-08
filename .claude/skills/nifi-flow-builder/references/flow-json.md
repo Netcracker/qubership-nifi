@@ -206,7 +206,7 @@ Field notes:
   | `org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream` | 1.x, 2.x |
   | `org.apache.nifi.processors.aws.kinesis.ConsumeKinesis` | 2.x |
   | `org.apache.nifi.processors.box.ConsumeBoxEvents` | 2.x |
-  | `org.apache.nifi.processors.twitter.ConsumeTwitter` | 1.x, 2.x |
+  | `org.apache.nifi.processors.twitter.ConsumeTwitter` | 1.x; 2.x before 2.11.0 |
 
 - `HandleHttpRequest`, and every `Listen*` processor that the table leaves out (`ListenTCP`,
   `ListenUDP`, `ListenSyslog` and others), gets `50 millis`. Such a listener polls its

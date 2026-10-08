@@ -88,12 +88,13 @@ migration to handle.
 The script ships with mapping configs for each upgrade step, with controller service and processor
 mappings kept in separate files so each is easy to maintain:
 
-| Step  | Controller services      | Processors                 |
-|-------|--------------------------|----------------------------|
-| 2.5.0 | `csPropConfig_2_5.json`  | `procPropConfig_2_5.json`  |
-| 2.6.0 | `csPropConfig_2_6.json`  | `procPropConfig_2_6.json`  |
-| 2.7.2 | `csPropConfig_2_7.json`  | `procPropConfig_2_7.json`  |
-| 2.9.0 | `csPropConfig_2_9.json`  | `procPropConfig_2_9.json`  |
+| Step   | Controller services      | Processors                 |
+|--------|--------------------------|----------------------------|
+| 2.5.0  | `csPropConfig_2_5.json`  | `procPropConfig_2_5.json`  |
+| 2.6.0  | `csPropConfig_2_6.json`  | `procPropConfig_2_6.json`  |
+| 2.7.2  | `csPropConfig_2_7.json`  | `procPropConfig_2_7.json`  |
+| 2.9.0  | `csPropConfig_2_9.json`  | `procPropConfig_2_9.json`  |
+| 2.10.0 | `csPropConfig_2_10.json` | `procPropConfig_2_10.json` |
 
 Each config maps a component type to a map of old-to-new property names. To remove a property, set
 its value to `null`.
@@ -113,12 +114,13 @@ its value to `null`.
 
 The remove-when-empty configs follow the same split and naming scheme, keyed by upgrade step:
 
-| Step  | Controller services                 | Processors                            |
-|-------|-------------------------------------|---------------------------------------|
-| 2.5.0 | `csRemoveWhenEmptyConfig_2_5.json`  | `procRemoveWhenEmptyConfig_2_5.json`  |
-| 2.6.0 | `csRemoveWhenEmptyConfig_2_6.json`  | `procRemoveWhenEmptyConfig_2_6.json`  |
-| 2.7.2 | `csRemoveWhenEmptyConfig_2_7.json`  | `procRemoveWhenEmptyConfig_2_7.json`  |
-| 2.9.0 | `csRemoveWhenEmptyConfig_2_9.json`  | `procRemoveWhenEmptyConfig_2_9.json`  |
+| Step   | Controller services                 | Processors                            |
+|--------|-------------------------------------|---------------------------------------|
+| 2.5.0  | `csRemoveWhenEmptyConfig_2_5.json`  | `procRemoveWhenEmptyConfig_2_5.json`  |
+| 2.6.0  | `csRemoveWhenEmptyConfig_2_6.json`  | `procRemoveWhenEmptyConfig_2_6.json`  |
+| 2.7.2  | `csRemoveWhenEmptyConfig_2_7.json`  | `procRemoveWhenEmptyConfig_2_7.json`  |
+| 2.9.0  | `csRemoveWhenEmptyConfig_2_9.json`  | `procRemoveWhenEmptyConfig_2_9.json`  |
+| 2.10.0 | `csRemoveWhenEmptyConfig_2_10.json` | `procRemoveWhenEmptyConfig_2_10.json` |
 
 Each config maps a component type to a map of property names with `null` values. A `null` entry marks
 a descriptor to remove only when the matching property is empty.

@@ -81,8 +81,8 @@
         "hikaricp-min-idle-conns" : "Minimum Idle Connections",
         "hikaricp-username" : "Database User",
         "hikaricp-kerberos-user-service" : "Kerberos User Service",
-        "Database Driver Location(s)" : "Database Driver Locations",
         "hikaricp-max-conn-lifetime" : "Max Connection Lifetime",
+        "hikaricp-driver-locations" : "Database Driver Locations",
         "hikaricp-max-wait-time" : "Max Wait Time",
         "hikaricp-connection-url" : "Database Connection URL"
     },
@@ -112,10 +112,12 @@
         "file-path" : "File Path"
     },
     "org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl" : {
+        "el-cs-suppress-nulls" : "Suppress Null and Empty Values",
         "el-cs-strict-deprecation" : "Strict Deprecation",
         "el-cs-http-hosts" : "HTTP Hosts",
         "el-cs-run-as-user" : "Run As User",
         "proxy-configuration-service" : "Proxy Configuration Service",
+        "el-cs-charset" : "Character Set",
         "jwt-shared-secret" : "JWT Shared Secret",
         "el-cs-send-meta-header" : "Send Meta Header",
         "el-cs-username" : "Username",
@@ -129,12 +131,10 @@
         "el-cs-oauth2-token-provider" : "OAuth2 Access Token Provider",
         "el-cs-path-prefix" : "Path Prefix",
         "api-key-id" : "API Key ID",
-        "Charset" : "Character Set",
         "el-cs-sniffer-interval" : "Sniffer Interval",
         "el-cs-sniffer-failure-delay" : "Sniffer Failure Delay",
         "el-cs-password" : "Password",
         "authorization-scheme" : "Authorization Scheme",
-        "Suppress Null/Empty Values" : "Suppress Null and Empty Values",
         "el-cs-connect-timeout" : "Connect Timeout",
         "el-cs-socket-timeout" : "Read Timeout"
     },
@@ -201,15 +201,15 @@
         "schema-text" : "Schema Text"
     },
     "org.apache.nifi.dbcp.DBCPConnectionPool" : {
-        "Max Idle Connections" : "Maximum Idle Connections",
+        "dbcp-max-conn-lifetime" : "Maximum Connection Lifetime",
         "Validation-query" : "Validation Query",
         "dbcp-min-idle-conns" : "Minimum Idle Connections",
-        "Max Connection Lifetime" : "Maximum Connection Lifetime",
         "dbcp-time-between-eviction-runs" : "Time Between Eviction Runs",
-        "Database Driver Location(s)" : "Database Driver Locations",
         "dbcp-min-evictable-idle-time" : "Minimum Evictable Idle Time",
         "kerberos-user-service" : "Kerberos User Service",
-        "dbcp-soft-min-evictable-idle-time" : "Soft Minimum Evictable Idle Time"
+        "dbcp-soft-min-evictable-idle-time" : "Soft Minimum Evictable Idle Time",
+        "database-driver-locations" : "Database Driver Locations",
+        "dbcp-max-idle-conns" : "Maximum Idle Connections"
     },
     "org.apache.nifi.proxy.StandardProxyConfigurationService" : {
         "proxy-server-port" : "Proxy Server Port",

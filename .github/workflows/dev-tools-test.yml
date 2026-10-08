@@ -7,6 +7,7 @@ on:
       - 'dev/update-scripts-2.0/**'
       - 'dev/update-scripts-prop-2.x/**'
       - 'dev/update-scripts-flow-2.x/**'
+      - 'dev/update-scripts-ojdbc-location/**'
       - 'dev/update-scripts-autotest/**'
       - 'dev/flow-rules-script/**'
       - 'dev-tools-integration-tests/**'
@@ -17,6 +18,7 @@ on:
       - 'dev/update-scripts-2.0/**'
       - 'dev/update-scripts-prop-2.x/**'
       - 'dev/update-scripts-flow-2.x/**'
+      - 'dev/update-scripts-ojdbc-location/**'
       - 'dev/update-scripts-autotest/**'
       - 'dev/flow-rules-script/**'
       - 'dev-tools-integration-tests/**'
@@ -48,7 +50,10 @@ jobs:
           # Apache NiFi 2.9.0
           - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.6.3', build-local: false,
               flow-rules: true }
-          # Apache NiFi 2.10.0 (current), add more versions to this after upgrades
+          # Apache NiFi 2.10.0
+          - { image: 'ghcr.io/netcracker/qubership-nifi', tag: '2.8.6', build-local: false,
+              flow-rules: true }
+          # Apache NiFi 2.12.0 (current), add more versions to this after upgrades
           - { image: 'local-nifi', tag: 'test', build-local: true, flow-rules: true }
     runs-on: ubuntu-latest
     steps:

@@ -64,6 +64,30 @@ runs:
         tls-client-certs-config: "newman-tls-config.json"
         global-vars-file-name: "Global_Vars.postman_globals.json"
         docker-compose-file: ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml"
+    - name: Create OJDBC location test process group
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'NiFi_OJDBC_Location_Create_PG.postman_collection.json'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
+        results-dir: '${{ inputs.run-mode }}'
+        short-name: 'ojdbc-create'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml"
+    - name: Check OJDBC location test process group before upgrade
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'NiFi_OJDBC_Location_Check_PG.postman_collection.json'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
+        results-dir: '${{ inputs.run-mode }}'
+        short-name: 'ojdbc-before-upgrade'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml"
     - name: Getting the flow.json.gz version from the archive folder
       shell: bash
       continue-on-error: true
@@ -90,6 +114,18 @@ runs:
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
         RESULTS_DIR: ${{ inputs.run-mode }}
+    - name: Check OJDBC location test process group after upgrade
+      continue-on-error: true
+      uses: ./.github/actions/run-newman-tests
+      with:
+        collection-name: 'NiFi_OJDBC_Location_Check_PG.postman_collection.json'
+        env-name: 'NiFi_AT_TLS.json.postman_environment'
+        results-dir: '${{ inputs.run-mode }}'
+        short-name: 'ojdbc-after-upgrade'
+        tls-certs-dir: "./temp-vol/tls-cert"
+        tls-ca-certs: "nifi/nifi-cert.pem"
+        tls-client-certs-config: "newman-tls-config.json"
+        docker-compose-file: ".github/docker/${{ steps.prepare-env.outputs.RUN_MODE }}/docker-compose.yaml"
     - name: Run E2E upgrade test
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
