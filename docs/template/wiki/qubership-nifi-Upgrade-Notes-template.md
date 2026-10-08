@@ -1,15 +1,15 @@
 # qubership-nifi <qubership-nifi.version> Upgrade Notes
 
-qubership-nifi <qubership-nifi.version> includes an upgrade to Apache NiFi <nifi.version> and , which may affect existing deployments. This document outlines the key upgrade notes to help ensure a smooth transition to the new version.
+qubership-nifi <qubership-nifi.version> includes an upgrade to Apache NiFi <nifi.version>, which may affect existing deployments. This document outlines the key upgrade notes to help ensure a smooth transition to the new version.
 
 ## Updating Custom Components to Apache NiFi <nifi.version>
 
-Refer to recommendations provided on the page [Updating Custom Components to new Apache NiFi version](https://github.com/Netcracker/qubership-nifi/wiki/Updating-Custom-Components-to-new-Apache-NiFi-version) were ${nifi.version} = <nifi.version> and ${nifi-api.version} = <nifi-api.version>
+Refer to recommendations provided on the page [Updating Custom Components to new Apache NiFi version](https://github.com/Netcracker/qubership-nifi/wiki/Updating-Custom-Components-to-new-Apache-NiFi-version) where ${nifi.version} = <nifi.version> and ${nifi-api.version} = <nifi-api.version>
 
 ## Property changes in Apache NiFi components
 
-Apache NiFi <nifi-api.version> brings changes for properties in multiple components.
-Full list of changes compared with Apache NiFi <nifi.version> is available on [Apache NiFi <nifi-api.version> Component Properties Delta](https://github.com/Netcracker/qubership-nifi/wiki/Apache-NiFi-<nifi.version>-Component-Properties-Delta) page.
+Apache NiFi <nifi.version> brings changes for properties in multiple components.
+Full list of changes compared with Apache NiFi <previous-nifi.version> is available on [Apache NiFi <nifi.version> Component Properties Delta](https://github.com/Netcracker/qubership-nifi/wiki/Apache-NiFi-<nifi.version>-Component-Properties-Delta) page.
 
 NiFi components modified by these changes contain `migrateProperties` method, which can handle migration from old properties to new.
 When importing versioned flow from Registry or uploading process group via upload API (`/nifi-api/process-groups/{pgId}/process-groups/upload`) or UI, `migrateProperties` is automatically applied making process group configuration valid, but creating local changes for versioned process groups.
