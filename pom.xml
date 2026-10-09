@@ -76,6 +76,7 @@
         <derby.version>10.14.2.0</derby.version>
         <spring-framework.version>7.0.7</spring-framework.version>
         <postgresql.jdbc.version>42.7.12</postgresql.jdbc.version>
+        <ojdbc.version>19.3.0.0</ojdbc.version>
         <lombok.version>1.18.46</lombok.version>
         <jgit.version>7.6.0.202603022253-r</jgit.version>
         <snakeyaml.version>2.5</snakeyaml.version>
