@@ -1,20 +1,21 @@
 ---
 name: nifi-troubleshooting
 description: >-
-  Diagnoses a broken qubership-nifi (Apache NiFi 2.x) instance from what the user pastes: pod or container log
-  lines, stack traces, exit codes, bulletins, or a description of the symptom. Names the cause, quotes the lines that
-  prove it, gives the remediation in qubership-nifi terms (environment variables, Consul properties), and asks for
-  specific further evidence when the input is not enough. Use it whenever NiFi or qubership-nifi does not start,
-  exits with code 1 or 3, hangs at startup, sits in CrashLoopBackOff, or never becomes ready; whenever processors
-  stall, queues grow, or writes wait; and whenever a log shows "No space left on device", archive cleanup, content,
-  FlowFile or provenance repository errors, a Consul error, an invalid JVM argument, a sensitive key mismatch, a
-  flow.json.gz parse error, an OutOfMemoryError, or a TLS failure. Use it even when the user only pastes a log
-  excerpt and asks "what is wrong", "why won't it start", or "how do I fix this".
+  Diagnoses a broken qubership-nifi instance, on Apache NiFi 2.x or on a 1.x image (Apache NiFi 1.28), from what
+  the user pastes: pod or container log lines, stack traces, exit codes, bulletins, or a description of the symptom.
+  Names the cause, quotes the lines that prove it, gives the remediation in qubership-nifi terms (environment
+  variables, Consul properties), and asks for specific further evidence when the input is not enough. Use it whenever
+  NiFi or qubership-nifi does not start, exits with code 1 or 3, exits with code 0 on a 1.x image, hangs at startup,
+  sits in CrashLoopBackOff, or never becomes ready; whenever processors stall, queues grow, or writes wait; and
+  whenever a log shows "No space left on device", archive cleanup, content, FlowFile or provenance repository errors,
+  a Consul error, an invalid JVM argument, a sensitive key mismatch, a flow.json.gz parse error, an
+  OutOfMemoryError, or a TLS failure. Use it even when the user only pastes a log excerpt and asks "what is wrong",
+  "why won't it start", or "how do I fix this".
 ---
 
 # qubership-nifi troubleshooting
 
-Diagnose a qubership-nifi 2.x instance from the evidence the user pastes, ask for what is missing, and give a fix the
+Diagnose a qubership-nifi instance from the evidence the user pastes, ask for what is missing, and give a fix the
 user can apply. The catalog in `references/` covers the problems reproduced and verified so far; for anything else,
 work from first principles and say that the problem is outside the catalog.
 
@@ -28,24 +29,66 @@ The phase where the log stops tells you which problems are possible, so place th
    `logback.xml`. `NIFI_CONSUL_INT_FRAMEWORK` selects the implementation: `quarkus` (the default) or `spring`. While
    it runs, `start.sh` prints `Checking if consul app main execution completed` once a second.
 3. Start-script checks: JVM arguments, the sensitive key, flow migrations, and a configuration restore from Consul.
-   These exit with code 3 (JVM arguments, sensitive key) or code 1.
+   These exit with code 3 (JVM arguments, sensitive key) or code 1. On 1.x, invalid JVM arguments exit with code 0.
 4. NiFi itself: `Starting NiFi <version>`, NAR loading, then the flow controller and the web server. NiFi lines look
    like `[<time>][INFO ] ... [class=<logger>] [method=<method>] ... [nifiPgPath=<group path>] <message>`.
    `nifiPgPath` names the process group of the component that logged the line.
 5. Runtime: the flow runs. Repository, heap, and flow problems appear here; the container stays up and healthy.
 
+On a qubership-nifi 1.x image, phase 3 has no JVM argument check, and phase 4 looks different: see [NiFi 1.x
+images](#nifi-1x-images).
+
 The pod or container log is one log that holds the output of every phase: start scripts, the Consul application, the
 NiFi bootstrap, and the NiFi application. Ask for it as one thing, for the current container and, after a restart,
-for the previous one.
+for the previous one. On 1.x the last NiFi lines of a failed start can be missing from it; see
+[NiFi 1.x images](#nifi-1x-images).
+
+## NiFi 1.x images
+
+qubership-nifi 1.x images (tags `1.0.x`) run Apache NiFi 1.28. Decide the major version before you match signatures,
+because several failures read differently on 1.x. The image tag tells you, and so does the log: NiFi 1.x logs
+`Launching NiFi...` and loads NAR files named `*-1.28.1.nar`, where NiFi 2.x logs `Starting NiFi 2.<n>.<n>`. When
+nothing shows the version, say which one you assumed.
+
+What changes on 1.x:
+
+- **A failed NiFi start exits with code 0.** The container ends normally, and the restarts that follow put the pod
+  in `CrashLoopBackOff`. A stop requested by Kubernetes also exits with code 0, after the line
+  `Received trapped signal, beginning shutdown...`. Without that line, exit code 0 on 1.x is a failed start.
+- **The pod log can end before the failure.** `start.sh` copies `logs/nifi-app.log` into the pod log with a background
+  `tail` and exits as soon as NiFi stops, so the last lines often do not reach the pod log. Two kinds of line are lost:
+  RunNiFi's `NiFi never started. Will not restart NiFi`, and the whole stdout and stderr of a NiFi JVM that refused to
+  start. When the pod log ends with exit code 0 and no error, at the `nifi.sh` header that follows
+  `NiFi running with PID <n>.` (`Bootstrap Config File: ...`, then `Picked up JAVA_TOOL_OPTIONS: ...` when
+  `X_JAVA_ARGS` is set), the NiFi JVM refused its arguments: ask for the JVM environment variables. The missing lines
+  are in `logs/nifi-app.log` inside the container, which a restart replaces.
+- **The JVM output is logged at ERROR.** NiFi 1.x logs the stderr of the NiFi JVM through the logger
+  `org.apache.nifi.StdErr` at ERROR level, and its stdout through `org.apache.nifi.StdOut` at INFO. Every start logs
+  `StdErr` lines that are not errors: `WARNING: A terminally deprecated method in sun.misc.Unsafe has been called`,
+  `WARNING: A restricted method in java.lang.System has been called`, the `WARNING:` lines that follow these two,
+  and an empty line. `Picked up JAVA_TOOL_OPTIONS: ...` follows whenever `X_JAVA_ARGS` is set, and a
+  `DeprecationException` stack trace appears on every start. Skip only these. Any other `StdErr` line is real
+  output, such as `Invalid maximum heap size: -Xmxabc` or `Unrecognized VM option` from a bad JVM argument, or
+  `Failed to start web server: ...`.
+- **No start-script check of JVM arguments.** Conflicting arguments reach the NiFi JVM, which refuses to start.
+- **Only the Spring-based Consul application**, `qubership-consul-application.jar`. `NIFI_CONSUL_INT_FRAMEWORK` is
+  ignored, and `quarkus` is not available.
+- **The sensitive key can be changed in place** with `NIFI_PREVIOUS_SENSITIVE_KEY`.
+- **No `jcmd` in the image.** Take a thread dump with `kill -3`; the JVM prints it to the pod log.
+
+Each reference section has a "NiFi 1.x" subsection where 1.x differs. Settings, Consul keys, environment variables,
+and defaults in the tables below are the same on 1.x.
 
 ## Workflow
 
 1. **Place the evidence.** Decide whether this is a startup failure (exit code, CrashLoopBackOff, never ready, the log
    stops before or during phase 4) or a runtime problem (NiFi is up and the flow misbehaves). Note the exit code if
-   there is one: 3 and 1 point at different checks.
+   there is one: 3 and 1 point at different checks, and 0 on a 1.x image is a failed NiFi start unless the log shows
+   a requested stop.
 2. **Match signatures.** Search the pasted text for the signatures in the table below. In a long log, find the first
    `ERROR`, then read its `Caused by:` chain down to the root exception; the first error usually names the cause and
-   the later ones are consequences.
+   the later ones are consequences. On 1.x, skip only the `org.apache.nifi.StdErr` lines listed under
+   [NiFi 1.x images](#nifi-1x-images).
 3. **Read the reference** for the matched problem. It lists the corroborating evidence, the look-alikes to rule out,
    and the remediation. Do not answer from the signature table alone when the reference names a look-alike that the
    evidence does not exclude.
@@ -70,11 +113,14 @@ reading and why before you read it, as if you had asked the user for it.
 | Signature in the log or the symptom | Phase | Problem | Reference |
 |---|---|---|---|
 | `ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS`, `Multiple garbage collectors selected`, exit code 3 | 3 | Conflicting garbage collector arguments | `references/startup-failures.md#invalid-jvm-arguments` |
+| Exit code 0 and the pod log ends with no error at the `nifi.sh` header after `NiFi running with PID <n>.` (`Bootstrap Config File: ...`, `Picked up JAVA_TOOL_OPTIONS: ...`); in `logs/nifi-app.log`, `Multiple garbage collectors selected` from `org.apache.nifi.StdOut` or another JVM error (1.x) | 4 | The NiFi JVM refuses its arguments, most often two garbage collectors | `references/startup-failures.md#invalid-jvm-arguments` |
 | `oldKeyHash does not match newKeyHash`, exit code 3 | 3 | Sensitive key differs from the key of earlier starts | `references/startup-failures.md#changed-sensitive-key` |
+| `oldKeyHash file does not match with newKeyHash and NIFI_PREVIOUS_SENSITIVE_KEY is empty`, or `... or with NIFI_PREVIOUS_SENSITIVE_KEY_HASH`, exit code 3 (1.x) | 3 | Sensitive key differs from the key of earlier starts | `references/startup-failures.md#changed-sensitive-key` |
 | `Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH must be non-empty`, exit code 3 | 3 | Sensitive key missing | `references/startup-failures.md#changed-sensitive-key` |
 | `APPLICATION FAILED TO START` with a `consul:` location, or `Failed to start quarkus` with `UnresolvedAddressException` or `ConnectException`; then `Consul app java process has terminated prematurely`, exit code 1 | 2 | Consul cannot be reached | `references/startup-failures.md#consul-unreachable` |
 | `Checking if consul app main execution completed` repeated for minutes, no error, never ready | 2 | Consul accepts the connection and does not respond | `references/startup-failures.md#consul-unreachable` |
 | `Failed to start Server` from `JettyServer` with `Could not parse flow as a VersionedDataflow`, `JsonParseException`, or `Unexpected end of ZLIB input stream`, exit code 1 | 4 | Corrupted `flow.json.gz` | `references/startup-failures.md#corrupted-flowjsongz` |
+| `Failed to start web server`, `Context initialization failed`, or `Unable to parse flow ... flow.json.gz` from `FlowParser`, with the same exceptions, exit code 0 (1.x) | 4 | Corrupted `flow.json.gz` | `references/startup-failures.md#corrupted-flowjsongz` |
 | NAR loading lines, then `start to send crash dump`, exit code 1 | 4 | Wrong keystore or truststore configuration | `references/startup-failures.md#invalid-certificate` |
 | `Keystore file specified (...) does not exist.`, `Cannot find truststore.p12`, exit code 1 | 3 | Keystore or truststore file missing | `references/startup-failures.md#invalid-certificate` |
 | `SSLHandshakeException`, `PKIX path validation failed` | 5 | Truststore lacks the remote party's CA | `references/startup-failures.md#invalid-certificate` |
@@ -157,4 +203,8 @@ non-heap memory.
 - Warn before any step that loses data: deleting a repository, the flow configuration, or archived content. Prefer
   the step that keeps data, such as restoring an archived flow or growing a volume.
 - Never ask the user to paste a secret. Ask for the hash or for whether a value changed.
-- This catalog was built on qubership-nifi 2.x. On a 1.x image, say that messages and defaults may differ.
+- The catalog entries were reproduced on qubership-nifi 2.8.4 (Apache NiFi 2.10.0), and most of them also on 1.0.9
+  (Apache NiFi 1.28.1). Not reproduced on 1.x: the invalid certificate and the full content repository (on neither
+  version), the missing sensitive key, and the heap OutOfMemoryError. For an entry reproduced on the version in front
+  of you, do not hedge the diagnosis because of the version. For one that was not, or on another 1.x tag, say that a
+  message may differ when the one in the log does not match.

@@ -12,7 +12,7 @@ Commands assume Kubernetes with the pod name in `<pod>` and namespace in `<ns>`,
 | Item | Ask for it when | What it settles |
 |---|---|---|
 | [Pod log](#pod-log) | Always, unless the user pasted the relevant part | Phase, first error, root cause exception |
-| [Container state and exit code](#container-state-and-exit-code) | Startup failures, restarts | Exit code 1 or 3, or a hang; restart count |
+| [Container state and exit code](#container-state-and-exit-code) | Startup failures, restarts | Exit code 1 or 3 (0 on 1.x), or a hang; restart count |
 | [Environment variables](#environment-variables) | Startup failures; any setting the fix depends on | `CONSUL_URL` form, JVM arguments, repository paths |
 | [Kubernetes events](#kubernetes-events) | Restarts, never ready | Probe failures, volume mount errors, evictions |
 | [system-diagnostics](#system-diagnostics) | NiFi is up | Heap use, usage of each repository as NiFi sees it |
@@ -29,6 +29,15 @@ Do not ask for the NiFi UI, the bulletin board as JSON, process group status, `n
 
 The pod or container log is one log. It holds the start scripts, the Consul integration application, the NiFi
 bootstrap, and the NiFi application output, in that order. Ask for it as one item.
+
+On 1.x, `start.sh` copies `logs/nifi-app.log` into the pod log with a background `tail` and exits as soon as NiFi
+stops, so the last lines of a failed start can be missing: RunNiFi's `NiFi never started. Will not restart NiFi`,
+and the JVM output of a NiFi JVM that refused to start. They are in `logs/nifi-app.log` inside the container, which a
+restart replaces; for invalid JVM arguments, ask for the environment variables instead.
+
+On 1.x, a failed start of the Consul integration application prints the Consul ACL token in plain text, as
+`aclToken = '<token>'`. When asking for the log of such a start, ask the user to replace the token with `<redacted>`
+before sharing it.
 
 ```bash
 kubectl logs <pod> -n <ns> > pod.log
@@ -58,8 +67,11 @@ kubectl describe pod <pod> -n <ns>     # Last State, Exit Code, Restart Count, R
 docker inspect <container> --format '{{.State.Status}} exit={{.State.ExitCode}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}} restarts={{.RestartCount}}'
 ```
 
-Exit code 3 comes from the start-script checks of JVM arguments and the sensitive key. Exit code 1 comes from a
-failed Consul start, a missing keystore, or a failed NiFi start. No exit with a never-ready pod is a hang. Exit code
+Exit code 3 comes from the start-script checks of JVM arguments and the sensitive key; on 1.x only the sensitive
+key check exits with 3. Exit code 1 comes from a failed Consul start, a missing keystore, or a failed NiFi start. On a
+1.x image a failed NiFi start, invalid JVM arguments included, exits with code 0 instead, and the pod shows
+`Completed` before `CrashLoopBackOff`. A stop that Kubernetes requests also exits with code 0 on 1.x, after
+`Received trapped signal, beginning shutdown...` in the log. No exit with a never-ready pod is a hang. Exit code
 137 is a kill, usually by the memory limit: `kubectl describe pod` shows `Reason: OOMKilled` under Last State.
 
 ## Environment variables
@@ -115,6 +127,16 @@ For a startup that hangs before NiFi starts, dump the Consul integration applica
 kubectl exec <pod> -n <ns> -- sh -c 'ps -eo pid,args | grep -E "quarkus-run.jar|consul-application.jar" | grep -v grep'
 kubectl exec <pod> -n <ns> -- sh -c '$JAVA_HOME/bin/jcmd <pid> Thread.print'
 ```
+
+1.x images have no `jcmd`. Send `SIGQUIT` to the application instead; the JVM prints the thread dump to the pod log
+and keeps running:
+
+```bash
+kubectl exec <pod> -n <ns> -- sh -c 'kill -3 $(pgrep -f qubership-consul-application.jar)'
+kubectl logs <pod> -n <ns> --since=1m > consul-app-threads.log
+```
+
+For a running NiFi 1.x, `nifi.sh diagnostics` works as shown above.
 
 ## Repository storage
 

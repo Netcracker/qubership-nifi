@@ -11,6 +11,10 @@ stalls, or loses provenance. Each repository is a directory that can sit on its 
 
 Paths are relative to `/opt/nifi/nifi-current`.
 
+Every problem on this page except the full content repository was reproduced on 1.x images too; the full content
+repository was not reproduced on either version. NiFi 1.x logs the content archive messages unchanged; where other
+messages or behavior differ, the section has a "NiFi 1.x" subsection.
+
 Tell the problems apart by the logger in the error and by which volume is full:
 
 | Evidence | Content archive cannot be cleaned | Archive cleanup too slow | FlowFile repository full | Provenance repository full | Content repository full |
@@ -90,8 +94,12 @@ in batches and logs each batch, for example:
 ```
 
 Divide the time by the claim count. Moving a file into the archive is one rename, so the time per claim reflects
-the latency of the storage; compare it with the rate of new claims, as described below. At startup NiFi logs
-`The following Repositories share the same File Store: [...]` when two or more repositories sit on one volume.
+the latency of the storage; compare it with the rate of new claims, as described below.
+
+To find which volume each repository is on, read the `<repository> File Store:` lines in the thread dump file, the
+mounts in the repository storage, or the deployment config. Do not rely on the line
+`The following Repositories share the same File Store: [...]` near the top of the thread dump file: in testing it
+listed all three repositories while the content repository was on its own volume.
 
 ### Cause
 
@@ -134,8 +142,8 @@ until usage reaches the threshold, and writes then wait as in the previous secti
 Fix the slowness first, then reduce the work:
 
 - Put the content repository on local or block storage, for example a `ReadWriteOnce` volume, not NFS. If the
-  FlowFile and provenance repositories share the same NFS volume (the `share the same File Store` line), move them
-  too: every session commit writes to them.
+  `File Store:` lines or the mounts put the FlowFile or provenance repository on NFS as well, move it too: every
+  session commit writes to them.
 - If the repository must stay on NFS, reduce the latency of each call: an NFS server close to the node, a hard mount
   over a fast network, and no extra synchronous options on the export or the mount.
 - Shorten the wait between runs with the Consul key `nifi.content.repository.archive.cleanup.frequency` (for example
@@ -145,6 +153,15 @@ Fix the slowness first, then reduce the work:
   `nifi.content.repository.archive.enabled=false`, all as Consul keys. `NIFI_CONTENT_ARCHIVE_MAX_USAGE` and
   `NIFI_CONTENT_ARCHIVE_DISABLED` are the environment variable alternatives.
 - Upgrade to a newer qubership-nifi release; older Apache NiFi versions are affected more.
+
+### NiFi 1.x
+
+The cleanup messages, the DEBUG timings, and the `Cleanup Archive for default` thread are the same. NiFi 1.x writes all
+FlowFiles of one session into one claim file, even past `nifi.content.claim.max.appendable.size`. A flow that commits
+many FlowFiles per session therefore leaves fewer archived files on 1.x than on 2.x, and a flow that commits one
+FlowFile per session leaves as many. The method in [Work out whether cleanup keeps
+up](#work-out-whether-cleanup-keeps-up) applies unchanged. In testing on NFS, 1.x cleanup runs took about 40 times
+longer than on local storage, as on 2.x.
 
 ## FlowFile repository out of space
 
@@ -205,6 +222,20 @@ A checkpoint needs room for the snapshot and a new journal, so it fails for as l
 
 Once space is available, the next checkpoint succeeds and processors recover; restart NiFi if they do not.
 
+### NiFi 1.x
+
+The bulletins are the same. The log messages differ in their text:
+
+```text
+Marking Write-Ahead journal file ./flowfile_repository/journals/15.journal as poisoned due to {}
+java.io.IOException: No space left on device
+Failed to create new journal file ./flowfile_repository/journals/33.journal due to java.io.IOException: No space left on device
+Unable to checkpoint FlowFile Repository due to java.io.IOException: No space left on device
+Failed to asynchronously commit session StandardProcessSession[id=<n>] for GenerateFlowFile[id=<id>]
+```
+
+The literal `{}` in the poisoned journal line is a NiFi 1.x logging defect; the exception follows on the next line.
+
 ## Provenance repository out of space
 
 ### Signature
@@ -241,8 +272,22 @@ The volume fills in two ways:
 
 - `max.storage.size` is larger than the volume. The limit is never reached, and writes fail until events age out.
   `system-diagnostics` shows the provenance repository at 100%.
-- `max.storage.size` leaves too little room for the events of one cleanup interval plus a rollover, typically
-  100-200 MiB. Writes fail in bursts until the next cleanup run, and the repository then sits below the limit.
+- `max.storage.size` leaves too little room for the events written between two cleanup runs plus a rollover.
+  Writes fail in bursts until the next cleanup run, and the repository then sits below the limit.
+
+### Work out the room the repository needs
+
+The room above `max.storage.size` depends on the event rate, so work it out from the log of the instance. Each
+`Successfully rolled over Event Writer ... due to MAX_BYTES_REACHED` line marks one full event file of
+`rollover.size`, so the time between these lines gives the write rate. The room needed is:
+
+1. The bytes written in one `maintenance.frequency` interval: `rollover.size` times the rollovers per interval.
+2. Plus one active event file and its compressed copy: about 1.5 times `rollover.size`.
+
+For example, a 100 MB rollover every 17 seconds is about 350 MB per one-minute interval, plus 150 MB, so about
+500 MB of room. When the room alone is larger than the volume, no `max.storage.size` fits: grow the volume, or cut
+the room with a smaller `rollover.size` and a shorter `maintenance.frequency`, and say which one you chose. Do not
+recommend a limit without this calculation; a fixed headroom figure fails on a busy flow.
 
 ### Corroborating evidence
 
@@ -254,12 +299,22 @@ The volume fills in two ways:
 ### Fix
 
 - Check the value in effect first: the `NiFi Properties` section of the thread dump file shows it, and a deployment
-  often sets it in Consul. Then set `nifi.provenance.repository.max.storage.size` in Consul below the volume size,
-  with room for one maintenance interval of events, the active event file, and its compressed copy: typically 100-200 MiB with the default
-  rollover size. Or grow the volume.
-- Lower `max.storage.time`, or shorten `maintenance.frequency`, when the volume cannot grow.
+  often sets it in Consul. Then set `nifi.provenance.repository.max.storage.size` in Consul to the volume size minus
+  the room worked out above, or grow the volume when the room does not fit.
+- When the volume cannot grow, lower `nifi.provenance.repository.rollover.size` and shorten
+  `nifi.provenance.repository.maintenance.frequency` in Consul until the room fits, or lower `max.storage.time`.
 - Keep large data in FlowFile content, not in attributes, and delete attributes the flow does not need: every event
   stores all attributes. Remove processors that change FlowFiles without need; each change adds an event.
+
+### NiFi 1.x
+
+The errors and the bulletin are the same. With `max.storage.size` larger than the volume, NiFi 1.x still fails in
+bursts, as in the case where `max.storage.size` leaves too little room, rather than staying at 100%. After each burst
+the writer rolls over, the compression of the rolled-over file fails, and NiFi deletes the uncompressed file. In testing
+the usage reached 100% only for moments: samples every 5 seconds swung between 62% and 86%, and `df` and
+`system-diagnostics` showed 87% at the end. A snapshot below 100% therefore does not rule this problem out on 1.x; the
+`No space left on device` lines do. The fix is the same: set `max.storage.size` to the volume size minus the room worked
+out in [Work out the room the repository needs](#work-out-the-room-the-repository-needs), or grow the volume.
 
 ## Content repository full
 

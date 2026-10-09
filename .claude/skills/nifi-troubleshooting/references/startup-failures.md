@@ -1,16 +1,22 @@
 # Startup failures
 
 Problems that stop qubership-nifi before the flow runs. The container exits, restarts, or never becomes ready. In
-every case except a corrupted `flow.json.gz` and the certificate crash, NiFi itself never starts: the log has no
-`Starting NiFi` line, and the last lines come from `start.sh` or the Consul integration application.
+every case except a corrupted `flow.json.gz` and the certificate crash, NiFi itself never starts: on 2.x the log has
+no `Starting NiFi` line, and the last lines come from `start.sh` or the Consul integration application. On 1.x, NiFi
+never logs `Starting NiFi`, and invalid JVM arguments fail in the NiFi JVM itself, after the start scripts finish.
 
-| Problem | Exit code | Last phase in the log |
-|---|---|---|
-| [Invalid JVM arguments](#invalid-jvm-arguments) | 3 | Start-script checks |
-| [Changed sensitive key](#changed-sensitive-key) | 3 | Start-script checks |
-| [Consul unreachable](#consul-unreachable) | 1, or none when the startup hangs | Consul integration application |
-| [Corrupted flow.json.gz](#corrupted-flowjsongz) | 1 | NiFi web server start |
-| [Invalid certificate](#invalid-certificate) | 1 | Start-script checks or NAR loading |
+| Problem | Exit code | Exit code on 1.x | Last phase in the log |
+|---|---|---|---|
+| [Invalid JVM arguments](#invalid-jvm-arguments) | 3 | 0 | Start-script checks; on 1.x the NiFi JVM start |
+| [Changed sensitive key](#changed-sensitive-key) | 3 | 3 | Start-script checks |
+| [Consul unreachable](#consul-unreachable) | 1, or none when the startup hangs | the same | Consul integration application |
+| [Corrupted flow.json.gz](#corrupted-flowjsongz) | 1 | 0 | NiFi web server start |
+| [Invalid certificate](#invalid-certificate) | 1 | not reproduced | Start-script checks or NAR loading |
+
+On a 1.x image, exit code 0 means that NiFi itself failed to start, unless the log shows
+`Received trapped signal, beginning shutdown...`. RunNiFi logs `NiFi never started. Will not restart NiFi` to
+`logs/nifi-app.log`, but that line and the JVM output before it often do not reach the pod log; see the
+"NiFi 1.x" subsection of each problem for what the pod log does show.
 
 ## Invalid JVM arguments
 
@@ -50,6 +56,43 @@ different message.
 1. Keep one `-XX:+Use...GC` option across `NIFI_ADDITIONAL_JVM_ARGS`, `X_JAVA_ARGS`, and `JAVA_TOOL_OPTIONS`; remove
    the other.
 2. Restart NiFi.
+
+### NiFi 1.x
+
+The 1.x start script has no trial JVM check. It adds both variables to `bootstrap.conf`, and the NiFi JVM itself
+refuses to start. The container exits with code 0 about 6 seconds after the start. The pod log ends with no error,
+at the `nifi.sh` header after `NiFi running with PID <n>.`:
+
+```text
+[...] [INFO] [...] [class=c.n.c.n.extensions.start.sh] NiFi running with PID 286.
+
+Java home: /usr/lib/jvm/default-jvm
+NiFi home: /opt/nifi/nifi-current
+
+Bootstrap Config File: /opt/nifi/nifi-current/conf/bootstrap.conf
+
+Picked up JAVA_TOOL_OPTIONS: -XX:+UseParallelGC
+```
+
+`start.sh` copies `logs/nifi-app.log` into the pod log with a background `tail` and exits as soon as NiFi stops, so
+the JVM output and the RunNiFi lines stay in `logs/nifi-app.log`, where the stdout and stderr lines can come in
+either order:
+
+```text
+[...][INFO ] [...] [class=org.apache.nifi.bootstrap.Command] [...] Starting Apache NiFi...
+[...][INFO ] [...] [class=org.apache.nifi.StdOut] [...] Error occurred during initialization of VM
+[...][INFO ] [...] [class=org.apache.nifi.StdOut] [...] Multiple garbage collectors selected
+[...][ERROR] [...] [class=org.apache.nifi.StdErr] [...] Picked up JAVA_TOOL_OPTIONS: -XX:+UseParallelGC
+[...][INFO ] [...] [class=org.apache.nifi.bootstrap.Command] [...] Launched Apache NiFi with Process ID 328
+[...][INFO ] [...] [class=org.apache.nifi.bootstrap.RunNiFi] [...] NiFi never started. Will not restart NiFi
+```
+
+The pod log does not say which argument the JVM refused, so ask for the JVM environment variables:
+`NIFI_ADDITIONAL_JVM_ARGS`, `X_JAVA_ARGS`, and `JAVA_TOOL_OPTIONS`. Two `-XX:+Use...GC` options there confirm the
+conflict. Other bad JVM arguments end the pod log in the same way. In `logs/nifi-app.log` their message comes from
+`org.apache.nifi.StdErr` at ERROR, for example `Invalid maximum heap size: -Xmxabc` or
+`Unrecognized VM option 'Foo'`, followed by `Error: Could not create the Java Virtual Machine.`. The fix is the
+same: correct the argument and restart.
 
 ## Changed sensitive key
 
@@ -99,9 +142,42 @@ or a switch between the variable and the file.
    variable is empty.
 2. Set that source back to the key of the first deployment, then restart NiFi.
 
-qubership-nifi has no supported way to change the key in place. Without `flow.json.gz` the start script accepts any
-key and writes a new `old_key_hash`, so deleting `flow.json.gz` lets NiFi start, but it loses the flow. Warn before
-suggesting it, and only as a last resort when the old key is lost and the flow can be imported again.
+qubership-nifi 2.x has no supported way to change the key in place; a 1.x image has one, described in the
+"NiFi 1.x" subsection of this problem. Without
+`flow.json.gz` the start script accepts any key and writes a new `old_key_hash`, so deleting `flow.json.gz` lets NiFi
+start, but it loses the flow. Warn before suggesting it, and only as a last resort when the old key is lost and the
+flow can be imported again.
+
+### NiFi 1.x
+
+The container exits with code 3 as well, and the messages differ:
+
+```text
+[...] [ERROR] [...] [class=c.n.c.n.extensions.re_encrypt_sensitive_keys.sh] oldKeyHash file does not match with newKeyHash and NIFI_PREVIOUS_SENSITIVE_KEY is empty. Terminating start-up...
+```
+
+The 1.x script can re-encrypt the flow with a new key. When the hash of `NIFI_NEW_SENSITIVE_KEY` differs from
+`old_key_hash` and the hash of `NIFI_PREVIOUS_SENSITIVE_KEY` matches it, the script re-encrypts `flow.json.gz` from
+the previous key to the new one with the NiFi toolkit, writes the hash of the new key to `old_key_hash`, and
+continues. `NIFI_PREVIOUS_SENSITIVE_KEY_PATH` names a file to read the previous key from when the variable is empty.
+A previous key whose hash does not match stops the start with exit code 3 and this message:
+
+```text
+oldKeyHash file does not match with newKeyHash or with NIFI_PREVIOUS_SENSITIVE_KEY_HASH. NIFI_PREVIOUS_SENSITIVE_KEY must be old sensitive key, if NIFI_NEW_SENSITIVE_KEY is changed. Terminating start-up...
+```
+
+The line `Neither NIFI_PREVIOUS_SENSITIVE_KEY nor  is set`, with two spaces, appears on most 1.x starts and is normal.
+
+Fix on 1.x, by what the user wants:
+
+- **Keep the new key**, for example after a planned rotation: keep it in `NIFI_NEW_SENSITIVE_KEY` (or the file at
+  `NIFI_SENSITIVE_KEY_PATH`), set `NIFI_PREVIOUS_SENSITIVE_KEY` (or the file at `NIFI_PREVIOUS_SENSITIVE_KEY_PATH`)
+  to the key of the last successful start, and restart. Copy `persistent_conf/conf/flow.json.gz` first, since the
+  script rewrites it. After a successful start the previous key is no longer needed: remove it from the deployment
+  so the secret does not stay around. A later start with it still set does no harm.
+- **Return to the old key**: as on 2.x, set the key source back and restart.
+
+This path was read from the 1.0.9 start script; the scenario did not run it.
 
 ## Consul unreachable
 
@@ -177,6 +253,27 @@ The two frameworks take `CONSUL_URL` in different forms: `spring` as `<host>:<po
 4. Restart NiFi after a failed start. A hung startup continues by itself once Consul answers the pending request;
    restart NiFi if it keeps waiting after Consul is available again.
 
+### NiFi 1.x
+
+1.x images have only the Spring-based application, `qubership-consul-application.jar`, and ignore
+`NIFI_CONSUL_INT_FRAMEWORK`. Switching to `quarkus` is not available on 1.x, so `CONSUL_URL` always takes the
+`<host>:<port>` form. Both failures look as they do with Spring on 2.x. The failure report names the 1.x jar:
+
+```text
+Check that the value 'consul:consul-wrong:8500' at class path resource [application.yaml] from qubership-consul-application.jar - 69:13 is correct, or prefix it with 'optional:'
+```
+
+Do not follow the `prefix it with 'optional:'` advice of the report: it would start NiFi without the Consul
+configuration.
+
+The 1.x failure report prints the Consul ACL token in plain text, as `aclToken = '<token>'` in its `Description`;
+the 2.x report masks it as `******`. Tell the user that the token is in the pod log, to redact it before sharing the
+log, and to rotate it if the log has reached a log store or a ticket. Do not repeat the token in the answer.
+
+A hung startup waits in `ConsulPropertySource.init` as on 2.x. The 1.x image has no `jcmd`, so take the thread dump
+with `kill -3` on the application process; the JVM prints it to the pod log. See
+`evidence-collection.md#thread-dump`.
+
 ## Corrupted flow.json.gz
 
 ### Signature
@@ -227,6 +324,41 @@ Restore an archived version of the flow:
    `nifi-restore-version` is cleared in Consul.
 
 Changes made after the archived version was written are lost; pick the newest archive that predates the damage.
+
+### NiFi 1.x
+
+The failure reads differently, and the container exits with code 0 about 25 seconds after the start. The errors
+below reach the pod log, which ends at `Shutting down...` and `Application Server shutdown started`; RunNiFi's
+`NiFi never started. Will not restart NiFi` stays in `logs/nifi-app.log`. For invalid JSON, NiFi 1.x already reads
+the flow when it creates the authorizer, so the error comes through the Spring context:
+
+```text
+[...][ERROR] [...] [class=org.springframework.web.context.ContextLoader] [method=initWebApplicationContext] [...] Context initialization failed
+org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'niFiWebApiConfiguration': ...
+...
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'authorizer': ...
+Caused by: org.apache.nifi.controller.serialization.FlowSerializationException: Could not parse flow as a VersionedDataflow
+...
+Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ('"' (code 34)): was expecting comma to separate Object entries
+[...][ERROR] [...] [class=org.apache.nifi.StdErr] [...] Failed to start web server: Error creating bean with name 'niFiWebApiConfiguration': ...
+```
+
+For a truncated file:
+
+```text
+[...][ERROR] [...] [class=org.apache.nifi.util.FlowParser] [method=parse] [...] Unable to parse flow /opt/nifi/nifi-current/./persistent_conf/conf/flow.json.gz
+java.io.EOFException: Unexpected end of ZLIB input stream
+...
+[...][ERROR] [...] [class=org.apache.nifi.web.server.JettyServer] [method=startUpFailure] [...] Failed to start web server... shutting down.
+org.apache.nifi.web.NiFiCoreException: Unable to start Flow Controller.
+```
+
+Earlier in the same log, `org.apache.nifi.StdErr` logs JVM warnings at ERROR level (`sun.misc.Unsafe`,
+`restricted method`). They appear on every 1.x start; the flow error is the first real one.
+
+NiFi 1.x also writes `flow.xml.gz` beside `flow.json.gz`. It reads `flow.json.gz` when that file exists and does not
+fall back to `flow.xml.gz` when `flow.json.gz` cannot be read. 1.x has no `update_flow_json.sh` migration. The restore
+through `nifi-restore-version` works the same way on 1.x.
 
 ### Prevention
 
