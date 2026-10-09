@@ -298,7 +298,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |---|---|---|
 |`ComponentMetricsReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections) metrics to InfluxDB.|
 |`CommonMetricsReportingTask`|migration-nifi-processors-open|Sends Nifi metrics to InfluxDB.|
-|`ComponentPrometheusReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections) metrics to Prometheus.|
+|`ComponentPrometheusReportingTask`|migration-nifi-processors-open|Sends components (Processors, Connections, Process Groups) metrics to Prometheus. Metric categories: Processor metrics, Processing performance metrics, Connection metrics, Process Group metrics, Root Process Group metrics, Bulletin metrics, JVM metrics. The Additional Details page lists the metrics of each category.|
 
 ## Additional reporting tasks properties description
 
@@ -340,7 +340,10 @@ Sends Nifi metrics to InfluxDB.
 
 ### ComponentPrometheusReportingTask
 
-Sends components (Processors, Connections) metrics to Prometheus.
+Sends components (Processors, Connections, Process Groups) metrics to Prometheus.
+Metric categories: Processor metrics, Processing performance metrics, Connection metrics,
+Process Group metrics, Root Process Group metrics, Bulletin metrics, JVM metrics.
+The Additional Details page lists the metrics of each category.
 
 |Display Name|API Name|Default Value|Allowable Values|Description|
 |---|---|---|---|---|

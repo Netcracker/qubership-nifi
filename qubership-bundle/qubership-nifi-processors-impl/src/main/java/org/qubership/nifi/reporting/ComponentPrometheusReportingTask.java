@@ -40,6 +40,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.RunStatus;
@@ -65,6 +66,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.COMPONENT_COUNT_METRIC_NAME;
@@ -76,17 +78,78 @@ import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricN
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_ACTIVE_THREAD_COUNT_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_COUNT_PG_METRIC_NAME;
 import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.ROOT_QUEUED_BYTES_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.CPU_DURATION_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.CONTENT_READ_DURATION_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.CONTENT_WRITE_DURATION_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.SESSION_COMMIT_DURATION_PG_METRIC_NAME;
+import static org.qubership.nifi.reporting.metrics.component.ProcessGroupMetricName.GC_DURATION_PG_METRIC_NAME;
 import static org.apache.nifi.reporting.ComponentType.REPORTING_TASK;
 import static org.apache.nifi.reporting.ComponentType.CONTROLLER_SERVICE;
 import static org.apache.nifi.reporting.ComponentType.FLOW_CONTROLLER;
 
 @Tags({"reporting", "prometheus", "metrics"})
-@CapabilityDescription("Sends components (Processors, Connections) metrics to Prometheus.")
+@CapabilityDescription("""
+        Sends components (Processors, Connections, Process Groups) metrics to Prometheus.\s
+        Metric categories: Processor metrics, Processing performance metrics, Connection metrics,\s
+        Process Group metrics, Root Process Group metrics, Bulletin metrics, JVM metrics.\s
+        The Additional Details page lists the metrics of each category.""")
 public class ComponentPrometheusReportingTask extends AbstractPrometheusReportingTask {
 
     private static final String COMPONENT_ID_TAG = "component_id";
 
     private static final String PROCESS_GROUP_ID_TAG = "group_id";
+
+    private static final String PROCESSOR_COMPONENT_TYPE = "Processor";
+
+    /**
+     * Processing performance gauges registered for each processor above the time threshold
+     * and each process group within the level threshold.
+     * NiFi reports the garbage collection time in milliseconds and the other durations in nanoseconds,
+     * so the garbage collection gauge converts its value to nanoseconds.
+     */
+    private static final List<PerformanceGauge> PERFORMANCE_GAUGES = List.of(
+            new PerformanceGauge(ProcessorMetricName.CPU_DURATION_METRIC_NAME.getName(),
+                    CPU_DURATION_PG_METRIC_NAME.getName(),
+                    "Estimated CPU time used over the last 5 minutes, in nanoseconds",
+                    ProcessingPerformanceStatus::getCpuDuration),
+            new PerformanceGauge(ProcessorMetricName.CONTENT_READ_DURATION_METRIC_NAME.getName(),
+                    CONTENT_READ_DURATION_PG_METRIC_NAME.getName(),
+                    "Time spent reading from the content repository over the last 5 minutes, in nanoseconds",
+                    ProcessingPerformanceStatus::getContentReadDuration),
+            new PerformanceGauge(ProcessorMetricName.CONTENT_WRITE_DURATION_METRIC_NAME.getName(),
+                    CONTENT_WRITE_DURATION_PG_METRIC_NAME.getName(),
+                    "Time spent writing to the content repository over the last 5 minutes, in nanoseconds",
+                    ProcessingPerformanceStatus::getContentWriteDuration),
+            new PerformanceGauge(ProcessorMetricName.SESSION_COMMIT_DURATION_METRIC_NAME.getName(),
+                    SESSION_COMMIT_DURATION_PG_METRIC_NAME.getName(),
+                    "Time spent committing sessions over the last 5 minutes, in nanoseconds",
+                    ProcessingPerformanceStatus::getSessionCommitDuration),
+            new PerformanceGauge(ProcessorMetricName.GC_DURATION_METRIC_NAME.getName(),
+                    GC_DURATION_PG_METRIC_NAME.getName(),
+                    "Garbage collection time during processing over the last 5 minutes, in nanoseconds",
+                    status -> TimeUnit.MILLISECONDS.toNanos(status.getGarbageCollectionDuration())));
+
+    /**
+     * One processing performance metric: its gauge names and the duration it reads.
+     *
+     * @param processorMetricName name of the gauge registered for a processor
+     * @param processGroupMetricName name of the gauge registered for a process group
+     * @param description gauge description, with the window and the unit
+     * @param duration reads the duration, in nanoseconds, from a non-null performance status
+     */
+    private record PerformanceGauge(String processorMetricName, String processGroupMetricName,
+                                    String description, ToLongFunction<ProcessingPerformanceStatus> duration) {
+
+        /**
+         * Returns the duration, in nanoseconds.
+         *
+         * @param status performance status, or null when NiFi reports none for the component
+         * @return the duration, or 0 for a null status
+         */
+        long valueOf(ProcessingPerformanceStatus status) {
+            return status == null ? 0 : duration.applyAsLong(status);
+        }
+    }
 
     /**
      * Processor time threshold property descriptor.
@@ -259,6 +322,10 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                             PROCESS_GROUP_ID_TAG, prGp.getId());
                     removeMetricFromRegistry(QUEUED_COUNT_PG_METRIC_NAME.getName(), PROCESS_GROUP_ID_TAG, prGp.getId());
                     removeMetricFromRegistry(QUEUED_BYTES_PG_METRIC_NAME.getName(), PROCESS_GROUP_ID_TAG, prGp.getId());
+                    for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
+                        removeMetricFromRegistry(perfGauge.processGroupMetricName(),
+                                PROCESS_GROUP_ID_TAG, prGp.getId());
+                    }
                 }
             }
         }
@@ -397,12 +464,13 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                         ProcessorStatus proc = getProcessorByKey(key);
                         return proc == null ? 0 : proc.getProcessingNanos();
                     })
+                    .description("Processing time over the last 5 minutes, in nanoseconds")
                     .tag("namespace", getNamespace())
                     .tag("hostname", getHostname())
                     .tag("instance", getInstance())
                     .tag("component_id", st.getValue().getId())
                     .tag("component_name", st.getValue().getName())
-                    .tag("component_type", "Processor")
+                    .tag("component_type", PROCESSOR_COMPONENT_TYPE)
                     .tag("parent_id", st.getValue().getGroupId())
                     .register(getMeterRegistry());
 
@@ -415,9 +483,25 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("instance", getInstance())
                     .tag("component_id", st.getValue().getId())
                     .tag("component_name", st.getValue().getName())
-                    .tag("component_type", "Processor")
+                    .tag("component_type", PROCESSOR_COMPONENT_TYPE)
                     .tag("parent_id", st.getValue().getGroupId())
                     .register(getMeterRegistry());
+
+            for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
+                Gauge.builder(perfGauge.processorMetricName(), () -> {
+                            ProcessorStatus proc = getProcessorByKey(key);
+                            return proc == null ? 0 : perfGauge.valueOf(proc.getProcessingPerformanceStatus());
+                        })
+                        .description(perfGauge.description())
+                        .tag("namespace", getNamespace())
+                        .tag("hostname", getHostname())
+                        .tag("instance", getInstance())
+                        .tag("component_id", st.getValue().getId())
+                        .tag("component_name", st.getValue().getName())
+                        .tag("component_type", PROCESSOR_COMPONENT_TYPE)
+                        .tag("parent_id", st.getValue().getGroupId())
+                        .register(getMeterRegistry());
+            }
         }
     }
 
@@ -648,6 +732,26 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                     .tag("group_name", pgSt.getValue().getName())
                     .tag("group_path", groupPath.get(pgSt.getValue().getId()))
                     .register(getMeterRegistry());
+
+            registerPerformanceGaugesForProcessGroup(key, pgSt.getValue(), groupPath.get(pgSt.getValue().getId()));
+        }
+    }
+
+    private void registerPerformanceGaugesForProcessGroup(String key, ProcessGroupStatus status, String groupPath) {
+        for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
+            Gauge.builder(perfGauge.processGroupMetricName(), () -> {
+                        ProcessGroupStatus procGroup = getProcessGroupStatusByKey(key);
+                        return procGroup == null ? 0
+                                : perfGauge.valueOf(procGroup.getProcessingPerformanceStatus());
+                    })
+                    .description(perfGauge.description())
+                    .tag("namespace", getNamespace())
+                    .tag("hostname", getHostname())
+                    .tag("instance", getInstance())
+                    .tag("group_id", status.getId())
+                    .tag("group_name", status.getName())
+                    .tag("group_path", groupPath)
+                    .register(getMeterRegistry());
         }
     }
 
@@ -866,6 +970,10 @@ public class ComponentPrometheusReportingTask extends AbstractPrometheusReportin
                             COMPONENT_ID_TAG, status.getId());
                     removeMetricFromRegistry(ProcessorMetricName.TASKS_COUNT_METRIC_NAME.getName(),
                             COMPONENT_ID_TAG, status.getId());
+                    for (PerformanceGauge perfGauge : PERFORMANCE_GAUGES) {
+                        removeMetricFromRegistry(perfGauge.processorMetricName(),
+                                COMPONENT_ID_TAG, status.getId());
+                    }
                 }
             }
         }
