@@ -6,7 +6,7 @@ Prometheus.
 ## Metrics over the last 5 minutes
 
 Each of these metrics is a total over the last 5 minutes, as of the last run of the reporting task. It is not a counter
-since startup, so do not apply `rate()` or `increase()` to it.
+since startup.
 
 ### Processor metrics
 
@@ -44,10 +44,11 @@ The values of these metrics are not totals over the last 5 minutes:
 
 - Connection, Process Group, and Root Process Group metrics, except the bulletin metrics of a Process Group, are
   current values as of the last run of the reporting task.
-- `nc_nifi_bulletin_count` and `nc_nifi_pg_bulletin_count` are the numbers of bulletins since the previous run of the
-  reporting task.
-- `nc_nifi_bulletin_cnt_total` and `nc_nifi_pg_bulletin_cnt_total` are counters, so `rate()` and `increase()` apply to
-  them.
+- `nc_nifi_bulletin_count` - the numbers of bulletins since the previous run of the reporting task.
+- `nc_nifi_bulletin_cnt_total` - the counter for the number of bulletins since last startup.
+
+All metrics are gauges, except the metrics marked `counter` in the lists below and the Micrometer JVM metrics with the
+prefix `jvm_`.
 
 ### Connection metrics
 
@@ -60,7 +61,7 @@ The values of these metrics are not totals over the last 5 minutes:
 
 - `nc_nifi_pg_component_count`
 - `nc_nifi_pg_bulletin_count`
-- `nc_nifi_pg_bulletin_cnt_total`
+- `nc_nifi_pg_bulletin_cnt_total` (counter)
 - `nc_nifi_pg_active_thread_count`
 - `nc_nifi_pg_queued_count`
 - `nc_nifi_pg_queued_bytes`
@@ -77,7 +78,7 @@ The values of `nc_nifi_pg_component_count`, `nc_nifi_pg_active_thread_count`, `n
 ### Bulletin metrics
 
 - `nc_nifi_bulletin_count`
-- `nc_nifi_bulletin_cnt_total`
+- `nc_nifi_bulletin_cnt_total` (counter)
 
 ### JVM metrics
 

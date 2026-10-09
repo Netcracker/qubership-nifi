@@ -152,6 +152,9 @@ from 0 to 100, in which NiFi measures the performance.
 
 By default, performance tracking is disabled (`nifi.performance.tracking.percentage` = `0`).
 
+For more details, refer to the `Performance Tracking Properties` section in
+[NiFi System Administrator's Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#performance_tracking_properties).
+
 The NiFi statistics tracker calculates the number of runs between two measurements as `100` divided by the property
 value, rounded down. NiFi measures every N-th run, where N is this number, so the real share of measured runs is
 `1 / N` and can differ from the value.
@@ -161,9 +164,7 @@ measures every run at any value from `51` to `100`.
 The value of `nifi.performance.tracking.percentage` > 0 may impact the qubership-nifi performance. The magnitude of the impact may depend on the specific NiFi flow configuration and the load profile.
 
 To set the value of `nifi.performance.tracking.percentage`, refer to
-[Changing NiFi configuration properties](#changing-nifi-configuration-properties). For more details, refer to the
-`Performance Tracking Properties` section in
-[NiFi System Administrator's Guide](https://nifi.apache.org/nifi-docs/administration-guide.html#performance_tracking_properties).
+[Changing NiFi configuration properties](#changing-nifi-configuration-properties).
 
 ## NiFi configuration restore
 
