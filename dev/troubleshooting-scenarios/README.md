@@ -127,25 +127,25 @@ Run `./cleanup.sh --all` to remove the evidence bundles too.
 
 Create a directory under `scenarios/` with these files:
 
-| File                  | Required | Content                                                                                        |
-|-----------------------|----------|------------------------------------------------------------------------------------------------|
-| `README.md`           | Yes      | Symptom, cause, how the scenario reproduces it, parameters, expected evidence, remediation     |
-| `flow.json`           | No       | Flow definition that `run.sh` uploads, as downloaded from NiFi with "Download flow definition" |
-| `scenario.sh`         | Yes      | Hook functions, see below                                                                      |
-| `docker-compose.yaml` | No       | Compose override applied on top of `docker-compose.base.yaml`                                  |
-| `scenario.env`        | No       | Parameter defaults in the form `NAME="${NAME:-default}"`; recorded in `manifest.txt`           |
+| File                   | Required | Content                                                                                        |
+|------------------------|----------|------------------------------------------------------------------------------------------------|
+| `README.md`            | Yes      | Symptom, cause, how the scenario reproduces it, parameters, expected evidence, remediation     |
+| `flow.json`            | No       | Flow definition that `run.sh` uploads, as downloaded from NiFi with "Download flow definition" |
+| `scenario.sh`          | Yes      | Hook functions, see below                                                                      |
+| `docker-compose.yaml`  | No       | Compose override applied on top of `docker-compose.base.yaml`                                  |
+| `scenario-defaults.sh` | No       | Parameter defaults in the form `NAME="${NAME:-default}"`; recorded in `manifest.txt`           |
 
 `scenario.sh` may set `SCENARIO_COMPOSE_FILES` to use other override files, and may define these hooks, which
 `run.sh` calls in this order:
 
-| Hook                     | Called                                                                      |
-|--------------------------|-----------------------------------------------------------------------------|
-| `scenario_check_prereqs` | Before anything starts; fail here when the host is not ready                |
-| `scenario_prepare`       | After Consul starts and before NiFi starts                                  |
-| `scenario_configure`     | Before NiFi starts; write `nifi.properties` overrides with `consul_put`     |
-| `scenario_load`          | After the flow is uploaded; drive the flow into the broken state            |
+| Hook                     | Called                                                                                                                                  |
+|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `scenario_check_prereqs` | Before anything starts; fail here when the host is not ready                                                                            |
+| `scenario_prepare`       | After Consul starts and before NiFi starts                                                                                              |
+| `scenario_configure`     | Before NiFi starts; write `nifi.properties` overrides with `consul_put`                                                                 |
+| `scenario_load`          | After the flow is uploaded; drive the flow into the broken state                                                                        |
 | `scenario_break`         | After `scenario_load`, in a startup failure scenario; start NiFi again with the change that makes it fail, usually with `recreate_nifi` |
-| `scenario_evidence`      | By `collect-evidence.sh`, with the bundle directory; add `scenario-*` files |
+| `scenario_evidence`      | By `collect-evidence.sh`, with the bundle directory; add `scenario-*` files                                                             |
 
 When a scenario defines `scenario_break`, `run.sh` waits for the NiFi container to exit after the hook returns. Set
 `SCENARIO_EXPECTED_EXIT_CODE` in `scenario.sh` to the exit code the failure produces; `run.sh` warns on another one,

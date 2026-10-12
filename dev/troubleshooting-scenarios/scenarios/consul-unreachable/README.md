@@ -90,21 +90,21 @@ by `CONSUL_FAILURE`:
 as `<host>:<port>`, the Quarkus-based one as a URL with the protocol, so the scenario uses `consul:8500` or
 `http://consul:8500` for the working address.
 
-| Variable           | Default             | Description                                                                |
-|--------------------|---------------------|----------------------------------------------------------------------------|
-| `CONSUL_FAILURE`   | `wrong-host`        | `wrong-host` or `no-response`                                              |
-| `CONSUL_FRAMEWORK` | `spring`            | `spring` or `quarkus`, the value of `NIFI_CONSUL_INT_FRAMEWORK`            |
-| `WRONG_CONSUL_URL` | `consul-wrong:8500`, or `http://consul-wrong:8500` for `quarkus` | `CONSUL_URL` on the second start with `CONSUL_FAILURE=wrong-host` |
-| `HANG_SECONDS`     | `120`               | Seconds the startup waits for Consul before the evidence is collected, with `CONSUL_FAILURE=no-response` |
+| Variable           | Default                                                          | Description                                                                                              |
+|--------------------|------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `CONSUL_FAILURE`   | `wrong-host`                                                     | `wrong-host` or `no-response`                                                                            |
+| `CONSUL_FRAMEWORK` | `spring`                                                         | `spring` or `quarkus`, the value of `NIFI_CONSUL_INT_FRAMEWORK`                                          |
+| `WRONG_CONSUL_URL` | `consul-wrong:8500`, or `http://consul-wrong:8500` for `quarkus` | `CONSUL_URL` on the second start with `CONSUL_FAILURE=wrong-host`                                        |
+| `HANG_SECONDS`     | `120`                                                            | Seconds the startup waits for Consul before the evidence is collected, with `CONSUL_FAILURE=no-response` |
 
 ## Expected evidence
 
-| File                  | What to look for                                                                                           |
-|-----------------------|------------------------------------------------------------------------------------------------------------|
-| `manifest.txt`        | `wrong-host`: `nifi_exit_code=1`. `no-response`: `nifi_state=running` and `nifi_health=starting`, or `unhealthy` once the health checks run out after about 5 minutes |
+| File                  | What to look for                                                                                                                                                                                                                                |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `manifest.txt`        | `wrong-host`: `nifi_exit_code=1`. `no-response`: `nifi_state=running` and `nifi_health=starting`, or `unhealthy` once the health checks run out after about 5 minutes                                                                           |
 | `container.log`       | `wrong-host`: `APPLICATION FAILED TO START` (Spring) or `Failed to start quarkus` (Quarkus), and `Consul app java process has terminated prematurely`. `no-response`: `Checking if consul app main execution completed`, repeated, and no error |
-| `nifi-app.log.gz`     | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                         |
-| `scenario-consul.txt` | `CONSUL_URL` of the NiFi container, the state of the Consul container, the startup errors, and for `no-response` the stack of the main thread of the Consul integration application |
+| `nifi-app.log.gz`     | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                                                                                                                                                              |
+| `scenario-consul.txt` | `CONSUL_URL` of the NiFi container, the state of the Consul container, the startup errors, and for `no-response` the stack of the main thread of the Consul integration application                                                             |
 
 ## NiFi 1.x
 

@@ -31,11 +31,11 @@ scenario has no parameters.
 
 ## Expected evidence
 
-| File                         | What to look for                                                                         |
-|------------------------------|------------------------------------------------------------------------------------------|
-| `manifest.txt`               | `nifi_exit_code=3`                                                                       |
-| `container.log`              | `oldKeyHash does not match newKeyHash`                                                   |
-| `nifi-app.log.gz`            | A single line saying that `nifi-app.log` does not exist: NiFi itself never started       |
+| File                         | What to look for                                                                            |
+|------------------------------|---------------------------------------------------------------------------------------------|
+| `manifest.txt`               | `nifi_exit_code=3`                                                                          |
+| `container.log`              | `oldKeyHash does not match newKeyHash`                                                      |
+| `nifi-app.log.gz`            | A single line saying that `nifi-app.log` does not exist: NiFi itself never started          |
 | `scenario-sensitive-key.txt` | `old_key_hash` equal to the hash of the first key and different from the hash of the second |
 
 The bundle has the hashes of the keys, never the keys.

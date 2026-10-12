@@ -55,21 +55,21 @@ stay queued.
 `AFTER_FULL_SECONDS` more, and stops it. With the defaults the repository fills at about 3200 queued FlowFiles, 40
 seconds after the start, and the snapshot and the journals take about half of it each.
 
-| Variable             | Default | Description                                                                  |
-|----------------------|---------|------------------------------------------------------------------------------|
-| `FLOWFILE_REPO_SIZE` | `64m`   | Size of the tmpfs that holds the FlowFile repository                         |
+| Variable             | Default | Description                                                                   |
+|----------------------|---------|-------------------------------------------------------------------------------|
+| `FLOWFILE_REPO_SIZE` | `64m`   | Size of the tmpfs that holds the FlowFile repository                          |
 | `AFTER_FULL_SECONDS` | `60`    | Seconds the generator keeps running after the first `No space left on device` |
 
 ## Expected evidence
 
-| File                         | What to look for                                                                                     |
-|------------------------------|------------------------------------------------------------------------------------------------------|
-| `scenario-flowfile-repo.txt` | `df` at 100%; `du` split between `checkpoint` and `journals`; the write-ahead log errors; `no_space_left` above 0 |
+| File                         | What to look for                                                                                                                                            |
+|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `scenario-flowfile-repo.txt` | `df` at 100%; `du` split between `checkpoint` and `journals`; the write-ahead log errors; `no_space_left` above 0                                           |
 | `nifi-app.filtered.log`      | `Marking Write-Ahead journal file ... as poisoned`, `FlowFile Repository failed to update`, and `Unable to checkpoint FlowFile Repository` every 20 seconds |
-| `bulletins.json`             | `Cannot update journal file ... because no header has been written yet` from `Generate large attributes` |
-| `root-status.json`           | About 3200 FlowFiles in `queued flowfiles` and no content bytes                                       |
-| `storage.txt`                | The content repository far from full                                                                 |
-| `manifest.txt`               | `nifi_state=running`, `nifi_health=healthy`                                                          |
+| `bulletins.json`             | `Cannot update journal file ... because no header has been written yet` from `Generate large attributes`                                                    |
+| `root-status.json`           | About 3200 FlowFiles in `queued flowfiles` and no content bytes                                                                                             |
+| `storage.txt`                | The content repository far from full                                                                                                                        |
+| `manifest.txt`               | `nifi_state=running`, `nifi_health=healthy`                                                                                                                 |
 
 ## NiFi 1.x
 

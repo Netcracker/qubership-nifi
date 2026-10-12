@@ -101,13 +101,13 @@ and defaults in the tables below are the same on 1.x.
    symptom: for example, archive cleanup time per file against the number of files archived per minute.
 7. **Answer** in the format below.
 
-When files are available to read, as in an attachment or a directory the user names, still say which item you are
-reading and why before you read it, as if you had asked the user for it.
+When files are available to read, as in an attachment or a directory the user points to, still say which item you
+are reading and why before you read it, as if you had asked the user for it.
 
 ## Signatures
 
 | Signature in the log or the symptom | Phase | Problem | Reference |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS`, `Multiple garbage collectors selected`, exit code 3 | 3 | Conflicting garbage collector arguments | `references/startup-failures.md#invalid-jvm-arguments` |
 | Exit code 0 and the pod log ends with no error at the `nifi.sh` header after `NiFi running with PID <n>.` (`Bootstrap Config File: ...`, `Picked up JAVA_TOOL_OPTIONS: ...`); in `logs/nifi-app.log`, `Multiple garbage collectors selected` from `org.apache.nifi.StdOut` or another JVM error (1.x) | 4 | The NiFi JVM refuses its arguments, most often two garbage collectors | `references/startup-failures.md#invalid-jvm-arguments` |
 | `oldKeyHash does not match newKeyHash`, exit code 3 | 3 | Sensitive key differs from the key of earlier starts | `references/startup-failures.md#changed-sensitive-key` |
@@ -169,7 +169,7 @@ volume full, and a slow processor is not an archive problem unless the archive w
 ## Settings fixes often need
 
 | Setting | Consul key (preferred) | Environment variable | Default |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Heap size | none | `NIFI_JVM_HEAP_INIT`, `NIFI_JVM_HEAP_MAX` | `512m` each |
 | Content archive threshold | `nifi.content.repository.archive.max.usage.percentage` | `NIFI_CONTENT_ARCHIVE_MAX_USAGE` | `50%` |
 | Content archive on or off | `nifi.content.repository.archive.enabled` | `NIFI_CONTENT_ARCHIVE_DISABLED` (any value turns it off) | `true` |

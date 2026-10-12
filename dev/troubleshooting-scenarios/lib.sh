@@ -78,9 +78,9 @@ image_nifi_major_version() {
     esac
 }
 
-# Sources scenarios/<name>/scenario.env and scenario.sh, and sets SCENARIO, SCENARIO_DIR, and NIFI_MAJOR_VERSION,
+# Sources scenarios/<name>/scenario-defaults.sh and scenario.sh, and sets SCENARIO, SCENARIO_DIR, and NIFI_MAJOR_VERSION,
 # which scenario.sh may use where Apache NiFi 1.x behaves differently.
-# Values already set in the environment take precedence over the scenario.env defaults.
+# Values already set in the environment take precedence over the scenario-defaults.sh defaults.
 load_scenario() {
     SCENARIO="$1"
     [ -n "$SCENARIO" ] || die "Scenario name is required. Available scenarios: $(list_scenarios | tr '\n' ' ')"
@@ -92,21 +92,21 @@ load_scenario() {
         1 | 2) ;;
         *) die "NIFI_MAJOR_VERSION must be 1 or 2, got '$NIFI_MAJOR_VERSION'." ;;
     esac
-    if [ -f "$SCENARIO_DIR/scenario.env" ]; then
+    if [ -f "$SCENARIO_DIR/scenario-defaults.sh" ]; then
         # Exported, so that the compose files can use the values too.
         set -a
         # shellcheck source=/dev/null
-        . "$SCENARIO_DIR/scenario.env"
+        . "$SCENARIO_DIR/scenario-defaults.sh"
         set +a
     fi
     # shellcheck source=/dev/null
     . "$SCENARIO_DIR/scenario.sh"
 }
 
-# Prints the scenario.env variable names of the loaded scenario.
+# Prints the scenario-defaults.sh variable names of the loaded scenario.
 scenario_param_names() {
-    [ ! -f "$SCENARIO_DIR/scenario.env" ] ||
-        sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' "$SCENARIO_DIR/scenario.env"
+    [ ! -f "$SCENARIO_DIR/scenario-defaults.sh" ] ||
+        sed -n 's/^\([A-Z_][A-Z0-9_]*\)=.*/\1/p' "$SCENARIO_DIR/scenario-defaults.sh"
 }
 
 # Saves the scenario name, the NiFi image, and the resolved scenario parameters in the work directory,

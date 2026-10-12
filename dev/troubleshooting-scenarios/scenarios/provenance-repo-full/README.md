@@ -83,11 +83,11 @@ FlowFile and content repositories stay small.
 `scenario.sh` runs the flow until `No space left on device` appears in `nifi-app.log`, then for `AFTER_FULL_SECONDS`
 more, and stops it. With the defaults the first error appears about 70 seconds after the start.
 
-| Variable                      | Default  | Description                                                                    |
-|-------------------------------|----------|--------------------------------------------------------------------------------|
-| `PROVENANCE_REPO_SIZE`        | `256m`   | Size of the tmpfs that holds the provenance repository                         |
-| `PROVENANCE_MAX_STORAGE_SIZE` | `512 MB` | Value of `nifi.provenance.repository.max.storage.size`                         |
-| `AFTER_FULL_SECONDS`          | `60`     | Seconds the flow keeps running after the first `No space left on device`       |
+| Variable                      | Default  | Description                                                              |
+|-------------------------------|----------|--------------------------------------------------------------------------|
+| `PROVENANCE_REPO_SIZE`        | `256m`   | Size of the tmpfs that holds the provenance repository                   |
+| `PROVENANCE_MAX_STORAGE_SIZE` | `512 MB` | Value of `nifi.provenance.repository.max.storage.size`                   |
+| `AFTER_FULL_SECONDS`          | `60`     | Seconds the flow keeps running after the first `No space left on device` |
 
 The defaults reproduce a limit larger than the volume: the size limit is twice the volume. To reproduce a limit that
 leaves too little room, leave 16 MiB above it:
@@ -104,16 +104,16 @@ With 200 MiB of room, `PROVENANCE_MAX_STORAGE_SIZE="56 MB"`, the flow runs for 6
 
 ## Expected evidence
 
-| File                           | What to look for                                                                                       |
-|--------------------------------|--------------------------------------------------------------------------------------------------------|
+| File                           | What to look for                                                                                                                                                                            |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `scenario-provenance-repo.txt` | `df` at 100%; `max.storage.size=512 MB` above the file system size; counts of `Failed to write events to the Event Store` and `Failed to compress ... on rollover`; `no_space_left` above 0 |
-| `system-diagnostics.json`      | `provenanceRepositoryStorageUsage` with `utilization` at `100.0%`                                      |
-| `bulletins.json`               | `Failed to write Provenance Events to the repository. See logs for more details.` in category `Provenance Repository` |
-| `root-status.json`             | As many FlowFiles into `Copy content to attribute` and `Modify attribute` as out of `Generate random content`: the flow keeps running |
-| `nifi-app.filtered.log`        | `Failed to write events to the Event Store` and `Failed to compress ... on rollover`                   |
-| `nifi-app.log.gz`              | The same errors with their stack traces and `java.io.IOException: No space left on device`             |
-| `storage.txt`                  | The content repository far from full                                                                   |
-| `manifest.txt`                 | `nifi_state=running`, `nifi_health=healthy`                                                            |
+| `system-diagnostics.json`      | `provenanceRepositoryStorageUsage` with `utilization` at `100.0%`                                                                                                                           |
+| `bulletins.json`               | `Failed to write Provenance Events to the repository. See logs for more details.` in category `Provenance Repository`                                                                       |
+| `root-status.json`             | As many FlowFiles into `Copy content to attribute` and `Modify attribute` as out of `Generate random content`: the flow keeps running                                                       |
+| `nifi-app.filtered.log`        | `Failed to write events to the Event Store` and `Failed to compress ... on rollover`                                                                                                        |
+| `nifi-app.log.gz`              | The same errors with their stack traces and `java.io.IOException: No space left on device`                                                                                                  |
+| `storage.txt`                  | The content repository far from full                                                                                                                                                        |
+| `manifest.txt`                 | `nifi_state=running`, `nifi_health=healthy`                                                                                                                                                 |
 
 After the run with too little room, `df` and `system-diagnostics.json` show about 82%, and the `.gz` files of failed
 compressions are smaller than the others in the `du` listing.

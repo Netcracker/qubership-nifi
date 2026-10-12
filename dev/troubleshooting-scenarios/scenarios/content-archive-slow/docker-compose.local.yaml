@@ -5,4 +5,4 @@ services:
     volumes:
       - content-repo:/opt/nifi/nifi-current/persistent_data/content_repository
 volumes:
-  content-repo:
+  content-repo: {}

@@ -10,7 +10,7 @@ Commands assume Kubernetes with the pod name in `<pod>` and namespace in `<ns>`,
 ## Items
 
 | Item | Ask for it when | What it settles |
-|---|---|---|
+| --- | --- | --- |
 | [Pod log](#pod-log) | Always, unless the user pasted the relevant part | Phase, first error, root cause exception |
 | [Container state and exit code](#container-state-and-exit-code) | Startup failures, restarts | Exit code 1 or 3 (0 on 1.x), or a hang; restart count |
 | [Environment variables](#environment-variables) | Startup failures; any setting the fix depends on | `CONSUL_URL` form, JVM arguments, repository paths |

@@ -4,7 +4,7 @@ Runtime problems with the three NiFi repositories. NiFi stays up and its health 
 stalls, or loses provenance. Each repository is a directory that can sit on its own volume:
 
 | Repository | Holds | Default path in qubership-nifi | Variable that moves it |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Content | FlowFile content, in claim files, and the archive of content no FlowFile references | `./persistent_data/content_repository` | `NIFI_CONTENT_REPO_DIR` |
 | FlowFile | Attributes and state of every queued FlowFile: a checkpoint snapshot plus journals | `./flowfile_repository` | `NIFI_FLOW_FILE_REPO_DIR` |
 | Provenance | One event per change to a FlowFile, with all its attributes | `./provenance_repository/provenance_repository` | `NIFI_PROVENANCE_REPO_DIR` |
@@ -18,7 +18,7 @@ messages or behavior differ, the section has a "NiFi 1.x" subsection.
 Tell the problems apart by the logger in the error and by which volume is full:
 
 | Evidence | Content archive cannot be cleaned | Archive cleanup too slow | FlowFile repository full | Provenance repository full | Content repository full |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | Key log line | `Unable to write flowfile content ... waiting for archive cleanup` | slow `Successfully archived <n> Resource Claims ... in <n> millis`; DEBUG cleanup timings | `Marking Write-Ahead journal file ... as poisoned` | `Failed to write events to the Event Store` | `Failed to write to FileSystemRepository Stream` |
 | Full volume | none; content at 50-100% | none | FlowFile repository at 100% | provenance repository at 100% | content repository at 100% |
 | Flow | writers stall up to a minute at a time | normal until usage reaches the threshold | processors that create or change FlowFiles fail | keeps running | writes fail |
@@ -134,8 +134,8 @@ figure. From the DEBUG log:
    growth of `claim_files_archived`.
 
 When the load is well below the capacity, cleanup keeps up, and files only outlive the retention by the interval and
-the run time; say so, and say how much headroom is left. When the load approaches the capacity, the archive grows
-until usage reaches the threshold, and writes then wait as in the previous section.
+the duration of a cleanup run; say so, and say how much headroom is left. When the load approaches the capacity,
+the archive grows until usage reaches the threshold, and writes then wait as in the previous section.
 
 ### Fix
 
@@ -161,7 +161,7 @@ FlowFiles of one session into one claim file, even past `nifi.content.claim.max.
 many FlowFiles per session therefore leaves fewer archived files on 1.x than on 2.x, and a flow that commits one
 FlowFile per session leaves as many. The method in [Work out whether cleanup keeps
 up](#work-out-whether-cleanup-keeps-up) applies unchanged. In testing on NFS, 1.x cleanup runs took about 40 times
-longer than on local storage, as on 2.x.
+longer than on a local disk, as on 2.x.
 
 ## FlowFile repository out of space
 

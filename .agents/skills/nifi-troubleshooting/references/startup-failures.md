@@ -6,7 +6,7 @@ no `Starting NiFi` line, and the last lines come from `start.sh` or the Consul i
 never logs `Starting NiFi`, and invalid JVM arguments fail in the NiFi JVM itself, after the start scripts finish.
 
 | Problem | Exit code | Exit code on 1.x | Last phase in the log |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | [Invalid JVM arguments](#invalid-jvm-arguments) | 3 | 0 | Start-script checks; on 1.x the NiFi JVM start |
 | [Changed sensitive key](#changed-sensitive-key) | 3 | 3 | Start-script checks |
 | [Consul unreachable](#consul-unreachable) | 1, or none when the startup hangs | the same | Consul integration application |
@@ -107,7 +107,7 @@ The container exits with code 3 about 10 seconds after the start, with:
 The same script exits with code 3 for related key problems:
 
 | Message | Meaning |
-|---|---|
+| --- | --- |
 | `Either NIFI_NEW_SENSITIVE_KEY variable or file under path set in NIFI_SENSITIVE_KEY_PATH must be non-empty.` | No key is set at all |
 | `OLD_SENSITIVE_KEY is not set, NIFI_NEW_SENSITIVE_KEY does not equal SENSITIVE_KEY. Set NIFI_NEW_SENSITIVE_KEY = SENSITIVE_KEY.` | Upgrade from a release that used the deprecated `SENSITIVE_KEY`, with a different new key |
 | `OLD_SENSITIVE_KEY=SENSITIVE_KEY, NIFI_NEW_SENSITIVE_KEY does not equal SENSITIVE_KEY. Set NIFI_NEW_SENSITIVE_KEY = SENSITIVE_KEY.` | Same, with `OLD_SENSITIVE_KEY` set |

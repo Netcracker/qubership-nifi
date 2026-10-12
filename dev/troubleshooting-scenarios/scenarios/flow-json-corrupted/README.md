@@ -48,17 +48,17 @@ The restart before the damage matters. On the first start that finds a `flow.jso
 starts with an empty flow instead of failing. The restart completes the migration, as on any instance that has
 started more than once.
 
-| Variable     | Default | Description                                                                                  |
-|--------------|---------|----------------------------------------------------------------------------------------------|
+| Variable     | Default | Description                                                                                                               |
+|--------------|---------|---------------------------------------------------------------------------------------------------------------------------|
 | `CORRUPTION` | `json`  | `json`: the file stays a valid gzip file, with one comma removed from the JSON. `truncated`: the gzip file is cut in half |
 
 ## Expected evidence
 
-| File                     | What to look for                                                                                     |
-|--------------------------|------------------------------------------------------------------------------------------------------|
-| `manifest.txt`           | `nifi_exit_code=1`                                                                                   |
-| `nifi-app.log.gz`        | `Failed to start Server` from `JettyServer`, with the exception and its causes shown above           |
-| `nifi-app.filtered.log`  | The same `ERROR` line                                                                                |
+| File                     | What to look for                                                                                                                                                                                                        |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `manifest.txt`           | `nifi_exit_code=1`                                                                                                                                                                                                      |
+| `nifi-app.log.gz`        | `Failed to start Server` from `JettyServer`, with the exception and its causes shown above                                                                                                                              |
+| `nifi-app.filtered.log`  | The same `ERROR` line                                                                                                                                                                                                   |
 | `scenario-flow-json.txt` | The files of `persistent_conf/conf` and its `archive/` directory, the `gzip -t` result (`OK` for `json`, `damaged` for `truncated`), the errors of the start scripts, and the NiFi exception with its `Caused by` lines |
 
 ## NiFi 1.x

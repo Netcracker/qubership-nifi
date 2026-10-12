@@ -33,19 +33,19 @@ troubleshooting guide.
 NiFi starts once without the variables. `scenario.sh` then creates the NiFi container again with
 `NIFI_ADDITIONAL_JVM_ARGS` set to `JVM_ARGS_ADDITIONAL` and `X_JAVA_ARGS` set to `JVM_ARGS_X_JAVA`.
 
-| Variable              | Default               | Description                                   |
-|-----------------------|-----------------------|-----------------------------------------------|
-| `JVM_ARGS_ADDITIONAL` | `-XX:+UseG1GC`        | `NIFI_ADDITIONAL_JVM_ARGS` on the second start |
-| `JVM_ARGS_X_JAVA`     | `-XX:+UseParallelGC`  | `X_JAVA_ARGS` on the second start             |
+| Variable              | Default              | Description                                    |
+|-----------------------|----------------------|------------------------------------------------|
+| `JVM_ARGS_ADDITIONAL` | `-XX:+UseG1GC`       | `NIFI_ADDITIONAL_JVM_ARGS` on the second start |
+| `JVM_ARGS_X_JAVA`     | `-XX:+UseParallelGC` | `X_JAVA_ARGS` on the second start              |
 
 ## Expected evidence
 
-| File                    | What to look for                                                                                  |
-|-------------------------|---------------------------------------------------------------------------------------------------|
-| `manifest.txt`          | `nifi_exit_code=3`                                                                                |
+| File                    | What to look for                                                                                                    |
+|-------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `manifest.txt`          | `nifi_exit_code=3`                                                                                                  |
 | `container.log`         | `ERROR: Invalid JVM arguments in NIFI_ADDITIONAL_JVM_ARGS + X_JAVA_ARGS` and `Multiple garbage collectors selected` |
-| `nifi-app.log.gz`       | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                |
-| `scenario-jvm-args.txt` | Both variables, the `java.arg.*` entries of `bootstrap.conf` with the two collectors, and the startup errors |
+| `nifi-app.log.gz`       | A single line saying that `nifi-app.log` does not exist: NiFi itself never started                                  |
+| `scenario-jvm-args.txt` | Both variables, the `java.arg.*` entries of `bootstrap.conf` with the two collectors, and the startup errors        |
 
 ## NiFi 1.x
 
