@@ -425,6 +425,7 @@ public class PropertyDocumentation extends AbstractMojo {
     private ProjectBuildingRequest createProjectBuildingRequest() {
         final ProjectBuildingRequest projectRequest = new DefaultProjectBuildingRequest();
         projectRequest.setRepositorySession(repoSession);
+        projectRequest.setRemoteRepositories(project.getRemoteArtifactRepositories());
         projectRequest.setSystemProperties(System.getProperties());
         return projectRequest;
     }
@@ -440,6 +441,7 @@ public class PropertyDocumentation extends AbstractMojo {
 
             final ArtifactResolutionRequest request = new ArtifactResolutionRequest();
             request.setArtifact(artifact);
+            request.setRemoteRepositories(project.getRemoteArtifactRepositories());
 
             final ArtifactResolutionResult result = artifactResolver.resolve(request);
             if (!result.isSuccess()) {
