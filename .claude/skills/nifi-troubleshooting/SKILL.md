@@ -1,16 +1,12 @@
 ---
 name: nifi-troubleshooting
 description: >-
-  Diagnoses a broken qubership-nifi instance, on Apache NiFi 2.x or on a 1.x image (Apache NiFi 1.28), from what
-  the user pastes: pod or container log lines, stack traces, exit codes, bulletins, or a description of the symptom.
-  Names the cause, quotes the lines that prove it, gives the remediation in qubership-nifi terms (environment
-  variables, Consul properties), and asks for specific further evidence when the input is not enough. Use it whenever
-  NiFi or qubership-nifi does not start, exits with code 1 or 3, exits with code 0 on a 1.x image, hangs at startup,
-  sits in CrashLoopBackOff, or never becomes ready; whenever processors stall, queues grow, or writes wait; and
-  whenever a log shows "No space left on device", archive cleanup, content, FlowFile or provenance repository errors,
-  a Consul error, an invalid JVM argument, a sensitive key mismatch, a flow.json.gz parse error, an
-  OutOfMemoryError, or a TLS failure. Use it even when the user only pastes a log excerpt and asks "what is wrong",
-  "why won't it start", or "how do I fix this".
+  Diagnoses a qubership-nifi instance that fails or misbehaves, on Apache NiFi 1.x and 2.x images, from logs,
+  stack traces, bulletins, or a described symptom. Names the cause, quotes the evidence, gives the fix in
+  qubership-nifi terms (environment variables, Consul properties), and asks for the specific evidence still missing.
+  Use it whenever NiFi will not start, restarts, hangs, never becomes ready, or degrades at runtime (stalled
+  processors, growing queues, disk or memory pressure), and whenever the user pastes NiFi log output and asks what is
+  wrong or how to fix it. Not for writing NiFi components or upgrading NiFi.
 ---
 
 # qubership-nifi troubleshooting
