@@ -18,15 +18,49 @@ package org.qubership.nifi.reporting.metrics.component;
 
 public enum ProcessorMetricName {
 
+    /**
+     * nc_nifi_processor_tasks_time_total metric.
+     */
     TASKS_TIME_TOTAL_METRIC_NAME("nc_nifi_processor_tasks_time_total"),
-    TASKS_COUNT_METRIC_NAME("nc_nifi_processor_tasks_count");
+    /**
+     * nc_nifi_processor_tasks_count metric.
+     */
+    TASKS_COUNT_METRIC_NAME("nc_nifi_processor_tasks_count"),
+    /**
+     * nc_nifi_processor_cpu_duration metric.
+     */
+    CPU_DURATION_METRIC_NAME("nc_nifi_processor_cpu_duration"),
+    /**
+     * nc_nifi_processor_content_read_duration metric.
+     */
+    CONTENT_READ_DURATION_METRIC_NAME("nc_nifi_processor_content_read_duration"),
+    /**
+     * nc_nifi_processor_content_write_duration metric.
+     */
+    CONTENT_WRITE_DURATION_METRIC_NAME("nc_nifi_processor_content_write_duration"),
+    /**
+     * nc_nifi_processor_session_commit_duration metric.
+     */
+    SESSION_COMMIT_DURATION_METRIC_NAME("nc_nifi_processor_session_commit_duration"),
+    /**
+     * nc_nifi_processor_gc_duration metric.
+     */
+    GC_DURATION_METRIC_NAME("nc_nifi_processor_gc_duration");
 
     private final String name;
 
-    ProcessorMetricName(String name) {
-        this.name = name;
+    /**
+     * Create instance of ProcessorMetricName enum.
+     * @param metricName metric name.
+     */
+    ProcessorMetricName(final String metricName) {
+        this.name = metricName;
     }
 
+    /**
+     * Get metric name.
+     * @return name
+     */
     public String getName() {
         return name;
     }

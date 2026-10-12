@@ -3,7 +3,7 @@
 ## Scripts overview
 
 The script `analyzeAndUpdateNiFiExports.sh` upgrades controller services and reporting tasks exports
-done from older NiFi versions to be compatible with NiFi 2.5.0/2.6.0/2.7.2.
+done from older NiFi versions to be compatible with NiFi 2.5.0 through 2.11.0.
 The script automatically checks version in target NiFi instance, as well as version in export
 and determines, what changes must be applied to export to make it compatible.
 
@@ -29,7 +29,10 @@ The table below describes environment variables used in script
 
 ## Mapping configuration
 
-Script is supplied with mapping configurations for 2.5.0, 2.6.0 and 2.7.2 versions.
+Script is supplied with mapping configurations for NiFi 2.5, 2.6, 2.7, 2.10, and 2.11, one file per version:
+`upgradeConfig_2_5.json` through `upgradeConfig_2_11.json`.
+A version has no file when it did not rename or remove any controller service property.
+The script applies every file whose version is later than the version in the export and not later than the target NiFi.
 Each configuration file stores the mapping between old and new property names for NiFi components.
 In case of property removal, value must be set to `null`.
 

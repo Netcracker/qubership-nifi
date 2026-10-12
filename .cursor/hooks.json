@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \".cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py\""
+            "command": "python \".cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py\""
           }
         ]
       }

@@ -6,6 +6,13 @@ flags=("$@")
 
 echo "Starting upgrade scripts for sources: $pathToFlow"
 
+#Runs first: it picks the driver location key from the bundle version in the export, and the scripts below
+#rename that key to the target NiFi version.
+echo "Executing Oracle driver location update script"
+cd /scripts/ojdbc-location/
+bash updateOjdbcDriverLocation.sh "$pathToFlow"
+echo "Finished Oracle driver location update script"
+
 echo "Executing upgrade scripts 2.0"
 cd /scripts/2.0/
 bash updateNiFiFlow.sh "$pathToFlow" ./updateNiFiVerNarConfig.json

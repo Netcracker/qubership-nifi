@@ -1,10 +1,10 @@
 lockfile_version: '1'
-generated_at: '2026-09-11T19:34:31.708599+00:00'
+generated_at: '2026-09-28T18:21:02.297673+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
   name: nifi-development-kit
-  version: 1.0.0
+  version: 1.1.0
   package_type: apm_package
   deployed_files:
   - .agents/skills/nifi-custom-component-developer-skill
@@ -15,6 +15,17 @@ dependencies:
   - .agents/skills/nifi-custom-component-developer-skill/references/mock-testing.md
   - .agents/skills/nifi-custom-component-developer-skill/references/naming.md
   - .agents/skills/nifi-custom-component-developer-skill/references/variable-initialization.md
+  - .agents/skills/nifi-flow-builder
+  - .agents/skills/nifi-flow-builder/SKILL.md
+  - .agents/skills/nifi-flow-builder/references/flow-json.md
+  - .agents/skills/nifi-flow-builder/references/qubership-nifi.md
+  - .agents/skills/nifi-flow-builder/scripts/kb.py
+  - .agents/skills/nifi-flow-builder/scripts/verify_live.py
+  - .agents/skills/nifi-flow-builder/tests/conftest.py
+  - .agents/skills/nifi-flow-builder/tests/requirements-test.txt
+  - .agents/skills/nifi-flow-builder/tests/test_kb.py
+  - .agents/skills/nifi-flow-builder/tests/test_verify_live.py
+  - .claude/rules/nifi-flow-builder.md
   - .claude/skills/nifi-custom-component-developer-skill
   - .claude/skills/nifi-custom-component-developer-skill/SKILL.md
   - .claude/skills/nifi-custom-component-developer-skill/references/annotations.md
@@ -23,6 +34,17 @@ dependencies:
   - .claude/skills/nifi-custom-component-developer-skill/references/mock-testing.md
   - .claude/skills/nifi-custom-component-developer-skill/references/naming.md
   - .claude/skills/nifi-custom-component-developer-skill/references/variable-initialization.md
+  - .claude/skills/nifi-flow-builder
+  - .claude/skills/nifi-flow-builder/SKILL.md
+  - .claude/skills/nifi-flow-builder/references/flow-json.md
+  - .claude/skills/nifi-flow-builder/references/qubership-nifi.md
+  - .claude/skills/nifi-flow-builder/scripts/kb.py
+  - .claude/skills/nifi-flow-builder/scripts/verify_live.py
+  - .claude/skills/nifi-flow-builder/tests/conftest.py
+  - .claude/skills/nifi-flow-builder/tests/requirements-test.txt
+  - .claude/skills/nifi-flow-builder/tests/test_kb.py
+  - .claude/skills/nifi-flow-builder/tests/test_verify_live.py
+  - .cursor/rules/nifi-flow-builder.mdc
   deployed_file_hashes:
     .agents/skills/nifi-custom-component-developer-skill/SKILL.md: sha256:a2b6cedf274d27359447c3cfa503054c63cdda942fd0a38622d2fb8f5b1811a7
     .agents/skills/nifi-custom-component-developer-skill/references/annotations.md: sha256:1ab0347daa96003e5743f2692f27a6836a53b0c0cae456d3d956ad3832aff960
@@ -31,6 +53,16 @@ dependencies:
     .agents/skills/nifi-custom-component-developer-skill/references/mock-testing.md: sha256:76618eaef70374aa1457e9f353203bfa5bb77fbc0fd65d2ca585338662810d1d
     .agents/skills/nifi-custom-component-developer-skill/references/naming.md: sha256:503047b7ef3f01e1653b89c0c81cdbfc6e2b5ff2d81dcb26f3f0f123917005d3
     .agents/skills/nifi-custom-component-developer-skill/references/variable-initialization.md: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
+    .agents/skills/nifi-flow-builder/SKILL.md: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
+    .agents/skills/nifi-flow-builder/references/flow-json.md: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+    .agents/skills/nifi-flow-builder/references/qubership-nifi.md: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
+    .agents/skills/nifi-flow-builder/scripts/kb.py: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
+    .agents/skills/nifi-flow-builder/scripts/verify_live.py: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
+    .agents/skills/nifi-flow-builder/tests/conftest.py: sha256:1b3d668e26880bb309802c289902b90c62e63477a49287ea3f709cb1cc94a2e9
+    .agents/skills/nifi-flow-builder/tests/requirements-test.txt: sha256:d62f6657bbf460cd37be44f1adab25eb9a867538e2fba459c6f0de107e2d3786
+    .agents/skills/nifi-flow-builder/tests/test_kb.py: sha256:9144b67000ec018855f7b27e774a2f05163db3b216ce09d974e4fd9d2958de24
+    .agents/skills/nifi-flow-builder/tests/test_verify_live.py: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
+    .claude/rules/nifi-flow-builder.md: sha256:7b5e5335ffd7b4454300591d9c0d668d5cad5c3262ada768bd3e356fe7ac6db7
     .claude/skills/nifi-custom-component-developer-skill/SKILL.md: sha256:a2b6cedf274d27359447c3cfa503054c63cdda942fd0a38622d2fb8f5b1811a7
     .claude/skills/nifi-custom-component-developer-skill/references/annotations.md: sha256:1ab0347daa96003e5743f2692f27a6836a53b0c0cae456d3d956ad3832aff960
     .claude/skills/nifi-custom-component-developer-skill/references/batch.md: sha256:db9daa6627152e00e98cfba1d10e41f8153e4af819e3760682b1cf99200f509d
@@ -38,6 +70,16 @@ dependencies:
     .claude/skills/nifi-custom-component-developer-skill/references/mock-testing.md: sha256:76618eaef70374aa1457e9f353203bfa5bb77fbc0fd65d2ca585338662810d1d
     .claude/skills/nifi-custom-component-developer-skill/references/naming.md: sha256:503047b7ef3f01e1653b89c0c81cdbfc6e2b5ff2d81dcb26f3f0f123917005d3
     .claude/skills/nifi-custom-component-developer-skill/references/variable-initialization.md: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
+    .claude/skills/nifi-flow-builder/SKILL.md: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
+    .claude/skills/nifi-flow-builder/references/flow-json.md: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+    .claude/skills/nifi-flow-builder/references/qubership-nifi.md: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
+    .claude/skills/nifi-flow-builder/scripts/kb.py: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
+    .claude/skills/nifi-flow-builder/scripts/verify_live.py: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
+    .claude/skills/nifi-flow-builder/tests/conftest.py: sha256:1b3d668e26880bb309802c289902b90c62e63477a49287ea3f709cb1cc94a2e9
+    .claude/skills/nifi-flow-builder/tests/requirements-test.txt: sha256:d62f6657bbf460cd37be44f1adab25eb9a867538e2fba459c6f0de107e2d3786
+    .claude/skills/nifi-flow-builder/tests/test_kb.py: sha256:9144b67000ec018855f7b27e774a2f05163db3b216ce09d974e4fd9d2958de24
+    .claude/skills/nifi-flow-builder/tests/test_verify_live.py: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
+    .cursor/rules/nifi-flow-builder.mdc: sha256:bc68cccc67c39cfe22091a866d805c9bf55999271fa39d6f388a414f217bbadc
   source: local
   local_path: ./agent-packages/nifi-development-kit
 - repo_url: _local/qubership-nifi-docs-maintenance
@@ -58,28 +100,49 @@ dependencies:
     .cursor/rules/update-project-documentation.mdc: sha256:82542fa2d536d7fecb3847ee64285bffb188e91fd9143b31bfeddc08781e5b59
   source: local
   local_path: ./agent-packages/qubership-nifi-docs-maintenance
+- repo_url: _local/qubership-nifi-lint-hook
+  name: qubership-nifi-lint-hook
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md
+  - .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py
+  - .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md
+  - .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py
+  deployed_file_hashes:
+    .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md: sha256:0512314c74086aa40b7463b70d283a17a2174552c31d18422dbe4ed251ea2c2b
+    .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
+    .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md: sha256:0512314c74086aa40b7463b70d283a17a2174552c31d18422dbe4ed251ea2c2b
+    .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
+  source: local
+  local_path: ./agent-packages/qubership-nifi-lint-hook
+  target_subset:
+  - codex
+  - cursor
+- repo_url: _local/qubership-nifi-lint-hook-claude
+  name: qubership-nifi-lint-hook-claude
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md
+  - .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
+  deployed_file_hashes:
+    .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md: sha256:370f5beca17754b667f5c7ea9d1e4515ca8634544542489a7937a90c4c3f8e15
+    .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
+  source: local
+  local_path: ./agent-packages/qubership-nifi-lint-hook-claude
+  target_subset:
+  - claude
 - repo_url: _local/qubership-nifi-linters
   name: qubership-nifi-linters
-  version: 1.1.1
+  version: 2.0.0
   package_type: apm_package
   deployed_files:
   - .claude/commands/lint.md
-  - .claude/hooks/qubership-nifi-linters/.apm/hooks/README.md
-  - .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
-  - .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md
-  - .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
   - .cursor/commands/lint.md
-  - .cursor/hooks/qubership-nifi-linters/.apm/hooks/README.md
-  - .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
   deployed_file_hashes:
     .claude/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
-    .claude/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
-    .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
-    .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
-    .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
     .cursor/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
-    .cursor/hooks/qubership-nifi-linters/.apm/hooks/README.md: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
-    .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
   source: local
   local_path: ./agent-packages/qubership-nifi-linters
 - repo_url: _local/qubership-nifi-troubleshooting
@@ -494,22 +557,22 @@ deployments:
   content_hash: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
 - kind: project-relative
   target: claude
-  value: .claude/hooks/qubership-nifi-linters/.apm/hooks/README.md
+  value: .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
+  - ./agent-packages/qubership-nifi-lint-hook-claude
+  active_owner: ./agent-packages/qubership-nifi-lint-hook-claude
+  content_hash: sha256:370f5beca17754b667f5c7ea9d1e4515ca8634544542489a7937a90c4c3f8e15
 - kind: project-relative
   target: claude
-  value: .claude/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
+  value: .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
+  - ./agent-packages/qubership-nifi-lint-hook-claude
+  active_owner: ./agent-packages/qubership-nifi-lint-hook-claude
+  content_hash: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
 - kind: project-relative
   target: claude
   value: .claude/rules/apm-authoring.md
@@ -582,6 +645,15 @@ deployments:
   - ./agent-packages/qubership-nifi-troubleshooting
   active_owner: ./agent-packages/qubership-nifi-troubleshooting
   content_hash: sha256:deb38cb34e0c76804079f42c14060dd3794e581c31d0c82abda5c599f8f6df55
+- kind: project-relative
+  target: claude
+  value: .claude/rules/nifi-flow-builder.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:7b5e5335ffd7b4454300591d9c0d668d5cad5c3262ada768bd3e356fe7ac6db7
 - kind: project-relative
   target: claude
   value: .claude/rules/qubership-repo-essentials.md
@@ -870,6 +942,96 @@ deployments:
   - ./agent-packages/qubership-nifi-troubleshooting
   active_owner: ./agent-packages/qubership-nifi-troubleshooting
   content_hash: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/references/flow-json.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/references/qubership-nifi.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/scripts/kb.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/scripts/verify_live.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/tests/conftest.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:1b3d668e26880bb309802c289902b90c62e63477a49287ea3f709cb1cc94a2e9
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/tests/requirements-test.txt
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:d62f6657bbf460cd37be44f1adab25eb9a867538e2fba459c6f0de107e2d3786
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/tests/test_kb.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:9144b67000ec018855f7b27e774a2f05163db3b216ce09d974e4fd9d2958de24
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-flow-builder/tests/test_verify_live.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-actions-guide
@@ -1502,6 +1664,96 @@ deployments:
   content_hash: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
 - kind: project-relative
   target: codex
+  value: .agents/skills/nifi-flow-builder
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/references/flow-json.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/references/qubership-nifi.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/scripts/kb.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/scripts/verify_live.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/tests/conftest.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:1b3d668e26880bb309802c289902b90c62e63477a49287ea3f709cb1cc94a2e9
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/tests/requirements-test.txt
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:d62f6657bbf460cd37be44f1adab25eb9a867538e2fba459c6f0de107e2d3786
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/tests/test_kb.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:9144b67000ec018855f7b27e774a2f05163db3b216ce09d974e4fd9d2958de24
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-flow-builder/tests/test_verify_live.py
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
+- kind: project-relative
+  target: codex
   value: .agents/skills/qubership-actions-guide
   runtime: null
   scope: project
@@ -1880,22 +2132,22 @@ deployments:
   content_hash: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
 - kind: project-relative
   target: codex
-  value: .codex/hooks/qubership-nifi-linters/.apm/hooks/README.md
+  value: .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
+  - ./agent-packages/qubership-nifi-lint-hook
+  active_owner: ./agent-packages/qubership-nifi-lint-hook
+  content_hash: sha256:0512314c74086aa40b7463b70d283a17a2174552c31d18422dbe4ed251ea2c2b
 - kind: project-relative
   target: codex
-  value: .codex/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
+  value: .codex/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
+  - ./agent-packages/qubership-nifi-lint-hook
+  active_owner: ./agent-packages/qubership-nifi-lint-hook
+  content_hash: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
 - kind: project-relative
   target: cursor
   value: .cursor/commands/lint.md
@@ -1907,22 +2159,22 @@ deployments:
   content_hash: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
 - kind: project-relative
   target: cursor
-  value: .cursor/hooks/qubership-nifi-linters/.apm/hooks/README.md
+  value: .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/README.md
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:79b88874455e75e44580124b95a306d631641185944cbe53c117e169768421bd
+  - ./agent-packages/qubership-nifi-lint-hook
+  active_owner: ./agent-packages/qubership-nifi-lint-hook
+  content_hash: sha256:0512314c74086aa40b7463b70d283a17a2174552c31d18422dbe4ed251ea2c2b
 - kind: project-relative
   target: cursor
-  value: .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py
+  value: .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py
   runtime: null
   scope: project
   owners:
-  - ./agent-packages/qubership-nifi-linters
-  active_owner: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
+  - ./agent-packages/qubership-nifi-lint-hook
+  active_owner: ./agent-packages/qubership-nifi-lint-hook
+  content_hash: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
 - kind: project-relative
   target: cursor
   value: .cursor/rules/apm-authoring.mdc
@@ -1995,6 +2247,15 @@ deployments:
   - ./agent-packages/qubership-nifi-troubleshooting
   active_owner: ./agent-packages/qubership-nifi-troubleshooting
   content_hash: sha256:040d889e7f1616f4e2b4ccefb26fcb824efdf2c886057e02fe9cb35201686a31
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/nifi-flow-builder.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/nifi-development-kit
+  active_owner: ./agent-packages/nifi-development-kit
+  content_hash: sha256:bc68cccc67c39cfe22091a866d805c9bf55999271fa39d6f388a414f217bbadc
 - kind: project-relative
   target: cursor
   value: .cursor/rules/qubership-repo-essentials.mdc

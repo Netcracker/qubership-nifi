@@ -40,7 +40,7 @@ public final class DeveloperGuideExtractor {
     /** The required sections in output order. */
     public static final List<String> REQUIRED_SECTIONS = List.of(
             "NiFi Components", "FlowFile", "PropertyDescriptor", "PropertyValue", "Relationship",
-            "Common Processor Patterns");
+            "Common Processor Patterns", "NiFi Archives (NARs)", "Per-Instance ClassLoading");
 
     private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.*\\S)\\s*$");
 

@@ -42,7 +42,7 @@ class ExportApiToolMainIT {
     @Test
     void testMainNifi2xProducesValidOutput() throws Exception {
         Main.main(new String[]{
-            "--version", "2.10.0",
+            "--version", "2.12.0",
             "--output-dir", tempDir.toString(),
             "--timeout", "90",
             "--port", "18443"

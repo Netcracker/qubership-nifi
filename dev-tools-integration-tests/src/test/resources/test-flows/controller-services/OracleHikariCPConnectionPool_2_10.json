@@ -1,0 +1,34 @@
+{
+  "revision": {
+    "version": 0
+  },
+  "id": "3a000000-0000-0000-0000-000000000008",
+  "component": {
+    "id": "3a000000-0000-0000-0000-000000000008",
+    "parentGroupId": "0624ac33-019d-1000-73a2-2ab44b7c161e",
+    "name": "OracleHikariCPConnectionPool",
+    "type": "org.apache.nifi.dbcp.HikariCPConnectionPool",
+    "bundle": {
+      "group": "org.apache.nifi",
+      "artifact": "nifi-dbcp-service-nar",
+      "version": "2.10.0"
+    },
+    "state": "DISABLED",
+    "controllerServiceApis": [
+      {
+        "type": "org.apache.nifi.dbcp.DBCPService",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-standard-services-api-nar",
+          "version": "2.10.0"
+        }
+      }
+    ],
+    "properties": {
+      "Database Connection URL": "jdbc:oracle:thin:@//oracle:1521/XE",
+      "Database Driver Class Name": "oracle.jdbc.OracleDriver",
+      "Database Driver Locations": null,
+      "Database User": "nifi"
+    }
+  }
+}

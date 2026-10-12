@@ -1838,6 +1838,11 @@
                                     "    pm.expect(textData).to.matches(/.*nifi_size_content_queued_total.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_count.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_bytes.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_cpu_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_content_read_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_content_write_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_session_commit_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_gc_duration.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*jvm_buffer_total_capacity_bytes.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*jvm_classes_loaded_classes.*namespace=\\\"local\\\".*/);\r",
                                     "});"
@@ -1898,6 +1903,11 @@
                                     "    pm.expect(textData).to.matches(/.*nifi_size_content_queued_total.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_count.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*nc_nifi_pg_queued_bytes.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_cpu_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_content_read_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_content_write_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_session_commit_duration.*namespace=\\\"local\\\".*/);\r",
+                                    "    pm.expect(textData).to.matches(/.*nc_nifi_pg_gc_duration.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*jvm_buffer_total_capacity_bytes.*namespace=\\\"local\\\".*/);\r",
                                     "    pm.expect(textData).to.matches(/.*jvm_classes_loaded_classes.*namespace=\\\"local\\\".*/);\r",
                                     "});"

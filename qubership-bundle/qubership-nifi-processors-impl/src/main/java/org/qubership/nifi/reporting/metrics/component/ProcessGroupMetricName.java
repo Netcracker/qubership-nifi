@@ -45,6 +45,26 @@ public enum ProcessGroupMetricName {
      * nc_nifi_pg_queued_bytes metric.
      */
     QUEUED_BYTES_PG_METRIC_NAME("nc_nifi_pg_queued_bytes"),
+    /**
+     * nc_nifi_pg_cpu_duration metric.
+     */
+    CPU_DURATION_PG_METRIC_NAME("nc_nifi_pg_cpu_duration"),
+    /**
+     * nc_nifi_pg_content_read_duration metric.
+     */
+    CONTENT_READ_DURATION_PG_METRIC_NAME("nc_nifi_pg_content_read_duration"),
+    /**
+     * nc_nifi_pg_content_write_duration metric.
+     */
+    CONTENT_WRITE_DURATION_PG_METRIC_NAME("nc_nifi_pg_content_write_duration"),
+    /**
+     * nc_nifi_pg_session_commit_duration metric.
+     */
+    SESSION_COMMIT_DURATION_PG_METRIC_NAME("nc_nifi_pg_session_commit_duration"),
+    /**
+     * nc_nifi_pg_gc_duration metric.
+     */
+    GC_DURATION_PG_METRIC_NAME("nc_nifi_pg_gc_duration"),
 
     /**
      * nifi_amount_threads_active metric.

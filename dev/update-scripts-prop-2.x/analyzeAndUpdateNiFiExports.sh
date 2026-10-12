@@ -17,6 +17,7 @@ declare -a listForUpdate_2_5
 declare -a listForUpdate_2_6
 declare -a listForUpdate_2_7
 declare -a listForUpdate_2_10
+declare -a listForUpdate_2_11
 declare -a exportFlow
 
 if [ -z "$pathToFlow" ]; then
@@ -58,6 +59,10 @@ for file in "${exportFlow[@]}"; do
             listForUpdate_2_10+=("$file")
             echo "Flow - $file needs to be updated, if target version >= 2.10"
         fi
+        if ((majorVersion == 1 || (majorVersion == 2 && minorVersion < 11))); then
+            listForUpdate_2_11+=("$file")
+            echo "Flow - $file needs to be updated, if target version >= 2.11"
+        fi
     fi
 done
 
@@ -65,6 +70,7 @@ echo "Flow for update 2.5: " "${listForUpdate_2_5[@]}"
 echo "Flow for update 2.6: " "${listForUpdate_2_6[@]}"
 echo "Flow for update 2.7: " "${listForUpdate_2_7[@]}"
 echo "Flow for update 2.10: " "${listForUpdate_2_10[@]}"
+echo "Flow for update 2.11: " "${listForUpdate_2_11[@]}"
 
 #Checking the target version of NiFi
 respCode=$(eval curl -sS -w '%{response_code}' -o ./flow-about.json "$NIFI_CERT" "$NIFI_TARGET_URL/nifi-api/flow/about")
@@ -106,6 +112,13 @@ fi
 if ((majorVersion == 2 && minorVersion >= 10)); then
     listForUpdate=("${listForUpdate_2_10[@]}")
     . upgradeExports_2_x.sh ./upgradeConfig_2_10.json
+fi
+
+# shellcheck disable=SC2034
+#If target NiFi version is >= 2.11, then run the script on the flow update:
+if ((majorVersion == 2 && minorVersion >= 11)); then
+    listForUpdate=("${listForUpdate_2_11[@]}")
+    . upgradeExports_2_x.sh ./upgradeConfig_2_11.json
 fi
 
 delete_tmp_file

@@ -1,0 +1,4 @@
+name: qubership-nifi-lint-hook-claude
+version: 1.0.0
+description: Claude Code PostToolUse hook that lints each file on write or edit with codespell, checkstyle, markdownlint, editorconfig-checker and textlint.
+author: Qubership

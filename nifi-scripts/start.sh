@@ -184,19 +184,6 @@ fi
 
 call_additional_libs
 
-if [ -n "${X_JAVA_ARGS}" ]; then
-    if [ -z "$i" ]; then
-        i=26
-    fi
-    read -r -a addJvmArgArr2 <<< "$X_JAVA_ARGS"
-    for addJvmArg in "${addJvmArgArr2[@]}"; do
-        info "Add $addJvmArg in bootstrap.conf"
-        echo "java.arg.$i=$addJvmArg" >> "${NIFI_HOME}"/conf/bootstrap.conf
-        echo "" >> "${NIFI_HOME}"/conf/bootstrap.conf
-        i=$((i+1))
-    done
-fi
-
 validate_jvm_args(){
     local paramName="$1"
     shift
@@ -229,9 +216,6 @@ prop_replace 'nifi.python.extensions.source.directory.default'  "${NIFI_HOME}/pe
 # Use ./extensions for new NARs
 # Setup NiFi to scan for new NARs in nar_extensions
 # prop_replace 'nifi.nar.library.autoload.directory'  "${NIFI_HOME}/nar_extensions"
-
-#Update configuration from 1.x version to 2.x
-bash "${scripts_dir}/update_flow_json.sh"
 
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
@@ -283,6 +267,12 @@ mkdir -p "${NIFI_HOME}/persistent_conf/nar_repository"
 mkdir -p "${NIFI_HOME}/persistent_conf/python_extensions"
 
 bash "${scripts_dir}/restore_nifi_configurations.sh"
+#Update configuration from 1.x version to 2.x
+bash "${scripts_dir}/update_flow_json.sh" \
+    || { error "ERROR: failed to adapt components (JoltTransformJSON, the distributed cache services) to NiFi 2.x in flow.json.gz"; sleep 15; exit 1; }
+# Runs after the restore, so a flow restored from the archive gets the driver location too.
+bash "${scripts_dir}/update_flow_json_ojdbc_location.sh" \
+    || { error "ERROR: failed to set the Oracle driver location in flow.json.gz"; sleep 15; exit 1; }
 
 # Set nifi-toolkit properties files and baseUrl
 export HOME="/opt/nifi/nifi-current/conf/"

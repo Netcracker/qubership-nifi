@@ -169,6 +169,7 @@ Versions to substitute:
 - `<qubership-nifi.version>` - ask the user for the **planned qubership-nifi
   release version** (e.g. `2.9.0`). Don't proceed without it.
 - `<nifi.version>` - the target Apache NiFi version (`<TARGET>` from step 1).
+- `<previous-nifi.version>` - the current Apache NiFi version (`<CURRENT>` from step 1).
 - `<nifi-api.version>` - the `nifi-api.version` property set in `./pom.xml` in step 8.
 
 Steps:
@@ -178,8 +179,8 @@ Steps:
 2. Copy `upgrade-temp-data/nifi-property-comparison/NiFiComponentsDelta.md` (produced in
    steps 11-12) to
    `upgrade-temp-data/releases-notes/Apache-NiFi-<nifi.version>-Component-Properties-Delta.md`.
-3. In both files, replace `<qubership-nifi.version>`, `<nifi-api.version>` and
-   `<nifi.version>` with their values.
+3. In both files, replace `<qubership-nifi.version>`, `<previous-nifi.version>`,
+   `<nifi-api.version>` and `<nifi.version>` with their values.
 4. Verify no placeholder is left: `grep -rn '<[a-z-]*\.version>' upgrade-temp-data/releases-notes/`
    must return nothing.
 
