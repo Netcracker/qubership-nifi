@@ -82,6 +82,36 @@ dependencies:
     .cursor/hooks/qubership-nifi-linters/.apm/hooks/lint_changed_file.py: sha256:92735b287a4b1da96b2f99e2ee4cb526c4ad9608abd1db01b5dc358172ae7823
   source: local
   local_path: ./agent-packages/qubership-nifi-linters
+- repo_url: _local/qubership-nifi-troubleshooting
+  name: qubership-nifi-troubleshooting
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/nifi-troubleshooting
+  - .agents/skills/nifi-troubleshooting/SKILL.md
+  - .agents/skills/nifi-troubleshooting/references/evidence-collection.md
+  - .agents/skills/nifi-troubleshooting/references/repositories.md
+  - .agents/skills/nifi-troubleshooting/references/startup-failures.md
+  - .claude/rules/nifi-troubleshooting.md
+  - .claude/skills/nifi-troubleshooting
+  - .claude/skills/nifi-troubleshooting/SKILL.md
+  - .claude/skills/nifi-troubleshooting/references/evidence-collection.md
+  - .claude/skills/nifi-troubleshooting/references/repositories.md
+  - .claude/skills/nifi-troubleshooting/references/startup-failures.md
+  - .cursor/rules/nifi-troubleshooting.mdc
+  deployed_file_hashes:
+    .agents/skills/nifi-troubleshooting/SKILL.md: sha256:ae60498e9809364d3ebed22720d0c9ad364300d81195744c3e5a12782e4524e2
+    .agents/skills/nifi-troubleshooting/references/evidence-collection.md: sha256:0fda75273646c8e4df897f88495ed3eab3a7522e809f09963d85866e836ba5e5
+    .agents/skills/nifi-troubleshooting/references/repositories.md: sha256:5850f07de1a11802cf6360c5e79b6414f636f3322255c7e5ce761c94e3436ecd
+    .agents/skills/nifi-troubleshooting/references/startup-failures.md: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
+    .claude/rules/nifi-troubleshooting.md: sha256:deb38cb34e0c76804079f42c14060dd3794e581c31d0c82abda5c599f8f6df55
+    .claude/skills/nifi-troubleshooting/SKILL.md: sha256:ae60498e9809364d3ebed22720d0c9ad364300d81195744c3e5a12782e4524e2
+    .claude/skills/nifi-troubleshooting/references/evidence-collection.md: sha256:0fda75273646c8e4df897f88495ed3eab3a7522e809f09963d85866e836ba5e5
+    .claude/skills/nifi-troubleshooting/references/repositories.md: sha256:5850f07de1a11802cf6360c5e79b6414f636f3322255c7e5ce761c94e3436ecd
+    .claude/skills/nifi-troubleshooting/references/startup-failures.md: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
+    .cursor/rules/nifi-troubleshooting.mdc: sha256:040d889e7f1616f4e2b4ccefb26fcb824efdf2c886057e02fe9cb35201686a31
+  source: local
+  local_path: ./agent-packages/qubership-nifi-troubleshooting
 - repo_url: netcracker/qubership-ai-packages
   name: final-review
   host: github.com
@@ -545,6 +575,15 @@ deployments:
   content_hash: sha256:c8aca12283eb04c1cada89c4ecf4be1a499514ec806e2a5c42628927cfafc431
 - kind: project-relative
   target: claude
+  value: .claude/rules/nifi-troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:deb38cb34e0c76804079f42c14060dd3794e581c31d0c82abda5c599f8f6df55
+- kind: project-relative
+  target: claude
   value: .claude/rules/qubership-repo-essentials.md
   runtime: null
   scope: project
@@ -786,6 +825,51 @@ deployments:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
   content_hash: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:ae60498e9809364d3ebed22720d0c9ad364300d81195744c3e5a12782e4524e2
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/evidence-collection.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:0fda75273646c8e4df897f88495ed3eab3a7522e809f09963d85866e836ba5e5
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/repositories.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:5850f07de1a11802cf6360c5e79b6414f636f3322255c7e5ce761c94e3436ecd
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/startup-failures.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-actions-guide
@@ -1373,6 +1457,51 @@ deployments:
   content_hash: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
 - kind: project-relative
   target: codex
+  value: .agents/skills/nifi-troubleshooting
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:ae60498e9809364d3ebed22720d0c9ad364300d81195744c3e5a12782e4524e2
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/evidence-collection.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:0fda75273646c8e4df897f88495ed3eab3a7522e809f09963d85866e836ba5e5
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/repositories.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:5850f07de1a11802cf6360c5e79b6414f636f3322255c7e5ce761c94e3436ecd
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/startup-failures.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:4f4940c4a64c6dc30baff6f606e73cf02a560383a298e70346e33f01cff048f6
+- kind: project-relative
+  target: codex
   value: .agents/skills/qubership-actions-guide
   runtime: null
   scope: project
@@ -1857,6 +1986,15 @@ deployments:
   - netcracker/qubership-ai-packages/agent-packages/markdown-line-length-120
   active_owner: netcracker/qubership-ai-packages/agent-packages/markdown-line-length-120
   content_hash: sha256:53206655c47a82c505af0b708486e65b7db5ecde53078aad629ea30e55b6066d
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/nifi-troubleshooting.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:040d889e7f1616f4e2b4ccefb26fcb824efdf2c886057e02fe9cb35201686a31
 - kind: project-relative
   target: cursor
   value: .cursor/rules/qubership-repo-essentials.mdc

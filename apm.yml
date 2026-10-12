@@ -13,3 +13,4 @@ dependencies:
     - ./agent-packages/qubership-nifi-linters
     - ./agent-packages/nifi-development-kit
     - ./agent-packages/qubership-nifi-docs-maintenance
+    - ./agent-packages/qubership-nifi-troubleshooting
