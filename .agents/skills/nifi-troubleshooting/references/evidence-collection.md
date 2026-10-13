@@ -79,8 +79,19 @@ key check exits with 3. Exit code 1 comes from a failed Consul start, a missing 
 Ask for the variables that matter for the suspected problem, with secrets redacted:
 
 ```bash
-kubectl exec <pod> -n <ns> -- env | grep -E '^(NIFI_|CONSUL_|X_JAVA_ARGS|JAVA_TOOL_OPTIONS|KEYSTORE_|TRUSTSTORE_|KEY_PASSWORD|AUTH|NAMESPACE|MICROSERVICE_NAME)' | sed -E 's/((KEY|PASSWORD|TOKEN|SECRET)[^=]*)=.*/\1=<redacted>/'
+kubectl exec <pod> -n <ns> -- env \
+    | grep -E '^(NIFI_|CONSUL_|X_JAVA_ARGS|JAVA_TOOL_OPTIONS|KEYSTORE_|TRUSTSTORE_|KEY_PASSWORD|AUTH|NAMESPACE|MICROSERVICE_NAME)' \
+    | sed -E -e 's/(-D[^= ]*(key|password|token|secret)[^= ]*)=[^ ]*/\1=<redacted>/Ig' \
+        -e '/^[^=]*_(PATH|TYPE)=/b' \
+        -e 's/^([^=]*(KEY|PASSWORD|TOKEN|SECRET)[^=]*)=.+$/\1=<redacted>/'
 ```
+
+The command needs GNU `sed` (`gsed` on macOS). It redacts a `-D<name>=<value>` JVM argument whose name contains
+`key`, `password`, `token`, or `secret` in any case, and the non-empty value of a variable whose name contains
+`KEY`, `PASSWORD`, `TOKEN`, or `SECRET`. It prints the `*_PATH` and `*_TYPE` variables, which hold no secret, and
+an empty value as they are: the sensitive key and keystore checks read both. No pattern covers every
+property name, so ask the user to read the `NIFI_ADDITIONAL_JVM_ARGS`, `X_JAVA_ARGS`, and `JAVA_TOOL_OPTIONS` lines
+before sharing them.
 
 For a pod that keeps exiting, take them from the deployment instead: `kubectl get pod <pod> -n <ns> -o yaml`, the
 `env` section, or the Helm values. Never ask for the value of `NIFI_NEW_SENSITIVE_KEY`, a password, or a token. Ask
