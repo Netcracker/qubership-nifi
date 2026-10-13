@@ -80,7 +80,9 @@ scenario_evidence() {
         helper_run "ls -l $FLOW_CONF_DIR $FLOW_CONF_DIR/archive"
         echo
         echo "## Integrity of flow.json.gz"
-        helper_run "gzip -t $FLOW_CONF_DIR/flow.json.gz 2>&1 && echo 'gzip: OK' || echo 'gzip: damaged'"
+        # A failed update_flow_json.sh leaves the flow unpacked as flow.json, with no flow.json.gz.
+        helper_run "if [ ! -f $FLOW_CONF_DIR/flow.json.gz ]; then echo 'gzip: missing'
+            elif gzip -t $FLOW_CONF_DIR/flow.json.gz 2>&1; then echo 'gzip: OK'; else echo 'gzip: damaged'; fi"
         echo
         echo "## Errors of the start scripts"
         # Start script lines only, "[<timestamp>] [ERROR]": NiFi 1.x writes its own "[<timestamp>][ERROR]" here too.

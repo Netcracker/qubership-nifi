@@ -158,3 +158,11 @@ restart the failed container.
 `consul_put`, `recreate_nifi`, which starts NiFi again with the variables the caller exports, and `helper_run`, which
 runs a command as root with `.work/` mounted at `/work`, to change files NiFi wrote. A hook that differs on NiFi 1.x
 checks `NIFI_MAJOR_VERSION`, which is `1` or `2`.
+
+## Keeping the skill in sync
+
+The `nifi-troubleshooting` skill in `agent-packages/qubership-nifi-troubleshooting` quotes the log lines and exit
+codes these scenarios produce. A change to a message or an exit code in `nifi-scripts/` can make a quoted line wrong.
+After such a change, rerun the scenarios that show the changed output. Then update the scenario page, the skill
+reference, the verified version the skill names, and `docs/troubleshooting-guide.md`, which quotes the same lines.
+Run `apm install` to deploy the changed skill to `.claude/skills/` and `.agents/skills/`.

@@ -303,30 +303,88 @@ The exact parser message varies with the damage. When the container exits quickl
 show only NiFi startup lines and not the error itself; ask for the log of the previous container after a restart, or
 search the whole log for `Failed to start Server`.
 
+From qubership-nifi 2.9.0, a start script can meet the damaged file first and stop the start before NiFi runs. The
+container exits with code 1 about 20 seconds after the start, with no `Failed to start Server` line. When the NAR
+coordinate migration is pending, the log has:
+
+```text
+jq: parse error: Expected separator between values at line 1, column [...]
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json.sh] Error while replacing artifact and type in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to adapt components (JoltTransformJSON, the distributed cache services) to NiFi 2.x in flow.json.gz
+```
+
+For a truncated file, `gzip: unexpected end of file` and
+`jq: error: Could not open file /opt/nifi/nifi-current/persistent_conf/conf/flow.json: No such file or directory`
+come before the same two lines. When the Oracle driver location migration is pending, the log has:
+
+```text
+jq: parse error: Expected separator between values at line 1, column [...]
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json_ojdbc_location.sh] Error while searching for Oracle connection pools without driver location in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to set the Oracle driver location in flow.json.gz
+```
+
+That migration reads a truncated file without an error and marks itself done, and NiFi then fails with
+`Unexpected end of ZLIB input stream` as above.
+
 ### Cause
 
 NiFi reads `persistent_conf/conf/flow.json.gz` on every start. Invalid JSON or a truncated gzip file stops the start.
 
-A related case: the first start of a newer image migrates NAR coordinates in `flow.json.gz` with
-`update_flow_json.sh`. When that migration reads invalid JSON, it logs
-`Error while replacing artifact and type in flow.json.gz`, and NiFi then starts with an empty flow instead of failing.
-A flow that is suddenly empty after an upgrade, with that line in the log, is the same damage.
+Before NiFi starts, two one-time start-script migrations rewrite `flow.json.gz`, and each one marks itself done with a
+file in `persistent_conf/conf`:
+
+- `update_flow_json.sh` migrates NAR coordinates while `update_flow_json_2.applied` is missing, for example on the
+  first start after an upgrade from an image without the migration.
+- `update_flow_json_ojdbc_location.sh` sets the Oracle driver location while `update_ojdbc_location.applied` is
+  missing: on the first start of 2.8.6 or later, and on every start that restores a flow from the archive.
+
+A migration that fails on a damaged flow stops the start from 2.9.0. What the next start does depends on the case:
+
+| Damage and pending migration | Next start |
+| --- | --- |
+| Invalid JSON, NAR coordinates | NiFi starts with a new, empty flow and the pod becomes ready |
+| Truncated file, NAR coordinates | Fails the same way |
+| Either damage, Oracle driver location | Fails the same way |
+| Either damage, no migration pending | Fails the same way, with `Failed to start Server` |
+
+With invalid JSON and the NAR coordinate migration pending, `update_flow_json.sh` unpacks the damaged file to
+`persistent_conf/conf/flow.json` and leaves no `flow.json.gz`, so the next start skips both migrations and NiFi
+writes a new empty flow. The error lines are then
+only in the log of the previous container. A flow that is suddenly empty after a restart or an upgrade, with
+`persistent_conf/conf/flow.json` present, is this case. On images before 2.9.0 the failed migration did not stop the
+start, and NiFi started with the empty flow at once.
+
+`update_flow_json.sh` copies `flow.json.gz` to `flow.json.gz_bk` each time it runs, so that copy holds the damaged
+file whenever the migration ran on it, and is no source for a restore.
 
 ### Corroborating evidence
 
 - Recent changes: a full disk on the persistent volume, a node failure, or a manual edit of the flow.
 - The list of archived flow versions, which `start.sh` prints during startup.
+- `ls -l persistent_conf/conf`: a `flow.json` file, a missing `flow.json.gz`, and which of the two marker files exist.
 
 ### Fix
 
 Restore an archived version of the flow:
 
-1. Set the Consul key `nifi-restore-version` in `config/<NAMESPACE>/<MICROSERVICE_NAME>` (`MICROSERVICE_NAME` defaults to `qubership-nifi`) to one of the archived files, in
-   the form `<timestamp>_flow.json.gz`. The archived files are in `persistent_conf/conf/archive`.
+1. Set the Consul key `nifi-restore-version` in `config/<NAMESPACE>/<MICROSERVICE_NAME>` (`MICROSERVICE_NAME`
+   defaults to `qubership-nifi`) to one of the archived files, in the form `<timestamp>_flow.json.gz`. The archived
+   files are in `persistent_conf/conf/archive`.
 2. Restart NiFi. On startup, the damaged configuration moves to the archive, the chosen version replaces it, and
    `nifi-restore-version` is cleared in Consul.
+3. Only if the start after the restore logs
+   `gzip: can't open '/opt/nifi/nifi-current/persistent_conf/conf/flow.json': File exists` and then
+   `Error while replacing artifact and type in flow.json.gz`, delete the `flow.json` that the failed migration left:
+   `kubectl exec <pod> -n <ns> -- rm /opt/nifi/nifi-current/persistent_conf/conf/flow.json`. While the file is there,
+   the migration of the restored flow reads it instead of the restored flow and fails on every start. Run the command
+   during the 15 seconds the start script waits after its error, or from a temporary pod that mounts the same
+   persistent volume. The restore stays in place, so the next start needs no new `nifi-restore-version`.
 
-Changes made after the archived version was written are lost; pick the newest archive that predates the damage.
+Changes made after the archived version was written are lost; pick the newest archive that predates the damage. After
+a start with an empty flow, the newest archive holds that empty flow.
+
+Step 3 applies only when the NAR coordinate migration failed on the damaged file and left `flow.json` behind. A flow
+damaged after the migrations ran leaves no `flow.json`, and the restore alone is the fix.
 
 ### NiFi 1.x
 

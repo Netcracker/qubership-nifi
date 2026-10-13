@@ -41,16 +41,36 @@ interrupted write, stops the start. See
 NiFi starts once, then `scenario.sh` restarts it, stops it, damages `flow.json.gz` from a helper container, and
 creates the NiFi container again.
 
-The restart before the damage matters. On the first start that finds a `flow.json.gz`,
-`nifi-scripts/update_flow_json.sh` migrates NAR coordinates in the file once and marks the migration done in
-`update_flow_json_2.applied`. When that migration reads a file with invalid JSON (`CORRUPTION=json`), it fails with
-`Error while replacing artifact and type in flow.json.gz`, leaves the flow unpacked as `flow.json`, and NiFi then
-starts with an empty flow instead of failing. The restart completes the migration, as on any instance that has
-started more than once.
+The restart before the damage matters. On the first start that finds a `flow.json.gz`, two start-script migrations
+rewrite the file once each: `nifi-scripts/update_flow_json.sh` migrates NAR coordinates and marks the migration done
+in `update_flow_json_2.applied`, and `update_flow_json_ojdbc_location.sh` sets the Oracle driver location and marks
+it done in `update_ojdbc_location.applied`. The restart completes both, as on any instance that has started more than
+once, so that NiFi itself reads the damaged file. `PENDING_MIGRATION` leaves one migration to meet the damaged file
+instead.
 
-| Variable     | Default | Description                                                                                                               |
-|--------------|---------|---------------------------------------------------------------------------------------------------------------------------|
-| `CORRUPTION` | `json`  | `json`: the file stays a valid gzip file, with one comma removed from the JSON. `truncated`: the gzip file is cut in half |
+| Variable            | Default | Description                                                                                                                                                                                                                                                     |
+|---------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `CORRUPTION`        | `json`  | `json`: the file stays a valid gzip file, with one comma removed from the JSON. `truncated`: the gzip file is cut in half                                                                                                                                       |
+| `PENDING_MIGRATION` | `none`  | NiFi 2.x only. `none`: both migrations are done before the damage. `flow-json`: no restart, so `update_flow_json.sh` runs on the damaged file, as on the first start after an upgrade. `ojdbc-location`: the Oracle marker is removed, as a restore from the archive does |
+
+### Pending migrations
+
+From qubership-nifi 2.9.0, a migration that fails stops the start with exit code 1 about 20 seconds after the start,
+and NiFi does not run. Measured on qubership-nifi 2.9.0 (Apache NiFi 2.12.0):
+
+| `CORRUPTION` | `PENDING_MIGRATION` | Start-script errors                                                                                                       | Next start                                         |
+|--------------|---------------------|---------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `json`       | `flow-json`         | `Error while replacing artifact and type in flow.json.gz`, `ERROR: failed to adapt components ...`                        | NiFi runs with a new, empty flow                   |
+| `truncated`  | `flow-json`         | The same two lines, after `gzip: unexpected end of file`                                                                  | Fails the same way                                 |
+| `json`       | `ojdbc-location`    | `Error while searching for Oracle connection pools without driver location in flow.json.gz`, `ERROR: failed to set the Oracle driver location in flow.json.gz` | Fails the same way                                 |
+| `truncated`  | `ojdbc-location`    | None: the migration reads the truncated file without an error, and NiFi fails with `Unexpected end of ZLIB input stream`  | Fails the same way                                 |
+
+With `CORRUPTION=json PENDING_MIGRATION=flow-json`, `update_flow_json.sh` unpacks the damaged file to `flow.json` and
+leaves no `flow.json.gz`. The next start skips both migrations, and NiFi writes a new, empty flow. `flow.json` stays,
+and the migration of a flow restored from the archive then fails on every start with
+`gzip: can't open '/opt/nifi/nifi-current/persistent_conf/conf/flow.json': File exists`, until `flow.json` is
+deleted. On images before 2.9.0, the failed migration did not stop the start, and NiFi started with the empty flow at
+once. `run.sh` expects no exit code for `PENDING_MIGRATION=flow-json` for that reason.
 
 ## Expected evidence
 
@@ -59,7 +79,10 @@ started more than once.
 | `manifest.txt`           | `nifi_exit_code=1`                                                                                                                                                                                                      |
 | `nifi-app.log.gz`        | `Failed to start Server` from `JettyServer`, with the exception and its causes shown above                                                                                                                              |
 | `nifi-app.filtered.log`  | The same `ERROR` line                                                                                                                                                                                                   |
-| `scenario-flow-json.txt` | The files of `persistent_conf/conf` and its `archive/` directory, the `gzip -t` result (`OK` for `json`, `damaged` for `truncated`), the errors of the start scripts, and the NiFi exception with its `Caused by` lines |
+| `scenario-flow-json.txt` | The files of `persistent_conf/conf` and its `archive/` directory, the `gzip -t` result (`OK` for `json`, `damaged` for `truncated`, `missing` after a failed `update_flow_json.sh`), the errors of the start scripts, and the NiFi exception with its `Caused by` lines |
+
+When a pending migration stops the start, NiFi does not run: `nifi-app.log.gz` and `nifi-app.filtered.log` hold no
+error, and the start-script errors in `scenario-flow-json.txt` show the failure.
 
 ## NiFi 1.x
 

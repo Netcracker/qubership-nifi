@@ -117,6 +117,9 @@ are reading and why before you read it, as if you had asked the user for it.
 | `Checking if consul app main execution completed` repeated for minutes, no error, never ready | 2 | Consul accepts the connection and does not respond | `references/startup-failures.md#consul-unreachable` |
 | `Failed to start Server` from `JettyServer` with `Could not parse flow as a VersionedDataflow`, `JsonParseException`, or `Unexpected end of ZLIB input stream`, exit code 1 | 4 | Corrupted `flow.json.gz` | `references/startup-failures.md#corrupted-flowjsongz` |
 | `Failed to start web server`, `Context initialization failed`, or `Unable to parse flow ... flow.json.gz` from `FlowParser`, with the same exceptions, exit code 0 (1.x) | 4 | Corrupted `flow.json.gz` | `references/startup-failures.md#corrupted-flowjsongz` |
+| `Error while replacing artifact and type in flow.json.gz`, then `ERROR: failed to adapt components ...`, or `Error while searching for Oracle connection pools without driver location in flow.json.gz`, then `ERROR: failed to set the Oracle driver location in flow.json.gz`; exit code 1, no `Failed to start Server` (2.9.0 and later) | 3 | Corrupted `flow.json.gz`, met by a start-script migration | `references/startup-failures.md#corrupted-flowjsongz` |
+| NiFi runs with an empty flow after a restart or an upgrade, and `persistent_conf/conf/flow.json` exists | 4 | Corrupted `flow.json.gz`, unpacked by a failed migration | `references/startup-failures.md#corrupted-flowjsongz` |
+| `gzip: can't open '/opt/nifi/nifi-current/persistent_conf/conf/flow.json': File exists`, then `Error while replacing artifact and type in flow.json.gz`, on every start, often after a restore | 3 | A damaged `flow.json` left by a failed migration | `references/startup-failures.md#corrupted-flowjsongz` |
 | NAR loading lines, then `start to send crash dump`, exit code 1 | 4 | Wrong keystore or truststore configuration | `references/startup-failures.md#invalid-certificate` |
 | `Keystore file specified (...) does not exist.`, `Cannot find truststore.p12`, exit code 1 | 3 | Keystore or truststore file missing | `references/startup-failures.md#invalid-certificate` |
 | `SSLHandshakeException`, `PKIX path validation failed` | 5 | Truststore lacks the remote party's CA | `references/startup-failures.md#invalid-certificate` |
@@ -199,8 +202,15 @@ non-heap memory.
 - Warn before any step that loses data: deleting a repository, the flow configuration, or archived content. Prefer
   the step that keeps data, such as restoring an archived flow or growing a volume.
 - Never ask the user to paste a secret. Ask for the hash or for whether a value changed.
-- The catalog entries were reproduced on qubership-nifi 2.8.4 (Apache NiFi 2.10.0), and most of them also on 1.0.9
-  (Apache NiFi 1.28.1). Not reproduced on 1.x: the invalid certificate and the full content repository (on neither
-  version), the missing sensitive key, and the heap OutOfMemoryError. For an entry reproduced on the version in front
-  of you, do not hedge the diagnosis because of the version. For one that was not, or on another 1.x tag, say that a
-  message may differ when the one in the log does not match.
+- Where each entry was reproduced:
+  - qubership-nifi 2.9.0 (Apache NiFi 2.12.0): invalid JVM arguments, the changed sensitive key, Consul unreachable,
+    and the corrupted `flow.json.gz`.
+  - qubership-nifi 2.8.4 (Apache NiFi 2.10.0): the missing sensitive key, the heap OutOfMemoryError, and the
+    repository entries.
+  - qubership-nifi 1.0.9 (Apache NiFi 1.28.1): every reproduced entry except the missing sensitive key and the heap
+    OutOfMemoryError.
+  - No version: the invalid certificate and the full content repository.
+
+  For an entry reproduced on the version in front of you, do not hedge the diagnosis because of the version. For an
+  entry reproduced on no version, on another 1.x tag, or on an image newer than the one the entry was reproduced on,
+  say that a start-script message or exit code may differ when the one in the log does not match.
