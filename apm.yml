@@ -17,3 +17,4 @@ dependencies:
       targets: [codex, cursor]
     - ./agent-packages/nifi-development-kit
     - ./agent-packages/qubership-nifi-docs-maintenance
+    - ./agent-packages/qubership-nifi-troubleshooting

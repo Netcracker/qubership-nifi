@@ -1,0 +1,18 @@
+---
+# Puts the content repository on an NFS export. The Docker daemon mounts it, so the host needs NFS client support.
+# nocopy keeps Docker from copying the image directory into the export, which also changes its owner and mode.
+services:
+  nifi:
+    volumes:
+      - type: volume
+        source: content-repo
+        target: /opt/nifi/nifi-current/persistent_data/content_repository
+        volume:
+          nocopy: true
+volumes:
+  content-repo:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_ADDR},${NFS_OPTS}
+      device: :${NFS_EXPORT}

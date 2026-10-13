@@ -182,3 +182,32 @@ variable, NiFi component, or tool/child module is added, removed, or changed.
 See the
 [`update-project-documentation` skill](qubership-nifi-docs-maintenance/.apm/skills/update-project-documentation/SKILL.md)
 for the full workflow.
+
+### `qubership-nifi-troubleshooting`
+
+Provides the `nifi-troubleshooting` skill: diagnoses a qubership-nifi instance on an
+Apache NiFi 1.x or 2.x image that fails to start, restarts, hangs, never becomes ready,
+or degrades at runtime. The agent works from the pod log, a stack trace, bulletins, or a
+described symptom.
+
+The skill matches the evidence against a catalog of problems, most of them reproduced on
+qubership-nifi:
+
+- Startup failures: invalid JVM arguments, a changed or missing sensitive key, an
+  unreachable Consul, a corrupted `flow.json.gz`, and keystore or truststore errors.
+- Repository problems: a content archive that cannot be cleaned or is cleaned too slowly,
+  and a full content, FlowFile, or provenance repository.
+
+The keystore and truststore errors and the full content repository are not reproduced yet;
+their signatures come from the start scripts and the troubleshooting guide.
+
+The answer quotes the evidence, names the cause, and gives the fix as Consul properties or
+environment variables. Where the evidence is not enough, the agent asks for specific items,
+such as the previous container's log, the exit code, or a thread dump.
+
+A paired instructions file triggers the skill when the user asks why a qubership-nifi
+instance fails or pastes NiFi log output.
+
+See the
+[`nifi-troubleshooting` skill](qubership-nifi-troubleshooting/.apm/skills/nifi-troubleshooting/SKILL.md)
+for the signature table and the reference files.

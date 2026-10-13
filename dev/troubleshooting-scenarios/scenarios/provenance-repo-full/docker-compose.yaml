@@ -1,0 +1,6 @@
+---
+# Puts the provenance repository on a size-limited tmpfs, so that a max.storage.size above the free space can fill it.
+services:
+  nifi:
+    tmpfs:
+      - /opt/nifi/nifi-current/provenance_repository:size=${PROVENANCE_REPO_SIZE:-256m},uid=10001,gid=0,mode=0775

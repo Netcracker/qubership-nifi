@@ -1,0 +1,9 @@
+---
+# Selects the Consul integration framework, lets scenario_break change the Consul address NiFi uses, and keeps a failed
+# NiFi container stopped, so that run.sh can read its exit code. scenario.sh sets NIFI_CONSUL_URL.
+services:
+  nifi:
+    restart: "no"
+    environment:
+      - NIFI_CONSUL_INT_FRAMEWORK=${CONSUL_FRAMEWORK:-spring}
+      - CONSUL_URL=${NIFI_CONSUL_URL}

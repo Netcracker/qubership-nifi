@@ -1,0 +1,6 @@
+---
+# Puts the content repository on a size-limited tmpfs, so that queued content can take most of it.
+services:
+  nifi:
+    tmpfs:
+      - /opt/nifi/nifi-current/persistent_data/content_repository:size=${CONTENT_REPO_SIZE:-1g},uid=10001,gid=0,mode=0775
