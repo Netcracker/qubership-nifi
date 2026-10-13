@@ -178,6 +178,22 @@ The exact exception message varies with the kind of corruption in the file.
 
 The container exits with **exit code 1**.
 
+From qubership-nifi 2.9.0, a one-time migration in the start scripts can meet the damaged file first. The start then
+stops before NiFi runs, with exit code 1 and one of these pairs of lines:
+
+```text
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json.sh] Error while replacing artifact and type in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to adapt components (JoltTransformJSON, the distributed cache services) to NiFi 2.x in flow.json.gz
+```
+
+```text
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json_ojdbc_location.sh] Error while searching for Oracle connection pools without driver location in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to set the Oracle driver location in flow.json.gz
+```
+
+After the first pair, the flow can be left unpacked as `persistent_conf/conf/flow.json`, with no `flow.json.gz`. The
+next start then runs NiFi with a new, empty flow.
+
 ### Cause
 
 The persisted NiFi flow configuration (`flow.json.gz`) is corrupted or contains invalid JSON, so NiFi cannot parse it
@@ -191,10 +207,17 @@ describes the feature in full.
 
 1. Set the version to restore in the Consul parameter `nifi-restore-version`, located in
    `config/${NAMESPACE}/qubership-nifi`. Use the format `<timestamp>_flow.json.gz`. The available archived versions
-   are printed in the logs during service startup.
+   are printed in the logs during service startup. After a start with an empty flow, the newest archived version holds
+   that empty flow; pick the newest one that predates the damage.
 2. Restart the qubership-nifi container. On startup, the current corrupted configuration is moved to the archive and
    replaced with the specified archived version. The `nifi-restore-version` parameter is then cleared in Consul
    automatically.
+3. Only if the start after the restore logs
+   `gzip: can't open '/opt/nifi/nifi-current/persistent_conf/conf/flow.json': File exists` and fails, delete
+   `/opt/nifi/nifi-current/persistent_conf/conf/flow.json`. A failed migration left this file behind, and while it is
+   there, the migration of the restored flow fails on every start. Delete it during the 15 seconds the start script
+   waits after its error, or from a temporary pod that mounts the same persistent volume. The restored flow stays in
+   place, so the next start needs no new `nifi-restore-version`.
 
 ## 5. Invalid certificate
 
