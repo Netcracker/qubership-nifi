@@ -1,10 +1,10 @@
 lockfile_version: '1'
-generated_at: '2026-10-12T19:38:45.713557+00:00'
+generated_at: '2026-10-13T13:30:18.815736+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
   name: nifi-development-kit
-  version: 1.0.0
+  version: 1.1.0
   package_type: apm_package
   deployed_files:
   - .agents/skills/nifi-custom-component-developer-skill
@@ -135,7 +135,7 @@ dependencies:
   - claude
 - repo_url: _local/qubership-nifi-linters
   name: qubership-nifi-linters
-  version: 1.1.1
+  version: 2.0.0
   package_type: apm_package
   deployed_files:
   - .claude/commands/lint.md
