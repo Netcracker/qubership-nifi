@@ -40,9 +40,12 @@ services:
   qubership-nifi:
     image: ghcr.io/netcracker/qubership-nifi:latest
     container_name: qubership-nifi
+    hostname: nifi
     depends_on:
       qubership-nifi-toolkit:
         condition: service_completed_successfully
+      consul:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8443:8443"
     volumes:
@@ -66,6 +69,18 @@ services:
       - CONSUL_ENABLED=true
       - CONSUL_URL=consul:8500
       - CONSUL_CONFIG_JAVA_OPTIONS=
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 10
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi:8443/nifi-api/controller/config > /dev/null
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
   qubership-nifi-registry:
     image: ghcr.io/netcracker/qubership-nifi-registry:latest
@@ -90,12 +105,30 @@ services:
       - TRUSTSTORE_TYPE=PKCS12
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - INITIAL_ADMIN_IDENTITY=CN=admin, OU=NIFI
+      - NIFI_REGISTRY_CHECK_HOST=qubership-nifi-registry
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - /opt/nifi-registry/scripts/ready.sh
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
   consul:
     image: hashicorp/consul:1.20
     ports:
       - 127.0.0.1:18500:8500
     container_name: consul
+    healthcheck:
+      test:
+        - CMD
+        - consul
+        - members
+      interval: 5s
+      timeout: 5s
+      retries: 12
 
 volumes:
   tls-certificate:

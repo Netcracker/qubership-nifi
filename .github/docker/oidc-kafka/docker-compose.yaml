@@ -19,9 +19,11 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
+      consul:
+        condition: service_healthy
     volumes:
       - nifi-ext:/opt/nifi/nifi-current/extensions
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
@@ -55,6 +57,18 @@ services:
       - OIDC_CLIENT_SECRET=frontend
       - "OIDC_DISCOVERY_URL_NEW=https://keycloak:8443/realms/nifi-test-realm/.well-known/openid-configuration?param1=1&param2=2"
     container_name: local-nifi
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error --max-time 10
+          --cert "/tmp/tls-certs/CN=admin_OU=NIFI.p12:$$(cat /tmp/tls-certs/CN=admin_OU=NIFI.password)"
+          --cert-type P12 --cacert /tmp/tls-certs/nifi-cert.pem
+          https://nifi:8080/nifi-api/controller/config > /dev/null
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 15s
     restart: unless-stopped
   nifi-registry:
     image: ghcr.io/netcracker/qubership-nifi-registry:latest
@@ -62,9 +76,9 @@ services:
       nifi-toolkit:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
       postgresql:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - tls-cert-reg:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
@@ -87,13 +101,11 @@ services:
       - NIFI_REGISTRY_CHECK_HOST=nifi-registry
     container_name: local-nifi-registry
     hostname: nifi-registry
-    labels:
-      - "autoheal=true" # Label for autoheal to monitor
     healthcheck:
-      interval: 15s
-      retries: 3
-      start_period: 10s
-      timeout: 5s
+      interval: 5s
+      retries: 30
+      start_period: 15s
+      timeout: 10s
       test:
         - "CMD"
         - "bash"
@@ -104,13 +116,21 @@ services:
     ports:
       - 127.0.0.1:8500:8500
     hostname: consul
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "wget -q -O - http://127.0.0.1:8500/v1/status/leader | grep -q ':'"
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 12
   keycloak:
     image: keycloak/keycloak:26.1.4
     hostname: keycloak
     restart: on-failure:3
     depends_on:
       postgresql:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - keycloak-init:/opt/keycloak/data/import
       - tls-cert:/tmp/tls-certs
@@ -135,6 +155,16 @@ services:
       - "https://localhost:28443"
       - "--hostname-backchannel-dynamic"
       - "true"
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/8443
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 15s
   postgresql:
     image: postgres:16.8
     ports:
@@ -146,13 +176,15 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     container_name: postgresql
     hostname: postgresql
-  autoheal:
-    restart: always
-    image: willfarrell/autoheal:latest
-    environment:
-      - AUTOHEAL_CONTAINER_LABEL=autoheal
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - -U
+        - postgres
+      interval: 5s
+      timeout: 5s
+      retries: 12
   redis:
     image: redis:8.2.2
     ports:
@@ -163,6 +195,13 @@ services:
       - REDIS_PASSWORD=$REDIS_PASSWORD
     command:
       - "--requirepass $REDIS_PASSWORD"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli -a "$$REDIS_PASSWORD" ping | grep -q PONG
+      interval: 5s
+      timeout: 5s
+      retries: 12
   kafka:
     image: apache/kafka:4.1.1
     container_name: kafka
@@ -180,6 +219,16 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 1
+    healthcheck:
+      test:
+        - CMD
+        - /opt/kafka/bin/kafka-broker-api-versions.sh
+        - --bootstrap-server
+        - kafka:9092
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
 volumes:
   tls-scripts:
     driver: local
