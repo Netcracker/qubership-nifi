@@ -26,10 +26,6 @@
 
     <artifactId>qubership-nifi-misc-deps</artifactId>
 
-    <properties>
-        <ojdbc.version>19.3.0.0</ojdbc.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.postgresql</groupId>

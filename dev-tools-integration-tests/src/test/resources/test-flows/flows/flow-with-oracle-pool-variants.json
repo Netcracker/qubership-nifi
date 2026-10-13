@@ -1,0 +1,168 @@
+{
+  "flowContents": {
+    "identifier": "4f000000-0000-0000-0000-000000000001",
+    "instanceIdentifier": "4f000000-1111-0000-0000-000000000001",
+    "name": "flow-with-oracle-pool-variants",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000011",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000011",
+        "name": "Oracle legacy driver class",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.HikariCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "hikaricp-connection-url": "jdbc:oracle:thin:@//oracle:1521/XE",
+          "hikaricp-driver-classname": "oracle.jdbc.driver.OracleDriver",
+          "hikaricp-driver-locations": null
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      },
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000012",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000012",
+        "name": "Oracle empty location",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:oracle:thin:@//oracle:1521/XE",
+          "Database Driver Class Name": "oracle.jdbc.OracleDriver",
+          "database-driver-locations": ""
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      },
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000013",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000013",
+        "name": "Oracle missing location",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:oracle:thin:@//oracle:1521/XE",
+          "Database Driver Class Name": "oracle.jdbc.OracleDriver"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      },
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000014",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000014",
+        "name": "Oracle with location",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:oracle:thin:@//oracle:1521/XE",
+          "Database Driver Class Name": "oracle.jdbc.OracleDriver",
+          "database-driver-locations": "/opt/drivers/ojdbc8.jar"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      },
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000015",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000015",
+        "name": "PostgreSQL",
+        "comments": "",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:postgresql://postgresql:5432/postgres",
+          "Database Driver Class Name": "org.postgresql.Driver",
+          "database-driver-locations": null
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      },
+      {
+        "identifier": "4f000000-0000-0000-0000-000000000016",
+        "instanceIdentifier": "4f000000-1111-0000-0000-000000000016",
+        "name": "JsonTreeReader",
+        "comments": "",
+        "type": "org.apache.nifi.json.JsonTreeReader",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-record-serialization-services-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "schema-access-strategy": "infer-schema"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "4f000000-0000-0000-0000-000000000001"
+      }
+    ],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

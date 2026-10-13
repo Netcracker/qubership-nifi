@@ -1,0 +1,64 @@
+{
+  "flowContents": {
+    "identifier": "5d0c1a9e-6f3b-3c8e-9a41-0b7e2f61c4d1",
+    "instanceIdentifier": "5d0c1a9e-019c-1000-8a41-0b7e2f61c4d1",
+    "name": "PG_for_OJDBC_location_test",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [
+      {
+        "identifier": "8e4f2b7a-1c6d-3e9f-a052-6d3b9c1e7f20",
+        "instanceIdentifier": "8e4f2b7a-019c-1000-a052-6d3b9c1e7f20",
+        "name": "OracleDBCPConnectionPool",
+        "comments": "Oracle pool with no driver location, set by update_flow_json_ojdbc_location.sh at startup",
+        "type": "org.apache.nifi.dbcp.DBCPConnectionPool",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-dbcp-service-nar",
+          "version": "1.28.1"
+        },
+        "properties": {
+          "Database Connection URL": "jdbc:oracle:thin:@//localhost:1521/oracleTestDB",
+          "Database Driver Class Name": "oracle.jdbc.OracleDriver"
+        },
+        "propertyDescriptors": {},
+        "controllerServiceApis": [
+          {
+            "type": "org.apache.nifi.dbcp.DBCPService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-services-api-nar",
+              "version": "1.28.1"
+            }
+          }
+        ],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "5d0c1a9e-6f3b-3c8e-9a41-0b7e2f61c4d1"
+      }
+    ],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

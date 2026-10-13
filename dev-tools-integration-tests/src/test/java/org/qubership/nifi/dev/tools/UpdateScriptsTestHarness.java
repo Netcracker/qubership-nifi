@@ -68,8 +68,8 @@ final class UpdateScriptsTestHarness {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final String DEFAULT_SCRIPTS_IMAGE = "qubership-nifi-update-scripts:test";
-    private static final String ADMIN_CERT_FILENAME = "CN=admin_OU=NIFI.p12";
-    private static final String NIFI_CA_CERT_FILENAME = "nifi-cert.pem";
+    private static final String DEFAULT_CLIENT_CERT_FILENAME = "CN=admin_OU=NIFI.p12";
+    private static final String DEFAULT_CA_CERT_FILENAME = "nifi-cert.pem";
     private static final String NIFI_CONTAINER_HOST = "nifi";
     private static final int NIFI_CONTAINER_PORT = 8080;
     private static final String SCRIPTS_CONTAINER_CERT_DIR = "/tmp/certs";
@@ -102,6 +102,7 @@ final class UpdateScriptsTestHarness {
     private String nifiCertPath;
     private String nifiCaCertPath;
     private String nifiCertPassword;
+    private String nifiCaCertFileName;
     private String scriptsDockerNetwork;
     private Path tempFlowsDir;
     private HttpClient httpClient;
@@ -139,8 +140,9 @@ final class UpdateScriptsTestHarness {
         String certDir = System.getProperty("nifi.cert.dir");
         nifiUrl = System.getProperty("nifi.url", "https://localhost:8080");
         nifiRegistryUrl = System.getProperty("nifi.registry.url", "https://localhost:18080");
-        nifiCertPath = certDir + "/" + ADMIN_CERT_FILENAME;
-        nifiCaCertPath = certDir + "/" + NIFI_CA_CERT_FILENAME;
+        nifiCaCertFileName = System.getProperty("nifi.ca.cert.file", DEFAULT_CA_CERT_FILENAME);
+        nifiCertPath = certDir + "/" + System.getProperty("nifi.client.cert.file", DEFAULT_CLIENT_CERT_FILENAME);
+        nifiCaCertPath = certDir + "/" + nifiCaCertFileName;
         nifiCertPassword = System.getenv("NIFI_CLIENT_PASSWORD");
         scriptsDockerNetwork = System.getProperty("scripts.docker.network", "");
 
@@ -202,6 +204,12 @@ final class UpdateScriptsTestHarness {
      */
     void cleanupCreatedResources() throws Exception {
         if (csId != null) {
+            JsonNode csNode = api.getControllerServiceById(csId);
+            if (!"DISABLED".equals(csNode.path("component").path("state").asText())) {
+                api.setControllerServiceState(csId, csNode.path("revision").path("version").asText(), "DISABLED");
+                api.waitForControllerServiceState(csId, "DISABLED");
+                csVersion = api.getControllerServiceById(csId).path("revision").path("version").asText();
+            }
             api.deleteControllerService(csId, csVersion);
             csId = null;
             csVersion = null;
@@ -252,6 +260,15 @@ final class UpdateScriptsTestHarness {
         }
     }
 
+    /**
+     * Returns the id of the process group the last {@code importAndValidate} call created.
+     *
+     * @return the process group id, or {@code null} when no import is pending cleanup
+     */
+    String importedProcessGroupId() {
+        return pgId;
+    }
+
     Path flowsDir() {
         return tempFlowsDir;
     }
@@ -272,6 +289,41 @@ final class UpdateScriptsTestHarness {
      */
     JsonNode readFlow(final String relativePath) throws IOException {
         return MAPPER.readTree(tempFlowsDir.resolve(relativePath).toFile());
+    }
+
+    /**
+     * Creates a controller service in the root process group from a (script-updated) controller
+     * service export, with the bundle version installed in this NiFi, and tracks it for
+     * {@link #cleanupCreatedResources()}.
+     *
+     * @param fileName controller service JSON file name under {@code controller-services/}
+     * @return the create response, including {@code id}, {@code revision}, and {@code status}
+     */
+    JsonNode createControllerServiceFromExport(final String fileName) throws Exception {
+        Path csFile = tempFlowsDir.resolve("controller-services/" + fileName);
+        ObjectNode csJson = (ObjectNode) MAPPER.readTree(csFile.toFile());
+
+        // Clean for creation: remove server-assigned fields, reset revision version
+        csJson.remove("id");
+        csJson.remove("uri");
+        ((ObjectNode) csJson.path("revision")).put("version", 0);
+        ObjectNode component = (ObjectNode) csJson.path("component");
+        component.remove("id");
+        component.remove("parentGroupId");
+
+        // Resolve the actual bundle version from this NiFi instance
+        String csType = component.path("type").asText();
+        String resolvedVersion = csVersionMap.get(csType);
+        if (resolvedVersion == null) {
+            throw new IllegalStateException("Controller service type not found in NiFi: " + csType);
+        }
+        ((ObjectNode) component.path("bundle")).put("version", resolvedVersion);
+
+        JsonNode respJson = api.createControllerService(MAPPER.writeValueAsString(csJson));
+        LOG.info("Create controller service {}: id={}", fileName, respJson.path("id").asText());
+        trackCreatedControllerService(respJson.path("id").asText(),
+            respJson.path("revision").path("version").asText("0"));
+        return respJson;
     }
 
     /**
@@ -385,7 +437,7 @@ final class UpdateScriptsTestHarness {
         String nifiCert = "--cert '" + SCRIPTS_CONTAINER_CERT_DIR + "/" + certFileName
             + ":" + nifiCertPassword + "'"
             + " --cert-type P12"
-            + " --cacert " + SCRIPTS_CONTAINER_CERT_DIR + "/" + NIFI_CA_CERT_FILENAME;
+            + " --cacert " + SCRIPTS_CONTAINER_CERT_DIR + "/" + nifiCaCertFileName;
 
         try (GenericContainer<?> container = new GenericContainer<>(
                 DockerImageName.parse(DEFAULT_SCRIPTS_IMAGE))) {
