@@ -168,37 +168,26 @@ create_consul_policy_and_token() {
 }
 
 generate_consul_token() {
-    local timeout=45
     local consulHostname=${CONSUL_HOSTNAME}
     echo "Generating consul token for NiFi..."
-    startTime=$(date +%s)
-    endTime=$((startTime + timeout))
-    remainingTime="$timeout"
-    res=1
-    while [ "$res" != "0" ]; do
-        echo "Waiting for Consul API to be available under URL = http://$consulHostname:8500/v1/acl/bootstrap, remaining time = $remainingTime"
-        res=0
-        resp_code=""
-        resp_code=$(eval curl --request PUT -sS -w '%{response_code}' -o ./bootstrap-token-resp.json --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/bootstrap") || {
-            res="$?"
-            echo "Failed to call Consul API, continue waiting..."
-        }
-        if [ "$res" == "0" ]; then
-            if [ "$resp_code" != '200' ]; then
-                echo "Got response with code = $resp_code and body: "
-                cat ./bootstrap-token-resp.json
-            fi
-        fi
-        echo ""
-        currentTime=$(date +%s)
-        remainingTime=$((endTime - currentTime))
-        if ((currentTime > endTime)); then
-            echo "ERROR: timeout reached; failed to wait"
-            return 1
-        fi
-        sleep 2
-    done
-    echo "Wait finished successfully. Consul API is available."
+    #Consul keeps its ACL state across compose runs, and the upgrade scenario starts the same
+    #compose file twice. If the token from the first run is still there, there is nothing to do:
+    #bootstrap would be refused with 403 and fail this container.
+    resp_code=$(curl --request GET -sS -w '%{response_code}' -o ./self-token-resp.json \
+        -H "X-Consul-Token: ${CONSUL_TOKEN}" --connect-timeout 5 --max-time 10 \
+        "http://$consulHostname:8500/v1/acl/token/self")
+    if [ "$resp_code" == '200' ]; then
+        rm -rf ./self-token-resp.json
+        echo "ACL token for NiFi already exists, skipping bootstrap"
+        return 0
+    fi
+    resp_code=$(curl --request PUT -sS -w '%{response_code}' -o ./bootstrap-token-resp.json \
+        --connect-timeout 5 --max-time 10 "http://$consulHostname:8500/v1/acl/bootstrap")
+    if [ "$resp_code" != '200' ]; then
+        echo "Consul ACL bootstrap failed with response code $resp_code:"
+        cat ./bootstrap-token-resp.json
+        return 1
+    fi
     defaultSecretId=$(<./bootstrap-token-resp.json jq -r '.SecretID')
 
     create_consul_policy_and_token "$defaultSecretId" "create-policy-request.json" "write" "$CONSUL_TOKEN"
