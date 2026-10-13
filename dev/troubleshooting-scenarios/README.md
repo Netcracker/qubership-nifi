@@ -22,8 +22,10 @@ behind.
 
 ## Prerequisites
 
-- Docker with Docker Compose v2.
-- `curl`, `jq`, and `timeout` (GNU coreutils) on the host.
+- Docker with Docker Compose v2, and a Docker CLI that supports `docker cp -q`.
+- A Linux host or WSL. The scripts need `/bin/bash` 4.4 or later, GNU coreutils (`timeout`, `sha256sum`, `shuf`,
+  and `date` with `%N`), and GNU findutils (`xargs -r`).
+- `curl` and `jq` on the host.
 - Free local ports 8080 (NiFi) and 8500 (Consul).
 - For `content-archive-slow` with NFS storage: an NFS export, see the [scenario page](scenarios/content-archive-slow/).
 

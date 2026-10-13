@@ -120,7 +120,7 @@ with the same symptoms:
   ```
 
 - `no-response`: the startup hangs with `Checking if consul app main execution completed` once a second, and the main
-  thread waits in `org.springframework.cloud.consul.config.ConsulPropertySource.init`. The NiFi 1.x image has no
+  thread waits in `org.springframework.cloud.consul.config.ConsulPropertySource.init`. The 1.0.9 image has no
   `jcmd`, so `scenario.sh` sends `SIGQUIT` to the application, which prints its thread dump to the container output.
 
 Measured on qubership-nifi 1.0.9 (Apache NiFi 1.28.1).

@@ -71,7 +71,8 @@ consul_app_main_thread() {
     if docker exec "$NIFI_CONTAINER" sh -c 'test -x "$JAVA_HOME/bin/jcmd"'; then
         docker exec -u appuser "$NIFI_CONTAINER" sh -c "\$JAVA_HOME/bin/jcmd $pid Thread.print"
     else
-        # The NiFi 1.x image has no jcmd. On SIGQUIT the JVM prints its thread dump to the container output.
+        # Some NiFi 1.x images, 1.0.9 among them, have no jcmd.
+        # On SIGQUIT the JVM prints its thread dump to the container output.
         since=$(date +%s)
         docker exec "$NIFI_CONTAINER" kill -3 "$pid"
         sleep 2

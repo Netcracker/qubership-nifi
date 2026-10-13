@@ -17,6 +17,12 @@
 # The scripts that source this file, and the scenario.sh files they load, use its variables.
 # shellcheck disable=SC2034
 
+# mapfile needs bash 4.0, and "${array[@]}" of an empty array under set -u needs 4.4. macOS ships bash 3.2.
+if [ "${BASH_VERSINFO[0]}" -lt 4 ] || { [ "${BASH_VERSINFO[0]}" -eq 4 ] && [ "${BASH_VERSINFO[1]}" -lt 4 ]; }; then
+    echo "ERROR: bash 4.4 or later is required, found $BASH_VERSION." >&2
+    exit 1
+fi
+
 TS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GIT_BASE_DIR="$(cd "$TS_DIR/../.." && pwd)"
 export GIT_BASE_DIR

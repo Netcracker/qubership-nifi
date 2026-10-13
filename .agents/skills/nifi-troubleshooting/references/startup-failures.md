@@ -273,8 +273,8 @@ The 1.x failure report prints the Consul ACL token in plain text, as `aclToken =
 the 2.x report masks it as `******`. Tell the user that the token is in the pod log, to redact it before sharing the
 log, and to rotate it if the log has reached a log store or a ticket. Do not repeat the token in the answer.
 
-A hung startup waits in `ConsulPropertySource.init` as on 2.x. The 1.x image has no `jcmd`, so take the thread dump
-with `kill -3` on the application process; the JVM prints it to the pod log. See
+A hung startup waits in `ConsulPropertySource.init` as on 2.x. Some 1.x images, 1.0.9 among them, have no `jcmd`;
+there, take the thread dump with `kill -3` on the application process, and the JVM prints it to the pod log. See
 `evidence-collection.md#thread-dump`.
 
 ## Corrupted flow.json.gz

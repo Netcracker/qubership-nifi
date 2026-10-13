@@ -70,7 +70,8 @@ What changes on 1.x:
 - **Only the Spring-based Consul application**, `qubership-consul-application.jar`. `NIFI_CONSUL_INT_FRAMEWORK` is
   ignored, and `quarkus` is not available.
 - **The sensitive key can be changed in place** with `NIFI_PREVIOUS_SENSITIVE_KEY`.
-- **No `jcmd` in the image.** Take a thread dump with `kill -3`; the JVM prints it to the pod log.
+- **Some images have no `jcmd`,** 1.0.9 among them; 1.0.8 has one. Check for `$JAVA_HOME/bin/jcmd`, and where it is
+  missing, take a thread dump with `kill -3`; the JVM prints it to the pod log.
 
 Each reference section has a "NiFi 1.x" subsection where 1.x differs. Settings, Consul keys, environment variables,
 and defaults in the tables below are the same on 1.x.

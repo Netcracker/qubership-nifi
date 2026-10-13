@@ -21,6 +21,10 @@
 # nifi-scripts/re_encrypt_sensitive_keys.sh exits with 3 when the key hashes differ.
 SCENARIO_EXPECTED_EXIT_CODE=3
 
+scenario_check_prereqs() {
+    require_commands sha256sum
+}
+
 scenario_break() {
     local newKey
     newKey=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')

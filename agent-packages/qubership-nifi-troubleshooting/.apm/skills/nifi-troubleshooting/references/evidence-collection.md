@@ -139,8 +139,8 @@ kubectl exec <pod> -n <ns> -- sh -c 'ps -eo pid,args | grep -E "quarkus-run.jar|
 kubectl exec <pod> -n <ns> -- sh -c '$JAVA_HOME/bin/jcmd <pid> Thread.print'
 ```
 
-1.x images have no `jcmd`. Send `SIGQUIT` to the application instead; the JVM prints the thread dump to the pod log
-and keeps running:
+Some 1.x images, 1.0.9 among them, have no `jcmd`; 1.0.8 has one. Where `$JAVA_HOME/bin/jcmd` is missing, send
+`SIGQUIT` to the application instead; the JVM prints the thread dump to the pod log and keeps running:
 
 ```bash
 kubectl exec <pod> -n <ns> -- sh -c 'kill -3 $(pgrep -f qubership-consul-application.jar)'
