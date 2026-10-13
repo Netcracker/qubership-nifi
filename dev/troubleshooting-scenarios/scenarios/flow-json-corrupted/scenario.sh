@@ -19,9 +19,11 @@
 # shellcheck disable=SC2034
 
 # NiFi 2.x exits with 1. In NiFi 1.x, RunNiFi reports "NiFi never started" and nifi-scripts/start.sh exits with 0.
+# With PENDING_MIGRATION=flow-json the outcome depends on the image: from 2.9.0 the start script exits with 1, before
+# 2.9.0 NiFi starts with an empty flow and keeps running, so no exit code is expected.
 if [ "$NIFI_MAJOR_VERSION" == "1" ]; then
     SCENARIO_EXPECTED_EXIT_CODE=0
-else
+elif [ "$PENDING_MIGRATION" != "flow-json" ]; then
     SCENARIO_EXPECTED_EXIT_CODE=1
 fi
 # The persistent_conf/conf directory of NiFi, as the helper container sees it.
@@ -31,20 +33,33 @@ case "$CORRUPTION" in
     json | truncated) ;;
     *) die "CORRUPTION must be json or truncated, got '$CORRUPTION'." ;;
 esac
+case "$PENDING_MIGRATION" in
+    none | flow-json | ojdbc-location) ;;
+    *) die "PENDING_MIGRATION must be none, flow-json, or ojdbc-location, got '$PENDING_MIGRATION'." ;;
+esac
+if [ "$NIFI_MAJOR_VERSION" == "1" ] && [ "$PENDING_MIGRATION" != "none" ]; then
+    die "PENDING_MIGRATION must be none for NiFi 1.x, which has no flow.json.gz migrations, got '$PENDING_MIGRATION'."
+fi
 
 scenario_break() {
-    # On the first start with an existing flow.json.gz, nifi-scripts/update_flow_json.sh migrates NAR coordinates
-    # once. If that start found the file with invalid JSON, the migration would fail and NiFi would start with an
-    # empty flow instead. A restart before the corruption completes the migration, as on any instance started more
-    # than once. NiFi 1.x has no such migration.
-    if [ "$NIFI_MAJOR_VERSION" == "2" ]; then
-        log "Restarting NiFi, so that the start scripts complete their one-time flow.json.gz migration..."
+    # On the first start that finds a flow.json.gz, nifi-scripts/update_flow_json.sh and, from 2.8.6,
+    # update_flow_json_ojdbc_location.sh migrate the file once and leave a marker file each. A restart before the
+    # corruption completes both migrations, as on any instance started more than once, so that NiFi itself meets the
+    # damaged file. PENDING_MIGRATION=flow-json skips the restart, so that the damaged file meets update_flow_json.sh;
+    # PENDING_MIGRATION=ojdbc-location removes the marker of the second script, as a restore from the archive does.
+    # NiFi 1.x has no such migrations.
+    if [ "$NIFI_MAJOR_VERSION" == "2" ] && [ "$PENDING_MIGRATION" != "flow-json" ]; then
+        log "Restarting NiFi, so that the start scripts complete their one-time flow.json.gz migrations..."
         compose stop nifi
         compose up -d --wait --wait-timeout 600 --no-deps nifi ||
             die "NiFi did not become healthy after the restart, see 'docker logs $NIFI_CONTAINER'."
     fi
     log "Stopping NiFi, so that no running NiFi rewrites flow.json.gz after the corruption..."
     compose stop nifi
+    if [ "$PENDING_MIGRATION" == "ojdbc-location" ]; then
+        log "Removing update_ojdbc_location.applied, so that the next start runs the Oracle driver location migration..."
+        helper_run "rm -f $FLOW_CONF_DIR/update_ojdbc_location.applied"
+    fi
     log "Corrupting flow.json.gz ($CORRUPTION)..."
     if [ "$CORRUPTION" == "json" ]; then
         # Removing the first comma between two object entries leaves a valid gzip file that is not valid JSON.

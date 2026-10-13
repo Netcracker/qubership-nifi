@@ -38,8 +38,11 @@ Just before the error, `start.sh` logs one `Add <argument> in bootstrap.conf` li
 `start.sh` adds `NIFI_ADDITIONAL_JVM_ARGS` and `X_JAVA_ARGS` to `conf/bootstrap.conf` as `java.arg.<n>` entries, then
 starts a trial JVM with the collector arguments and exits with code 3 when that JVM refuses them. The check covers only
 arguments that select a garbage collector (`-XX:+Use...GC`, `-XX:-Use...GC`) and `-XX:+UnlockExperimentalVMOptions`.
-The image entrypoint also exports `X_JAVA_ARGS` as `JAVA_TOOL_OPTIONS`, so every JVM in the container picks it up,
-the trial JVM included; the `Picked up JAVA_TOOL_OPTIONS` line comes from there.
+The image entrypoint also exports `X_JAVA_ARGS` as `JAVA_TOOL_OPTIONS`, so the trial JVM and NiFi pick it up; the
+`Picked up JAVA_TOOL_OPTIONS` line comes from the trial JVM. The Consul application picks it up only on images before
+2.8.6. From 2.8.6, `start_consul_app.sh` starts it without the variable and logs
+`JAVA_TOOL_OPTIONS is set, but the consul app starts without it.`, so `X_JAVA_ARGS` does not explain a failure of the
+Consul application there; its JVM options come from `CONSUL_CONFIG_JAVA_OPTIONS`.
 
 Other bad JVM arguments, such as a malformed `-Xmx` or an unknown `-XX:` flag, pass this check and fail later with a
 different message.

@@ -23,8 +23,9 @@ collector arguments with a trial JVM before it starts NiFi, and exits with code 
 
 The start script adds both variables to `conf/bootstrap.conf` as `java.arg.<n>` entries. It checks only the
 arguments that select a garbage collector (`-XX:+Use...GC`, `-XX:-Use...GC`) and
-`-XX:+UnlockExperimentalVMOptions`. The image entrypoint also exports `X_JAVA_ARGS` as `JAVA_TOOL_OPTIONS`, so every
-JVM in the container picks it up, the trial JVM included; that JVM prints the `Picked up JAVA_TOOL_OPTIONS` line.
+`-XX:+UnlockExperimentalVMOptions`. The image entrypoint also exports `X_JAVA_ARGS` as `JAVA_TOOL_OPTIONS`, so the
+trial JVM and NiFi pick it up; the trial JVM prints the `Picked up JAVA_TOOL_OPTIONS` line. From 2.8.6, the Consul
+application starts without `JAVA_TOOL_OPTIONS` and takes its JVM options from `CONSUL_CONFIG_JAVA_OPTIONS`.
 See [Invalid JVM arguments](../../../../docs/troubleshooting-guide.md#1-invalid-jvm-arguments) in the
 troubleshooting guide.
 

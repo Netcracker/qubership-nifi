@@ -18,3 +18,7 @@
 # How flow.json.gz is damaged: json (a valid gzip file with invalid JSON inside) or truncated (the gzip file is cut
 # in half, as after an interrupted write).
 CORRUPTION="${CORRUPTION:-json}"
+# Which one-time start-script migration of flow.json.gz still has to run when NiFi meets the damaged file (NiFi 2.x
+# only): none (both are done), flow-json (update_flow_json.sh, as on the first start after an upgrade), or
+# ojdbc-location (update_flow_json_ojdbc_location.sh, as after a restore from the archive).
+PENDING_MIGRATION="${PENDING_MIGRATION:-none}"
