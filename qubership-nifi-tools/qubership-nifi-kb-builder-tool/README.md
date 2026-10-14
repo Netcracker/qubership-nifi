@@ -24,6 +24,7 @@ Standard output is left free for whatever consumes the tool.
 
 - JDK 21
 - Maven 3.x
+- A GitHub personal access token with the `read:packages` scope, to download the tool from GitHub Packages
 - Network access to a running NiFi instance over HTTPS, with read permission for `/flow`
 
 ## Getting the jars
@@ -33,7 +34,7 @@ pom below fills a directory with the tool and every jar it needs at runtime. The
 siblings by filename, so that directory is all `java` needs.
 
 Save it wherever you drive the tool from, as `kb-builder-pom.xml`, a name that will not shadow a real
-`pom.xml`. The two properties are the only things to set: the release to fetch, and where to put it.
+`pom.xml`. The two properties set the release to fetch and where to put it.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -51,6 +52,13 @@ Save it wherever you drive the tool from, as `kb-builder-pom.xml`, a name that w
         <kb.builder.version>X.Y.Z</kb.builder.version>
         <kb.builder.lib.dir>${project.basedir}/lib</kb.builder.lib.dir>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/netcracker/*</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -74,6 +82,25 @@ Save it wherever you drive the tool from, as `kb-builder-pom.xml`, a name that w
     </build>
 </project>
 ```
+
+Releases are published to GitHub Packages, not Maven Central, and GitHub Packages requires authentication even for
+public packages. Add a server entry to `~/.m2/settings.xml` whose `id` matches the repository `id` in the helper pom.
+If the file already exists, add only the `<server>` element to its `<servers>`:
+
+```xml
+<settings>
+    <servers>
+        <server>
+            <id>github</id>
+            <username>YOUR_GITHUB_USERNAME</username>
+            <password>YOUR_GITHUB_TOKEN</password>
+        </server>
+    </servers>
+</settings>
+```
+
+The token is a personal access token (classic) with the `read:packages` scope. Without the server entry, Maven fails
+with `401 Unauthorized`. Then stage the jars:
 
 ```shell
 mvn -f kb-builder-pom.xml dependency:copy-dependencies
