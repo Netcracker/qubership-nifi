@@ -15,12 +15,32 @@ goals and produces identical reports; use it when you are already inside a build
 
 - Java - JDK 21+
 - Maven - Maven 3.x
+- A GitHub personal access token with the `read:packages` scope, to download the tool from GitHub Packages
 
 ## Getting the jars
 
 The jar bundles nothing third-party, so its dependencies have to sit alongside it. Both options below fill a directory
 with the runtime jars; the manifest names its siblings by filename, so that directory is all `java` needs. Take either
 one; the run command that follows is the same.
+
+Releases are published to GitHub Packages, not Maven Central, and GitHub Packages requires authentication even for
+public packages. Both options read from the repository with the id `github`, so add a server entry with that id to
+`~/.m2/settings.xml`. If the file already exists, add only the `<server>` element to its `<servers>`:
+
+```xml
+<settings>
+    <servers>
+        <server>
+            <id>github</id>
+            <username>YOUR_GITHUB_USERNAME</username>
+            <password>YOUR_GITHUB_TOKEN</password>
+        </server>
+    </servers>
+</settings>
+```
+
+The token is a personal access token (classic) with the `read:packages` scope. Without the server entry, Maven fails
+with `401 Unauthorized`.
 
 ### Option 1: fetch script
 
@@ -40,6 +60,8 @@ fi
 
 VERSION="$1"
 ARTIFACT="org.qubership.nifi:qubership-nifi-flow-diff-cli:$VERSION"
+# The id must match the <server> entry in ~/.m2/settings.xml that holds the token.
+GITHUB_REPO="github::default::https://maven.pkg.github.com/netcracker/*"
 
 mkdir -p "$2"
 # Absolute, and Windows-shaped under Git Bash, because -f below moves the project
@@ -49,15 +71,16 @@ case "$(uname -s)" in
     *) OUT_DIR="$(cd "$2" && pwd)" ;;
 esac
 
-mvn -q dependency:get -Dartifact="$ARTIFACT"
+mvn -q dependency:get -Dartifact="$ARTIFACT" -DremoteRepositories="$GITHUB_REPO"
 
 REPO="$(mvn -q help:evaluate -Dexpression=settings.localRepository -DforceStdout)"
 POM="$REPO/org/qubership/nifi/qubership-nifi-flow-diff-cli/$VERSION/qubership-nifi-flow-diff-cli-$VERSION.pom"
 
 # The published pom is flattened, so Maven resolves exactly the runtime set from it.
 mvn -q dependency:copy-dependencies -f "$POM" -DoutputDirectory="$OUT_DIR"
-# copy-dependencies leaves out the tool's own jar.
-mvn -q dependency:copy -Dartifact="$ARTIFACT" -DoutputDirectory="$OUT_DIR"
+# copy-dependencies leaves out the tool's own jar. -f lends this call the repositories
+# the published pom declares, without which Maven ignores the jar dependency:get cached.
+mvn -q dependency:copy -f "$POM" -Dartifact="$ARTIFACT" -DoutputDirectory="$OUT_DIR"
 
 echo "Staged $(find "$2" -maxdepth 1 -name '*.jar' | wc -l) jars in $2"
 ```
@@ -94,6 +117,13 @@ script's two parameters. Save it next to the flows as `flowdiff-pom.xml`, a name
         <flow.diff.version>X.Y.Z</flow.diff.version>
         <flow.diff.lib.dir>${project.basedir}/lib</flow.diff.lib.dir>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/netcracker/*</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
