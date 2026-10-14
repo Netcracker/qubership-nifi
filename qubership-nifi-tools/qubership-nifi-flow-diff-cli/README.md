@@ -24,7 +24,7 @@ with the runtime jars; the manifest names its siblings by filename, so that dire
 one; the run command that follows is the same.
 
 Releases are published to GitHub Packages, not Maven Central, and GitHub Packages requires authentication even for
-public packages. Both options read from the repository with the id `github`, so add a server entry with that id to
+public packages. Both options read from the repository with the ID `github`, so add a server entry with that ID to
 `~/.m2/settings.xml`. If the file already exists, add only the `<server>` element to its `<servers>`:
 
 ```xml
