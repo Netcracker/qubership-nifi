@@ -57,7 +57,7 @@ block on the step; the fallback chain picks them up automatically.
     EMAIL_FROM:      ${{ vars.EMAIL_FROM }}
     EMAIL_PASSWORD:  ${{ secrets.EMAIL_PASSWORD }}
   with:
-    to: "<email to use>"
+    to: team@example.com
     subject: "CI failed on ${{ github.ref }}"
     body: |
       Workflow ${{ github.workflow }} failed.
@@ -73,7 +73,7 @@ block on the step; the fallback chain picks them up automatically.
     EMAIL_FROM:      ${{ vars.EMAIL_FROM }}
     EMAIL_PASSWORD:  ${{ secrets.EMAIL_PASSWORD }}
   with:
-    to: "<email to use>"
+    to: stakeholders@example.com
     subject: "Release ${{ github.ref_name }} published"
     html-body: |
       <h2>Release ${{ github.ref_name }}</h2>
@@ -86,7 +86,7 @@ block on the step; the fallback chain picks them up automatically.
 1. Enable 2-Step Verification on the Gmail account.
 2. Generate an **App Password**: Google Account → Security → App Passwords.
 3. Store the App Password as `secrets.EMAIL_PASSWORD`.
-4. Set `vars.EMAIL_FROM` to the Gmail address.
+4. Set `vars.EMAIL_FROM` to the Gmail address (e.g. `ci.noreply.qubership@gmail.com`).
 5. The defaults (`smtp.gmail.com:587`, STARTTLS) are pre-configured — no further setup needed.
 
 ## Org-level variables to configure
@@ -95,5 +95,5 @@ block on the step; the fallback chain picks them up automatically.
 | --- | --- | --- |
 | `EMAIL_SMTP_HOST` | var | `smtp.gmail.com` |
 | `EMAIL_SMTP_PORT` | var | `587` |
-| `EMAIL_FROM` | var | `"<email to use>"` |
+| `EMAIL_FROM` | var | `ci.noreply.qubership@gmail.com` |
 | `EMAIL_PASSWORD` | secret | Gmail App Password |
