@@ -447,6 +447,7 @@ consumer decides whether it is worth writing.
 | `Closes: <url>` (kernel) | Humans and regression trackers; a public URL is required | R2, R3 | The project uses it |
 | `Link:` | Humans | R2 | A discussion or archive exists |
 | `Backpatch-through: <major>` | PostgreSQL's release-note tooling, which groups identical messages across branches | R5 | The project back-patches and uses it |
+| `Cc: stable@vger.kernel.org # <ver>: <sha>: <subject>` | Kernel stable team; the sequence means `git cherry-pick <sha>` then this commit | R5 | Kernel only |
 | `Reported-by:` | Credit | R2 | Someone reported it |
 | `BREAKING CHANGE:`, or `!` after the type | release-please and semantic-release: major bump | R4, through the tool | The tool is present |
 | `Co-authored-by:` | Platform attribution | none of the five | Provenance requires it |
