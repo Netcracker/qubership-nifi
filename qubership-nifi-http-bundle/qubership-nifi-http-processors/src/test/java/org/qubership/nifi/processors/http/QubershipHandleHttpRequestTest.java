@@ -167,6 +167,43 @@ class QubershipHandleHttpRequestTest {
     }
 
     @Test
+    void twoProcessorsOnOnePortEachReceiveOnlyTheRequestsForTheirOwnPath() throws Exception {
+        final TestRunner usersRunner = TestRunners.newTestRunner(QubershipHandleHttpRequest.class);
+        final DelegatingHttpRouterService sharedRouter = new DelegatingHttpRouterService(routerService);
+        usersRunner.addControllerService("router", sharedRouter);
+        usersRunner.enableControllerService(sharedRouter);
+        final RecordingHttpContextMap usersContextMap = new RecordingHttpContextMap();
+        usersRunner.addControllerService("context-map", usersContextMap);
+        usersRunner.enableControllerService(usersContextMap);
+        usersRunner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "router");
+        usersRunner.setProperty(QubershipHandleHttpRequest.HTTP_CONTEXT_MAP, "context-map");
+        usersRunner.setProperty(QubershipHandleHttpRequest.REQUEST_PATH, "/users(/.*)?");
+        startProcessor();
+        usersRunner.run(1, false, true);
+        try {
+            final CompletableFuture<HttpResponse<String>> ordersPending = send("GET", "/orders/1");
+            final CompletableFuture<HttpResponse<String>> usersPending = send("GET", "/users/1");
+            final List<MockFlowFile> ordersFlowFiles = awaitFlowFiles(runner, 1);
+            final List<MockFlowFile> usersFlowFiles = awaitFlowFiles(usersRunner, 1);
+            answer(contextMap, ordersFlowFiles.getFirst().getAttribute("http.context.identifier"), 200);
+            answer(usersContextMap, usersFlowFiles.getFirst().getAttribute("http.context.identifier"), 200);
+            final HttpResponse<String> ordersResponse = await(ordersPending, "the response to GET /orders/1");
+            final HttpResponse<String> usersResponse = await(usersPending, "the response to GET /users/1");
+
+            assertAll(
+                    () -> assertEquals(List.of("/orders/1"), requestUris(ordersFlowFiles),
+                            "request URIs received by the processor with Request Path /orders(/.*)?"),
+                    () -> assertEquals(List.of("/users/1"), requestUris(usersFlowFiles),
+                            "request URIs received by the processor with Request Path /users(/.*)?"),
+                    () -> assertEquals(200, ordersResponse.statusCode(), "status of GET /orders/1"),
+                    () -> assertEquals(200, usersResponse.statusCode(), "status of GET /users/1")
+            );
+        } finally {
+            usersRunner.unSchedule();
+        }
+    }
+
+    @Test
     void aPathOutsideRequestPathIsAnsweredWith404() throws Exception {
         startProcessor();
 
@@ -439,11 +476,16 @@ class QubershipHandleHttpRequestTest {
     }
 
     private List<MockFlowFile> awaitFlowFiles(final int count) throws InterruptedException {
+        return awaitFlowFiles(runner, count);
+    }
+
+    private List<MockFlowFile> awaitFlowFiles(final TestRunner processorRunner, final int count)
+            throws InterruptedException {
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         List<MockFlowFile> flowFiles = List.of();
         while (System.nanoTime() < deadline) {
-            runner.run(1, false, false);
-            flowFiles = runner.getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS);
+            processorRunner.run(1, false, false);
+            flowFiles = processorRunner.getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS);
             if (flowFiles.size() >= count) {
                 return flowFiles;
             }
@@ -468,10 +510,18 @@ class QubershipHandleHttpRequestTest {
     }
 
     private void answer(final String contextId, final int status) {
-        final HttpServletResponse response = contextMap.getResponse(contextId);
+        answer(contextMap, contextId, status);
+    }
+
+    private static void answer(final HttpContextMap map, final String contextId, final int status) {
+        final HttpServletResponse response = map.getResponse(contextId);
         assertNotNull(response, "context map entry for " + contextId);
         response.setStatus(status);
-        contextMap.complete(contextId);
+        map.complete(contextId);
+    }
+
+    private static List<String> requestUris(final List<MockFlowFile> flowFiles) {
+        return flowFiles.stream().map(flowFile -> flowFile.getAttribute("http.request.uri")).toList();
     }
 
     private MockFlowFile receiveWithContentType(final String pathAndQuery, final String contentType)
@@ -611,6 +661,39 @@ class QubershipHandleHttpRequestTest {
         }
 
         private record Entry(HttpServletResponse response, AsyncContext context) {
+        }
+    }
+
+    /**
+     * HTTP Router Service that passes every call to a router service enabled in another TestRunner.
+     *
+     * <p>A second TestRunner cannot enable the same QubershipHttpRouterService, because enabling it starts another
+     * server on the port the first one already listens on. Through this service, processors in two TestRunners
+     * register on one server.
+     */
+    private static final class DelegatingHttpRouterService extends AbstractControllerService
+            implements HttpRouterService {
+
+        private final HttpRouterService target;
+
+        DelegatingHttpRouterService(final HttpRouterService targetService) {
+            this.target = targetService;
+        }
+
+        @Override
+        public void registerProcessor(final String processorId, final Pattern paths, final Set<String> methods,
+                final int queueSize, final long requestTimeoutMillis) {
+            target.registerProcessor(processorId, paths, methods, queueSize, requestTimeoutMillis);
+        }
+
+        @Override
+        public void unregisterProcessor(final String processorId) {
+            target.unregisterProcessor(processorId);
+        }
+
+        @Override
+        public HttpRequestContainer pollRequest(final String processorId) {
+            return target.pollRequest(processorId);
         }
     }
 
