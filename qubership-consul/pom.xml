@@ -76,7 +76,7 @@
         <slf4j.version>2.0.17</slf4j.version>
         <!--test libraries-->
         <junit.jupiter.version>5.11.1</junit.jupiter.version>
-        <testcontainers.version>2.0.2</testcontainers.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <!--plugin versions-->
         <pmd.version>3.28.0</pmd.version>
         <jacoco.version>0.8.15</jacoco.version>
