@@ -203,7 +203,7 @@ services:
       timeout: 5s
       retries: 12
   cassandra:
-    image: cassandra:5.0.9@sha256:d35e159439b302146f964919904f84fd3c2cebf347272b8cb8c4368c1cf200e5
+    image: cassandra:5.0.9@sha256:618a493bcf1f817ea2f07288a46fa76fb2d9c4dfd5a04c28227336405782889c
     ports:
       - "127.0.0.1:7000:7000"
       - "127.0.0.1:9042:9042"
