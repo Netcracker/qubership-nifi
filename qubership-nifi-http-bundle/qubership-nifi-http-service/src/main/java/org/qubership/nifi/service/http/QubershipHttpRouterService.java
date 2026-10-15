@@ -147,6 +147,11 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
     private volatile Server server;
     private volatile boolean disabling;
 
+    /**
+     * Returns the properties of the service.
+     *
+     * @return the property descriptors, in the order the UI lists them
+     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -206,6 +211,22 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
         }
     }
 
+    /**
+     * Registers the paths and methods a processor handles and creates its request queue.
+     *
+     * <p>Two path patterns conflict only when their strings are equal. When the patterns of several processors match
+     * a path, the processor that registered first receives the request. The idle timeout of the connector is raised
+     * to requestTimeoutMillis when it is shorter.
+     *
+     * @param processorId identifier of the processor
+     * @param paths regular expression that a request path must match to be routed to the processor
+     * @param methods HTTP methods the processor handles, in any case
+     * @param queueSize maximum number of requests the queue of the processor holds
+     * @param requestTimeoutMillis time, in milliseconds, within which the flow answers a request
+     * @throws IllegalArgumentException if queueSize is not positive
+     * @throws IllegalStateException if the service is not enabled, if the processor is already registered, or if
+     *                               another processor registered the same path pattern
+     */
     @Override
     public synchronized void registerProcessor(final String processorId, final Pattern paths,
             final Set<String> methods, final int queueSize, final long requestTimeoutMillis) {
@@ -247,6 +268,12 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
                 processorId, paths.pattern(), upperCaseMethods);
     }
 
+    /**
+     * Removes the registration of a processor and answers every request still waiting in its queue with 503. Does
+     * nothing if the processor is not registered.
+     *
+     * @param processorId identifier the processor was registered with
+     */
     @Override
     public synchronized void unregisterProcessor(final String processorId) {
         final ProcessorRegistration registration = findRegistration(processorId);
@@ -258,6 +285,12 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
         getLogger().info("Unregistered processor {}", processorId);
     }
 
+    /**
+     * Returns the next request in the queue of a processor without waiting for one to arrive.
+     *
+     * @param processorId identifier the processor was registered with
+     * @return the next request, or null if the queue is empty or the processor is not registered
+     */
     @Override
     public HttpRequestContainer pollRequest(final String processorId) {
         final ProcessorRegistration registration = findRegistration(processorId);
@@ -314,8 +347,15 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
         return connector;
     }
 
-    // Package-private so that a test can send a request after the registrations are removed and before the server
-    // stops accepting requests.
+    /**
+     * Stops the server and waits until it has stopped.
+     *
+     * <p>The method is package-private so that a test can send a request after the registrations are removed and
+     * before the server stops accepting requests.
+     *
+     * @param serverToStop the server to stop
+     * @throws Exception if the server fails to stop
+     */
     void stopServer(final Server serverToStop) throws Exception {
         serverToStop.stop();
         serverToStop.destroy();

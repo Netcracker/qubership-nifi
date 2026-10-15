@@ -147,12 +147,31 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
             + "multipart/form-data request, the index of the part, starting with 1"),
     @WritesAttribute(attribute = "http.multipart.fragments.total.number", description = "For a "
             + "multipart/form-data request, the number of parts")})
-public class QubershipHandleHttpRequest extends AbstractProcessor {
+public final class QubershipHandleHttpRequest extends AbstractProcessor {
 
+    /**
+     * Attribute with the identifier under which the request is registered on the HTTP Context Map.
+     */
     static final String HTTP_CONTEXT_ID = "http.context.identifier";
+
+    /**
+     * Attribute with the request URI.
+     */
     static final String HTTP_REQUEST_URI = "http.request.uri";
+
+    /**
+     * Attribute with the hostname of the client.
+     */
     static final String HTTP_REMOTE_HOST = "http.remote.host";
+
+    /**
+     * Attribute with the IP address or hostname of the server.
+     */
     static final String HTTP_LOCAL_NAME = "http.local.name";
+
+    /**
+     * Attribute with the listening port of the server.
+     */
     static final String HTTP_PORT = "http.server.port";
 
     private static final String MIME_TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
@@ -525,6 +544,9 @@ public class QubershipHandleHttpRequest extends AbstractProcessor {
     /**
      * Returns the attributes that describe the request itself, the same for every FlowFile created from it.
      *
+     * @param request the request to describe
+     * @param contextIdentifier identifier under which the request is registered on the HTTP Context Map
+     * @return the attributes, keyed by attribute name
      * @throws IllegalArgumentException if the query string contains a malformed percent-encoded sequence
      */
     private Map<String, String> getRequestAttributes(final HttpServletRequest request,

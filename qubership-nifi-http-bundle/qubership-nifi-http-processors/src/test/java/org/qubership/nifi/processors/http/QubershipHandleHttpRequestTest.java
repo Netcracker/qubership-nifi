@@ -569,6 +569,9 @@ class QubershipHandleHttpRequestTest {
 
     /**
      * Writes the request bytes to a new connection as they are and returns the status line of the response.
+     *
+     * @param request the complete HTTP request, headers and body
+     * @return the status line of the response, such as HTTP/1.1 400 Bad Request
      */
     private CompletableFuture<String> sendRaw(final String request) {
         return CompletableFuture.supplyAsync(() -> {
