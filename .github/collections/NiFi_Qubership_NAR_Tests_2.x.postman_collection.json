@@ -543,17 +543,20 @@
                             "script": {
                                 "exec": [
                                     "// HandleHttpRequest starts its HTTP server inside its first onTrigger call, and NiFi\r",
-                                    "// counts a task only after onTrigger returns. Once every HandleHttpRequest processor has\r",
-                                    "// a taskCount of at least 1, it has started its server, unless that first start failed.\r",
+                                    "// counts a task only after onTrigger returns. QubershipHandleHttpRequest registers on its\r",
+                                    "// HTTP Router Service in @OnScheduled, which NiFi completes before the first onTrigger call.\r",
+                                    "// Once every listener of both types has a taskCount of at least 1, it accepts requests,\r",
+                                    "// unless its start failed.\r",
                                     "pm.test(\"Status code is 200\", function () {\r",
                                     "    pm.response.to.have.status(200);\r",
                                     "});\r",
                                     "const responseJson = pm.response.json();\r",
+                                    "const listenerTypes = [\"HandleHttpRequest\", \"QubershipHandleHttpRequest\"];\r",
                                     "\r",
                                     "function collectListeners(groupSnapshot) {\r",
                                     "    const listeners = (groupSnapshot.processorStatusSnapshots || [])\r",
                                     "        .map(entity => entity.processorStatusSnapshot)\r",
-                                    "        .filter(processor => processor.type === \"HandleHttpRequest\");\r",
+                                    "        .filter(processor => listenerTypes.includes(processor.type));\r",
                                     "    for (const child of groupSnapshot.processGroupStatusSnapshots || []) {\r",
                                     "        listeners.push(...collectListeners(child.processGroupStatusSnapshot));\r",
                                     "    }\r",
@@ -565,19 +568,20 @@
                                     "\r",
                                     "pm.test(`Attempt ${attempt}: Checking that HTTP listeners are started`, function () {\r",
                                     "    const listeners = collectListeners(responseJson.processGroupStatus.aggregateSnapshot);\r",
-                                    "    const allStarted = listeners.length > 0 && listeners.every(listener => listener.taskCount > 0);\r",
-                                    "    const listenerStates = JSON.stringify(listeners.map(listener => ({ name: listener.name, taskCount: listener.taskCount })));\r",
+                                    "    const allTypesFound = listenerTypes.every(type => listeners.some(listener => listener.type === type));\r",
+                                    "    const allStarted = allTypesFound && listeners.every(listener => listener.taskCount > 0);\r",
+                                    "    const listenerStates = JSON.stringify(listeners.map(listener => ({ name: listener.name, type: listener.type, taskCount: listener.taskCount })));\r",
                                     "\r",
                                     "    if (!allStarted && attempt < maxAttempts) {\r",
-                                    "        console.log(`Not all HandleHttpRequest processors have run yet: ${listenerStates}. Retry in 1 second (try ${attempt + 1})`);\r",
+                                    "        console.log(`Not all HTTP listeners have run yet: ${listenerStates}. Retry in 1 second (try ${attempt + 1})`);\r",
                                     "        pm.environment.set(\"polling_attempt\", attempt + 1);\r",
                                     "\r",
                                     "        setTimeout(() => {\r",
                                     "            pm.execution.setNextRequest(\"Check state of HTTP listeners\");\r",
                                     "        }, 1000);\r",
                                     "    } else {\r",
-                                    "        pm.expect(allStarted, `every HandleHttpRequest processor has run at least once, found ${listeners.length}: ${listenerStates}`).to.be.true;\r",
-                                    "        console.log(`All ${listeners.length} HandleHttpRequest processors have started`);\r",
+                                    "        pm.expect(allStarted, `a listener of each type ${listenerTypes.join(\", \")} is found and every listener has run at least once, found ${listeners.length}: ${listenerStates}`).to.be.true;\r",
+                                    "        console.log(`All ${listeners.length} HTTP listeners have started`);\r",
                                     "        pm.environment.unset(\"polling_attempt\");\r",
                                     "    }\r",
                                     "});"
@@ -1808,6 +1812,247 @@
                                 "test-nars",
                                 "python-extensions",
                                 "BackupAttributesPythonMissingPrefix"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "qubership-nifi-http-processors",
+            "item": [
+                {
+                    "name": "QubershipHandleHttpRequest orders: GET",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Request is handled by the orders processor\", function () {\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Handler\"), \"X-Handler\").to.eql(\"orders\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Method\"), \"X-Request-Method\").to.eql(\"GET\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Uri\"), \"X-Request-Uri\").to.eql(\"/orders/1\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Query parameter id is not output when the request has none\", function () {\r",
+                                    "    pm.expect(pm.response.headers.has(\"X-Param-Id\"), \"X-Param-Id is present\").to.eql(false);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/orders/1",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "orders",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QubershipHandleHttpRequest users: GET",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Request is handled by the users processor\", function () {\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Handler\"), \"X-Handler\").to.eql(\"users\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Method\"), \"X-Request-Method\").to.eql(\"GET\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Uri\"), \"X-Request-Uri\").to.eql(\"/users/1\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/users/1",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "users",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QubershipHandleHttpRequest orders: POST with body",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Request is handled by the orders processor\", function () {\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Handler\"), \"X-Handler\").to.eql(\"orders\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Method\"), \"X-Request-Method\").to.eql(\"POST\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Uri\"), \"X-Request-Uri\").to.eql(\"/orders\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Response body is the request body\", function () {\r",
+                                    "    pm.expect(pm.response.text()).to.eql(\"{\\\"orderId\\\": 1, \\\"orderName\\\": \\\"Order name 1\\\"}\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/orders",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "orders"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"orderId\": 1, \"orderName\": \"Order name 1\"}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QubershipHandleHttpRequest orders: Parameters to Attributes",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 200\", function () {\r",
+                                    "    pm.response.to.have.status(200);\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Request is handled by the orders processor\", function () {\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Handler\"), \"X-Handler\").to.eql(\"orders\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Method\"), \"X-Request-Method\").to.eql(\"GET\");\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Request-Uri\"), \"X-Request-Uri\").to.eql(\"/orders/1\");\r",
+                                    "});\r",
+                                    "\r",
+                                    "pm.test(\"Query parameter id is output as the http.param.id attribute\", function () {\r",
+                                    "    pm.expect(pm.response.headers.get(\"X-Param-Id\"), \"X-Param-Id\").to.eql(\"42\");\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/orders/1?id=42",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "orders",
+                                "1"
+                            ],
+                            "query": [
+                                {
+                                    "key": "id",
+                                    "value": "42"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QubershipHttpRouterService: path with no processor",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 404\", function () {\r",
+                                    "    pm.response.to.have.status(404);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/unknown/1",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "unknown",
+                                "1"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "QubershipHttpRouterService: method not allowed",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status code is 405\", function () {\r",
+                                    "    pm.response.to.have.status(405);\r",
+                                    "});"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{nifi.http-router-test.url}}/orders/1",
+                            "host": [
+                                "{{nifi.http-router-test.url}}"
+                            ],
+                            "path": [
+                                "orders",
+                                "1"
                             ]
                         }
                     },
