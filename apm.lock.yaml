@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-09-28T18:21:02.297673+00:00'
+generated_at: '2026-10-14T14:48:44.085384+00:00'
 apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
@@ -54,7 +54,7 @@ dependencies:
     .agents/skills/nifi-custom-component-developer-skill/references/naming.md: sha256:503047b7ef3f01e1653b89c0c81cdbfc6e2b5ff2d81dcb26f3f0f123917005d3
     .agents/skills/nifi-custom-component-developer-skill/references/variable-initialization.md: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
     .agents/skills/nifi-flow-builder/SKILL.md: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
-    .agents/skills/nifi-flow-builder/references/flow-json.md: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+    .agents/skills/nifi-flow-builder/references/flow-json.md: sha256:b8905f61f42e8b3839b151537ac527b4b18350e3079c16571338039c350ca0aa
     .agents/skills/nifi-flow-builder/references/qubership-nifi.md: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
     .agents/skills/nifi-flow-builder/scripts/kb.py: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
     .agents/skills/nifi-flow-builder/scripts/verify_live.py: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
@@ -71,7 +71,7 @@ dependencies:
     .claude/skills/nifi-custom-component-developer-skill/references/naming.md: sha256:503047b7ef3f01e1653b89c0c81cdbfc6e2b5ff2d81dcb26f3f0f123917005d3
     .claude/skills/nifi-custom-component-developer-skill/references/variable-initialization.md: sha256:4fa360caea7ba306cbc624042432429dbdc2d3df396e08cdda58b9dee30502d2
     .claude/skills/nifi-flow-builder/SKILL.md: sha256:be9f30b0ec89ff22760b797129798ed1ba83c59035bbedbe748b2455c6b7fc3c
-    .claude/skills/nifi-flow-builder/references/flow-json.md: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+    .claude/skills/nifi-flow-builder/references/flow-json.md: sha256:b8905f61f42e8b3839b151537ac527b4b18350e3079c16571338039c350ca0aa
     .claude/skills/nifi-flow-builder/references/qubership-nifi.md: sha256:f554e0723a56fca740df4f3afeb92d91e3b4012fb6ce963f1f39759639f90d96
     .claude/skills/nifi-flow-builder/scripts/kb.py: sha256:a2bda9a6b3b1dd80c24d2fd7e504ab278c20cf26fa57f53cfcaec8d18f6d26ce
     .claude/skills/nifi-flow-builder/scripts/verify_live.py: sha256:d78fce6130bbca53cff7f9ed4598cf8fb68f25815a8782508693cb04ec8db282
@@ -145,6 +145,36 @@ dependencies:
     .cursor/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
   source: local
   local_path: ./agent-packages/qubership-nifi-linters
+- repo_url: _local/qubership-nifi-troubleshooting
+  name: qubership-nifi-troubleshooting
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/nifi-troubleshooting
+  - .agents/skills/nifi-troubleshooting/SKILL.md
+  - .agents/skills/nifi-troubleshooting/references/evidence-collection.md
+  - .agents/skills/nifi-troubleshooting/references/repositories.md
+  - .agents/skills/nifi-troubleshooting/references/startup-failures.md
+  - .claude/rules/nifi-troubleshooting.md
+  - .claude/skills/nifi-troubleshooting
+  - .claude/skills/nifi-troubleshooting/SKILL.md
+  - .claude/skills/nifi-troubleshooting/references/evidence-collection.md
+  - .claude/skills/nifi-troubleshooting/references/repositories.md
+  - .claude/skills/nifi-troubleshooting/references/startup-failures.md
+  - .cursor/rules/nifi-troubleshooting.mdc
+  deployed_file_hashes:
+    .agents/skills/nifi-troubleshooting/SKILL.md: sha256:b079be7a1bd44f3b1653c398ca80211e4b7401bfc6bb684a695326f2cd3220ca
+    .agents/skills/nifi-troubleshooting/references/evidence-collection.md: sha256:7ed78cacdf603306ee8713500434abff215f23a342c2c946746bc813a9639002
+    .agents/skills/nifi-troubleshooting/references/repositories.md: sha256:a9b860fea26165a8a9ee1aa3f37afbfcecff3665a52e125cfebc161ceb6973c4
+    .agents/skills/nifi-troubleshooting/references/startup-failures.md: sha256:e068b789e694164fd5f58a4075cf9f0740b354a6a687031695a7ae8465f01601
+    .claude/rules/nifi-troubleshooting.md: sha256:deb38cb34e0c76804079f42c14060dd3794e581c31d0c82abda5c599f8f6df55
+    .claude/skills/nifi-troubleshooting/SKILL.md: sha256:b079be7a1bd44f3b1653c398ca80211e4b7401bfc6bb684a695326f2cd3220ca
+    .claude/skills/nifi-troubleshooting/references/evidence-collection.md: sha256:7ed78cacdf603306ee8713500434abff215f23a342c2c946746bc813a9639002
+    .claude/skills/nifi-troubleshooting/references/repositories.md: sha256:a9b860fea26165a8a9ee1aa3f37afbfcecff3665a52e125cfebc161ceb6973c4
+    .claude/skills/nifi-troubleshooting/references/startup-failures.md: sha256:e068b789e694164fd5f58a4075cf9f0740b354a6a687031695a7ae8465f01601
+    .cursor/rules/nifi-troubleshooting.mdc: sha256:9943d2902d0de47d4d26f4085f0f479047b114cb6f577b9f7a2f9e7ca7f2597f
+  source: local
+  local_path: ./agent-packages/qubership-nifi-troubleshooting
 - repo_url: netcracker/qubership-ai-packages
   name: final-review
   host: github.com
@@ -196,9 +226,9 @@ dependencies:
 - repo_url: netcracker/qubership-ai-packages
   name: qubership-repo-essentials
   host: github.com
-  resolved_commit: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  resolved_ref: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  version: 1.3.1
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  version: 1.4.0
   virtual_path: agent-packages/qubership-repo-essentials
   is_virtual: true
   package_type: apm_package
@@ -208,13 +238,13 @@ dependencies:
   deployed_file_hashes:
     .claude/rules/qubership-repo-essentials.md: sha256:bc99c3336458e72fc25786fc2d56588a98c351465e456c6b0507e703bcb3ea79
     .cursor/rules/qubership-repo-essentials.mdc: sha256:caeb3abf7efd34b525527134c1cab9db55108061d60d0f756123c7dfcd17a522
-  content_hash: sha256:c7a10e53910971c359c13757b0445d493a61be0545e2b04550c556068d3f5a28
+  content_hash: sha256:75e779479a8c6b43d1c7179f99116050e6deced7a89bb365ab37fb4032b60c04
 - repo_url: netcracker/qubership-ai-packages
   name: test-authoring
   host: github.com
-  resolved_commit: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  resolved_ref: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  version: 1.0.0
+  resolved_commit: f35ad41ca673086fd76d353fcf8246c9a9e54fcd
+  resolved_ref: f35ad41ca673086fd76d353fcf8246c9a9e54fcd
+  version: 1.1.1
   virtual_path: agent-packages/test-authoring
   is_virtual: true
   package_type: apm_package
@@ -262,52 +292,52 @@ dependencies:
   - .claude/skills/test-authoring/references/rust/libtest.md
   - .cursor/rules/test-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/test-authoring/SKILL.md: sha256:fad69497976c1c52fd6122ffdecab20701e36f8b3d2ec48ca1f67d88bdfd19e7
+    .agents/skills/test-authoring/SKILL.md: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
     .agents/skills/test-authoring/references/go/testify.md: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-    .agents/skills/test-authoring/references/go/testing.md: sha256:d0bb5b5d34d0f242827187c3d55b706a4dc2424f2a45501e81e7628cdc85e094
+    .agents/skills/test-authoring/references/go/testing.md: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
     .agents/skills/test-authoring/references/java/archunit.md: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
     .agents/skills/test-authoring/references/java/assertj.md: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
     .agents/skills/test-authoring/references/java/hamcrest.md: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
     .agents/skills/test-authoring/references/java/jetcheck.md: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-    .agents/skills/test-authoring/references/java/junit4-assert.md: sha256:0fdeef0f058c7d1210e1860b41665333a562ef61804cea59b6216738a15869ec
-    .agents/skills/test-authoring/references/java/junit4.md: sha256:c10734ba7bf5099c254f5166dee6e5754c44c6148240f25c76ed72bb3875eee9
+    .agents/skills/test-authoring/references/java/junit4-assert.md: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
+    .agents/skills/test-authoring/references/java/junit4.md: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
     .agents/skills/test-authoring/references/java/junit5-assertions.md: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-    .agents/skills/test-authoring/references/java/junit5.md: sha256:55ff4de069e6335778caa2fec26c17c1e2d71032f6f402c03df7d2d55c87d29d
+    .agents/skills/test-authoring/references/java/junit5.md: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
     .agents/skills/test-authoring/references/java/mockito.md: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
     .agents/skills/test-authoring/references/java/truth.md: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-    .agents/skills/test-authoring/references/javascript/jest.md: sha256:65161ab4ea060f137d050089eeae2f297e16c836b4603636dbe13e2d50b66682
-    .agents/skills/test-authoring/references/javascript/node-test.md: sha256:5043ce05612d8465fa03a19ca7809a891967dfa5ba07b11658c60eef94bbe3ee
-    .agents/skills/test-authoring/references/javascript/vitest.md: sha256:55a96a681cc79b1189b88251ff8c9a782b845334fa420bb54458c09c422e36f1
+    .agents/skills/test-authoring/references/javascript/jest.md: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
+    .agents/skills/test-authoring/references/javascript/node-test.md: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
+    .agents/skills/test-authoring/references/javascript/vitest.md: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
     .agents/skills/test-authoring/references/mutation-tools.md: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-    .agents/skills/test-authoring/references/python/pytest.md: sha256:c7ed05883378ae6c032a30d22cf04b876016f04defdaa2a8abfd8c91441cb2dc
-    .agents/skills/test-authoring/references/rust/libtest.md: sha256:8369f05f54bf0e1f88ea6f80058007451344d11400fc7b59ca015d215e5e6a8a
+    .agents/skills/test-authoring/references/python/pytest.md: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
+    .agents/skills/test-authoring/references/rust/libtest.md: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
     .claude/rules/test-authoring.md: sha256:538d9f18993dd3fec2dd39216cf87ae2bed5af4d2197987422ebb133c5c513ab
-    .claude/skills/test-authoring/SKILL.md: sha256:fad69497976c1c52fd6122ffdecab20701e36f8b3d2ec48ca1f67d88bdfd19e7
+    .claude/skills/test-authoring/SKILL.md: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
     .claude/skills/test-authoring/references/go/testify.md: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-    .claude/skills/test-authoring/references/go/testing.md: sha256:d0bb5b5d34d0f242827187c3d55b706a4dc2424f2a45501e81e7628cdc85e094
+    .claude/skills/test-authoring/references/go/testing.md: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
     .claude/skills/test-authoring/references/java/archunit.md: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
     .claude/skills/test-authoring/references/java/assertj.md: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
     .claude/skills/test-authoring/references/java/hamcrest.md: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
     .claude/skills/test-authoring/references/java/jetcheck.md: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-    .claude/skills/test-authoring/references/java/junit4-assert.md: sha256:0fdeef0f058c7d1210e1860b41665333a562ef61804cea59b6216738a15869ec
-    .claude/skills/test-authoring/references/java/junit4.md: sha256:c10734ba7bf5099c254f5166dee6e5754c44c6148240f25c76ed72bb3875eee9
+    .claude/skills/test-authoring/references/java/junit4-assert.md: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
+    .claude/skills/test-authoring/references/java/junit4.md: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
     .claude/skills/test-authoring/references/java/junit5-assertions.md: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-    .claude/skills/test-authoring/references/java/junit5.md: sha256:55ff4de069e6335778caa2fec26c17c1e2d71032f6f402c03df7d2d55c87d29d
+    .claude/skills/test-authoring/references/java/junit5.md: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
     .claude/skills/test-authoring/references/java/mockito.md: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
     .claude/skills/test-authoring/references/java/truth.md: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-    .claude/skills/test-authoring/references/javascript/jest.md: sha256:65161ab4ea060f137d050089eeae2f297e16c836b4603636dbe13e2d50b66682
-    .claude/skills/test-authoring/references/javascript/node-test.md: sha256:5043ce05612d8465fa03a19ca7809a891967dfa5ba07b11658c60eef94bbe3ee
-    .claude/skills/test-authoring/references/javascript/vitest.md: sha256:55a96a681cc79b1189b88251ff8c9a782b845334fa420bb54458c09c422e36f1
+    .claude/skills/test-authoring/references/javascript/jest.md: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
+    .claude/skills/test-authoring/references/javascript/node-test.md: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
+    .claude/skills/test-authoring/references/javascript/vitest.md: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
     .claude/skills/test-authoring/references/mutation-tools.md: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-    .claude/skills/test-authoring/references/python/pytest.md: sha256:c7ed05883378ae6c032a30d22cf04b876016f04defdaa2a8abfd8c91441cb2dc
-    .claude/skills/test-authoring/references/rust/libtest.md: sha256:8369f05f54bf0e1f88ea6f80058007451344d11400fc7b59ca015d215e5e6a8a
+    .claude/skills/test-authoring/references/python/pytest.md: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
+    .claude/skills/test-authoring/references/rust/libtest.md: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
     .cursor/rules/test-authoring.mdc: sha256:5ca9935a6086739f6d1d89ece2810efc9116b1a597d7f3eaec70f394f8c2f490
-  content_hash: sha256:35d01c4dee15491765076b9f813de4d86e254aebe0ecfd0dd70177d28fd9e70d
+  content_hash: sha256:a8ae203f485f7c7efb346b8b6d2c3f451e1cbf21bfb9bbec01fde57f77e635ce
 - repo_url: netcracker/qubership-ai-packages
   name: apm-authoring
   host: github.com
-  resolved_commit: 2925e6e57848f10e27f98956b89284c1212e6c98
-  resolved_ref: 2925e6e57848f10e27f98956b89284c1212e6c98
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
   version: 1.0.0
   virtual_path: agent-packages/apm-authoring
   is_virtual: true
@@ -330,8 +360,8 @@ dependencies:
 - repo_url: netcracker/qubership-ai-packages
   name: change-description-authoring
   host: github.com
-  resolved_commit: 2925e6e57848f10e27f98956b89284c1212e6c98
-  resolved_ref: 2925e6e57848f10e27f98956b89284c1212e6c98
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
   version: 1.0.0
   virtual_path: agent-packages/change-description-authoring
   is_virtual: true
@@ -354,8 +384,8 @@ dependencies:
 - repo_url: netcracker/qubership-ai-packages
   name: docs-page-authoring
   host: github.com
-  resolved_commit: 2925e6e57848f10e27f98956b89284c1212e6c98
-  resolved_ref: 2925e6e57848f10e27f98956b89284c1212e6c98
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
   version: 1.0.0
   virtual_path: agent-packages/docs-page-authoring
   is_virtual: true
@@ -378,8 +408,8 @@ dependencies:
 - repo_url: netcracker/qubership-ai-packages
   name: english-us-developer-style
   host: github.com
-  resolved_commit: 2925e6e57848f10e27f98956b89284c1212e6c98
-  resolved_ref: 2925e6e57848f10e27f98956b89284c1212e6c98
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
   version: 2.1.0
   virtual_path: agent-packages/english-us-developer-style
   is_virtual: true
@@ -402,8 +432,8 @@ dependencies:
 - repo_url: netcracker/qubership-ai-packages
   name: markdown-line-length-120
   host: github.com
-  resolved_commit: 2925e6e57848f10e27f98956b89284c1212e6c98
-  resolved_ref: 2925e6e57848f10e27f98956b89284c1212e6c98
+  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
   version: 1.0.1
   virtual_path: agent-packages/markdown-line-length-120
   is_virtual: true
@@ -615,6 +645,15 @@ deployments:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
   content_hash: sha256:7b5e5335ffd7b4454300591d9c0d668d5cad5c3262ada768bd3e356fe7ac6db7
+- kind: project-relative
+  target: claude
+  value: .claude/rules/nifi-troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:deb38cb34e0c76804079f42c14060dd3794e581c31d0c82abda5c599f8f6df55
 - kind: project-relative
   target: claude
   value: .claude/rules/qubership-repo-essentials.md
@@ -884,7 +923,7 @@ deployments:
   owners:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
-  content_hash: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+  content_hash: sha256:b8905f61f42e8b3839b151537ac527b4b18350e3079c16571338039c350ca0aa
 - kind: project-relative
   target: claude
   value: .claude/skills/nifi-flow-builder/references/qubership-nifi.md
@@ -948,6 +987,51 @@ deployments:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
   content_hash: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:b079be7a1bd44f3b1653c398ca80211e4b7401bfc6bb684a695326f2cd3220ca
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/evidence-collection.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:7ed78cacdf603306ee8713500434abff215f23a342c2c946746bc813a9639002
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/repositories.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:a9b860fea26165a8a9ee1aa3f37afbfcecff3665a52e125cfebc161ceb6973c4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/nifi-troubleshooting/references/startup-failures.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:e068b789e694164fd5f58a4075cf9f0740b354a6a687031695a7ae8465f01601
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-actions-guide
@@ -1145,7 +1229,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:fad69497976c1c52fd6122ffdecab20701e36f8b3d2ec48ca1f67d88bdfd19e7
+  content_hash: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/go/testify.md
@@ -1163,7 +1247,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:d0bb5b5d34d0f242827187c3d55b706a4dc2424f2a45501e81e7628cdc85e094
+  content_hash: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/java/archunit.md
@@ -1208,7 +1292,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:0fdeef0f058c7d1210e1860b41665333a562ef61804cea59b6216738a15869ec
+  content_hash: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/java/junit4.md
@@ -1217,7 +1301,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:c10734ba7bf5099c254f5166dee6e5754c44c6148240f25c76ed72bb3875eee9
+  content_hash: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/java/junit5-assertions.md
@@ -1235,7 +1319,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:55ff4de069e6335778caa2fec26c17c1e2d71032f6f402c03df7d2d55c87d29d
+  content_hash: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/java/mockito.md
@@ -1262,7 +1346,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:65161ab4ea060f137d050089eeae2f297e16c836b4603636dbe13e2d50b66682
+  content_hash: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/javascript/node-test.md
@@ -1271,7 +1355,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:5043ce05612d8465fa03a19ca7809a891967dfa5ba07b11658c60eef94bbe3ee
+  content_hash: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/javascript/vitest.md
@@ -1280,7 +1364,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:55a96a681cc79b1189b88251ff8c9a782b845334fa420bb54458c09c422e36f1
+  content_hash: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/mutation-tools.md
@@ -1298,7 +1382,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:c7ed05883378ae6c032a30d22cf04b876016f04defdaa2a8abfd8c91441cb2dc
+  content_hash: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
 - kind: project-relative
   target: claude
   value: .claude/skills/test-authoring/references/rust/libtest.md
@@ -1307,7 +1391,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8369f05f54bf0e1f88ea6f80058007451344d11400fc7b59ca015d215e5e6a8a
+  content_hash: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
 - kind: project-relative
   target: claude
   value: .claude/skills/update-project-documentation
@@ -1559,7 +1643,7 @@ deployments:
   owners:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
-  content_hash: sha256:c92c8458a923ff134c3a14c44c0b5050938c4056c862f44dc6b68e457aea3eda
+  content_hash: sha256:b8905f61f42e8b3839b151537ac527b4b18350e3079c16571338039c350ca0aa
 - kind: project-relative
   target: codex
   value: .agents/skills/nifi-flow-builder/references/qubership-nifi.md
@@ -1623,6 +1707,51 @@ deployments:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
   content_hash: sha256:5ea3e318e6f6d6ec0c58943ad9d49af0a7aae281f372d43537d25146f0cad914
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: null
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:b079be7a1bd44f3b1653c398ca80211e4b7401bfc6bb684a695326f2cd3220ca
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/evidence-collection.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:7ed78cacdf603306ee8713500434abff215f23a342c2c946746bc813a9639002
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/repositories.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:a9b860fea26165a8a9ee1aa3f37afbfcecff3665a52e125cfebc161ceb6973c4
+- kind: project-relative
+  target: codex
+  value: .agents/skills/nifi-troubleshooting/references/startup-failures.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:e068b789e694164fd5f58a4075cf9f0740b354a6a687031695a7ae8465f01601
 - kind: project-relative
   target: codex
   value: .agents/skills/qubership-actions-guide
@@ -1820,7 +1949,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:fad69497976c1c52fd6122ffdecab20701e36f8b3d2ec48ca1f67d88bdfd19e7
+  content_hash: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/go/testify.md
@@ -1838,7 +1967,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:d0bb5b5d34d0f242827187c3d55b706a4dc2424f2a45501e81e7628cdc85e094
+  content_hash: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/java/archunit.md
@@ -1883,7 +2012,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:0fdeef0f058c7d1210e1860b41665333a562ef61804cea59b6216738a15869ec
+  content_hash: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/java/junit4.md
@@ -1892,7 +2021,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:c10734ba7bf5099c254f5166dee6e5754c44c6148240f25c76ed72bb3875eee9
+  content_hash: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/java/junit5-assertions.md
@@ -1910,7 +2039,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:55ff4de069e6335778caa2fec26c17c1e2d71032f6f402c03df7d2d55c87d29d
+  content_hash: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/java/mockito.md
@@ -1937,7 +2066,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:65161ab4ea060f137d050089eeae2f297e16c836b4603636dbe13e2d50b66682
+  content_hash: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/javascript/node-test.md
@@ -1946,7 +2075,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:5043ce05612d8465fa03a19ca7809a891967dfa5ba07b11658c60eef94bbe3ee
+  content_hash: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/javascript/vitest.md
@@ -1955,7 +2084,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:55a96a681cc79b1189b88251ff8c9a782b845334fa420bb54458c09c422e36f1
+  content_hash: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/mutation-tools.md
@@ -1973,7 +2102,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:c7ed05883378ae6c032a30d22cf04b876016f04defdaa2a8abfd8c91441cb2dc
+  content_hash: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
 - kind: project-relative
   target: codex
   value: .agents/skills/test-authoring/references/rust/libtest.md
@@ -1982,7 +2111,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/test-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8369f05f54bf0e1f88ea6f80058007451344d11400fc7b59ca015d215e5e6a8a
+  content_hash: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
 - kind: project-relative
   target: codex
   value: .agents/skills/update-project-documentation
@@ -2118,6 +2247,15 @@ deployments:
   - ./agent-packages/nifi-development-kit
   active_owner: ./agent-packages/nifi-development-kit
   content_hash: sha256:bc68cccc67c39cfe22091a866d805c9bf55999271fa39d6f388a414f217bbadc
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/nifi-troubleshooting.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/qubership-nifi-troubleshooting
+  active_owner: ./agent-packages/qubership-nifi-troubleshooting
+  content_hash: sha256:9943d2902d0de47d4d26f4085f0f479047b114cb6f577b9f7a2f9e7ca7f2597f
 - kind: project-relative
   target: cursor
   value: .cursor/rules/qubership-repo-essentials.mdc

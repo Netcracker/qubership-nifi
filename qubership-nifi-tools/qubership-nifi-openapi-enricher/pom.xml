@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.qubership.nifi</groupId>
         <artifactId>qubership-nifi-tools</artifactId>
-        <version>2.9.1-SNAPSHOT</version>
+        <version>2.9.2-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -83,7 +83,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.6.4</version>
                 <dependencies>
                     <!--By default, project's WAR dependency is ignored by exec-maven-plugin-->
                     <!--this explicit dependency and includePluginDependencies are needed to include WAR in classpath-->

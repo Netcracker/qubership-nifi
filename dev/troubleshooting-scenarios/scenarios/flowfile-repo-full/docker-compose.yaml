@@ -1,0 +1,6 @@
+---
+# Puts the FlowFile repository on a size-limited tmpfs, so that the attributes of queued FlowFiles can fill it.
+services:
+  nifi:
+    tmpfs:
+      - /opt/nifi/nifi-current/flowfile_repository:size=${FLOWFILE_REPO_SIZE:-64m},uid=10001,gid=0,mode=0775

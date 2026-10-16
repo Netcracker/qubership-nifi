@@ -1,0 +1,4 @@
+name: qubership-nifi-troubleshooting
+version: 1.0.0
+description: Diagnoses a qubership-nifi instance that fails to start, restarts, hangs, or degrades at runtime, from its logs or a described symptom.
+author: Qubership

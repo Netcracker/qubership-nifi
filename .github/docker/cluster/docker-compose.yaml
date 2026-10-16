@@ -27,7 +27,7 @@ services:
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - IS_CLUSTER=true
   zookeeper:
-    image: zookeeper:3.9.5@sha256:f258365d4882440a55dbedf8ee379152ed0be8006cc3641b81e6c1c1745c976b
+    image: zookeeper:3.9.6@sha256:d0ae1665a1e85022261dc05a10e030c83895060401cd5c1bf990ed6b4d38c31b
     ports:
       - 127.0.0.1:2181:2181
     hostname: zookeeper
@@ -240,7 +240,7 @@ services:
       timeout: 3s
       retries: 12
   keycloak:
-    image: keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    image: keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
     hostname: keycloak
     restart: on-failure:3
     depends_on:
@@ -281,7 +281,7 @@ services:
       retries: 24
       start_period: 15s
   postgresql:
-    image: postgres:16.15@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+    image: postgres:16.15@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
     ports:
       - "127.0.0.1:5430:5432"
     volumes:

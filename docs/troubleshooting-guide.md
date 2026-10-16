@@ -1,14 +1,15 @@
 # Troubleshooting Guide
 
 Common qubership-nifi startup failures, with the log output each one produces and the steps that fix it. Match the
-container exit code against the summary table to find the relevant section.
+container exit code against the summary table to find the relevant section. A startup that hangs has no exit code;
+see [Invalid Consul URL](#2-invalid-consul-url).
 
 ## Summary
 
 | Error type | Exit code | Description | Details |
 | --- | --- | --- | --- |
 | Invalid JVM arguments | 3 | Conflicting garbage collector arguments in `NIFI_ADDITIONAL_JVM_ARGS`/`X_JAVA_ARGS`. | [Invalid JVM arguments](#1-invalid-jvm-arguments) |
-| Invalid Consul URL | 1 | `CONSUL_URL` is incorrect or Consul is unreachable, so the Consul integration application terminates prematurely. | [Invalid Consul URL](#2-invalid-consul-url) |
+| Invalid Consul URL | 1, or none when the startup hangs | `CONSUL_URL` is incorrect or Consul is unreachable, so the Consul integration application terminates prematurely, or waits for a Consul that does not respond. | [Invalid Consul URL](#2-invalid-consul-url) |
 | Invalid NIFI_NEW_SENSITIVE_KEY | 3 | The sensitive key does not match the key used on the previous startup. | [Invalid NIFI_NEW_SENSITIVE_KEY](#3-invalid-nifi_new_sensitive_key) |
 | Invalid flow.json.gz | 1 | The persisted NiFi flow configuration (`flow.json.gz`) is corrupted and cannot be parsed. | [Invalid flow.json.gz](#4-invalid-flowjsongz) |
 | Invalid certificate | 1 (Symptom A only) | Keystore/truststore configuration is incorrect, for example a wrong password, or a missing or incomplete truststore. | [Invalid certificate](#5-invalid-certificate) |
@@ -77,9 +78,19 @@ on `NIFI_CONSUL_INT_FRAMEWORK`:
   [...] ERROR: Consul app java process has terminated prematurely. See logs for details...
   ```
 
-- With `NIFI_CONSUL_INT_FRAMEWORK=quarkus` (the default), the Quarkus-based application logs a different error
-  format. The underlying issue is the same: it cannot connect to the address in `CONSUL_URL`, so the process
-  terminates prematurely.
+- With `NIFI_CONSUL_INT_FRAMEWORK=quarkus` (the default), the Quarkus-based application logs a stack trace similar
+  to this one, for a host that does not resolve:
+
+  ```text
+  ERROR: Failed to start application
+  java.lang.RuntimeException: Failed to start quarkus
+  ...
+  Caused by: java.util.concurrent.CompletionException: java.net.ConnectException
+  ...
+  Caused by: java.net.ConnectException
+  ...
+  Caused by: java.nio.channels.UnresolvedAddressException
+  ```
 
 In both cases, the qubership-nifi startup log contains a line similar to:
 
@@ -89,11 +100,26 @@ In both cases, the qubership-nifi startup log contains a line similar to:
 
 The container exits with **exit code 1**.
 
+When Consul accepts the connection but does not respond, the startup hangs instead, with no error, whichever
+framework `NIFI_CONSUL_INT_FRAMEWORK` selects. The Consul integration application waits for the response, and the
+startup log repeats this line once a second:
+
+```text
+[...] Checking if consul app main execution completed
+```
+
+The startup continues if Consul responds later. No timeout was observed: in testing, the startup was still waiting
+after 2 minutes with `spring` and after 9 minutes with `quarkus`.
+
 ### Cause
 
 `CONSUL_URL` is incorrect, or the host and port it resolves to are unreachable. The Consul integration application
 cannot connect to Consul, so it terminates prematurely. This applies to both the Spring-based and the Quarkus-based
 application, selected by `NIFI_CONSUL_INT_FRAMEWORK`.
+
+A startup that hangs has a Consul that accepts the connection and does not respond, for example a stalled Consul
+agent or a network path that drops the responses. Both the Spring-based and the Quarkus-based application wait for the
+response.
 
 ### Resolution
 
@@ -102,7 +128,8 @@ application, selected by `NIFI_CONSUL_INT_FRAMEWORK`.
 2. Verify that the Consul host is reachable from the NiFi pod or container, checking DNS resolution and network
    policies.
 3. Verify that `CONSUL_ACL_TOKEN`, if used, matches the target Consul instance configuration.
-4. Restart NiFi after correcting `CONSUL_URL`.
+4. Restart NiFi after correcting `CONSUL_URL`. A startup that hangs continues by itself once Consul responds; restart
+   NiFi if it keeps waiting after Consul is available again.
 
 ## 3. Invalid NIFI_NEW_SENSITIVE_KEY
 
@@ -151,6 +178,22 @@ The exact exception message varies with the kind of corruption in the file.
 
 The container exits with **exit code 1**.
 
+From qubership-nifi 2.9.0, a one-time migration in the start scripts can meet the damaged file first. The start then
+stops before NiFi runs, with exit code 1 and one of these pairs of lines:
+
+```text
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json.sh] Error while replacing artifact and type in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to adapt components (JoltTransformJSON, the distributed cache services) to NiFi 2.x in flow.json.gz
+```
+
+```text
+[...] [ERROR] [...] [class=c.n.c.n.extensions.update_flow_json_ojdbc_location.sh] Error while searching for Oracle connection pools without driver location in flow.json.gz
+[...] [ERROR] [...] [class=c.n.c.n.extensions.start.sh] ERROR: failed to set the Oracle driver location in flow.json.gz
+```
+
+After the first pair, the flow can be left unpacked as `persistent_conf/conf/flow.json`, with no `flow.json.gz`. The
+next start then runs NiFi with a new, empty flow.
+
 ### Cause
 
 The persisted NiFi flow configuration (`flow.json.gz`) is corrupted or contains invalid JSON, so NiFi cannot parse it
@@ -164,10 +207,17 @@ describes the feature in full.
 
 1. Set the version to restore in the Consul parameter `nifi-restore-version`, located in
    `config/${NAMESPACE}/qubership-nifi`. Use the format `<timestamp>_flow.json.gz`. The available archived versions
-   are printed in the logs during service startup.
+   are printed in the logs during service startup. After a start with an empty flow, the newest archived version holds
+   that empty flow; pick the newest one that predates the damage.
 2. Restart the qubership-nifi container. On startup, the current corrupted configuration is moved to the archive and
    replaced with the specified archived version. The `nifi-restore-version` parameter is then cleared in Consul
    automatically.
+3. Only if the start after the restore logs
+   `gzip: can't open '/opt/nifi/nifi-current/persistent_conf/conf/flow.json': File exists` and fails, delete
+   `/opt/nifi/nifi-current/persistent_conf/conf/flow.json`. A failed migration left this file behind, and while it is
+   there, the migration of the restored flow fails on every start. Delete it during the 15 seconds the start script
+   waits after its error, or from a temporary pod that mounts the same persistent volume. The restored flow stays in
+   place, so the next start needs no new `nifi-restore-version`.
 
 ## 5. Invalid certificate
 
