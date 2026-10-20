@@ -185,6 +185,14 @@
     },
     {
       "description": [
+        "micrometer-registry-prometheus 1.13 moves to Prometheus client 1.x, which changes metric names and the registry API, so it stays on 1.12.x until the migration is done by hand."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["io.micrometer:micrometer-registry-prometheus"],
+      "allowedVersions": "<1.13"
+    },
+    {
+      "description": [
         "Majors of third-party images in the test compose files can change data formats and configuration, so they are upgraded by hand."
       ],
       "matchManagers": ["docker-compose"],
@@ -238,6 +246,11 @@
         "matchPackageNames": ["ghcr.io/netcracker/qubership-nifi-registry"],
         "matchFileNames": [".github/docker/**"],
         "enabled": false
+      },
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": ["io.micrometer:micrometer-registry-prometheus"],
+        "allowedVersions": "<1.13"
       }
     ]
   }
