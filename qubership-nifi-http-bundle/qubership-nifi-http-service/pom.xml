@@ -34,6 +34,7 @@
             <groupId>org.qubership.nifi</groupId>
             <artifactId>qubership-nifi-http-service-api</artifactId>
             <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -16,11 +16,13 @@
 
 package org.qubership.nifi.service.http;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -28,6 +30,9 @@ import java.util.regex.Pattern;
  *
  * <p>A closed registration accepts no more requests, so a request offered while the processor unregisters is either
  * returned by close or refused by offer, and none is left in the queue unanswered.
+ *
+ * <p>A request that has waited in the queue longer than the queue timeout is expired: poll does not return it, and
+ * removeExpired takes it out of the queue. Each expired request is handed to the caller, which has to answer it.
  */
 final class ProcessorRegistration {
 
@@ -52,14 +57,16 @@ final class ProcessorRegistration {
     private final String processorId;
     private final Pattern paths;
     private final Set<String> methods;
-    private final BlockingQueue<HttpRequestContainer> queue;
+    private final long queueTimeoutNanos;
+    private final BlockingQueue<QueuedRequest> queue;
     private boolean closed;
 
     ProcessorRegistration(final String id, final Pattern pathPattern, final Set<String> allowedMethods,
-            final int queueSize) {
+            final int queueSize, final Duration queueTimeout) {
         this.processorId = id;
         this.paths = pathPattern;
         this.methods = allowedMethods;
+        this.queueTimeoutNanos = queueTimeout.toNanos();
         this.queue = new LinkedBlockingQueue<>(queueSize);
     }
 
@@ -83,11 +90,56 @@ final class ProcessorRegistration {
         if (closed) {
             return OfferResult.CLOSED;
         }
-        return queue.offer(container) ? OfferResult.QUEUED : OfferResult.QUEUE_FULL;
+        return queue.offer(new QueuedRequest(container, System.nanoTime()))
+                ? OfferResult.QUEUED : OfferResult.QUEUE_FULL;
     }
 
-    HttpRequestContainer poll() {
-        return queue.poll();
+    /**
+     * Takes the next request that has not expired from the queue, waiting up to the given time for one to arrive.
+     *
+     * @param timeout how long to wait for a request; zero or less returns at once
+     * @param unit unit of timeout
+     * @param expired list that receives the expired requests taken from the queue on the way
+     * @return the next request that has not expired, or null if none arrives within the timeout
+     * @throws InterruptedException if the calling thread is interrupted while it waits
+     */
+    HttpRequestContainer poll(final long timeout, final TimeUnit unit, final List<HttpRequestContainer> expired)
+            throws InterruptedException {
+        final long deadline = System.nanoTime() + unit.toNanos(timeout);
+        while (true) {
+            final QueuedRequest queued = queue.poll(deadline - System.nanoTime(), TimeUnit.NANOSECONDS);
+            if (queued == null) {
+                return null;
+            }
+            if (!isExpired(queued, System.nanoTime())) {
+                return queued.container();
+            }
+            expired.add(queued.container());
+        }
+    }
+
+    /**
+     * Removes the expired requests from the queue.
+     *
+     * @param nowNanos current value of System.nanoTime
+     * @return the removed requests, which the caller has to answer
+     */
+    List<HttpRequestContainer> removeExpired(final long nowNanos) {
+        final List<HttpRequestContainer> expired = new ArrayList<>();
+        // Requests are queued in the order they arrive, so the first request that has not expired ends the search.
+        for (final QueuedRequest queued : queue) {
+            if (!isExpired(queued, nowNanos)) {
+                break;
+            }
+            if (queue.remove(queued)) {
+                expired.add(queued.container());
+            }
+        }
+        return expired;
+    }
+
+    private boolean isExpired(final QueuedRequest queued, final long nowNanos) {
+        return nowNanos - queued.queuedNanos() > queueTimeoutNanos;
     }
 
     /**
@@ -97,8 +149,17 @@ final class ProcessorRegistration {
      */
     synchronized List<HttpRequestContainer> close() {
         closed = true;
-        final List<HttpRequestContainer> pending = new ArrayList<>();
+        final List<QueuedRequest> pending = new ArrayList<>();
         queue.drainTo(pending);
-        return pending;
+        return pending.stream().map(QueuedRequest::container).toList();
+    }
+
+    /**
+     * Request in the queue, with the System.nanoTime value at which it was queued.
+     *
+     * @param container the request
+     * @param queuedNanos System.nanoTime when the request was queued
+     */
+    private record QueuedRequest(HttpRequestContainer container, long queuedNanos) {
     }
 }

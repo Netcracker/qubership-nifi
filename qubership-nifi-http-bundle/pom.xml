@@ -36,6 +36,7 @@
 
     <modules>
         <module>qubership-nifi-http-service-api</module>
+        <module>qubership-nifi-http-service-api-nar</module>
         <module>qubership-nifi-http-service</module>
         <module>qubership-nifi-http-service-nar</module>
         <module>qubership-nifi-http-processors</module>

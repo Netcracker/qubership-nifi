@@ -39,18 +39,18 @@
                         "properties": {
                             "http-router-service": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
                             "request-path": "/orders(/.*)?",
-                            "HTTP Context Map": "c32706e5-6cb1-326d-8595-0e55899848a2",
-                            "Container Queue Size": "50",
-                            "Allow GET": "true",
-                            "Allow POST": "true",
-                            "Allow PUT": "true",
-                            "Allow DELETE": "true",
-                            "Allow HEAD": "false",
-                            "Allow OPTIONS": "false",
-                            "Additional HTTP Methods": null,
-                            "Parameters to Attributes": "id",
-                            "Multipart Request Max Size": "1 MB",
-                            "Multipart Read Buffer Size": "512 KB"
+                            "http-context-map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "container-queue-size": "50",
+                            "allow-get": "true",
+                            "allow-post": "true",
+                            "allow-put": "true",
+                            "allow-delete": "true",
+                            "allow-head": "false",
+                            "allow-options": "false",
+                            "additional-http-methods": null,
+                            "parameters-to-attributes": "id",
+                            "multipart-request-max-size": "1 MB",
+                            "multipart-read-buffer-size": "512 KB"
                         },
                         "propertyDescriptors": {
                             "http-router-service": {
@@ -67,85 +67,85 @@
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "HTTP Context Map": {
-                                "name": "HTTP Context Map",
+                            "http-context-map": {
+                                "name": "http-context-map",
                                 "displayName": "HTTP Context Map",
                                 "identifiesControllerService": true,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Container Queue Size": {
-                                "name": "Container Queue Size",
+                            "container-queue-size": {
+                                "name": "container-queue-size",
                                 "displayName": "Container Queue Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow GET": {
-                                "name": "Allow GET",
+                            "allow-get": {
+                                "name": "allow-get",
                                 "displayName": "Allow GET",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow POST": {
-                                "name": "Allow POST",
+                            "allow-post": {
+                                "name": "allow-post",
                                 "displayName": "Allow POST",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow PUT": {
-                                "name": "Allow PUT",
+                            "allow-put": {
+                                "name": "allow-put",
                                 "displayName": "Allow PUT",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow DELETE": {
-                                "name": "Allow DELETE",
+                            "allow-delete": {
+                                "name": "allow-delete",
                                 "displayName": "Allow DELETE",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow HEAD": {
-                                "name": "Allow HEAD",
+                            "allow-head": {
+                                "name": "allow-head",
                                 "displayName": "Allow HEAD",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow OPTIONS": {
-                                "name": "Allow OPTIONS",
+                            "allow-options": {
+                                "name": "allow-options",
                                 "displayName": "Allow OPTIONS",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Additional HTTP Methods": {
-                                "name": "Additional HTTP Methods",
+                            "additional-http-methods": {
+                                "name": "additional-http-methods",
                                 "displayName": "Additional HTTP Methods",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Parameters to Attributes": {
-                                "name": "Parameters to Attributes",
+                            "parameters-to-attributes": {
+                                "name": "parameters-to-attributes",
                                 "displayName": "Parameters to Attributes",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Multipart Request Max Size": {
-                                "name": "Multipart Request Max Size",
+                            "multipart-request-max-size": {
+                                "name": "multipart-request-max-size",
                                 "displayName": "Multipart Request Max Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Multipart Read Buffer Size": {
-                                "name": "Multipart Read Buffer Size",
+                            "multipart-read-buffer-size": {
+                                "name": "multipart-read-buffer-size",
                                 "displayName": "Multipart Read Buffer Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
@@ -153,7 +153,7 @@
                             }
                         },
                         "style": {},
-                        "schedulingPeriod": "50 millis",
+                        "schedulingPeriod": "0 sec",
                         "schedulingStrategy": "TIMER_DRIVEN",
                         "executionNode": "ALL",
                         "penaltyDuration": "30 sec",
@@ -188,18 +188,18 @@
                         "properties": {
                             "http-router-service": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
                             "request-path": "/users(/.*)?",
-                            "HTTP Context Map": "c32706e5-6cb1-326d-8595-0e55899848a2",
-                            "Container Queue Size": "50",
-                            "Allow GET": "true",
-                            "Allow POST": "true",
-                            "Allow PUT": "true",
-                            "Allow DELETE": "true",
-                            "Allow HEAD": "false",
-                            "Allow OPTIONS": "false",
-                            "Additional HTTP Methods": null,
-                            "Parameters to Attributes": null,
-                            "Multipart Request Max Size": "1 MB",
-                            "Multipart Read Buffer Size": "512 KB"
+                            "http-context-map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "container-queue-size": "50",
+                            "allow-get": "true",
+                            "allow-post": "true",
+                            "allow-put": "true",
+                            "allow-delete": "true",
+                            "allow-head": "false",
+                            "allow-options": "false",
+                            "additional-http-methods": null,
+                            "parameters-to-attributes": null,
+                            "multipart-request-max-size": "1 MB",
+                            "multipart-read-buffer-size": "512 KB"
                         },
                         "propertyDescriptors": {
                             "http-router-service": {
@@ -216,85 +216,85 @@
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "HTTP Context Map": {
-                                "name": "HTTP Context Map",
+                            "http-context-map": {
+                                "name": "http-context-map",
                                 "displayName": "HTTP Context Map",
                                 "identifiesControllerService": true,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Container Queue Size": {
-                                "name": "Container Queue Size",
+                            "container-queue-size": {
+                                "name": "container-queue-size",
                                 "displayName": "Container Queue Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow GET": {
-                                "name": "Allow GET",
+                            "allow-get": {
+                                "name": "allow-get",
                                 "displayName": "Allow GET",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow POST": {
-                                "name": "Allow POST",
+                            "allow-post": {
+                                "name": "allow-post",
                                 "displayName": "Allow POST",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow PUT": {
-                                "name": "Allow PUT",
+                            "allow-put": {
+                                "name": "allow-put",
                                 "displayName": "Allow PUT",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow DELETE": {
-                                "name": "Allow DELETE",
+                            "allow-delete": {
+                                "name": "allow-delete",
                                 "displayName": "Allow DELETE",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow HEAD": {
-                                "name": "Allow HEAD",
+                            "allow-head": {
+                                "name": "allow-head",
                                 "displayName": "Allow HEAD",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Allow OPTIONS": {
-                                "name": "Allow OPTIONS",
+                            "allow-options": {
+                                "name": "allow-options",
                                 "displayName": "Allow OPTIONS",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Additional HTTP Methods": {
-                                "name": "Additional HTTP Methods",
+                            "additional-http-methods": {
+                                "name": "additional-http-methods",
                                 "displayName": "Additional HTTP Methods",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Parameters to Attributes": {
-                                "name": "Parameters to Attributes",
+                            "parameters-to-attributes": {
+                                "name": "parameters-to-attributes",
                                 "displayName": "Parameters to Attributes",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Multipart Request Max Size": {
-                                "name": "Multipart Request Max Size",
+                            "multipart-request-max-size": {
+                                "name": "multipart-request-max-size",
                                 "displayName": "Multipart Request Max Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
                                 "dynamic": false
                             },
-                            "Multipart Read Buffer Size": {
-                                "name": "Multipart Read Buffer Size",
+                            "multipart-read-buffer-size": {
+                                "name": "multipart-read-buffer-size",
                                 "displayName": "Multipart Read Buffer Size",
                                 "identifiesControllerService": false,
                                 "sensitive": false,
@@ -302,7 +302,7 @@
                             }
                         },
                         "style": {},
-                        "schedulingPeriod": "50 millis",
+                        "schedulingPeriod": "0 sec",
                         "schedulingStrategy": "TIMER_DRIVEN",
                         "executionNode": "ALL",
                         "penaltyDuration": "30 sec",
@@ -8232,51 +8232,51 @@
                     "version": "2.2.1-SNAPSHOT"
                 },
                 "properties": {
-                    "Listening Port": "12982",
-                    "Hostname": null,
-                    "SSL Context Service": null,
-                    "HTTP Protocols": "HTTP_1_1",
-                    "Maximum Threads": "200",
-                    "Request Header Maximum Size": "8 KB"
+                    "listening-port": "12982",
+                    "hostname": null,
+                    "ssl-context-service": null,
+                    "http-protocols": "HTTP_1_1",
+                    "maximum-threads": "200",
+                    "request-header-maximum-size": "8 KB"
                 },
                 "propertyDescriptors": {
-                    "Listening Port": {
-                        "name": "Listening Port",
+                    "listening-port": {
+                        "name": "listening-port",
                         "displayName": "Listening Port",
                         "identifiesControllerService": false,
                         "sensitive": false,
                         "dynamic": false
                     },
-                    "Hostname": {
-                        "name": "Hostname",
+                    "hostname": {
+                        "name": "hostname",
                         "displayName": "Hostname",
                         "identifiesControllerService": false,
                         "sensitive": false,
                         "dynamic": false
                     },
-                    "SSL Context Service": {
-                        "name": "SSL Context Service",
+                    "ssl-context-service": {
+                        "name": "ssl-context-service",
                         "displayName": "SSL Context Service",
                         "identifiesControllerService": true,
                         "sensitive": false,
                         "dynamic": false
                     },
-                    "HTTP Protocols": {
-                        "name": "HTTP Protocols",
+                    "http-protocols": {
+                        "name": "http-protocols",
                         "displayName": "HTTP Protocols",
                         "identifiesControllerService": false,
                         "sensitive": false,
                         "dynamic": false
                     },
-                    "Maximum Threads": {
-                        "name": "Maximum Threads",
+                    "maximum-threads": {
+                        "name": "maximum-threads",
                         "displayName": "Maximum Threads",
                         "identifiesControllerService": false,
                         "sensitive": false,
                         "dynamic": false
                     },
-                    "Request Header Maximum Size": {
-                        "name": "Request Header Maximum Size",
+                    "request-header-maximum-size": {
+                        "name": "request-header-maximum-size",
                         "displayName": "Request Header Maximum Size",
                         "identifiesControllerService": false,
                         "sensitive": false,

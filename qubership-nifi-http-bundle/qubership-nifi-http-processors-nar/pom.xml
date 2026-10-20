@@ -37,7 +37,7 @@
     <dependencies>
         <dependency>
             <groupId>org.qubership.nifi</groupId>
-            <artifactId>qubership-nifi-http-service-nar</artifactId>
+            <artifactId>qubership-nifi-http-service-api-nar</artifactId>
             <version>${project.version}</version>
             <type>nar</type>
         </dependency>

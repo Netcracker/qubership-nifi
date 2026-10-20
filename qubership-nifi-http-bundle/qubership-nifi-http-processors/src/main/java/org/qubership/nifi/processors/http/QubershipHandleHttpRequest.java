@@ -28,7 +28,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
@@ -49,6 +49,8 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -63,22 +65,28 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static jakarta.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 
 /**
  * Creates a FlowFile for each HTTP request that an HttpRouterService routes to this processor.
  *
- * <p>The processor does not open a port. When scheduled, it registers its path pattern and allowed methods on the
- * router service, and on each trigger it takes one request from the queue the service fills for it. The body of the
- * request becomes the FlowFile content, and the request details become attributes with the same names that
- * HandleHttpRequest writes. A multipart/form-data request produces one FlowFile per part.
+ * <p>When scheduled, the processor registers its path pattern and allowed methods on the router service, and on each
+ * trigger it takes one request from the queue the service fills for it. The body of the request becomes the FlowFile
+ * content, and the request details become attributes with the same names that HandleHttpRequest writes. A
+ * multipart/form-data request produces one FlowFile per part.
  *
  * <p>Each request is registered on the HTTP Context Map under the identifier written to http.context.identifier,
  * so that HandleHttpResponse can answer it. The processor answers a request itself only when it cannot pass the
  * request on: with 400 when the body cannot be read, when the Content-Type header declares a charset that the
- * JVM does not support, or when the query string contains a malformed percent-encoded sequence, and with 503
- * when the HTTP Context Map refuses the registration. When unscheduled, the processor unregisters, and the router
- * service answers the requests still waiting in its queue with 503.
+ * JVM does not support, when the query string contains a malformed percent-encoded sequence, or when a
+ * multipart/form-data request has no parts; with 503 when the HTTP Context Map refuses the registration; and with
+ * 500 when an unexpected exception is thrown before the request is registered. When stopped, the processor
+ * unregisters, and the router service answers the requests still waiting in its queue with 503.
+ *
+ * <p>A request waits in the queue of the router service no longer than Request Queue Timeout; the service answers a
+ * request that waits longer with 503. The Request Expiration of the HTTP Context Map starts when the processor takes
+ * the request from the queue.
  *
  * <p>Query parameters are decoded with the character encoding of the request, or with UTF-8 when the request
  * declares none.
@@ -175,6 +183,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     static final String HTTP_PORT = "http.server.port";
 
     private static final String MIME_TYPE_MULTIPART_FORM_DATA = "multipart/form-data";
+    private static final long POLL_TIMEOUT_MILLIS = 2;
     private static final Pattern LIST_DELIMITER = Pattern.compile(",");
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
 
@@ -205,7 +214,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * HTTP Context Map property descriptor.
      */
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
-            .name("HTTP Context Map")
+            .name("http-context-map")
+            .displayName("HTTP Context Map")
             .description("The HTTP Context Map controller service that caches the request until the flow answers it")
             .required(true)
             .identifiesControllerService(HttpContextMap.class)
@@ -215,11 +225,26 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * Container Queue Size property descriptor.
      */
     public static final PropertyDescriptor CONTAINER_QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("Container Queue Size")
+            .name("container-queue-size")
+            .displayName("Container Queue Size")
             .description("The size of the queue the service fills with the requests routed to this processor")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("50")
+            .build();
+
+    /**
+     * Request Queue Timeout property descriptor.
+     */
+    public static final PropertyDescriptor REQUEST_QUEUE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("request-queue-timeout")
+            .displayName("Request Queue Timeout")
+            .description("The maximum time a request waits in the queue of this processor. The router service answers "
+                    + "a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP "
+                    + "Context Map starts when the processor takes the request from the queue")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 sec")
             .build();
 
     /**
@@ -256,7 +281,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * Additional HTTP Methods property descriptor.
      */
     public static final PropertyDescriptor ADDITIONAL_METHODS = new PropertyDescriptor.Builder()
-            .name("Additional HTTP Methods")
+            .name("additional-http-methods")
+            .displayName("Additional HTTP Methods")
             .description("A comma-separated list of non-standard HTTP methods the processor handles, in addition to "
                     + "the methods the Allow properties enable")
             .required(false)
@@ -267,7 +293,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * Parameters to Attributes property descriptor.
      */
     public static final PropertyDescriptor PARAMETERS_TO_ATTRIBUTES = new PropertyDescriptor.Builder()
-            .name("Parameters to Attributes")
+            .name("parameters-to-attributes")
+            .displayName("Parameters to Attributes")
             .description("A comma-separated list of query parameters or multipart/form-data fields to output as "
                     + "attributes. Fields of an application/x-www-form-urlencoded body are not output, because "
                     + "the body is written to the FlowFile content")
@@ -279,7 +306,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * Multipart Request Max Size property descriptor.
      */
     public static final PropertyDescriptor MULTIPART_REQUEST_MAX_SIZE = new PropertyDescriptor.Builder()
-            .name("Multipart Request Max Size")
+            .name("multipart-request-max-size")
+            .displayName("Multipart Request Max Size")
             .description("The maximum size of a request. Applies only to requests with Content-Type: "
                     + "multipart/form-data")
             .required(true)
@@ -291,7 +319,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * Multipart Read Buffer Size property descriptor.
      */
     public static final PropertyDescriptor MULTIPART_READ_BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("Multipart Read Buffer Size")
+            .name("multipart-read-buffer-size")
+            .displayName("Multipart Read Buffer Size")
             .description("The size at which the content of an incoming file is written to disk. Applies only to "
                     + "requests with Content-Type: multipart/form-data")
             .required(true)
@@ -312,6 +341,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             REQUEST_PATH,
             HTTP_CONTEXT_MAP,
             CONTAINER_QUEUE_SIZE,
+            REQUEST_QUEUE_TIMEOUT,
             ALLOW_GET,
             ALLOW_POST,
             ALLOW_PUT,
@@ -333,7 +363,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
 
     private static PropertyDescriptor allowMethod(final String method, final boolean allowedByDefault) {
         return new PropertyDescriptor.Builder()
-                .name("Allow " + method)
+                .name("allow-" + method.toLowerCase(Locale.ROOT))
+                .displayName("Allow " + method)
                 .description("Whether the processor handles " + method + " requests on its paths")
                 .required(true)
                 .allowableValues("true", "false")
@@ -354,8 +385,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     /**
      * Registers the path pattern and the allowed methods of this processor on the router service.
      *
-     * <p>The request queue gets the size of Container Queue Size, and the service keeps its connections open at
-     * least as long as the Request Expiration of the HTTP Context Map.
+     * <p>The request queue gets the size of Container Queue Size and the queue timeout of Request Queue Timeout.
      *
      * @param context configuration of the processor
      * @throws IllegalStateException if the router service refuses the registration, for example because another
@@ -377,17 +407,21 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         this.multipartConfig = new MultipartConfigElement(System.getProperty("java.io.tmpdir"), requestMaxSize,
                 requestMaxSize, readBufferSize);
 
-        router.registerProcessor(getIdentifier(), paths, getAllowedMethods(context), queueSize,
-                httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS));
+        final Duration queueTimeout =
+                Duration.ofMillis(context.getProperty(REQUEST_QUEUE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS));
+        router.registerProcessor(getIdentifier(), paths, getAllowedMethods(context), queueSize, queueTimeout);
         this.routerService = router;
     }
 
     /**
      * Unregisters this processor from the router service, which answers the requests still waiting in the queue of
      * the processor with 503.
+     *
+     * <p>NiFi calls this method after the last onTrigger call has returned, so no onTrigger call polls the queue
+     * after the registration is removed.
      */
-    @OnUnscheduled
-    public void onUnscheduled() {
+    @OnStopped
+    public void onStopped() {
         final HttpRouterService router = this.routerService;
         if (router != null) {
             router.unregisterProcessor(getIdentifier());
@@ -397,16 +431,26 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final HttpRouterService router = this.routerService;
-        if (router == null) {
-            return;
-        }
-        final HttpRequestContainer container = router.pollRequest(getIdentifier());
+        final HttpRequestContainer container =
+                routerService.pollRequest(getIdentifier(), POLL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         if (container == null) {
             return;
         }
 
         final long start = System.nanoTime();
+        final String contextIdentifier = UUID.randomUUID().toString();
+        try {
+            handleContainer(session, container, contextIdentifier, start);
+        } catch (final RuntimeException e) {
+            if (contextMap.getResponse(contextIdentifier) == null) {
+                sendError(SC_INTERNAL_SERVER_ERROR, "Request Processing Failed", container);
+            }
+            throw e;
+        }
+    }
+
+    private void handleContainer(final ProcessSession session, final HttpRequestContainer container,
+            final String contextIdentifier, final long start) {
         final HttpServletRequest request = container.request();
         final String contentType;
         try {
@@ -416,13 +460,14 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             return;
         }
         if (contentType != null && contentType.contains(MIME_TYPE_MULTIPART_FORM_DATA)) {
-            handleMultipartRequest(session, container, start);
+            handleMultipartRequest(session, container, contextIdentifier, start);
         } else {
-            handleRequest(session, container, start);
+            handleRequest(session, container, contextIdentifier, start);
         }
     }
 
-    private void handleRequest(final ProcessSession session, final HttpRequestContainer container, final long start) {
+    private void handleRequest(final ProcessSession session, final HttpRequestContainer container,
+            final String contextIdentifier, final long start) {
         final HttpServletRequest request = container.request();
         FlowFile flowFile = session.create();
         try (OutputStream flowFileOut = session.write(flowFile)) {
@@ -434,51 +479,62 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         }
         final Map<String, String> requestAttributes;
         try {
-            requestAttributes = getRequestAttributes(request, UUID.randomUUID().toString());
+            requestAttributes = getRequestAttributes(request, contextIdentifier);
         } catch (final IllegalArgumentException e) {
             session.remove(flowFile);
             rejectBadRequest(container, "Malformed Query String", e);
             return;
         }
         flowFile = session.putAllAttributes(flowFile, requestAttributes);
-        if (registerRequest(session, container, flowFile)) {
+        if (registerRequest(container, contextIdentifier)) {
             forwardFlowFile(session, start, request, flowFile);
+        } else {
+            session.remove(flowFile);
         }
     }
 
     private void handleMultipartRequest(final ProcessSession session, final HttpRequestContainer container,
-            final long start) {
+            final String contextIdentifier, final long start) {
         final HttpServletRequest request = container.request();
         request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, multipartConfig);
         List<Part> parts = null;
+        final List<FlowFile> flowFiles = new ArrayList<>();
         try {
             parts = List.copyOf(request.getParts());
-            final Map<String, String> requestAttributes =
-                    getRequestAttributes(request, UUID.randomUUID().toString());
+            if (parts.isEmpty()) {
+                sendError(SC_BAD_REQUEST, "Multipart Request Has No Parts", container);
+                return;
+            }
+            final Map<String, String> requestAttributes = getRequestAttributes(request, contextIdentifier);
             for (int i = 0; i < parts.size(); i++) {
                 final Part part = parts.get(i);
                 FlowFile flowFile = session.create();
+                flowFiles.add(flowFile);
                 try (OutputStream flowFileOut = session.write(flowFile)) {
                     part.getInputStream().transferTo(flowFileOut);
-                } catch (final IOException e) {
-                    session.remove(flowFile);
-                    handleStreamingError(container, e);
-                    return;
                 }
                 flowFile = savePartAttributes(session, part, flowFile, i, parts.size());
                 flowFile = session.putAllAttributes(flowFile, requestAttributes);
-                // All parts belong to one request, so the request is registered once, with the first part.
-                if (i == 0 && !registerRequest(session, container, flowFile)) {
-                    return;
-                }
-                forwardFlowFile(session, start, request, flowFile);
+                flowFiles.set(i, flowFile);
             }
         } catch (final IOException | ServletException | IllegalStateException e) {
+            session.remove(flowFiles);
             handleStreamingError(container, e);
+            return;
         } catch (final IllegalArgumentException e) {
+            session.remove(flowFiles);
             rejectBadRequest(container, "Malformed Query String", e);
+            return;
         } finally {
             deleteParts(parts);
+        }
+
+        if (!registerRequest(container, contextIdentifier)) {
+            session.remove(flowFiles);
+            return;
+        }
+        for (final FlowFile flowFile : flowFiles) {
+            forwardFlowFile(session, start, request, flowFile);
         }
     }
 
@@ -649,13 +705,10 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         return encoding == null ? StandardCharsets.UTF_8 : Charset.forName(encoding);
     }
 
-    private boolean registerRequest(final ProcessSession session, final HttpRequestContainer container,
-            final FlowFile flowFile) {
-        final String contextIdentifier = flowFile.getAttribute(HTTP_CONTEXT_ID);
+    private boolean registerRequest(final HttpRequestContainer container, final String contextIdentifier) {
         if (contextMap.register(contextIdentifier, container.request(), container.response(), container.context())) {
             return true;
         }
-        session.remove(flowFile);
         sendError(SC_SERVICE_UNAVAILABLE, "Request Registration Failed", container);
         return false;
     }
@@ -678,7 +731,6 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         final HttpServletRequest request = container.request();
         getLogger().error("{}: Method [{}] URI [{}] Address [{}]",
                 reason, request.getMethod(), request.getRequestURI(), request.getRemoteAddr(), e);
-        // A bad request can leave the connection open, so the client gets an answer it can close the connection on.
         sendError(SC_BAD_REQUEST, reason, container);
     }
 

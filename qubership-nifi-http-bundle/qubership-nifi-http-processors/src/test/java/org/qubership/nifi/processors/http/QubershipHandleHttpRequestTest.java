@@ -17,10 +17,14 @@
 package org.qubership.nifi.processors.http;
 
 import jakarta.servlet.AsyncContext;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,6 +39,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -43,6 +49,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,8 +62,11 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -70,6 +81,7 @@ class QubershipHandleHttpRequestTest {
 
     private static final long TIMEOUT_SECONDS = 10;
     private static final long POLL_INTERVAL_MILLIS = 10;
+    private static final long UNSCHEDULED_WAIT_MILLIS = 500;
     private static final String BOUNDARY = "order-boundary";
 
     private final HttpClient client = HttpClient.newBuilder()
@@ -104,7 +116,7 @@ class QubershipHandleHttpRequestTest {
 
     @AfterEach
     void tearDown() {
-        runner.unSchedule();
+        stopProcessor(runner);
         runner.disableControllerService(routerService);
         client.close();
     }
@@ -199,7 +211,7 @@ class QubershipHandleHttpRequestTest {
                     () -> assertEquals(200, usersResponse.statusCode(), "status of GET /users/1")
             );
         } finally {
-            usersRunner.unSchedule();
+            stopProcessor(usersRunner);
         }
     }
 
@@ -317,12 +329,11 @@ class QubershipHandleHttpRequestTest {
     }
 
     @Test
-    void theProcessorRegistersItsPathDefaultMethodsQueueSizeAndRequestExpiration() throws Exception {
+    void theProcessorRegistersItsPathDefaultMethodsAndQueueSize() throws Exception {
         final RecordingHttpRouterService recordingRouter = new RecordingHttpRouterService();
         runner.addControllerService("recording-router", recordingRouter);
         runner.enableControllerService(recordingRouter);
         runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
-        contextMap.setRequestTimeoutMillis(45000);
 
         startProcessor();
 
@@ -331,9 +342,22 @@ class QubershipHandleHttpRequestTest {
                 () -> assertEquals(Set.of("GET", "POST", "PUT", "DELETE"), recordingRouter.methods,
                         "registered methods with the default Allow properties"),
                 () -> assertEquals(50, recordingRouter.queueSize, "registered queue size"),
-                () -> assertEquals(45000, recordingRouter.requestTimeoutMillis,
-                        "registered request timeout with Request Expiration 45000 ms")
+                () -> assertEquals(Duration.ofSeconds(30), recordingRouter.queueTimeout,
+                        "registered queue timeout with the default Request Queue Timeout")
         );
+    }
+
+    @Test
+    void onTriggerWaitsForARequestWhenTheQueueIsEmpty() throws Exception {
+        final RecordingHttpRouterService recordingRouter = new RecordingHttpRouterService();
+        runner.addControllerService("recording-router", recordingRouter);
+        runner.enableControllerService(recordingRouter);
+        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+
+        startProcessor();
+
+        assertTrue(recordingRouter.pollTimeoutNanos > 0,
+                "timeout passed to pollRequest, in ns: " + recordingRouter.pollTimeoutNanos);
     }
 
     @Test
@@ -400,18 +424,56 @@ class QubershipHandleHttpRequestTest {
     }
 
     @Test
+    void aMultipartRequestTheContextMapRefusesIsAnsweredWith503AndProducesNoFlowFile() throws Exception {
+        contextMap.refuseRegistrations();
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
+        final HttpResponse<String> response = awaitWhileTriggering(pending, "the response to the multipart POST");
+
+        assertAll(
+                () -> assertEquals(503, response.statusCode(),
+                        "status of the multipart request the context map refused"),
+                () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
+                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success")
+        );
+    }
+
+    /**
+     * Once the context map holds the request, the processor leaves the answer to it: the test answers the request
+     * through the context map after onTrigger has thrown.
+     */
+    @Test
+    void anExceptionAfterTheRequestIsRegisteredLeavesTheAnswerToTheContextMap() throws Exception {
+        contextMap.failAfterRegistering();
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders");
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        AssertionError onTriggerFailure = null;
+        while (contextMap.registeredCount() == 0 && System.nanoTime() < deadline) {
+            try {
+                runner.run(1, false, false);
+            } catch (final AssertionError e) {
+                onTriggerFailure = e;
+            }
+            Thread.sleep(POLL_INTERVAL_MILLIS);
+        }
+        answer(contextMap, contextMap.registeredIdentifier(), 200);
+        final HttpResponse<String> response = await(pending, "the response to POST /orders");
+        final Throwable failure = onTriggerFailure == null ? null : onTriggerFailure.getCause();
+
+        assertAll(
+                () -> assertEquals(200, response.statusCode(), "status set through the context map"),
+                () -> assertInstanceOf(ProcessException.class, failure, "exception NiFi received from onTrigger")
+        );
+    }
+
+    @Test
     void eachPartOfAMultipartRequestBecomesAFlowFileUnderOneContextIdentifier() throws Exception {
         startProcessor();
 
-        final String body = "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"header\"\r\n\r\n"
-                + "header content\r\n"
-                + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"lines\"; filename=\"lines.csv\"\r\n"
-                + "Content-Type: text/csv\r\n\r\n"
-                + "lines content\r\n"
-                + "--" + BOUNDARY + "--\r\n";
-        final CompletableFuture<HttpResponse<String>> pending = sendMultipart(body);
+        final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
         final List<MockFlowFile> flowFiles = awaitFlowFiles(2);
         final MockFlowFile headerPart = flowFiles.get(0);
         final MockFlowFile linesPart = flowFiles.get(1);
@@ -436,7 +498,7 @@ class QubershipHandleHttpRequestTest {
     }
 
     @Test
-    void unschedulingAnswersTheQueuedRequestWith503() throws Exception {
+    void stoppingAnswersTheQueuedRequestWith503() throws Exception {
         runner.setProperty(QubershipHandleHttpRequest.CONTAINER_QUEUE_SIZE, "1");
         startProcessor();
         final CompletableFuture<HttpResponse<String>> first = send("GET", "/orders/1");
@@ -444,20 +506,42 @@ class QubershipHandleHttpRequestTest {
         await(CompletableFuture.anyOf(first, second), "one of two requests to be refused by a queue of size 1");
         final CompletableFuture<HttpResponse<String>> queued = first.isDone() ? second : first;
 
-        runner.unSchedule();
+        stopProcessor(runner);
 
         assertEquals(503, await(queued, "the response to the queued request").statusCode(),
-                "status of the request that was queued when the processor was unscheduled");
+                "status of the request that was queued when the processor was stopped");
     }
 
     @Test
-    void afterUnschedulingItsPathIsAnsweredWith404() throws Exception {
+    void afterStoppingItsPathIsAnsweredWith404() throws Exception {
         startProcessor();
 
-        runner.unSchedule();
+        stopProcessor(runner);
         final HttpResponse<String> response = sendAndWait("GET", "/orders");
 
-        assertEquals(404, response.statusCode(), "GET /orders after the processor was unscheduled");
+        assertEquals(404, response.statusCode(), "GET /orders after the processor was stopped");
+    }
+
+    /**
+     * NiFi calls the @OnUnscheduled methods while onTrigger calls may still run, and the @OnStopped methods after the
+     * last one has returned, so the processor keeps its registration until it is stopped.
+     */
+    @Test
+    void aQueuedRequestIsAnsweredWhenTheProcessorStopsNotWhenItIsUnscheduled() throws Exception {
+        startProcessor();
+        final CompletableFuture<HttpResponse<String>> queued = send("GET", "/orders/1");
+        Thread.sleep(UNSCHEDULED_WAIT_MILLIS);
+
+        runner.unSchedule();
+        Thread.sleep(UNSCHEDULED_WAIT_MILLIS);
+        final boolean answeredWhenUnscheduled = queued.isDone();
+        runner.stop();
+        final HttpResponse<String> response = await(queued, "the response to the queued request");
+
+        assertAll(
+                () -> assertFalse(answeredWhenUnscheduled, "queued request answered after unSchedule alone"),
+                () -> assertEquals(503, response.statusCode(), "status of the queued request after stop")
+        );
     }
 
     @Test
@@ -473,6 +557,11 @@ class QubershipHandleHttpRequestTest {
      */
     private void startProcessor() {
         runner.run(1, false, true);
+    }
+
+    private static void stopProcessor(final TestRunner processorRunner) {
+        processorRunner.unSchedule();
+        processorRunner.stop();
     }
 
     private List<MockFlowFile> awaitFlowFiles(final int count) throws InterruptedException {
@@ -536,6 +625,17 @@ class QubershipHandleHttpRequestTest {
         answer(flowFile.getAttribute("http.context.identifier"), 200);
         await(pending, "the response to POST " + pathAndQuery);
         return flowFile;
+    }
+
+    private static String multipartBodyWithTwoParts() {
+        return "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"header\"\r\n\r\n"
+                + "header content\r\n"
+                + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"lines\"; filename=\"lines.csv\"\r\n"
+                + "Content-Type: text/csv\r\n\r\n"
+                + "lines content\r\n"
+                + "--" + BOUNDARY + "--\r\n";
     }
 
     private static String multipartBodyWithOneField() {
@@ -611,22 +711,100 @@ class QubershipHandleHttpRequestTest {
         }
     }
 
+    @Test
+    void aMultipartRequestWithNoPartsIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = sendMultipart("--" + BOUNDARY + "--\r\n");
+        final HttpResponse<String> response = awaitWhileTriggering(pending, "the response to the multipart POST");
+
+        assertAll(
+                () -> assertEquals(400, response.statusCode(), "status of a multipart request with no parts"),
+                () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
+                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+        );
+    }
+
+    /**
+     * The first part is written before the second one fails. A processor that registered and transferred each part
+     * as soon as it was written would leave that part on success, registered for a request answered with 400.
+     */
+    @Test
+    void aMultipartRequestWhoseSecondPartFailsIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
+        final FailingSecondPartRouterService failingRouter = new FailingSecondPartRouterService(routerService);
+        runner.addControllerService("failing-router", failingRouter);
+        runner.enableControllerService(failingRouter);
+        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "failing-router");
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
+        final HttpResponse<String> response = awaitWhileTriggering(pending, "the response to the multipart POST");
+
+        assertAll(
+                () -> assertEquals(400, response.statusCode(),
+                        "status of a multipart request whose second part failed"),
+                () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
+                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+        );
+    }
+
+    /**
+     * The exception comes from the HTTP Context Map, so the request is not registered when it is thrown. Without an
+     * answer from the processor, the client would wait until the test times out.
+     */
+    @Test
+    void anExceptionBeforeTheRequestIsRegisteredIsAnsweredWith500AndReachesNiFi() throws Exception {
+        contextMap.failRegistrations();
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders");
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
+        AssertionError onTriggerFailure = null;
+        while (!pending.isDone() && System.nanoTime() < deadline) {
+            try {
+                runner.run(1, false, false);
+            } catch (final AssertionError e) {
+                onTriggerFailure = e;
+            }
+            Thread.sleep(POLL_INTERVAL_MILLIS);
+        }
+        final HttpResponse<String> response = await(pending, "the response to POST /orders");
+        final Throwable failure = onTriggerFailure == null ? null : onTriggerFailure.getCause();
+
+        assertAll(
+                () -> assertEquals(500, response.statusCode(), "status of the request whose registration threw"),
+                () -> assertInstanceOf(ProcessException.class, failure, "exception NiFi received from onTrigger")
+        );
+    }
+
     /**
      * In-memory HTTP Context Map that keeps every registered request until the test completes it.
      */
     private static final class RecordingHttpContextMap extends AbstractControllerService implements HttpContextMap {
 
+        private static final long REQUEST_EXPIRATION_MILLIS = 30000;
         private final Map<String, Entry> entries = new ConcurrentHashMap<>();
-        private volatile long requestTimeoutMillis = 30000;
         private volatile boolean refusing;
+        private volatile boolean failing;
+        private volatile boolean failingAfterRegistering;
         private volatile int registered;
-
-        void setRequestTimeoutMillis(final long timeoutMillis) {
-            requestTimeoutMillis = timeoutMillis;
-        }
 
         void refuseRegistrations() {
             refusing = true;
+        }
+
+        void failRegistrations() {
+            failing = true;
+        }
+
+        void failAfterRegistering() {
+            failingAfterRegistering = true;
+        }
+
+        String registeredIdentifier() {
+            return entries.keySet().iterator().next();
         }
 
         int registeredCount() {
@@ -636,11 +814,17 @@ class QubershipHandleHttpRequestTest {
         @Override
         public boolean register(final String identifier, final HttpServletRequest request,
                 final HttpServletResponse response, final AsyncContext context) {
+            if (failing) {
+                throw new ProcessException("Registration failed in the test");
+            }
             if (refusing) {
                 return false;
             }
             entries.put(identifier, new Entry(response, context));
             registered++;
+            if (failingAfterRegistering) {
+                throw new ProcessException("Registration failed in the test after the request was stored");
+            }
             return true;
         }
 
@@ -660,7 +844,7 @@ class QubershipHandleHttpRequestTest {
 
         @Override
         public long getRequestTimeout(final TimeUnit timeUnit) {
-            return timeUnit.convert(requestTimeoutMillis, TimeUnit.MILLISECONDS);
+            return timeUnit.convert(REQUEST_EXPIRATION_MILLIS, TimeUnit.MILLISECONDS);
         }
 
         private record Entry(HttpServletResponse response, AsyncContext context) {
@@ -685,8 +869,8 @@ class QubershipHandleHttpRequestTest {
 
         @Override
         public void registerProcessor(final String processorId, final Pattern paths, final Set<String> methods,
-                final int queueSize, final long requestTimeoutMillis) {
-            target.registerProcessor(processorId, paths, methods, queueSize, requestTimeoutMillis);
+                final int queueSize, final Duration queueTimeout) {
+            target.registerProcessor(processorId, paths, methods, queueSize, queueTimeout);
         }
 
         @Override
@@ -695,8 +879,64 @@ class QubershipHandleHttpRequestTest {
         }
 
         @Override
-        public HttpRequestContainer pollRequest(final String processorId) {
-            return target.pollRequest(processorId);
+        public HttpRequestContainer pollRequest(final String processorId, final long timeout, final TimeUnit unit) {
+            return target.pollRequest(processorId, timeout, unit);
+        }
+    }
+
+    /**
+     * HTTP Router Service that takes the requests of a router service enabled in another TestRunner and makes reading
+     * the second part of a multipart request fail with IOException.
+     */
+    private static final class FailingSecondPartRouterService extends AbstractControllerService
+            implements HttpRouterService {
+
+        private final HttpRouterService target;
+
+        FailingSecondPartRouterService(final HttpRouterService targetService) {
+            this.target = targetService;
+        }
+
+        @Override
+        public void registerProcessor(final String processorId, final Pattern paths, final Set<String> methods,
+                final int queueSize, final Duration queueTimeout) {
+            target.registerProcessor(processorId, paths, methods, queueSize, queueTimeout);
+        }
+
+        @Override
+        public void unregisterProcessor(final String processorId) {
+            target.unregisterProcessor(processorId);
+        }
+
+        @Override
+        public HttpRequestContainer pollRequest(final String processorId, final long timeout, final TimeUnit unit) {
+            final HttpRequestContainer container = target.pollRequest(processorId, timeout, unit);
+            if (container == null) {
+                return null;
+            }
+            final HttpServletRequest request = new HttpServletRequestWrapper(container.request()) {
+                @Override
+                public Collection<Part> getParts() throws IOException, ServletException {
+                    final List<Part> parts = new ArrayList<>(super.getParts());
+                    parts.set(1, failingPart(parts.get(1)));
+                    return parts;
+                }
+            };
+            return new HttpRequestContainer(request, container.response(), container.context());
+        }
+
+        private static Part failingPart(final Part part) {
+            return (Part) Proxy.newProxyInstance(Part.class.getClassLoader(), new Class<?>[] {Part.class},
+                    (proxy, method, args) -> {
+                        if ("getInputStream".equals(method.getName())) {
+                            throw new IOException("Reading the part failed in the test");
+                        }
+                        try {
+                            return method.invoke(part, args);
+                        } catch (final InvocationTargetException e) {
+                            throw e.getCause();
+                        }
+                    });
         }
     }
 
@@ -709,15 +949,17 @@ class QubershipHandleHttpRequestTest {
         private volatile Pattern paths;
         private volatile Set<String> methods;
         private volatile int queueSize;
-        private volatile long requestTimeoutMillis;
+        private volatile Duration queueTimeout;
+        private volatile long pollTimeoutNanos = -1;
 
         @Override
         public void registerProcessor(final String processorId, final Pattern registeredPaths,
-                final Set<String> registeredMethods, final int registeredQueueSize, final long timeoutMillis) {
+                final Set<String> registeredMethods, final int registeredQueueSize,
+                final Duration registeredQueueTimeout) {
             paths = registeredPaths;
             methods = registeredMethods;
             queueSize = registeredQueueSize;
-            requestTimeoutMillis = timeoutMillis;
+            queueTimeout = registeredQueueTimeout;
         }
 
         @Override
@@ -726,7 +968,8 @@ class QubershipHandleHttpRequestTest {
         }
 
         @Override
-        public HttpRequestContainer pollRequest(final String processorId) {
+        public HttpRequestContainer pollRequest(final String processorId, final long timeout, final TimeUnit unit) {
+            pollTimeoutNanos = unit.toNanos(timeout);
             return null;
         }
     }

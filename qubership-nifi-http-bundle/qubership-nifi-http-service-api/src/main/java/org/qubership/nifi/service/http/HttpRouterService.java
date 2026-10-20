@@ -18,7 +18,9 @@ package org.qubership.nifi.service.http;
 
 import org.apache.nifi.controller.ControllerService;
 
+import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -29,38 +31,34 @@ import java.util.regex.Pattern;
  * When the paths of several processors match a request path, the request goes to the processor that registered
  * first. The service does not read the body of a request it routes.
  *
- * <p>The service answers a request itself in these cases:
- * <ul>
- *     <li>404 Not Found when the paths of no registered processor match the request path;</li>
- *     <li>405 Method Not Allowed when the matching processor does not handle the method of the request;</li>
- *     <li>503 Service Unavailable when the queue of the matching processor is full, when the processor is being
- *     unregistered, or when the service is being disabled.</li>
- * </ul>
+ * <p>A processor calls registerProcessor in its @OnScheduled method and unregisterProcessor in its @OnStopped
+ * method, so that only a running processor is registered. NiFi calls @OnStopped after the last onTrigger call of the
+ * processor has returned, so no onTrigger call polls the queue after the registration is removed. @OnUnscheduled
+ * does not give that guarantee: NiFi calls it while onTrigger calls may still be running.
  *
- * <p>A request waits in the queue with no time limit until the processor polls it, the processor is unregistered, or
- * the service is disabled. The processor sets the time limit of a request it has polled.
+ * <p>A request waits in the queue until the processor polls it, until it has waited longer than the queue timeout
+ * the processor registered with, until the processor is unregistered, or until the service is disabled. The
+ * processor sets the time limit of a request it has polled.
  */
 public interface HttpRouterService extends ControllerService {
 
     /**
      * Registers the paths and methods a processor handles and creates its request queue.
      *
-     * <p>The service raises the idle timeout of its connections to requestTimeoutMillis when the timeout is
-     * shorter.
-     *
      * @param processorId identifier of the processor, the same one it later passes to unregisterProcessor
      *                    and pollRequest
      * @param paths regular expression that a request path must match to be routed to the processor
      * @param methods HTTP methods the processor handles
      * @param queueSize maximum number of requests the queue of the processor holds
-     * @param requestTimeoutMillis time, in milliseconds, within which the flow answers a request
-     * @throws IllegalArgumentException if queueSize is not positive
+     * @param queueTimeout longest time a request waits in the queue of the processor; the service answers a request
+     *                     that waits longer itself and never returns it from pollRequest
+     * @throws IllegalArgumentException if queueSize or queueTimeout is not positive
      * @throws IllegalStateException if the service is not enabled, if the processor is already registered, or if
      *                               another registered processor has a pattern with the same string as paths.
      *                               Different patterns that match the same path are accepted
      */
     void registerProcessor(String processorId, Pattern paths, Set<String> methods, int queueSize,
-            long requestTimeoutMillis);
+            Duration queueTimeout);
 
     /**
      * Removes the registration and the queue of a processor and answers every request still waiting in the queue
@@ -71,11 +69,17 @@ public interface HttpRouterService extends ControllerService {
     void unregisterProcessor(String processorId);
 
     /**
-     * Returns the next request routed to a processor without waiting for one to arrive.
+     * Returns the next request routed to a processor, waiting up to the given time for one to arrive when the queue
+     * is empty.
+     *
+     * <p>When the calling thread is interrupted while it waits, the method returns null and leaves the interrupt flag
+     * of the thread set.
      *
      * @param processorId identifier the processor was registered with
-     * @return the next request in the queue of the processor, or null if the queue is empty or the processor is
-     *         not registered
+     * @param timeout how long to wait for a request; zero or less returns at once
+     * @param unit unit of timeout
+     * @return the next request in the queue of the processor, or null if no request arrives within the timeout or
+     *         the processor is not registered
      */
-    HttpRequestContainer pollRequest(String processorId);
+    HttpRequestContainer pollRequest(String processorId, long timeout, TimeUnit unit);
 }

@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -46,8 +45,10 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
@@ -61,10 +62,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 class QubershipHttpRouterServiceTest {
 
     private static final long TIMEOUT_SECONDS = 10;
-    private static final long REQUEST_TIMEOUT_MILLIS = 30000;
     private static final int QUEUE_SIZE = 5;
+    private static final Duration QUEUE_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration SHORT_QUEUE_TIMEOUT = Duration.ofMillis(200);
+    private static final long LONGER_THAN_EXPIRATION_CHECK_MILLIS = 1500;
+    private static final long LONGER_THAN_IDLE_TIMEOUT_MILLIS = 2000;
     private static final long POLL_INTERVAL_MILLIS = 10;
-    private static final int IDLE_CHECK_MILLIS = 32000;
+    private static final long POLL_TIMEOUT_MILLIS = 200;
+    private static final int IDLE_CHECK_MILLIS = 5000;
     private final HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -95,8 +100,8 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aRequestOnARegisteredPathIsQueuedAndAnsweredThroughItsContainer() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders(/.*)?"), Set.of("POST"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders(/.*)?"), Set.of("POST"),
+                QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders/17", "order body");
         final HttpRequestContainer container = awaitRequest("orders");
@@ -121,17 +126,15 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aRequestIsQueuedOnlyForTheProcessorWhosePatternMatchesItsPath() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
-        service.registerProcessor("users", Pattern.compile("/users"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("users", Pattern.compile("/users"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/users");
         final HttpRequestContainer container = awaitRequest("users");
 
         assertAll(
                 () -> assertEquals("/users", container.request().getRequestURI(), "URI in the queue of users"),
-                () -> assertNull(service.pollRequest("orders"), "pollRequest(orders) after GET /users")
+                () -> assertNull(pollNow("orders"), "pollRequest(orders) after GET /users")
         );
         answer(container, pending);
     }
@@ -139,8 +142,7 @@ class QubershipHttpRouterServiceTest {
     @Test
     void theQueryStringIsNotPartOfThePathThatIsMatched() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders?id=17");
         final HttpRequestContainer container = awaitRequest("orders");
@@ -152,23 +154,21 @@ class QubershipHttpRouterServiceTest {
     @Test
     void whenTwoPatternsMatchAPathTheProcessorRegisteredFirstReceivesTheRequest() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("any-order", Pattern.compile("/orders/.*"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
-        service.registerProcessor("numbered-order", Pattern.compile("/orders/\\d+"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("any-order", Pattern.compile("/orders/.*"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("numbered-order", Pattern.compile("/orders/\\d+"), Set.of("GET"),
+                QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders/17");
         final HttpRequestContainer container = awaitRequest("any-order");
 
-        assertNull(service.pollRequest("numbered-order"), "pollRequest(numbered-order) after GET /orders/17");
+        assertNull(pollNow("numbered-order"), "pollRequest(numbered-order) after GET /orders/17");
         answer(container, pending);
     }
 
     @Test
     void aMethodRegisteredInLowerCaseIsAllowed() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("get"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("get"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
         final HttpRequestContainer container = awaitRequest("orders");
@@ -180,8 +180,7 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aPathThatNoProcessorPatternMatchesIsAnsweredWith404() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final HttpResponse<String> response = sendAndWait("GET", "/orders/17");
 
@@ -191,22 +190,20 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aMethodTheMatchingProcessorDoesNotAllowIsAnsweredWith405AndNotQueued() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         final HttpResponse<String> response = sendAndWait("DELETE", "/orders");
 
         assertAll(
                 () -> assertEquals(405, response.statusCode(), "DELETE /orders with methods [GET]"),
-                () -> assertNull(service.pollRequest("orders"), "pollRequest(orders) after the 405")
+                () -> assertNull(pollNow("orders"), "pollRequest(orders) after the 405")
         );
     }
 
     @Test
     void aRequestForAFullQueueIsAnsweredWith503AndTheQueuedRequestStays() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1, QUEUE_TIMEOUT);
 
         final CompletableFuture<HttpResponse<String>> first = send("GET", "/orders/1");
         final CompletableFuture<HttpResponse<String>> second = send("GET", "/orders/2");
@@ -217,7 +214,7 @@ class QubershipHttpRouterServiceTest {
 
         assertAll(
                 () -> assertEquals(503, refused.statusCode(), "status of the request that found the queue full"),
-                () -> assertNull(service.pollRequest("orders"), "pollRequest(orders) after the only queued request")
+                () -> assertNull(pollNow("orders"), "pollRequest(orders) after the only queued request")
         );
         answer(container, queued);
     }
@@ -225,24 +222,149 @@ class QubershipHttpRouterServiceTest {
     @Test
     void pollRequestReturnsNullForAnEmptyQueue() {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
-        assertNull(service.pollRequest("orders"), "pollRequest(orders) with no request sent");
+        assertNull(pollNow("orders"), "pollRequest(orders) with no request sent");
+    }
+
+    @Test
+    void pollRequestOnAnEmptyQueueReturnsNullAfterTheTimeout() {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final long start = System.nanoTime();
+        final HttpRequestContainer container = service.pollRequest("orders", POLL_TIMEOUT_MILLIS,
+                TimeUnit.MILLISECONDS);
+        final long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+
+        assertAll(
+                () -> assertNull(container, "pollRequest(orders) with no request sent"),
+                () -> assertTrue(elapsedMillis >= POLL_TIMEOUT_MILLIS, "pollRequest(orders, " + POLL_TIMEOUT_MILLIS
+                        + " ms) returned after " + elapsedMillis + " ms")
+        );
+    }
+
+    /**
+     * The request is sent after the poll has started, so a poll that does not wait returns null before the request
+     * arrives.
+     */
+    @Test
+    void pollRequestReturnsARequestThatArrivesWhileItWaits() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpRequestContainer> polled = CompletableFuture.supplyAsync(
+                () -> service.pollRequest("orders", TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        Thread.sleep(POLL_TIMEOUT_MILLIS);
+        final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+        final HttpRequestContainer container = await(polled, "pollRequest(orders) waiting for a request");
+
+        assertNotNull(container, "request returned by pollRequest(orders) that was waiting when GET /orders arrived");
+        assertEquals("/orders", container.request().getRequestURI(), "URI of the request returned by pollRequest");
+        answer(container, pending);
+    }
+
+    /**
+     * Nothing polls the queue, so only the periodic check of the service can answer the request.
+     */
+    @Test
+    void aRequestThatWaitsLongerThanTheQueueTimeoutIsAnsweredWith503AndFreesItsPlace() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1, SHORT_QUEUE_TIMEOUT);
+
+        final HttpResponse<String> expired = await(send("GET", "/orders/1"), "the response to the request left in "
+                + "a queue with a timeout of " + SHORT_QUEUE_TIMEOUT.toMillis() + " ms");
+        final CompletableFuture<HttpResponse<String>> next = send("GET", "/orders/2");
+        final HttpRequestContainer container = awaitRequest("orders");
+
+        assertAll(
+                () -> assertEquals(503, expired.statusCode(), "status of the request left in the queue"),
+                () -> assertEquals("/orders/2", container.request().getRequestURI(),
+                        "URI queued after the expired request left the queue of size 1")
+        );
+        answer(container, next);
+    }
+
+    @Test
+    void theQueueTimeoutDoesNotLimitARequestTheProcessorHasTaken() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
+                SHORT_QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+        final HttpRequestContainer container = awaitRequest("orders");
+        Thread.sleep(LONGER_THAN_EXPIRATION_CHECK_MILLIS);
+        container.response().setStatus(200);
+        container.context().complete();
+
+        assertEquals(200, await(pending, "the response to the taken request").statusCode(),
+                "status of a request answered " + LONGER_THAN_EXPIRATION_CHECK_MILLIS + " ms after it was taken, "
+                        + "with a queue timeout of " + SHORT_QUEUE_TIMEOUT.toMillis() + " ms");
+    }
+
+    /**
+     * The periodic check is turned off, so only pollRequest can answer the expired request.
+     */
+    @Test
+    void pollRequestAnswersAnExpiredRequestWith503InsteadOfReturningIt() throws Exception {
+        final QubershipHttpRouterService uncheckedService = new QubershipHttpRouterService() {
+            @Override
+            long getExpirationCheckMillis() {
+                return TimeUnit.HOURS.toMillis(1);
+            }
+        };
+        runner.addControllerService("unchecked-router", uncheckedService);
+        runner.setProperty(uncheckedService, QubershipHttpRouterService.PORT, Integer.toString(port));
+        runner.enableControllerService(uncheckedService);
+        try {
+            uncheckedService.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
+                    SHORT_QUEUE_TIMEOUT);
+            final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+            Thread.sleep(SHORT_QUEUE_TIMEOUT.toMillis() * 2);
+
+            final HttpRequestContainer polled = uncheckedService.pollRequest("orders", 0, TimeUnit.MILLISECONDS);
+            final HttpResponse<String> response = await(pending, "the response to the expired request");
+
+            assertAll(
+                    () -> assertNull(polled, "request returned by pollRequest after its queue timeout"),
+                    () -> assertEquals(503, response.statusCode(), "status of the expired request")
+            );
+        } finally {
+            runner.disableControllerService(uncheckedService);
+        }
+    }
+
+    @Test
+    void anInterruptedPollRequestReturnsNullAndKeepsTheInterruptFlag() {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        Thread.currentThread().interrupt();
+        final HttpRequestContainer polled;
+        final boolean interruptedAfterPoll;
+        try {
+            polled = service.pollRequest("orders", TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } finally {
+            interruptedAfterPoll = Thread.interrupted();
+        }
+
+        assertAll(
+                () -> assertNull(polled, "request returned by pollRequest on an interrupted thread"),
+                () -> assertTrue(interruptedAfterPoll, "interrupt flag of the thread after pollRequest")
+        );
     }
 
     @Test
     void pollRequestReturnsNullForAProcessorThatIsNotRegistered() {
         runner.enableControllerService(service);
 
-        assertNull(service.pollRequest("unknown"), "pollRequest(unknown)");
+        assertNull(pollNow("unknown"), "pollRequest(unknown)");
     }
 
     @Test
     void unregisterProcessorAnswersTheQueuedRequestWith503() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1, QUEUE_TIMEOUT);
         final CompletableFuture<HttpResponse<String>> queued = sendUntilOneRequestIsQueued("/orders/1", "/orders/2");
 
         service.unregisterProcessor("orders");
@@ -254,15 +376,14 @@ class QubershipHttpRouterServiceTest {
     @Test
     void afterUnregisterProcessorItsPathIsAnsweredWith404AndItsQueueIsGone() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         service.unregisterProcessor("orders");
         final HttpResponse<String> response = sendAndWait("GET", "/orders");
 
         assertAll(
                 () -> assertEquals(404, response.statusCode(), "GET /orders after unregisterProcessor(orders)"),
-                () -> assertNull(service.pollRequest("orders"), "pollRequest(orders) after unregisterProcessor")
+                () -> assertNull(pollNow("orders"), "pollRequest(orders) after unregisterProcessor")
         );
     }
 
@@ -276,12 +397,10 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aProcessorCanRegisterAgainAfterItUnregistered() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
         service.unregisterProcessor("orders");
 
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
         final HttpRequestContainer container = awaitRequest("orders");
 
@@ -290,10 +409,24 @@ class QubershipHttpRouterServiceTest {
     }
 
     @Test
+    void aProcessorCanRegisterAgainAfterTheServiceWasDisabledAndEnabled() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        runner.disableControllerService(service);
+        runner.enableControllerService(service);
+
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+        final HttpRequestContainer container = awaitRequest("orders");
+
+        assertEquals("/orders", container.request().getRequestURI(), "URI queued after the service was re-enabled");
+        answer(container, pending);
+    }
+
+    @Test
     void disablingTheServiceAnswersTheQueuedRequestWith503AndReleasesThePort() throws Exception {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders/.*"), Set.of("GET"), 1, QUEUE_TIMEOUT);
         final CompletableFuture<HttpResponse<String>> queued = sendUntilOneRequestIsQueued("/orders/1", "/orders/2");
 
         runner.disableControllerService(service);
@@ -322,8 +455,8 @@ class QubershipHttpRouterServiceTest {
         runner.addControllerService("stopping-router", stoppingService);
         runner.setProperty(stoppingService, QubershipHttpRouterService.PORT, Integer.toString(port));
         runner.enableControllerService(stoppingService);
-        stoppingService.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        stoppingService.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"),
+                QUEUE_SIZE, QUEUE_TIMEOUT);
 
         runner.disableControllerService(stoppingService);
 
@@ -332,13 +465,35 @@ class QubershipHttpRouterServiceTest {
     }
 
     /**
-     * Jetty closes a keep-alive connection after 30 s of idleness by default, so the test keeps an answered
-     * connection idle for 32 s and takes that long to run.
+     * The request waits longer than the Idle Timeout twice: in the queue, and after the processor has taken it.
      */
     @Test
-    void anIdleConnectionStaysOpenForTheRequestTimeoutOfARegisteredProcessor() throws Exception {
+    void theIdleTimeoutDoesNotLimitARequestThatWaitsInTheQueueOrForAnAnswer() throws Exception {
+        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, 60000);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+        Thread.sleep(LONGER_THAN_IDLE_TIMEOUT_MILLIS);
+        final HttpRequestContainer container = awaitRequest("orders");
+        Thread.sleep(LONGER_THAN_IDLE_TIMEOUT_MILLIS);
+        container.response().setStatus(200);
+        container.context().complete();
+
+        assertEquals(200, await(pending, "the response to the request").statusCode(),
+                "status of a request answered after " + LONGER_THAN_IDLE_TIMEOUT_MILLIS + " ms in the queue and "
+                        + LONGER_THAN_IDLE_TIMEOUT_MILLIS + " ms after it was taken, with an Idle Timeout of 1 sec");
+    }
+
+    /**
+     * Jetty closes a keep-alive connection after 30 s of idleness by default, so a connection closed within 5 s
+     * shows that the server applied the Idle Timeout of 1 s.
+     */
+    @Test
+    void theServerClosesAConnectionIdleForLongerThanIdleTimeout() throws Exception {
+        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         try (Socket socket = new Socket("localhost", port)) {
             socket.getOutputStream().write("GET /orders HTTP/1.1\r\nHost: localhost\r\n\r\n"
@@ -351,39 +506,36 @@ class QubershipHttpRouterServiceTest {
             readResponseHead(input);
             socket.setSoTimeout(IDLE_CHECK_MILLIS);
 
-            assertThrows(SocketTimeoutException.class, input::read,
-                    "read on the connection idle for " + IDLE_CHECK_MILLIS + " ms after the response, with a "
-                            + "request timeout of 60000 ms; returning -1 means the server closed the connection");
+            assertEquals(-1, input.read(), "read on the connection idle after the response, with an Idle Timeout "
+                    + "of 1 sec; -1 means the server closed the connection");
         }
     }
 
     @Test
     void registerProcessorIsRefusedWhileTheServiceIsNotEnabled() {
         assertThrows(IllegalStateException.class,
-                () -> service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                        REQUEST_TIMEOUT_MILLIS));
+                () -> service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"),
+                        QUEUE_SIZE, QUEUE_TIMEOUT));
     }
 
     @Test
     void registerProcessorIsRefusedForAProcessorThatIsAlreadyRegistered() {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         assertThrows(IllegalStateException.class,
-                () -> service.registerProcessor("orders", Pattern.compile("/users"), Set.of("GET"), QUEUE_SIZE,
-                        REQUEST_TIMEOUT_MILLIS));
+                () -> service.registerProcessor("orders", Pattern.compile("/users"), Set.of("GET"),
+                        QUEUE_SIZE, QUEUE_TIMEOUT));
     }
 
     @Test
     void registerProcessorIsRefusedForAPathPatternAnotherProcessorRegistered() {
         runner.enableControllerService(service);
-        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
-                REQUEST_TIMEOUT_MILLIS);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
         assertThrows(IllegalStateException.class,
                 () -> service.registerProcessor("orders-copy", Pattern.compile("/orders"), Set.of("POST"),
-                        QUEUE_SIZE, REQUEST_TIMEOUT_MILLIS));
+                        QUEUE_SIZE, QUEUE_TIMEOUT));
     }
 
     @Test
@@ -391,8 +543,16 @@ class QubershipHttpRouterServiceTest {
         runner.enableControllerService(service);
 
         assertThrows(IllegalArgumentException.class,
-                () -> service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), 0,
-                        REQUEST_TIMEOUT_MILLIS));
+                () -> service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), 0, QUEUE_TIMEOUT));
+    }
+
+    @Test
+    void registerProcessorIsRefusedForAQueueTimeoutOfZero() {
+        runner.enableControllerService(service);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
+                        Duration.ZERO));
     }
 
     @Test
@@ -436,6 +596,13 @@ class QubershipHttpRouterServiceTest {
     }
 
     @Test
+    void anIdleTimeoutWithoutAUnitIsInvalid() {
+        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "60");
+
+        runner.assertNotValid(service);
+    }
+
+    @Test
     void aRequestHeaderMaximumSizeWithoutAUnitIsInvalid() {
         runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "8");
 
@@ -473,10 +640,14 @@ class QubershipHttpRouterServiceTest {
         return first.isDone() ? second : first;
     }
 
+    private HttpRequestContainer pollNow(final String processorId) {
+        return service.pollRequest(processorId, 0, TimeUnit.MILLISECONDS);
+    }
+
     private HttpRequestContainer awaitRequest(final String processorId) throws InterruptedException {
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
         while (System.nanoTime() < deadline) {
-            final HttpRequestContainer container = service.pollRequest(processorId);
+            final HttpRequestContainer container = pollNow(processorId);
             if (container != null) {
                 return container;
             }
