@@ -467,7 +467,7 @@ def test_excluded_entries_are_left_out_of_the_report_and_logged(tmp_path, capsys
     ("https://#{host}:8443/v1", None),
     ("${base.url}/orders", None),
     ("", None),
-], ids=["host", "upper case with port", "user info", "IPv4", "IPv6", "variable", "parameter", "no scheme", "empty"])
+], ids=["host", "upper case with port", "IPv4", "IPv6", "variable", "parameter", "no scheme", "empty"])
 def test_url_host(url, host):
     assert collector.url_host(url) == host
 
