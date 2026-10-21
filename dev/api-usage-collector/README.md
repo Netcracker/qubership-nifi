@@ -10,7 +10,8 @@ REST, Kafka, S3, and RabbitMQ processors in that group and in all its child grou
 2. Downloads each group with `GET /nifi-api/process-groups/{id}/download` into a new temporary directory,
    `api-usage-tmp-<timestamp>`, under the current working directory.
 3. Finds the processors listed in [Detected processors](#detected-processors) in each download.
-4. Writes `<prefix>.md` and `<prefix>.json` to the current working directory. A group with no inbound or outbound
+4. Leaves out the REST entries that match `--exclude-hosts` or `--exclude-paths-regex`, printing a line for each.
+5. Writes `<prefix>.md` and `<prefix>.json` to the current working directory. A group with no inbound or outbound
    APIs is left out of both files, and the script prints a line saying so.
 
 The script sends GET requests only and does not change the flow.
@@ -36,19 +37,51 @@ export NIFI_AUTHORIZATION_BEARER_COOKIE='<value of the __Secure-Authorization-Be
 python <pathToScript>/collect_api_usage.py --url https://localhost:8443 --auth cookie --ca-cert ca.cer
 ```
 
-| Parameter         | Required           | Default     | Description                                                                         |
-| ----------------- | ------------------ | ----------- | ----------------------------------------------------------------------------------- |
-| `--url`           | Y                  |             | NiFi base URL. A URL ending in `/nifi` or `/nifi-api` is accepted too.              |
-| `--auth`          | Y                  |             | `cert` for a PKCS#12 client certificate, `cookie` for a NiFi login cookie.          |
-| `--ca-cert`       | Y                  |             | PEM file with the CA certificate that signed the NiFi server certificate.           |
-| `--client-cert`   | With `--auth cert` |             | PKCS#12 file with the client certificate and its private key.                       |
-| `--output-prefix` | N                  | `api-usage` | Report filename without the extension.                                              |
-| `--keep-temp`     | N                  |             | Keep the downloaded flow JSON files. By default the temporary directory is deleted. |
+| Parameter               | Required           | Default     | Description                                                                         |
+| ----------------------- | ------------------ | ----------- | ----------------------------------------------------------------------------------- |
+| `--url`                 | Y                  |             | NiFi base URL. A URL ending in `/nifi` or `/nifi-api` is accepted too.              |
+| `--auth`                | Y                  |             | `cert` for a PKCS#12 client certificate, `cookie` for a NiFi login cookie.          |
+| `--ca-cert`             | Y                  |             | PEM file with the CA certificate that signed the NiFi server certificate.           |
+| `--client-cert`         | With `--auth cert` |             | PKCS#12 file with the client certificate and its private key.                       |
+| `--output-prefix`       | N                  | `api-usage` | Report filename without the extension.                                              |
+| `--keep-temp`           | N                  |             | Keep the downloaded flow JSON files. By default the temporary directory is deleted. |
+| `--exclude-hosts`       | N                  |             | Comma-separated hostnames. See [Excluding entries](#excluding-entries).             |
+| `--exclude-paths-regex` | N                  |             | Regular expression for REST paths. See [Excluding entries](#excluding-entries).     |
 
 | Environment variable               | Used with       | Description                                                            |
 | ---------------------------------- | --------------- | ---------------------------------------------------------------------- |
 | `NIFI_PKCS12_PASSWORD`             | `--auth cert`   | Password of the PKCS#12 client certificate.                            |
 | `NIFI_AUTHORIZATION_BEARER_COOKIE` | `--auth cookie` | Value of the `__Secure-Authorization-Bearer` cookie, without the name. |
+
+### Excluding entries
+
+Two options leave REST entries out of both report files:
+
+- `--exclude-hosts` takes a comma-separated list of hostnames. A REST client entry (InvokeHTTP, PostHTTP, GetHTTP) is
+  left out when the host of its URL is in the list. The comparison ignores case and the port, and matches the whole
+  hostname, so `example.com` does not exclude `api.example.com`. A URL whose host is still a parameter or variable
+  reference after [resolution](#property-values) is never excluded. HandleHttpRequest and ListenHTTP entries are not
+  excluded by host.
+- `--exclude-paths-regex` takes a Python regular expression. A REST entry in either direction is left out when the
+  expression matches its whole `path`, so `/health` excludes `/health` but not `/health/live`; use `/health.*` for
+  both. For HandleHttpRequest and ListenHTTP, the expression is matched against the `Allowed Paths` or `Base Path`
+  value as written, and `Allowed Paths` is itself a regular expression: `/health` does not exclude an entry whose
+  `Allowed Paths` is `/health|/ready`. An entry with no `path` is never excluded. An invalid expression stops the script with
+  `error: argument --exclude-paths-regex: invalid regular expression ...` before it connects to NiFi.
+
+The script prints one line for each excluded entry, with the processor, its identifier, its path, the top-level group,
+and the reason:
+
+```text
+Excluded outbound REST processor 'InvokeHTTP' (<processor id>) at Call Processing/InvokeHTTP in REST Integration (<group id>): host google.com is in --exclude-hosts
+```
+
+A group whose entries are all excluded is left out of the report, like a group with no APIs.
+
+```bash
+python <pathToScript>/collect_api_usage.py --url https://localhost:8443 --auth cookie --ca-cert ca.cer \
+    --exclude-hosts 'localhost,internal.example.com' --exclude-paths-regex '/health.*|/metrics'
+```
 
 ## Detected processors
 

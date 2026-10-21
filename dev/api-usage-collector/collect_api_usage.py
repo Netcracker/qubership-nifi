@@ -4,7 +4,8 @@
 The script reads the top-level process groups of a NiFi 1.x or 2.x instance, downloads each one as flow JSON into a
 temporary directory under the working directory, and finds the REST, Kafka, S3, and RabbitMQ processors in it.
 Processors that read data (consumers, listeners, S3 reads) are inbound; processors that write data are outbound.
-The report is written to the working directory as Markdown and as JSON.
+The report is written to the working directory as Markdown and as JSON. REST calls to the hosts in
+--exclude-hosts, and REST entries whose path matches --exclude-paths-regex, are left out of it and logged.
 
 Authentication is either a PKCS#12 client certificate, whose password is read from NIFI_PKCS12_PASSWORD, or a NiFi
 login cookie, whose value is read from NIFI_AUTHORIZATION_BEARER_COOKIE. The script sends GET requests only.
@@ -277,6 +278,24 @@ def url_path(url):
     return QUERY_OR_FRAGMENT.split(match.group(1), 1)[0] or "/"
 
 
+def url_host(url):
+    """The lowercase hostname of an absolute URL, without the port.
+
+    Returns None when the value has no scheme or the host cannot be parsed, for example when it
+    is a parameter or variable reference that stayed unresolved.
+    """
+    if not url or ABSOLUTE_URL.match(url) is None:
+        return None
+    try:
+        host = urllib.parse.urlsplit(url).hostname
+    except ValueError:
+        return None
+    # A hostname, an IPv4 address, or an IPv6 address without its brackets.
+    if not host or not re.fullmatch(r"[a-z0-9._:\-]+", host):
+        return None
+    return host
+
+
 def _rest_client(url, method):
     return {"url": url, "path": url_path(url), "method": [method] if method else []}
 
@@ -465,6 +484,49 @@ def analyze_flow(flow, root_variables=None):
 
 
 # ---------------------------------------------------------------------------
+# Exclusions
+# ---------------------------------------------------------------------------
+
+
+def excluded_reason(item, hosts, path_pattern):
+    """Why a report entry is excluded, or None when it stays in the report.
+
+    `hosts` applies to REST clients (InvokeHTTP, PostHTTP, GetHTTP) and is matched against the
+    host of the URL. The URL of a listening processor is a bare path, so `hosts` never excludes one.
+    `path_pattern` applies to REST entries in both directions and must match the whole path.
+    """
+    if item["type"] != REST:
+        return None
+    info = item["additionalInfo"]
+    if hosts:
+        host = url_host(info.get("url"))
+        if host in hosts:
+            return "host %s is in --exclude-hosts" % host
+    path = info.get("path")
+    if path_pattern is not None and path is not None and path_pattern.fullmatch(path):
+        return "path %s matches --exclude-paths-regex" % path
+    return None
+
+
+def apply_exclusions(apis, hosts, path_pattern):
+    """Split the entries of one process group into the ones to report and the excluded ones.
+
+    Returns the entries to report, keyed by direction like `apis`, and a list of
+    (direction, item, reason) tuples for the excluded entries.
+    """
+    kept = {INBOUND: [], OUTBOUND: []}
+    excluded = []
+    for direction in (OUTBOUND, INBOUND):
+        for item in apis[direction]:
+            reason = excluded_reason(item, hosts, path_pattern)
+            if reason is None:
+                kept[direction].append(item)
+            else:
+                excluded.append((direction, item, reason))
+    return kept, excluded
+
+
+# ---------------------------------------------------------------------------
 # Report output
 # ---------------------------------------------------------------------------
 
@@ -583,7 +645,7 @@ def _safe_file_name(text):
     return re.sub(r"[^A-Za-z0-9._-]+", "_", text).strip("_") or "group"
 
 
-def collect(client, download_dir):
+def collect(client, download_dir, hosts=frozenset(), path_pattern=None):
     version = client.get("/flow/about")["about"].get("version") or ""
     print("NiFi %s" % version)
     root_variables = root_variable_registry(client) if version.startswith("1.") else None
@@ -595,7 +657,11 @@ def collect(client, download_dir):
         target = download_dir / ("%s-%s.json" % (_safe_file_name(group_name), group_id))
         target.write_bytes(payload)
         flow = json.loads(payload)
-        apis = analyze_flow(flow, root_variables)
+        apis, excluded = apply_exclusions(analyze_flow(flow, root_variables), hosts, path_pattern)
+        for direction, item, reason in excluded:
+            print("Excluded %s %s processor '%s' (%s) at %s in %s (%s): %s"
+                  % (direction, item["type"], item["processorName"], item["processorId"],
+                     processor_path(item), group_name, group_id, reason))
         if not apis[INBOUND] and not apis[OUTBOUND]:
             print("No inbound or outbound APIs in %s (%s); left out of the report" % (group_name, group_id))
             continue
@@ -622,7 +688,24 @@ def parse_args(argv):
                         help="Report file name without the extension (default: api-usage)")
     parser.add_argument("--keep-temp", action="store_true",
                         help="Keep the downloaded flow JSON files instead of deleting them")
+    parser.add_argument("--exclude-hosts", type=_host_list, default=frozenset(),
+                        help="Comma-separated hostnames; REST calls to these hosts are left out "
+                             "of the report")
+    parser.add_argument("--exclude-paths-regex", type=_path_regex,
+                        help="Regular expression; REST entries whose whole path matches it are left out "
+                             "of the report")
     return parser.parse_args(argv)
+
+
+def _host_list(value):
+    return frozenset(host.strip().lower() for host in value.split(",") if host.strip())
+
+
+def _path_regex(value):
+    try:
+        return re.compile(value)
+    except re.error as exc:
+        raise argparse.ArgumentTypeError("invalid regular expression '%s': %s" % (value, exc))
 
 
 def main(argv=None):
@@ -633,7 +716,7 @@ def main(argv=None):
         with tempfile.TemporaryDirectory() as tls_dir:
             client = Client(args.url, build_context(args, Path(tls_dir)), auth_headers(args))
             try:
-                report = collect(client, download_dir)
+                report = collect(client, download_dir, args.exclude_hosts, args.exclude_paths_regex)
             finally:
                 client.close()
         Path(args.output_prefix + ".json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 
@@ -427,6 +428,131 @@ def test_group_without_apis_is_left_out_of_the_report_and_logged(tmp_path, capsy
 
     assert [entry["pgId"] for entry in report] == ["pg-api"]
     assert "No inbound or outbound APIs in Without API (pg-none)" in capsys.readouterr().out
+
+
+def test_excluded_entries_are_left_out_of_the_report_and_logged(tmp_path, capsys):
+    internal = _processor("InvokeHTTP", {"HTTP URL": "https://Internal.example.com/v1"}, name="Internal",
+                          identifier="p-internal")
+    health = _processor("HandleHttpRequest", {"Allowed Paths": "/health"}, name="Health", identifier="p-health")
+    external = _processor("InvokeHTTP", {"HTTP URL": "https://api.example.com/v1"}, name="External",
+                          identifier="p-external")
+    client = FakeClient({
+        "pg-mixed": ("Mixed", _flow(_group(processors=[internal, health, external]))),
+        "pg-internal": ("Only internal", _flow(_group(processors=[internal]))),
+    })
+
+    report = collector.collect(client, tmp_path, frozenset({"internal.example.com"}), re.compile("/health"))
+
+    assert [(entry["pgId"], [item["processorName"] for item in entry["outbound"] + entry["inbound"]])
+            for entry in report] == [("pg-mixed", ["External"])]
+    out = capsys.readouterr().out
+    assert ("Excluded outbound REST processor 'Internal' (p-internal) at Internal in Mixed (pg-mixed): "
+            "host internal.example.com is in --exclude-hosts") in out
+    assert ("Excluded inbound REST processor 'Health' (p-health) at Health in Mixed (pg-mixed): "
+            "path /health matches --exclude-paths-regex") in out
+    assert "No inbound or outbound APIs in Only internal (pg-internal)" in out
+
+
+# ---------------------------------------------------------------------------
+# Exclusions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("url, host", [
+    ("https://api.example.com/v1", "api.example.com"),
+    ("http://API.Example.com:8080/v1", "api.example.com"),
+    ("https://10.0.0.1:8443", "10.0.0.1"),
+    ("https://[::1]:8443/v1", "::1"),
+    ("https://${host}/v1", None),
+    ("https://#{host}:8443/v1", None),
+    ("${base.url}/orders", None),
+    ("", None),
+], ids=["host", "upper case with port", "user info", "IPv4", "IPv6", "variable", "parameter", "no scheme", "empty"])
+def test_url_host(url, host):
+    assert collector.url_host(url) == host
+
+
+def _excluded(item, direction, hosts=frozenset(), path_pattern=None):
+    """The names of the processors that apply_exclusions excludes from one entry in `direction`."""
+    apis = {collector.INBOUND: [], collector.OUTBOUND: []}
+    apis[direction].append(item)
+    _, excluded = collector.apply_exclusions(apis, hosts, path_pattern)
+    return [excluded_item["processorName"] for _, excluded_item, _ in excluded]
+
+
+@pytest.mark.parametrize("url, excluded", [
+    ("https://internal.example.com/v1", ["Proc"]),
+    ("https://INTERNAL.example.com:8443/v1", ["Proc"]),
+    ("https://api.example.com/v1", []),
+    ("https://sub.internal.example.com/v1", []),
+    ("https://#{host}/v1", []),
+], ids=["listed host", "listed host in upper case with port", "other host", "subdomain", "unresolved host"])
+def test_outbound_rest_is_excluded_by_the_host_of_its_url(url, excluded):
+    item = _item("REST", {"url": url, "path": "/v1"})
+
+    assert _excluded(item, collector.OUTBOUND, hosts=frozenset({"internal.example.com"})) == excluded
+
+
+def test_get_http_is_excluded_by_the_host_of_its_url():
+    processor = _processor("GetHTTP", {"URL": "https://internal.example.com/feed"}, name="Fetch feed")
+    apis = collector.analyze_flow(_flow(_group(processors=[processor])))
+
+    _, excluded = collector.apply_exclusions(apis, frozenset({"internal.example.com"}), None)
+
+    assert [(direction, item["processorName"]) for direction, item, _ in excluded] == [("inbound", "Fetch feed")]
+
+
+def test_listening_rest_is_not_excluded_by_its_hostname():
+    processor = _processor("HandleHttpRequest", {"Allowed Paths": "/orders", "Hostname": "internal.example.com"})
+    apis = collector.analyze_flow(_flow(_group(processors=[processor])))
+
+    _, excluded = collector.apply_exclusions(apis, frozenset({"internal.example.com"}), None)
+
+    assert excluded == []
+
+
+@pytest.mark.parametrize("api_type, info", [
+    ("Kafka", {"topics": "health", "bootstrapServers": "internal.example.com:9092"}),
+    ("S3", {"bucket": "health", "endpointOverride": "https://internal.example.com/health"}),
+    ("RabbitMQ", {"exchange": "health", "host": "internal.example.com"}),
+], ids=["Kafka", "S3", "RabbitMQ"])
+def test_entries_other_than_rest_are_never_excluded(api_type, info):
+    item = _item(api_type, info)
+
+    assert _excluded(item, collector.OUTBOUND, frozenset({"internal.example.com"}), re.compile(".*")) == []
+
+
+@pytest.mark.parametrize("path, excluded", [
+    ("/health", ["Proc"]),
+    ("/health/live", []),
+    ("/api/health", []),
+], ids=["whole path", "longer path", "path with a prefix"])
+@pytest.mark.parametrize("direction", ["outbound", "inbound"])
+def test_rest_is_excluded_when_the_whole_path_matches_the_regex(direction, path, excluded):
+    item = _item("REST", {"url": path, "path": path})
+
+    assert _excluded(item, direction, path_pattern=re.compile("/health")) == excluded
+
+
+def test_rest_without_a_path_is_not_excluded_by_the_regex():
+    item = _item("REST", {"url": "${base.url}/health", "method": ["GET"]})
+
+    assert _excluded(item, collector.OUTBOUND, path_pattern=re.compile(".*")) == []
+
+
+def test_exclude_hosts_is_parsed_as_a_lowercase_set():
+    args = collector.parse_args(["--url", "https://x", "--auth", "cookie", "--ca-cert", "ca.cer",
+                                 "--exclude-hosts", " A.example.com,, b.example.com ,"])
+
+    assert args.exclude_hosts == frozenset({"a.example.com", "b.example.com"})
+
+
+def test_invalid_exclude_paths_regex_is_refused(capsys):
+    with pytest.raises(SystemExit):
+        collector.parse_args(["--url", "https://x", "--auth", "cookie", "--ca-cert", "ca.cer",
+                              "--exclude-paths-regex", "["])
+
+    assert "invalid regular expression '['" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------
