@@ -82,6 +82,10 @@ final class ProcessorRegistration {
         return paths.matcher(path).matches();
     }
 
+    Set<String> getMethods() {
+        return methods;
+    }
+
     boolean allowsMethod(final String method) {
         return methods.contains(method);
     }
@@ -127,12 +131,9 @@ final class ProcessorRegistration {
     List<HttpRequestContainer> removeExpired(final long nowNanos) {
         final List<HttpRequestContainer> expired = new ArrayList<>();
         // Requests are queued in the order they arrive, so the first request that has not expired ends the search.
-        for (final QueuedRequest queued : queue) {
-            if (!isExpired(queued, nowNanos)) {
-                break;
-            }
-            if (queue.remove(queued)) {
-                expired.add(queued.container());
+        for (QueuedRequest head = queue.peek(); head != null && isExpired(head, nowNanos); head = queue.peek()) {
+            if (queue.remove(head)) {
+                expired.add(head.container());
             }
         }
         return expired;

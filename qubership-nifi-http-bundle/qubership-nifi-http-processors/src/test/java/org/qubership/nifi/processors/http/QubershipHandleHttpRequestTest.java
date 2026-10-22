@@ -36,7 +36,9 @@ import org.qubership.nifi.service.http.HttpRouterService;
 import org.qubership.nifi.service.http.QubershipHttpRouterService;
 
 import java.io.BufferedReader;
+import java.io.FilterInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
@@ -56,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
@@ -287,6 +290,48 @@ class QubershipHandleHttpRequestTest {
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
                         QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+        );
+    }
+
+    /**
+     * %C3 is valid hex but only the first byte of a two-byte UTF-8 character. Jetty refuses it only when the
+     * processor reads the request parameters, which Parameters to Attributes makes it do.
+     */
+    @Test
+    void aQueryParameterWithAnIncompleteUtf8SequenceIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
+        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
+        startProcessor();
+
+        final CompletableFuture<String> pending = sendRaw("GET /orders?x=%C3 HTTP/1.1\r\n"
+                + "Host: localhost\r\nConnection: close\r\n\r\n");
+        final String statusLine = awaitWhileTriggering(pending, "the response to GET /orders?x=%C3");
+
+        assertAll(
+                () -> assertEquals("HTTP/1.1 400 Bad Request", statusLine, "status line of GET /orders?x=%C3"),
+                () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
+                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+        );
+    }
+
+    /**
+     * Without Parameters to Attributes the processor does not read the request parameters, and the query string is
+     * decoded with the replacement character in place of the incomplete UTF-8 sequence.
+     */
+    @Test
+    void aQueryParameterWithAnIncompleteUtf8SequenceBecomesAFlowFileWithoutParametersToAttributes()
+            throws Exception {
+        startProcessor();
+
+        final CompletableFuture<String> pending = sendRaw("GET /orders?x=%C3 HTTP/1.1\r\n"
+                + "Host: localhost\r\nConnection: close\r\n\r\n");
+        final MockFlowFile flowFile = awaitFlowFiles(1).getFirst();
+        answer(flowFile.getAttribute("http.context.identifier"), 200);
+        final String statusLine = await(pending, "the response to GET /orders?x=%C3");
+
+        assertAll(
+                () -> assertEquals("HTTP/1.1 200 OK", statusLine, "status line of GET /orders?x=%C3"),
+                () -> assertEquals("\ufffd", flowFile.getAttribute("http.query.param.x"), "http.query.param.x")
         );
     }
 
@@ -551,6 +596,20 @@ class QubershipHandleHttpRequestTest {
         runner.assertNotValid();
     }
 
+    @Test
+    void aRequestQueueTimeoutOfZeroIsInvalid() {
+        runner.setProperty(QubershipHandleHttpRequest.REQUEST_QUEUE_TIMEOUT, "0 sec");
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    void aRequestQueueTimeoutOfOneMillisecondIsValid() {
+        runner.setProperty(QubershipHandleHttpRequest.REQUEST_QUEUE_TIMEOUT, "1 millis");
+
+        runner.assertValid();
+    }
+
     /**
      * Runs the OnScheduled methods, which register the processor on the router service, and leaves the processor
      * scheduled.
@@ -659,8 +718,12 @@ class QubershipHandleHttpRequestTest {
     }
 
     private CompletableFuture<HttpResponse<String>> sendMultipart(final String body) {
+        return sendMultipart("/orders", body);
+    }
+
+    private CompletableFuture<HttpResponse<String>> sendMultipart(final String pathAndQuery, final String body) {
         return client.sendAsync(
-                HttpRequest.newBuilder(uri("/orders"))
+                HttpRequest.newBuilder(uri(pathAndQuery))
                         .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                         .POST(HttpRequest.BodyPublishers.ofString(body))
                         .build(),
@@ -712,6 +775,24 @@ class QubershipHandleHttpRequestTest {
     }
 
     @Test
+    void aMultipartRequestWithAQueryParameterJettyCannotDecodeIsAnsweredWith400AndProducesNoFlowFile()
+            throws Exception {
+        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending =
+                sendMultipart("/orders?x=%C3", multipartBodyWithTwoParts());
+        final HttpResponse<String> response = awaitWhileTriggering(pending, "the response to the multipart POST");
+
+        assertAll(
+                () -> assertEquals(400, response.statusCode(), "status of a multipart POST /orders?x=%C3"),
+                () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
+                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+        );
+    }
+
+    @Test
     void aMultipartRequestWithNoPartsIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
         startProcessor();
 
@@ -731,11 +812,13 @@ class QubershipHandleHttpRequestTest {
      * as soon as it was written would leave that part on success, registered for a request answered with 400.
      */
     @Test
-    void aMultipartRequestWhoseSecondPartFailsIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
-        final FailingSecondPartRouterService failingRouter = new FailingSecondPartRouterService(routerService);
-        runner.addControllerService("failing-router", failingRouter);
-        runner.enableControllerService(failingRouter);
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "failing-router");
+    void aMultipartRequestWhoseSecondPartFailsIsAnsweredWith400ProducesNoFlowFileAndClosesEveryPartStream()
+            throws Exception {
+        final PartStreamRecordingRouterService recordingRouter =
+                new PartStreamRecordingRouterService(routerService, true);
+        runner.addControllerService("recording-router", recordingRouter);
+        runner.enableControllerService(recordingRouter);
+        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
@@ -746,8 +829,27 @@ class QubershipHandleHttpRequestTest {
                         "status of a multipart request whose second part failed"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
                         QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
-                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
+                () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map"),
+                () -> assertEquals(List.of(true, true), recordingRouter.closedStates(),
+                        "closed state of the stream of each part")
         );
+    }
+
+    @Test
+    void theStreamOfEveryPartIsClosedAfterAMultipartRequestBecomesFlowFiles() throws Exception {
+        final PartStreamRecordingRouterService recordingRouter =
+                new PartStreamRecordingRouterService(routerService, false);
+        runner.addControllerService("recording-router", recordingRouter);
+        runner.enableControllerService(recordingRouter);
+        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+        startProcessor();
+
+        final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
+        final List<MockFlowFile> flowFiles = awaitFlowFiles(2);
+        answer(flowFiles.getFirst().getAttribute("http.context.identifier"), 200);
+        await(pending, "the response to the multipart POST /orders");
+
+        assertEquals(List.of(true, true), recordingRouter.closedStates(), "closed state of the stream of each part");
     }
 
     /**
@@ -858,7 +960,7 @@ class QubershipHandleHttpRequestTest {
      * server on the port the first one already listens on. Through this service, processors in two TestRunners
      * register on one server.
      */
-    private static final class DelegatingHttpRouterService extends AbstractControllerService
+    private static class DelegatingHttpRouterService extends AbstractControllerService
             implements HttpRouterService {
 
         private final HttpRouterService target;
@@ -885,32 +987,27 @@ class QubershipHandleHttpRequestTest {
     }
 
     /**
-     * HTTP Router Service that takes the requests of a router service enabled in another TestRunner and makes reading
-     * the second part of a multipart request fail with IOException.
+     * HTTP Router Service that takes the requests of a router service enabled in another TestRunner and records,
+     * for each multipart part in order, whether the stream the processor got from it is closed. It can also make
+     * reading the stream of the second part fail with IOException.
      */
-    private static final class FailingSecondPartRouterService extends AbstractControllerService
-            implements HttpRouterService {
+    private static final class PartStreamRecordingRouterService extends DelegatingHttpRouterService {
 
-        private final HttpRouterService target;
+        private final boolean failSecondPartRead;
+        private final List<RecordingInputStream> streams = new CopyOnWriteArrayList<>();
 
-        FailingSecondPartRouterService(final HttpRouterService targetService) {
-            this.target = targetService;
+        PartStreamRecordingRouterService(final HttpRouterService targetService, final boolean failSecondRead) {
+            super(targetService);
+            this.failSecondPartRead = failSecondRead;
         }
 
-        @Override
-        public void registerProcessor(final String processorId, final Pattern paths, final Set<String> methods,
-                final int queueSize, final Duration queueTimeout) {
-            target.registerProcessor(processorId, paths, methods, queueSize, queueTimeout);
-        }
-
-        @Override
-        public void unregisterProcessor(final String processorId) {
-            target.unregisterProcessor(processorId);
+        List<Boolean> closedStates() {
+            return streams.stream().map(stream -> stream.closed).toList();
         }
 
         @Override
         public HttpRequestContainer pollRequest(final String processorId, final long timeout, final TimeUnit unit) {
-            final HttpRequestContainer container = target.pollRequest(processorId, timeout, unit);
+            final HttpRequestContainer container = super.pollRequest(processorId, timeout, unit);
             if (container == null) {
                 return null;
             }
@@ -918,18 +1015,23 @@ class QubershipHandleHttpRequestTest {
                 @Override
                 public Collection<Part> getParts() throws IOException, ServletException {
                     final List<Part> parts = new ArrayList<>(super.getParts());
-                    parts.set(1, failingPart(parts.get(1)));
+                    for (int i = 0; i < parts.size(); i++) {
+                        parts.set(i, recordingPart(parts.get(i), failSecondPartRead && i == 1));
+                    }
                     return parts;
                 }
             };
             return new HttpRequestContainer(request, container.response(), container.context());
         }
 
-        private static Part failingPart(final Part part) {
+        private Part recordingPart(final Part part, final boolean failRead) {
             return (Part) Proxy.newProxyInstance(Part.class.getClassLoader(), new Class<?>[] {Part.class},
                     (proxy, method, args) -> {
                         if ("getInputStream".equals(method.getName())) {
-                            throw new IOException("Reading the part failed in the test");
+                            final RecordingInputStream stream =
+                                    new RecordingInputStream(part.getInputStream(), failRead);
+                            streams.add(stream);
+                            return stream;
                         }
                         try {
                             return method.invoke(part, args);
@@ -937,6 +1039,44 @@ class QubershipHandleHttpRequestTest {
                             throw e.getCause();
                         }
                     });
+        }
+    }
+
+    /**
+     * Stream that records whether it is closed and can fail every read with IOException.
+     */
+    private static final class RecordingInputStream extends FilterInputStream {
+
+        private final boolean failRead;
+        private volatile boolean closed;
+
+        RecordingInputStream(final InputStream in, final boolean failEveryRead) {
+            super(in);
+            this.failRead = failEveryRead;
+        }
+
+        @Override
+        public int read() throws IOException {
+            failIfAsked();
+            return super.read();
+        }
+
+        @Override
+        public int read(final byte[] b, final int off, final int len) throws IOException {
+            failIfAsked();
+            return super.read(b, off, len);
+        }
+
+        @Override
+        public void close() throws IOException {
+            closed = true;
+            super.close();
+        }
+
+        private void failIfAsked() throws IOException {
+            if (failRead) {
+                throw new IOException("Reading the part failed in the test");
+            }
         }
     }
 

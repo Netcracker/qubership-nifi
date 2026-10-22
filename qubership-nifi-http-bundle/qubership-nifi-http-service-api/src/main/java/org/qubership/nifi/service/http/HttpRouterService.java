@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
  * processor.
  *
  * <p>A processor registers the paths and methods it handles and then polls its queue for the requests routed to it.
- * When the paths of several processors match a request path, the request goes to the processor that registered
- * first. The service does not read the body of a request it routes.
+ * When several processors match both the path and the method of a request, the request goes to the processor that
+ * registered first. The service does not read the body of a request it routes.
  *
  * <p>A processor calls registerProcessor in its @OnScheduled method and unregisterProcessor in its @OnStopped
  * method, so that only a running processor is registered. NiFi calls @OnStopped after the last onTrigger call of the
@@ -78,8 +78,8 @@ public interface HttpRouterService extends ControllerService {
      * @param processorId identifier the processor was registered with
      * @param timeout how long to wait for a request; zero or less returns at once
      * @param unit unit of timeout
-     * @return the next request in the queue of the processor, or null if no request arrives within the timeout or
-     *         the processor is not registered
+     * @return the next request in the queue of the processor, or null if no request arrives within the timeout
+     * @throws IllegalStateException if the processor is not registered
      */
     HttpRequestContainer pollRequest(String processorId, long timeout, TimeUnit unit);
 }

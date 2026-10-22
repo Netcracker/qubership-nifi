@@ -44,6 +44,7 @@ import org.qubership.nifi.service.http.HttpRequestContainer;
 import org.qubership.nifi.service.http.HttpRouterService;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
@@ -79,7 +80,8 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
  * <p>Each request is registered on the HTTP Context Map under the identifier written to http.context.identifier,
  * so that HandleHttpResponse can answer it. The processor answers a request itself only when it cannot pass the
  * request on: with 400 when the body cannot be read, when the Content-Type header declares a charset that the
- * JVM does not support, when the query string contains a malformed percent-encoded sequence, or when a
+ * JVM does not support, when the query string contains a malformed percent-encoded sequence, when Parameters to
+ * Attributes is set and Jetty cannot decode a query parameter, such as %C3 that is not complete UTF-8, or when a
  * multipart/form-data request has no parts; with 503 when the HTTP Context Map refuses the registration; and with
  * 500 when an unexpected exception is thrown before the request is registered. When stopped, the processor
  * unregisters, and the router service answers the requests still waiting in its queue with 503.
@@ -94,9 +96,8 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service", "router"})
 @CapabilityDescription("Receives the HTTP requests that an HTTP Router Service routes to this processor and creates "
-        + "a FlowFile for each request. Several processors share the port of one router service, each handling "
-        + "its own paths. This processor is used together with HandleHttpResponse to create a web service. "
-        + "A multipart/form-data request produces one FlowFile per part.")
+        + "a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, "
+        + "each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.")
 @WritesAttributes({
     @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_CONTEXT_ID, description = "The identifier under "
             + "which the request is registered on the HTTP Context Map. HandleHttpResponse uses it to answer "
@@ -123,7 +124,6 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
     @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_REQUEST_URI, description = "The request URI"),
     @WritesAttribute(attribute = "http.request.url", description = "The full request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP authorization used"),
-    @WritesAttribute(attribute = "http.requested.session.id", description = "The session ID the client sent"),
     @WritesAttribute(attribute = "http.dispatcher.type", description = "The dispatcher type of the request"),
     @WritesAttribute(attribute = "http.character.encoding", description = "The character encoding of the request "
             + "body"),
@@ -204,8 +204,9 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     public static final PropertyDescriptor REQUEST_PATH = new PropertyDescriptor.Builder()
             .name("request-path")
             .displayName("Request Path")
-            .description("A regular expression that specifies the HTTP paths this processor handles, for example "
-                    + "/orders(/.*)?")
+            .description("A regular expression that specifies the HTTP paths this processor handles. It is matched "
+                    + "against the decoded path with dot segments resolved, the value written to http.servlet.path, "
+                    + "so /public/../admin is matched as /admin. Example: /orders(/.*)?")
             .required(true)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
@@ -241,9 +242,10 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             .displayName("Request Queue Timeout")
             .description("The maximum time a request waits in the queue of this processor. The router service answers "
                     + "a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP "
-                    + "Context Map starts when the processor takes the request from the queue")
+                    + "Context Map starts when the processor takes the request from the queue. The minimum is 1 ms")
             .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(StandardValidators.createTimePeriodValidator(
+                    1, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
             .defaultValue("30 sec")
             .build();
 
@@ -510,8 +512,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
                 final Part part = parts.get(i);
                 FlowFile flowFile = session.create();
                 flowFiles.add(flowFile);
-                try (OutputStream flowFileOut = session.write(flowFile)) {
-                    part.getInputStream().transferTo(flowFileOut);
+                try (InputStream partIn = part.getInputStream(); OutputStream flowFileOut = session.write(flowFile)) {
+                    partIn.transferTo(flowFileOut);
                 }
                 flowFile = savePartAttributes(session, part, flowFile, i, parts.size());
                 flowFile = session.putAllAttributes(flowFile, requestAttributes);
@@ -603,7 +605,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      * @param request the request to describe
      * @param contextIdentifier identifier under which the request is registered on the HTTP Context Map
      * @return the attributes, keyed by attribute name
-     * @throws IllegalArgumentException if the query string contains a malformed percent-encoded sequence
+     * @throws IllegalArgumentException if the query string contains a malformed percent-encoded sequence, or if
+     *                                  Parameters to Attributes is set and Jetty cannot decode a request parameter
      */
     private Map<String, String> getRequestAttributes(final HttpServletRequest request,
             final String contextIdentifier) {
@@ -627,7 +630,6 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         putAttribute(attributes, HTTP_REQUEST_URI, request.getRequestURI());
         putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
         putAttribute(attributes, "http.auth.type", request.getAuthType());
-        putAttribute(attributes, "http.requested.session.id", request.getRequestedSessionId());
         final DispatcherType dispatcherType = request.getDispatcherType();
         if (dispatcherType != null) {
             putAttribute(attributes, "http.dispatcher.type", dispatcherType.name());
@@ -661,7 +663,13 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         if (parameterNames.isEmpty()) {
             return;
         }
-        final Enumeration<String> paramEnumeration = request.getParameterNames();
+        final Enumeration<String> paramEnumeration;
+        try {
+            paramEnumeration = request.getParameterNames();
+        } catch (final IllegalStateException e) {
+            // Jetty reports a parameter it cannot decode, such as %C3 that is not complete UTF-8, this way.
+            throw new IllegalArgumentException("Cannot decode the request parameters", e);
+        }
         while (paramEnumeration.hasMoreElements()) {
             final String paramName = paramEnumeration.nextElement();
             if (parameterNames.contains(paramName)) {

@@ -65,6 +65,34 @@ class ProcessorRegistrationTest {
         );
     }
 
+    /**
+     * The fresh request is queued at least 1 ms after the moment the two others are expired against, so it has
+     * waited no longer than the queue timeout at that moment.
+     */
+    @Test
+    void removeExpiredTakesOutEveryExpiredRequestInOrderAndLeavesTheFreshOne() throws Exception {
+        final HttpRequestContainer first = newContainer();
+        final HttpRequestContainer second = newContainer();
+        final HttpRequestContainer fresh = newContainer();
+        registration.offer(first);
+        registration.offer(second);
+        final long afterExpiredQueued = System.nanoTime();
+        Thread.sleep(1);
+        registration.offer(fresh);
+
+        final List<HttpRequestContainer> removed =
+                registration.removeExpired(afterExpiredQueued + QUEUE_TIMEOUT.toNanos() + 1);
+
+        // The containers are equal records, so the order is checked by identity.
+        assertEquals(2, removed.size(), "number of requests removed after the queue timeout");
+        assertAll(
+                () -> assertSame(first, removed.get(0), "first request removed"),
+                () -> assertSame(second, removed.get(1), "second request removed"),
+                () -> assertSame(fresh, registration.poll(0, TimeUnit.MILLISECONDS, new ArrayList<>()),
+                        "request polled after removeExpired")
+        );
+    }
+
     @Test
     void removeExpiredTakesOutARequestOnlyOnceItHasWaitedLongerThanTheQueueTimeout() throws Exception {
         final HttpRequestContainer queued = newContainer();

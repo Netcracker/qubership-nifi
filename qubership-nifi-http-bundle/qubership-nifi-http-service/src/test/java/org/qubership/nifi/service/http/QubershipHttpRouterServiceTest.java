@@ -35,6 +35,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -165,6 +166,41 @@ class QubershipHttpRouterServiceTest {
         answer(container, pending);
     }
 
+    /**
+     * The request is written to a socket, so that no client resolves the dot segments before the server sees them.
+     */
+    @Test
+    void aPathWithDotSegmentsIsRoutedByThePathItResolvesTo() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("public", Pattern.compile("/public/.*"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("admin", Pattern.compile("/admin"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        try (Socket socket = sendRawGet("/public/../admin")) {
+            final HttpRequestContainer container = awaitRequest("admin");
+
+            assertNull(pollNow("public"), "pollRequest(public) after GET /public/../admin");
+            container.response().setStatus(200);
+            container.context().complete();
+            readResponseHead(socket.getInputStream());
+        }
+    }
+
+    @Test
+    void aPercentEncodedPathIsMatchedInItsDecodedForm() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders/\\d+"), Set.of("GET"), QUEUE_SIZE,
+                QUEUE_TIMEOUT);
+
+        try (Socket socket = sendRawGet("/orders/%31")) {
+            final HttpRequestContainer container = awaitRequest("orders");
+
+            assertEquals("/orders/%31", container.request().getRequestURI(), "URI of the queued request");
+            container.response().setStatus(200);
+            container.context().complete();
+            readResponseHead(socket.getInputStream());
+        }
+    }
+
     @Test
     void aMethodRegisteredInLowerCaseIsAllowed() throws Exception {
         runner.enableControllerService(service);
@@ -196,7 +232,55 @@ class QubershipHttpRouterServiceTest {
 
         assertAll(
                 () -> assertEquals(405, response.statusCode(), "DELETE /orders with methods [GET]"),
+                () -> assertEquals(Optional.of("GET"), response.headers().firstValue("Allow"), "Allow of the 405"),
                 () -> assertNull(pollNow("orders"), "pollRequest(orders) after the 405")
+        );
+    }
+
+    /**
+     * RFC 9110 section 10.2.1: an empty Allow value means the resource allows no methods.
+     */
+    @Test
+    void aPathWhoseOnlyMatchingProcessorAllowsNoMethodIsAnsweredWith405AndAnEmptyAllow() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of(), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final HttpResponse<String> response = sendAndWait("GET", "/orders");
+
+        assertAll(
+                () -> assertEquals(405, response.statusCode(), "GET /orders with methods []"),
+                () -> assertEquals(Optional.of(""), response.headers().firstValue("Allow"), "Allow of the 405")
+        );
+    }
+
+    @Test
+    void aMethodThatOnlyALaterMatchingProcessorAllowsIsRoutedToThatProcessor() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("read-orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("write-orders", Pattern.compile("/orders/?"), Set.of("POST"),
+                QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders");
+        final HttpRequestContainer container = awaitRequest("write-orders");
+
+        assertNull(pollNow("read-orders"), "pollRequest(read-orders) after POST /orders");
+        answer(container, pending);
+    }
+
+    @Test
+    void the405ForAMethodNoMatchingProcessorAllowsListsTheMethodsOfEveryMatchingProcessor() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("read-orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("write-orders", Pattern.compile("/orders/?"), Set.of("POST"),
+                QUEUE_SIZE, QUEUE_TIMEOUT);
+        service.registerProcessor("users", Pattern.compile("/users"), Set.of("PUT"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final HttpResponse<String> response = sendAndWait("DELETE", "/orders");
+
+        assertAll(
+                () -> assertEquals(405, response.statusCode(), "DELETE /orders with methods [GET] and [POST]"),
+                () -> assertEquals(Optional.of("GET, POST"), response.headers().firstValue("Allow"),
+                        "Allow of the 405, without PUT of /users")
         );
     }
 
@@ -355,10 +439,10 @@ class QubershipHttpRouterServiceTest {
     }
 
     @Test
-    void pollRequestReturnsNullForAProcessorThatIsNotRegistered() {
+    void pollRequestThrowsForAProcessorThatIsNotRegistered() {
         runner.enableControllerService(service);
 
-        assertNull(pollNow("unknown"), "pollRequest(unknown)");
+        assertThrows(IllegalStateException.class, () -> pollNow("unknown"), "pollRequest(unknown)");
     }
 
     @Test
@@ -383,7 +467,8 @@ class QubershipHttpRouterServiceTest {
 
         assertAll(
                 () -> assertEquals(404, response.statusCode(), "GET /orders after unregisterProcessor(orders)"),
-                () -> assertNull(pollNow("orders"), "pollRequest(orders) after unregisterProcessor")
+                () -> assertThrows(IllegalStateException.class, () -> pollNow("orders"),
+                        "pollRequest(orders) after unregisterProcessor")
         );
     }
 
@@ -638,6 +723,21 @@ class QubershipHttpRouterServiceTest {
         final CompletableFuture<HttpResponse<String>> second = send("GET", secondPath);
         await(CompletableFuture.anyOf(first, second), "one of two requests to be refused by a queue of size 1");
         return first.isDone() ? second : first;
+    }
+
+    /**
+     * Writes a GET request with the path exactly as given to a new connection.
+     *
+     * @param path request target, sent without normalization
+     * @return the open connection, from which the response can be read
+     */
+    private Socket sendRawGet(final String path) throws IOException {
+        final Socket socket = new Socket("localhost", port);
+        socket.setSoTimeout((int) TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
+        socket.getOutputStream().write(("GET " + path + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                .getBytes(StandardCharsets.US_ASCII));
+        socket.getOutputStream().flush();
+        return socket;
     }
 
     private HttpRequestContainer pollNow(final String processorId) {

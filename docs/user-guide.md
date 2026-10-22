@@ -24,7 +24,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |`QueryIdsAndFetchTableToJson`|migration-nifi-processors-open|Fetches data from source DB into JSON using query (Custom Query) and IDs obtained from IDs DB with query (IDs Custom Query). IDs query is executed first, then for each batch of IDs, main query is executed to get data and transform it to JSON. Data iscollected until Batch Size is reached, then it is loaded into FlowFile. Data collection continues until all rows are processed.|
 |`PutSQLRecord`|qubership-nifi-db-processors-nar|Executes given SQL statement using data from input records. All records within single  FlowFile are processed within single transaction.|
 |`PostgreSQLBulkLoader`|qubership-nifi-db-processors-nar|The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.It is also possible to copy from DB to FlowFile content.|
-|`QubershipHandleHttpRequest`|qubership-nifi-http-processors-nar|Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request. Several processors share the port of one router service, each handling its own paths. This processor is used together with HandleHttpResponse to create a web service. A multipart/form-data request produces one FlowFile per part.|
+|`QubershipHandleHttpRequest`|qubership-nifi-http-processors-nar|Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.|
 
 ## Additional processors properties description
 
@@ -200,15 +200,15 @@ It is also possible to copy from DB to FlowFile content.
 
 ### QubershipHandleHttpRequest
 
-Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request. Several processors share the port of one router service, each handling its own paths. This processor is used together with HandleHttpResponse to create a web service. A multipart/form-data request produces one FlowFile per part.
+Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.
 
 |Display Name|API Name|Default Value|Allowable Values|Description|
 |---|---|---|---|---|
 |HTTP Router Service|`http-router-service`|||The controller service the processor registers on|
-|Request Path|`request-path`|||A regular expression that specifies the HTTP paths this processor handles, for example /orders(/.*)?|
+|Request Path|`request-path`|||A regular expression that specifies the HTTP paths this processor handles. It is matched against the decoded path with dot segments resolved, the value written to http.servlet.path, so /public/../admin is matched as /admin. Example: /orders(/.*)?|
 |HTTP Context Map|`http-context-map`|||The HTTP Context Map controller service that caches the request until the flow answers it|
 |Container Queue Size|`container-queue-size`|50||The size of the queue the service fills with the requests routed to this processor|
-|Request Queue Timeout|`request-queue-timeout`|30 sec||The maximum time a request waits in the queue of this processor. The router service answers a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP Context Map starts when the processor takes the request from the queue|
+|Request Queue Timeout|`request-queue-timeout`|30 sec||The maximum time a request waits in the queue of this processor. The router service answers a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP Context Map starts when the processor takes the request from the queue. The minimum is 1 ms|
 |Allow GET|`allow-get`|true|true, false|Whether the processor handles GET requests on its paths|
 |Allow POST|`allow-post`|true|true, false|Whether the processor handles POST requests on its paths|
 |Allow PUT|`allow-put`|true|true, false|Whether the processor handles PUT requests on its paths|
@@ -317,7 +317,7 @@ Starts one HTTP server on one port and routes each incoming request to the proce
 |---|---|---|---|---|
 |Listening Port|`listening-port`|8081||The port the server listens on|
 |Hostname|`hostname`|||The hostname to bind to. If not set, the server binds to all hosts|
-|SSL Context Service|`ssl-context-service`|||The SSL Context Service to use to secure the server. If set, the server accepts only HTTPS requests; otherwise it accepts only HTTP requests|
+|SSL Context Service|`ssl-context-service`|||The SSL Context Service to use to secure the server. If set, the server accepts only HTTPS requests; otherwise it accepts only HTTP requests. The server does not ask clients for a certificate, so mutual TLS is not supported|
 |HTTP Protocols|`http-protocols`|HTTP_1_1|http/1.1, h2 http/1.1, h2|The HTTP protocols the server supports for Application Layer Protocol Negotiation with TLS|
 |Maximum Threads|`maximum-threads`|200||The maximum number of threads the server uses for handling requests|
 |Request Header Maximum Size|`request-header-maximum-size`|8 KB||The maximum supported size of HTTP headers in requests sent to the server|

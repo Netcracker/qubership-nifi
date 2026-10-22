@@ -38,7 +38,6 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
-import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -56,19 +56,21 @@ import java.util.stream.Collectors;
 
 /**
  * Controller service that starts one Jetty server on one port and routes each incoming request to the queue of the
- * registered processor whose path pattern matches the path of the request.
+ * registered processor whose path pattern matches the path of the request. The pattern is matched against the
+ * servlet path: the path decoded, with dot segments resolved.
  *
  * <p>The service answers a request itself when it cannot put the request in the queue of a processor: with 404 when
- * the path does not match the pattern of any processor, with 405 when the matching processor does not allow the
- * method, and with 503 when the queue of the processor is full, when the request has waited in the queue longer than
- * the queue timeout of the processor, when the processor is being unregistered, or when the service is being
- * disabled. When the patterns of several processors match a path, the processor that registered first receives the
- * request.
+ * the path does not match the pattern of any processor, with 405 and an Allow header when no processor whose pattern
+ * matches the path allows the method, and with 503 when the queue of the processor is full, when the request has
+ * waited in the queue longer than the queue timeout of the processor, when the processor is being unregistered, or
+ * when the service is being disabled. When several processors match both the path and the method, the processor
+ * that registered first receives the request.
  *
  * <p>A request waits in the queue until the processor takes it, until its queue timeout passes, until the processor
  * is unregistered, or until the service is disabled. pollRequest never returns an expired request, and the service
  * removes the expired requests of every queue about once a second, so an expired request is answered even while no
- * processor polls its queue.
+ * processor polls its queue. Once the processor takes a request, the queue timeout no longer applies, and the Request
+ * Expiration of the HTTP Context Map of the processor limits how long the request waits for an answer.
  */
 @Tags({"http", "https", "server", "router", "listen"})
 @CapabilityDescription("Starts one HTTP server on one port and routes each incoming request to the processor whose "
@@ -109,7 +111,8 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
             .name("ssl-context-service")
             .displayName("SSL Context Service")
             .description("The SSL Context Service to use to secure the server. If set, the server accepts only "
-                    + "HTTPS requests; otherwise it accepts only HTTP requests")
+                    + "HTTPS requests; otherwise it accepts only HTTP requests. The server does not ask clients for "
+                    + "a certificate, so mutual TLS is not supported")
             .required(false)
             .identifiesControllerService(SSLContextProvider.class)
             .build();
@@ -264,8 +267,8 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
     /**
      * Registers the paths and methods a processor handles and creates its request queue.
      *
-     * <p>Two path patterns conflict only when their strings are equal. When the patterns of several processors match
-     * a path, the processor that registered first receives the request.
+     * <p>Two path patterns conflict only when their strings are equal. When several processors match both the path
+     * and the method of a request, the processor that registered first receives it.
      *
      * @param processorId identifier of the processor
      * @param paths regular expression that a request path must match to be routed to the processor
@@ -347,13 +350,15 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
      * @param processorId identifier the processor was registered with
      * @param timeout how long to wait for a request; zero or less returns at once
      * @param unit unit of timeout
-     * @return the next request, or null if no request arrives within the timeout or the processor is not registered
+     * @return the next request, or null if no request arrives within the timeout
+     * @throws IllegalStateException if the processor is not registered
      */
     @Override
     public HttpRequestContainer pollRequest(final String processorId, final long timeout, final TimeUnit unit) {
         final ProcessorRegistration registration = registrationsById.get(processorId);
         if (registration == null) {
-            return null;
+            throw new IllegalStateException("Cannot poll requests for processor " + processorId
+                    + ": the processor is not registered.");
         }
         final List<HttpRequestContainer> expired = new ArrayList<>();
         try {
@@ -483,23 +488,39 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
 
         @Override
         protected void service(final HttpServletRequest request, final HttpServletResponse response) {
-            final String path = URI.create(request.getRequestURI()).getPath();
-            final ProcessorRegistration registration = findRegistrationByPath(path);
             if (disabling) {
                 sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Disabling Service", request, response);
                 return;
             }
-            if (registration == null) {
-                sendError(HttpServletResponse.SC_NOT_FOUND, "No Processor Registered for Path", request, response);
-                return;
-            }
+            final String path = request.getServletPath();
             final String method = request.getMethod().toUpperCase(Locale.ROOT);
-            if (!registration.allowsMethod(method)) {
-                sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed", request, response);
+            final Set<String> allowedMethods = new TreeSet<>();
+            boolean pathMatched = false;
+            ProcessorRegistration registration = null;
+            for (final ProcessorRegistration candidate : registrations) {
+                if (candidate.matchesPath(path)) {
+                    if (candidate.allowsMethod(method)) {
+                        registration = candidate;
+                        break;
+                    }
+                    pathMatched = true;
+                    allowedMethods.addAll(candidate.getMethods());
+                }
+            }
+            if (registration == null) {
+                if (!pathMatched) {
+                    sendError(HttpServletResponse.SC_NOT_FOUND, "No Processor Registered for Path", request,
+                            response);
+                } else {
+                    response.setHeader("Allow", String.join(", ", allowedMethods));
+                    sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED, "Method Not Allowed", request, response);
+                }
                 return;
             }
 
             final AsyncContext async = request.startAsync();
+            // The async context has no time limit of its own: the queue timeout of the processor limits the wait in
+            // the queue, and the HTTP Context Map of the processor limits the wait for an answer.
             async.setTimeout(0);
             final HttpRequestContainer container = new HttpRequestContainer(request, response, async);
             switch (registration.offer(container)) {
@@ -511,15 +532,6 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
                         sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Stopping Processor", container);
                 default -> throw new IllegalStateException("Unexpected offer result");
             }
-        }
-
-        private ProcessorRegistration findRegistrationByPath(final String path) {
-            for (final ProcessorRegistration registration : registrations) {
-                if (registration.matchesPath(path)) {
-                    return registration;
-                }
-            }
-            return null;
         }
     }
 }
