@@ -584,10 +584,6 @@ class QubershipHttpRouterServiceTest {
     }
 
     /**
-     * Jetty closes a keep-alive connection after 30 s of idleness by default, so a connection closed within 5 s
-     * shows that the server applied the Idle Timeout of 1 s.
-     */
-    /**
      * Jetty gives an async context a time limit of 30 s by default, which would answer a request that waits longer
      * in the queue or for the flow before the queue timeout or the HTTP Context Map does.
      */
@@ -658,6 +654,10 @@ class QubershipHttpRouterServiceTest {
         );
     }
 
+    /**
+     * Jetty closes a keep-alive connection after 30 s of idleness by default, so a connection closed within 5 s
+     * shows that the server applied the Idle Timeout of 1 s.
+     */
     @Test
     void theServerClosesAConnectionIdleForLongerThanIdleTimeout() throws Exception {
         runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
