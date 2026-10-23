@@ -51,6 +51,11 @@ public class JsonValidationHandler {
 
     private static final String ROOT_OBJECT_IN_JSON_PATH = "$.";
 
+    // Keywords whose error is located at the parent object, with the missing or extra property reported separately.
+    // The error path includes that property. A dependencies error also reports a property, the one that triggered
+    // the check, and its path stays at the parent object.
+    private static final Set<String> PROPERTY_PATH_KEYWORDS = Set.of("required", "additionalProperties");
+
     private JsonSchema jsonSchema;
     private JsonNode originalJsonNode;
     private ProcessorProperty property;
@@ -86,7 +91,7 @@ public class JsonValidationHandler {
 
     private JsonNode createErrorJson(ValidationMessage error) {
         StringBuilder titleBuilder = new StringBuilder();
-        String path = extractPath(error.getMessage());
+        String path = extractPath(error);
         String shortPath = extractShortPath(path);
 
         String beType = extractBeTypeValue();
@@ -144,10 +149,12 @@ public class JsonValidationHandler {
 
     }
 
-    private String extractPath(String message) {
-        if (message == null) return "null";
-        String PATH_MESSAGE_DELIMITER = ":";
-        return message.substring(0, message.indexOf(PATH_MESSAGE_DELIMITER));
+    private String extractPath(ValidationMessage error) {
+        String path = error.getInstanceLocation().toString();
+        if (PROPERTY_PATH_KEYWORDS.contains(error.getType()) && error.getProperty() != null) {
+            return path + JSON_PATH_DELIMITER + error.getProperty();
+        }
+        return path;
     }
 
     private JsonNode addErrorArrayToJson(ArrayNode errorArray, ObjectNode objectNode) {
