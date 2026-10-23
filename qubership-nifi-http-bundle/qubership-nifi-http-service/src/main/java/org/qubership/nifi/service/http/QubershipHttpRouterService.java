@@ -12,6 +12,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Portions of this file are derived from org.apache.nifi.processors.standard.HandleHttpRequest
+ * of Apache NiFi, licensed to the Apache Software Foundation (ASF) under one or more contributor
+ * license agreements and licensed by the ASF to You under the Apache License, Version 2.0.
+ * See the NOTICE file distributed with Apache NiFi for additional information regarding
+ * copyright ownership.
  */
 
 package org.qubership.nifi.service.http;
