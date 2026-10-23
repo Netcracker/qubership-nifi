@@ -51,6 +51,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -182,8 +183,8 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
     private final List<ProcessorRegistration> registrations = new CopyOnWriteArrayList<>();
     private final Map<String, ProcessorRegistration> registrationsById = new ConcurrentHashMap<>();
     private final Map<String, ProcessorRegistration> registrationsByPattern = new ConcurrentHashMap<>();
-    private volatile Server server;
-    private volatile ScheduledExecutorService expirationExecutor;
+    private final AtomicReference<Server> server = new AtomicReference<>();
+    private final AtomicReference<ScheduledExecutorService> expirationExecutor = new AtomicReference<>();
     private volatile boolean disabling;
 
     /**
@@ -218,7 +219,7 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
             stopServer(newServer);
             throw e;
         }
-        this.server = newServer;
+        server.set(newServer);
         final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
             final Thread thread = new Thread(task, "QubershipHttpRouterService-" + getIdentifier() + "-expiration");
             thread.setDaemon(true);
@@ -226,7 +227,7 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
         });
         final long checkMillis = getExpirationCheckMillis();
         executor.scheduleWithFixedDelay(this::answerExpiredRequests, checkMillis, checkMillis, TimeUnit.MILLISECONDS);
-        this.expirationExecutor = executor;
+        expirationExecutor.set(executor);
 
         for (final Connector connector : newServer.getConnectors()) {
             getLogger().info("Started Connector {}", connector);
@@ -241,16 +242,14 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
      */
     @OnDisabled
     public void onDisabled() throws Exception {
-        final Server currentServer = this.server;
+        final Server currentServer = server.getAndSet(null);
         if (currentServer == null) {
             return;
         }
-        this.server = null;
         disabling = true;
-        final ScheduledExecutorService executor = this.expirationExecutor;
+        final ScheduledExecutorService executor = expirationExecutor.getAndSet(null);
         if (executor != null) {
             executor.shutdownNow();
-            this.expirationExecutor = null;
         }
         for (final ProcessorRegistration registration : registrations) {
             closeRegistration(registration);
@@ -296,8 +295,7 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
             throw new IllegalArgumentException("Cannot register processor " + processorId + ": queue timeout "
                     + queueTimeout + " is not positive.");
         }
-        final Server currentServer = this.server;
-        if (currentServer == null) {
+        if (server.get() == null) {
             throw new IllegalStateException("Cannot register processor " + processorId
                     + ": the HTTP server is not started. Enable the controller service first.");
         }

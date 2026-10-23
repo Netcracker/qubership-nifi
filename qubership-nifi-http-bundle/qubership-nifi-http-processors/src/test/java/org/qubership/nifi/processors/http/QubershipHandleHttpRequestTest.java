@@ -283,8 +283,7 @@ class QubershipHandleHttpRequestTest {
     void aQueryStringWithMalformedPercentEncodingIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
         startProcessor();
 
-        final CompletableFuture<String> pending = sendRaw("GET /orders?note=%zz HTTP/1.1\r\n"
-                + "Host: localhost\r\nConnection: close\r\n\r\n");
+        final CompletableFuture<String> pending = sendRaw(rawGet("/orders?note=%zz"));
         final String statusLine = awaitWhileTriggering(pending, "the response to GET /orders?note=%zz");
 
         assertAll(
@@ -304,8 +303,7 @@ class QubershipHandleHttpRequestTest {
         runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
         startProcessor();
 
-        final CompletableFuture<String> pending = sendRaw("GET /orders?x=%C3 HTTP/1.1\r\n"
-                + "Host: localhost\r\nConnection: close\r\n\r\n");
+        final CompletableFuture<String> pending = sendRaw(rawGet("/orders?x=%C3"));
         final String statusLine = awaitWhileTriggering(pending, "the response to GET /orders?x=%C3");
 
         assertAll(
@@ -325,8 +323,7 @@ class QubershipHandleHttpRequestTest {
             throws Exception {
         startProcessor();
 
-        final CompletableFuture<String> pending = sendRaw("GET /orders?x=%C3 HTTP/1.1\r\n"
-                + "Host: localhost\r\nConnection: close\r\n\r\n");
+        final CompletableFuture<String> pending = sendRaw(rawGet("/orders?x=%C3"));
         final MockFlowFile flowFile = awaitFlowFiles(1).getFirst();
         answer(flowFile.getAttribute("http.context.identifier"), 200);
         final String statusLine = await(pending, "the response to GET /orders?x=%C3");
@@ -385,11 +382,11 @@ class QubershipHandleHttpRequestTest {
         startProcessor();
 
         assertAll(
-                () -> assertEquals("/orders(/.*)?", recordingRouter.paths.pattern(), "registered path pattern"),
-                () -> assertEquals(Set.of("GET", "POST", "PUT", "DELETE"), recordingRouter.methods,
+                () -> assertEquals("/orders(/.*)?", recordingRouter.paths.get().pattern(), "registered path pattern"),
+                () -> assertEquals(Set.of("GET", "POST", "PUT", "DELETE"), recordingRouter.methods.get(),
                         "registered methods with the default Allow properties"),
                 () -> assertEquals(50, recordingRouter.queueSize, "registered queue size"),
-                () -> assertEquals(Duration.ofSeconds(30), recordingRouter.queueTimeout,
+                () -> assertEquals(Duration.ofSeconds(30), recordingRouter.queueTimeout.get(),
                         "registered queue timeout with the default Request Queue Timeout")
         );
     }
@@ -412,8 +409,12 @@ class QubershipHandleHttpRequestTest {
         startProcessor();
 
         try (Socket socket = new Socket("localhost", port)) {
-            socket.getOutputStream().write(("POST /orders HTTP/1.1\r\nHost: localhost\r\n"
-                    + "Content-Length: 100\r\n\r\nten bytes.").getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().write("""
+                    POST /orders HTTP/1.1\r
+                    Host: localhost\r
+                    Content-Length: 100\r
+                    \r
+                    ten bytes.""".getBytes(StandardCharsets.US_ASCII));
             socket.shutdownOutput();
             awaitErrorLog("Stream Processing Failed");
         }
@@ -771,6 +772,21 @@ class QubershipHandleHttpRequestTest {
         });
     }
 
+    /**
+     * Returns a GET request with the request target exactly as given, for sendRaw.
+     *
+     * @param target request target, such as a path with a query string, sent without normalization
+     * @return the request, with CRLF line endings and a Connection: close header
+     */
+    private static String rawGet(final String target) {
+        return """
+                GET %s HTTP/1.1\r
+                Host: localhost\r
+                Connection: close\r
+                \r
+                """.formatted(target);
+    }
+
     private URI uri(final String path) {
         return URI.create("http://localhost:" + port + path);
     }
@@ -1100,20 +1116,20 @@ class QubershipHandleHttpRequestTest {
     private static final class RecordingHttpRouterService extends AbstractControllerService
             implements HttpRouterService {
 
-        private volatile Pattern paths;
-        private volatile Set<String> methods;
+        private final AtomicReference<Pattern> paths = new AtomicReference<>();
+        private final AtomicReference<Set<String>> methods = new AtomicReference<>();
         private volatile int queueSize;
-        private volatile Duration queueTimeout;
+        private final AtomicReference<Duration> queueTimeout = new AtomicReference<>();
         private volatile long pollTimeoutNanos = -1;
 
         @Override
         public void registerProcessor(final String processorId, final Pattern registeredPaths,
                 final Set<String> registeredMethods, final int registeredQueueSize,
                 final Duration registeredQueueTimeout) {
-            paths = registeredPaths;
-            methods = registeredMethods;
+            paths.set(registeredPaths);
+            methods.set(registeredMethods);
             queueSize = registeredQueueSize;
-            queueTimeout = registeredQueueTimeout;
+            queueTimeout.set(registeredQueueTimeout);
         }
 
         @Override

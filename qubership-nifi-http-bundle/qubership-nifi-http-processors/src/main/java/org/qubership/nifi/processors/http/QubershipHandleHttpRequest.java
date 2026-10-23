@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -359,10 +360,10 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
-    private volatile HttpRouterService routerService;
-    private volatile HttpContextMap contextMap;
-    private volatile Set<String> parametersToAttributes;
-    private volatile MultipartConfigElement multipartConfig;
+    private final AtomicReference<HttpRouterService> routerService = new AtomicReference<>();
+    private final AtomicReference<HttpContextMap> contextMap = new AtomicReference<>();
+    private final AtomicReference<Set<String>> parametersToAttributes = new AtomicReference<>();
+    private final AtomicReference<MultipartConfigElement> multipartConfig = new AtomicReference<>();
 
     private static PropertyDescriptor allowMethod(final String method, final boolean allowedByDefault) {
         return new PropertyDescriptor.Builder()
@@ -405,15 +406,15 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
         final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
-        this.contextMap = httpContextMap;
-        this.parametersToAttributes = splitList(context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue());
-        this.multipartConfig = new MultipartConfigElement(System.getProperty("java.io.tmpdir"), requestMaxSize,
-                requestMaxSize, readBufferSize);
+        contextMap.set(httpContextMap);
+        parametersToAttributes.set(splitList(context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue()));
+        multipartConfig.set(new MultipartConfigElement(System.getProperty("java.io.tmpdir"), requestMaxSize,
+                requestMaxSize, readBufferSize));
 
         final Duration queueTimeout =
                 Duration.ofMillis(context.getProperty(REQUEST_QUEUE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS));
         router.registerProcessor(getIdentifier(), paths, getAllowedMethods(context), queueSize, queueTimeout);
-        this.routerService = router;
+        routerService.set(router);
     }
 
     /**
@@ -425,17 +426,16 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
      */
     @OnStopped
     public void onStopped() {
-        final HttpRouterService router = this.routerService;
+        final HttpRouterService router = routerService.getAndSet(null);
         if (router != null) {
             router.unregisterProcessor(getIdentifier());
-            this.routerService = null;
         }
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final HttpRequestContainer container =
-                routerService.pollRequest(getIdentifier(), POLL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+                routerService.get().pollRequest(getIdentifier(), POLL_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         if (container == null) {
             return;
         }
@@ -445,7 +445,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
         try {
             handleContainer(session, container, contextIdentifier, start);
         } catch (final RuntimeException e) {
-            if (contextMap.getResponse(contextIdentifier) == null) {
+            if (contextMap.get().getResponse(contextIdentifier) == null) {
                 sendError(SC_INTERNAL_SERVER_ERROR, "Request Processing Failed", container);
             }
             throw e;
@@ -499,7 +499,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     private void handleMultipartRequest(final ProcessSession session, final HttpRequestContainer container,
             final String contextIdentifier, final long start) {
         final HttpServletRequest request = container.request();
-        request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, multipartConfig);
+        request.setAttribute(ServletContextRequest.MULTIPART_CONFIG_ELEMENT, multipartConfig.get());
         List<Part> parts = null;
         final List<FlowFile> flowFiles = new ArrayList<>();
         try {
@@ -660,7 +660,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     }
 
     private void putParameterAttributes(final Map<String, String> attributes, final HttpServletRequest request) {
-        final Set<String> parameterNames = this.parametersToAttributes;
+        final Set<String> parameterNames = parametersToAttributes.get();
         if (parameterNames.isEmpty()) {
             return;
         }
@@ -715,7 +715,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
     }
 
     private boolean registerRequest(final HttpRequestContainer container, final String contextIdentifier) {
-        if (contextMap.register(contextIdentifier, container.request(), container.response(), container.context())) {
+        final HttpContextMap map = contextMap.get();
+        if (map.register(contextIdentifier, container.request(), container.response(), container.context())) {
             return true;
         }
         sendError(SC_SERVICE_UNAVAILABLE, "Request Registration Failed", container);

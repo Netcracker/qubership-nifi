@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ConnectException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -54,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A request reaches the queue of the registered processor whose path pattern and methods match it, and the service
@@ -633,6 +635,7 @@ class QubershipHttpRouterServiceTest {
      */
     @Test
     void withoutAHostnameTheServerAcceptsConnectionsOnEveryLocalAddress() {
+        assumeOtherLoopbackIsLocal();
         runner.enableControllerService(service);
 
         assertAll(
@@ -644,6 +647,7 @@ class QubershipHttpRouterServiceTest {
 
     @Test
     void withAHostnameTheServerAcceptsConnectionsOnlyOnThatAddress() {
+        assumeOtherLoopbackIsLocal();
         runner.setProperty(service, QubershipHttpRouterService.HOSTNAME, LOOPBACK);
         runner.enableControllerService(service);
 
@@ -809,6 +813,20 @@ class QubershipHttpRouterServiceTest {
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    /**
+     * Skips the test where 127.0.0.2 is not a local address. Linux and Windows route all of 127.0.0.0/8 to the
+     * loopback interface, while macOS has only 127.0.0.1 unless an alias is added.
+     */
+    private static void assumeOtherLoopbackIsLocal() {
+        boolean local;
+        try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getByName(OTHER_LOOPBACK))) {
+            local = true;
+        } catch (final IOException e) {
+            local = false;
+        }
+        assumeTrue(local, OTHER_LOOPBACK + " is not a local address on this machine");
+    }
+
     private HttpResponse<String> sendAndWait(final String method, final String path) throws Exception {
         return await(send(method, path), "the response to " + method + " " + path);
     }
@@ -837,8 +855,13 @@ class QubershipHttpRouterServiceTest {
     private Socket sendRawGet(final String path) throws IOException {
         final Socket socket = new Socket("localhost", port);
         socket.setSoTimeout((int) TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS));
-        socket.getOutputStream().write(("GET " + path + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
-                .getBytes(StandardCharsets.US_ASCII));
+        final String request = """
+                GET %s HTTP/1.1\r
+                Host: localhost\r
+                Connection: close\r
+                \r
+                """.formatted(path);
+        socket.getOutputStream().write(request.getBytes(StandardCharsets.US_ASCII));
         socket.getOutputStream().flush();
         return socket;
     }
