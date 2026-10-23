@@ -208,7 +208,7 @@ Receives the HTTP requests that an HTTP Router Service routes to this processor 
 |Request Path|`request-path`|||A regular expression that specifies the HTTP paths this processor handles. It is matched against the decoded path with dot segments resolved, the value written to http.servlet.path, so /public/../admin is matched as /admin. Example: /orders(/.*)?|
 |HTTP Context Map|`http-context-map`|||The HTTP Context Map controller service that caches the request until the flow answers it|
 |Container Queue Size|`container-queue-size`|50||The size of the queue the service fills with the requests routed to this processor|
-|Request Queue Timeout|`request-queue-timeout`|30 sec||The maximum time a request waits in the queue of this processor. The router service answers a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP Context Map starts when the processor takes the request from the queue. The minimum is 1 ms|
+|Request Queue Timeout|`request-queue-timeout`|30 sec||The maximum time a request waits in the queue of this processor. The router service answers a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP Context Map starts when the processor registers the request on the map, after it has read the body. The minimum is 1 ms|
 |Allow GET|`allow-get`|true|true, false|Whether the processor handles GET requests on its paths|
 |Allow POST|`allow-post`|true|true, false|Whether the processor handles POST requests on its paths|
 |Allow PUT|`allow-put`|true|true, false|Whether the processor handles PUT requests on its paths|

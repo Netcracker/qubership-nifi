@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
@@ -73,6 +74,8 @@ class QubershipHttpRouterServiceTest {
     private static final long POLL_INTERVAL_MILLIS = 10;
     private static final long POLL_TIMEOUT_MILLIS = 200;
     private static final int IDLE_CHECK_MILLIS = 5000;
+    private static final String LOOPBACK = "127.0.0.1";
+    private static final String OTHER_LOOPBACK = "127.0.0.2";
     private final HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
@@ -584,6 +587,77 @@ class QubershipHttpRouterServiceTest {
      * Jetty closes a keep-alive connection after 30 s of idleness by default, so a connection closed within 5 s
      * shows that the server applied the Idle Timeout of 1 s.
      */
+    /**
+     * Jetty gives an async context a time limit of 30 s by default, which would answer a request that waits longer
+     * in the queue or for the flow before the queue timeout or the HTTP Context Map does.
+     */
+    @Test
+    void theAsyncContextOfAQueuedRequestHasNoTimeLimit() throws Exception {
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders");
+        final HttpRequestContainer container = awaitRequest("orders");
+        final long asyncTimeout = container.context().getTimeout();
+        answer(container, pending);
+
+        assertEquals(0, asyncTimeout, "time limit of the async context of the queued request, in ms");
+    }
+
+    @Test
+    void aRequestWhoseHeadersExceedRequestHeaderMaximumSizeIsAnsweredWith431AndNotQueued() throws Exception {
+        runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final HttpResponse<String> response = await(sendWithHeader("X-Padding", "a".repeat(2000)),
+                "the response to GET /orders with a 2000-byte header");
+
+        assertAll(
+                () -> assertEquals(431, response.statusCode(), "GET /orders with a header over 1 KB"),
+                () -> assertNull(pollNow("orders"), "pollRequest(orders) after the 431")
+        );
+    }
+
+    @Test
+    void aRequestWhoseHeadersFitRequestHeaderMaximumSizeIsQueued() throws Exception {
+        runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
+        runner.enableControllerService(service);
+        service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
+
+        final CompletableFuture<HttpResponse<String>> pending = sendWithHeader("X-Padding", "a".repeat(500));
+        final HttpRequestContainer container = awaitRequest("orders");
+
+        assertEquals("/orders", container.request().getRequestURI(), "URI of the request with a 500-byte header");
+        answer(container, pending);
+    }
+
+    /**
+     * Every 127.0.0.0/8 address is a loopback address, so 127.0.0.2 reaches a server bound to all hosts.
+     */
+    @Test
+    void withoutAHostnameTheServerAcceptsConnectionsOnEveryLocalAddress() {
+        runner.enableControllerService(service);
+
+        assertAll(
+                () -> assertDoesNotThrow(() -> new Socket(LOOPBACK, port).close(), "connecting to " + LOOPBACK),
+                () -> assertDoesNotThrow(() -> new Socket(OTHER_LOOPBACK, port).close(),
+                        "connecting to " + OTHER_LOOPBACK)
+        );
+    }
+
+    @Test
+    void withAHostnameTheServerAcceptsConnectionsOnlyOnThatAddress() {
+        runner.setProperty(service, QubershipHttpRouterService.HOSTNAME, LOOPBACK);
+        runner.enableControllerService(service);
+
+        assertAll(
+                () -> assertDoesNotThrow(() -> new Socket(LOOPBACK, port).close(), "connecting to " + LOOPBACK),
+                () -> assertThrows(ConnectException.class, () -> new Socket(OTHER_LOOPBACK, port).close(),
+                        "connecting to " + OTHER_LOOPBACK + " with Hostname " + LOOPBACK)
+        );
+    }
+
     @Test
     void theServerClosesAConnectionIdleForLongerThanIdleTimeout() throws Exception {
         runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
@@ -723,6 +797,14 @@ class QubershipHttpRouterServiceTest {
             final String body) {
         final HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
                 .method(method, HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private CompletableFuture<HttpResponse<String>> sendWithHeader(final String name, final String value) {
+        final HttpRequest request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/orders"))
+                .header(name, value)
+                .GET()
                 .build();
         return client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
     }

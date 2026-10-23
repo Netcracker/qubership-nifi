@@ -87,8 +87,8 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
  * unregisters, and the router service answers the requests still waiting in its queue with 503.
  *
  * <p>A request waits in the queue of the router service no longer than Request Queue Timeout; the service answers a
- * request that waits longer with 503. The Request Expiration of the HTTP Context Map starts when the processor takes
- * the request from the queue.
+ * request that waits longer with 503. The Request Expiration of the HTTP Context Map starts when the processor
+ * registers the request on the map, after it has read the body.
  *
  * <p>Query parameters are decoded with the character encoding of the request, or with UTF-8 when the request
  * declares none.
@@ -242,7 +242,8 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             .displayName("Request Queue Timeout")
             .description("The maximum time a request waits in the queue of this processor. The router service answers "
                     + "a request that waits longer with 503 Service Unavailable. The Request Expiration of the HTTP "
-                    + "Context Map starts when the processor takes the request from the queue. The minimum is 1 ms")
+                    + "Context Map starts when the processor registers the request on the map, after it has read the "
+                    + "body. The minimum is 1 ms")
             .required(true)
             .addValidator(StandardValidators.createTimePeriodValidator(
                     1, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))

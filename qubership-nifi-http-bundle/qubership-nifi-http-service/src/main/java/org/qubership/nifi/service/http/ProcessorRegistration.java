@@ -71,6 +71,13 @@ final class ProcessorRegistration {
     /**
      * Creates a registration that reads the time at which a request is queued, and the time poll checks it against,
      * from the given clock instead of System.nanoTime, so that a test can move the time on.
+     *
+     * @param id identifier of the processor
+     * @param pathPattern regular expression that a request path must match
+     * @param allowedMethods HTTP methods the processor handles, in upper case
+     * @param queueSize maximum number of requests in the queue
+     * @param queueTimeout how long a request may wait in the queue before it expires
+     * @param clock source of the current time in nanoseconds
      */
     ProcessorRegistration(final String id, final Pattern pathPattern, final Set<String> allowedMethods,
             final int queueSize, final Duration queueTimeout, final LongSupplier clock) {

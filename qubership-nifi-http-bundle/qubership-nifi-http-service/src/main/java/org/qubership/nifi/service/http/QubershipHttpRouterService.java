@@ -69,8 +69,9 @@ import java.util.stream.Collectors;
  * <p>A request waits in the queue until the processor takes it, until its queue timeout passes, until the processor
  * is unregistered, or until the service is disabled. pollRequest never returns an expired request, and the service
  * removes the expired requests of every queue about once a second, so an expired request is answered even while no
- * processor polls its queue. Once the processor takes a request, the queue timeout no longer applies, and the Request
- * Expiration of the HTTP Context Map of the processor limits how long the request waits for an answer.
+ * processor polls its queue. Once the processor takes a request, the queue timeout no longer applies. The processor
+ * reads the body and registers the request on its HTTP Context Map, and from then on the Request Expiration of that
+ * map limits how long the request waits for an answer.
  */
 @Tags({"http", "https", "server", "router", "listen"})
 @CapabilityDescription("Starts one HTTP server on one port and routes each incoming request to the processor whose "
