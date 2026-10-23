@@ -311,7 +311,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             .name("multipart-request-max-size")
             .displayName("Multipart Request Max Size")
             .description("The maximum size of a request. Applies only to requests with Content-Type: "
-                    + "multipart/form-data")
+                    + MIME_TYPE_MULTIPART_FORM_DATA)
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
@@ -324,7 +324,7 @@ public final class QubershipHandleHttpRequest extends AbstractProcessor {
             .name("multipart-read-buffer-size")
             .displayName("Multipart Read Buffer Size")
             .description("The size at which the content of an incoming file is written to disk. Applies only to "
-                    + "requests with Content-Type: multipart/form-data")
+                    + "requests with Content-Type: " + MIME_TYPE_MULTIPART_FORM_DATA)
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("512 KB")

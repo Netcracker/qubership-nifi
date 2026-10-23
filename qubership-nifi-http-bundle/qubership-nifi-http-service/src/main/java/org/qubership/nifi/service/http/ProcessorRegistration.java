@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 /**
@@ -59,15 +60,26 @@ final class ProcessorRegistration {
     private final Set<String> methods;
     private final long queueTimeoutNanos;
     private final BlockingQueue<QueuedRequest> queue;
+    private final LongSupplier nanoClock;
     private boolean closed;
 
     ProcessorRegistration(final String id, final Pattern pathPattern, final Set<String> allowedMethods,
             final int queueSize, final Duration queueTimeout) {
+        this(id, pathPattern, allowedMethods, queueSize, queueTimeout, System::nanoTime);
+    }
+
+    /**
+     * Creates a registration that reads the time at which a request is queued, and the time poll checks it against,
+     * from the given clock instead of System.nanoTime, so that a test can move the time on.
+     */
+    ProcessorRegistration(final String id, final Pattern pathPattern, final Set<String> allowedMethods,
+            final int queueSize, final Duration queueTimeout, final LongSupplier clock) {
         this.processorId = id;
         this.paths = pathPattern;
         this.methods = allowedMethods;
         this.queueTimeoutNanos = queueTimeout.toNanos();
         this.queue = new LinkedBlockingQueue<>(queueSize);
+        this.nanoClock = clock;
     }
 
     String getProcessorId() {
@@ -94,7 +106,7 @@ final class ProcessorRegistration {
         if (closed) {
             return OfferResult.CLOSED;
         }
-        return queue.offer(new QueuedRequest(container, System.nanoTime()))
+        return queue.offer(new QueuedRequest(container, nanoClock.getAsLong()))
                 ? OfferResult.QUEUED : OfferResult.QUEUE_FULL;
     }
 
@@ -115,7 +127,7 @@ final class ProcessorRegistration {
             if (queued == null) {
                 return null;
             }
-            if (!isExpired(queued, System.nanoTime())) {
+            if (!isExpired(queued, nanoClock.getAsLong())) {
                 return queued.container();
             }
             expired.add(queued.container());
@@ -125,7 +137,7 @@ final class ProcessorRegistration {
     /**
      * Removes the expired requests from the queue.
      *
-     * @param nowNanos current value of System.nanoTime
+     * @param nowNanos current time on the clock of the registration, System.nanoTime by default
      * @return the removed requests, which the caller has to answer
      */
     List<HttpRequestContainer> removeExpired(final long nowNanos) {
@@ -156,10 +168,10 @@ final class ProcessorRegistration {
     }
 
     /**
-     * Request in the queue, with the System.nanoTime value at which it was queued.
+     * Request in the queue, with the time on the clock of the registration at which it was queued.
      *
      * @param container the request
-     * @param queuedNanos System.nanoTime when the request was queued
+     * @param queuedNanos time on the clock of the registration when the request was queued
      */
     private record QueuedRequest(HttpRequestContainer container, long queuedNanos) {
     }

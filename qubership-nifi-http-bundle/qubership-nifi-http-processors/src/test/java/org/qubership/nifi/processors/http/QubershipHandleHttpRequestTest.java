@@ -28,6 +28,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,16 +57,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -494,19 +496,13 @@ class QubershipHandleHttpRequestTest {
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders");
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        AssertionError onTriggerFailure = null;
-        while (contextMap.registeredCount() == 0 && System.nanoTime() < deadline) {
-            try {
-                runner.run(1, false, false);
-            } catch (final AssertionError e) {
-                onTriggerFailure = e;
-            }
-            Thread.sleep(POLL_INTERVAL_MILLIS);
-        }
+        final AtomicReference<AssertionError> onTriggerFailure = new AtomicReference<>();
+        awaitWhileTriggering("the request to be registered on the context map",
+                () -> contextMap.registeredCount() > 0, onTriggerFailure);
         answer(contextMap, contextMap.registeredIdentifier(), 200);
         final HttpResponse<String> response = await(pending, "the response to POST /orders");
-        final Throwable failure = onTriggerFailure == null ? null : onTriggerFailure.getCause();
+        final AssertionError triggerFailure = onTriggerFailure.get();
+        final Throwable failure = triggerFailure == null ? null : triggerFailure.getCause();
 
         assertAll(
                 () -> assertEquals(200, response.statusCode(), "status set through the context map"),
@@ -575,18 +571,14 @@ class QubershipHandleHttpRequestTest {
     void aQueuedRequestIsAnsweredWhenTheProcessorStopsNotWhenItIsUnscheduled() throws Exception {
         startProcessor();
         final CompletableFuture<HttpResponse<String>> queued = send("GET", "/orders/1");
-        Thread.sleep(UNSCHEDULED_WAIT_MILLIS);
+        assertStillOpen(queued, "the queued request while the processor runs");
 
         runner.unSchedule();
-        Thread.sleep(UNSCHEDULED_WAIT_MILLIS);
-        final boolean answeredWhenUnscheduled = queued.isDone();
+        assertStillOpen(queued, "the queued request after unSchedule alone");
         runner.stop();
         final HttpResponse<String> response = await(queued, "the response to the queued request");
 
-        assertAll(
-                () -> assertFalse(answeredWhenUnscheduled, "queued request answered after unSchedule alone"),
-                () -> assertEquals(503, response.statusCode(), "status of the queued request after stop")
-        );
+        assertEquals(503, response.statusCode(), "status of the queued request after stop");
     }
 
     @Test
@@ -623,38 +615,75 @@ class QubershipHandleHttpRequestTest {
         processorRunner.stop();
     }
 
-    private List<MockFlowFile> awaitFlowFiles(final int count) throws InterruptedException {
+    private List<MockFlowFile> awaitFlowFiles(final int count) {
         return awaitFlowFiles(runner, count);
     }
 
-    private List<MockFlowFile> awaitFlowFiles(final TestRunner processorRunner, final int count)
-            throws InterruptedException {
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        List<MockFlowFile> flowFiles = List.of();
-        while (System.nanoTime() < deadline) {
-            processorRunner.run(1, false, false);
-            flowFiles = processorRunner.getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS);
-            if (flowFiles.size() >= count) {
-                return flowFiles;
-            }
-            Thread.sleep(POLL_INTERVAL_MILLIS);
-        }
-        return fail("Timed out after " + TIMEOUT_SECONDS + " s waiting for " + count
-                + " FlowFiles on success; last count " + flowFiles.size());
+    private static List<MockFlowFile> awaitFlowFiles(final TestRunner processorRunner, final int count) {
+        triggerUntil(processorRunner, count + " FlowFiles on success", () -> processorRunner
+                .getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS).size() >= count);
+        return processorRunner.getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS);
     }
 
     private <T> T awaitWhileTriggering(final CompletableFuture<T> future, final String awaited)
             throws Exception {
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        while (System.nanoTime() < deadline) {
-            runner.run(1, false, false);
-            if (future.isDone()) {
-                return future.get();
-            }
-            Thread.sleep(POLL_INTERVAL_MILLIS);
-        }
-        return fail("Timed out after " + TIMEOUT_SECONDS + " s waiting for " + awaited
-                + " while triggering the processor; the request is still open");
+        triggerUntil(runner, awaited + " while triggering the processor", future::isDone);
+        return future.get();
+    }
+
+    /**
+     * Triggers the processor until the condition holds, and records the last failure of onTrigger instead of
+     * failing on it.
+     *
+     * @param awaited what the condition stands for, for the failure message
+     * @param condition the condition to wait for
+     * @param onTriggerFailure receives the AssertionError the TestRunner throws for an exception from onTrigger
+     */
+    private void awaitWhileTriggering(final String awaited, final Callable<Boolean> condition,
+            final AtomicReference<AssertionError> onTriggerFailure) {
+        Awaitility.await(awaited + " while triggering the processor")
+                .atMost(Duration.ofSeconds(TIMEOUT_SECONDS))
+                .pollInterval(Duration.ofMillis(POLL_INTERVAL_MILLIS))
+                .until(() -> {
+                    try {
+                        runner.run(1, false, false);
+                    } catch (final AssertionError e) {
+                        onTriggerFailure.set(e);
+                    }
+                    return condition.call();
+                });
+    }
+
+    /**
+     * Triggers the processor once per poll until the condition holds.
+     *
+     * @param processorRunner the TestRunner of the processor
+     * @param awaited what the condition stands for, for the failure message
+     * @param condition the condition to wait for
+     */
+    private static void triggerUntil(final TestRunner processorRunner, final String awaited,
+            final Callable<Boolean> condition) {
+        Awaitility.await(awaited)
+                .atMost(Duration.ofSeconds(TIMEOUT_SECONDS))
+                .pollInterval(Duration.ofMillis(POLL_INTERVAL_MILLIS))
+                .until(() -> {
+                    processorRunner.run(1, false, false);
+                    return condition.call();
+                });
+    }
+
+    /**
+     * Fails unless the request stays without a response for UNSCHEDULED_WAIT_MILLIS.
+     *
+     * @param pending the request
+     * @param request what the request is, for the failure message
+     */
+    private static void assertStillOpen(final CompletableFuture<?> pending, final String request) {
+        final Duration period = Duration.ofMillis(UNSCHEDULED_WAIT_MILLIS);
+        Awaitility.await(request + " to stay open for " + period.toMillis() + " ms")
+                .during(period)
+                .atMost(period.plusSeconds(TIMEOUT_SECONDS))
+                .until(() -> !pending.isDone());
     }
 
     private void answer(final String contextId, final int status) {
@@ -704,17 +733,9 @@ class QubershipHandleHttpRequestTest {
                 + "--" + BOUNDARY + "--\r\n";
     }
 
-    private void awaitErrorLog(final String reason) throws InterruptedException {
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        while (System.nanoTime() < deadline) {
-            runner.run(1, false, false);
-            if (runner.getLogger().getErrorMessages().stream().anyMatch(log -> log.getMsg().contains(reason))) {
-                return;
-            }
-            Thread.sleep(POLL_INTERVAL_MILLIS);
-        }
-        fail("Timed out after " + TIMEOUT_SECONDS + " s waiting for an error log containing [" + reason
-                + "]; error logs: " + runner.getLogger().getErrorMessages());
+    private void awaitErrorLog(final String reason) {
+        triggerUntil(runner, "an error log containing [" + reason + "]", () -> runner.getLogger().getErrorMessages()
+                .stream().anyMatch(log -> log.getMsg().contains(reason)));
     }
 
     private CompletableFuture<HttpResponse<String>> sendMultipart(final String body) {
@@ -862,18 +883,11 @@ class QubershipHandleHttpRequestTest {
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = send("POST", "/orders");
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT_SECONDS);
-        AssertionError onTriggerFailure = null;
-        while (!pending.isDone() && System.nanoTime() < deadline) {
-            try {
-                runner.run(1, false, false);
-            } catch (final AssertionError e) {
-                onTriggerFailure = e;
-            }
-            Thread.sleep(POLL_INTERVAL_MILLIS);
-        }
+        final AtomicReference<AssertionError> onTriggerFailure = new AtomicReference<>();
+        awaitWhileTriggering("the response to POST /orders", () -> pending.isDone(), onTriggerFailure);
         final HttpResponse<String> response = await(pending, "the response to POST /orders");
-        final Throwable failure = onTriggerFailure == null ? null : onTriggerFailure.getCause();
+        final AssertionError triggerFailure = onTriggerFailure.get();
+        final Throwable failure = triggerFailure == null ? null : triggerFailure.getCause();
 
         assertAll(
                 () -> assertEquals(500, response.statusCode(), "status of the request whose registration threw"),

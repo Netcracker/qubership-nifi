@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -40,9 +41,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 class ProcessorRegistrationTest {
 
     private static final Duration QUEUE_TIMEOUT = Duration.ofSeconds(30);
+    private static final long TIMEOUT_NANOS = QUEUE_TIMEOUT.toNanos();
 
-    private final ProcessorRegistration registration =
-            new ProcessorRegistration("orders", Pattern.compile("/orders"), Set.of("GET"), 5, QUEUE_TIMEOUT);
+    // Time in nanoseconds on the clock of the registration; a test moves it on instead of waiting.
+    private final AtomicLong now = new AtomicLong();
+    private final ProcessorRegistration registration = new ProcessorRegistration("orders", Pattern.compile("/orders"),
+            Set.of("GET"), 5, QUEUE_TIMEOUT, now::get);
 
     @Test
     void aRequestOfferedAfterCloseIsRefusedAsClosed() {
@@ -65,23 +69,17 @@ class ProcessorRegistrationTest {
         );
     }
 
-    /**
-     * The fresh request is queued at least 1 ms after the moment the two others are expired against, so it has
-     * waited no longer than the queue timeout at that moment.
-     */
     @Test
-    void removeExpiredTakesOutEveryExpiredRequestInOrderAndLeavesTheFreshOne() throws Exception {
+    void removeExpiredTakesOutEveryExpiredRequestInOrderAndLeavesTheFreshOne() {
         final HttpRequestContainer first = newContainer();
         final HttpRequestContainer second = newContainer();
         final HttpRequestContainer fresh = newContainer();
         registration.offer(first);
         registration.offer(second);
-        final long afterExpiredQueued = System.nanoTime();
-        Thread.sleep(1);
+        now.set(1);
         registration.offer(fresh);
 
-        final List<HttpRequestContainer> removed =
-                registration.removeExpired(afterExpiredQueued + QUEUE_TIMEOUT.toNanos() + 1);
+        final List<HttpRequestContainer> removed = registration.removeExpired(TIMEOUT_NANOS + 1);
 
         // The containers are equal records, so the order is checked by identity.
         assertEquals(2, removed.size(), "number of requests removed after the queue timeout");
@@ -96,15 +94,13 @@ class ProcessorRegistrationTest {
     @Test
     void removeExpiredTakesOutARequestOnlyOnceItHasWaitedLongerThanTheQueueTimeout() throws Exception {
         final HttpRequestContainer queued = newContainer();
-        final long queuedAt = System.nanoTime();
         registration.offer(queued);
 
-        final List<HttpRequestContainer> beforeTimeout = registration.removeExpired(queuedAt);
-        final List<HttpRequestContainer> afterTimeout =
-                registration.removeExpired(System.nanoTime() + QUEUE_TIMEOUT.toNanos() + 1);
+        final List<HttpRequestContainer> atTimeout = registration.removeExpired(TIMEOUT_NANOS);
+        final List<HttpRequestContainer> afterTimeout = registration.removeExpired(TIMEOUT_NANOS + 1);
 
         assertAll(
-                () -> assertEquals(List.of(), beforeTimeout, "requests removed before the queue timeout"),
+                () -> assertEquals(List.of(), atTimeout, "requests removed after exactly the queue timeout"),
                 () -> assertEquals(List.of(queued), afterTimeout, "requests removed after the queue timeout"),
                 () -> assertNull(registration.poll(0, TimeUnit.MILLISECONDS, new ArrayList<>()),
                         "poll after the expired request was removed")
@@ -113,33 +109,29 @@ class ProcessorRegistrationTest {
 
     @Test
     void pollHandsAnExpiredRequestToTheCallerInsteadOfReturningIt() throws Exception {
-        final ProcessorRegistration shortTimeout = new ProcessorRegistration("orders", Pattern.compile("/orders"),
-                Set.of("GET"), 5, Duration.ofMillis(1));
         final HttpRequestContainer queued = newContainer();
-        shortTimeout.offer(queued);
-        Thread.sleep(10);
+        registration.offer(queued);
+        now.set(TIMEOUT_NANOS + 1);
         final List<HttpRequestContainer> expired = new ArrayList<>();
 
-        final HttpRequestContainer polled = shortTimeout.poll(0, TimeUnit.MILLISECONDS, expired);
+        final HttpRequestContainer polled = registration.poll(0, TimeUnit.MILLISECONDS, expired);
 
         assertAll(
-                () -> assertNull(polled, "request returned by poll 10 ms after it was queued with a 1 ms timeout"),
+                () -> assertNull(polled, "request returned by poll after the queue timeout"),
                 () -> assertEquals(List.of(queued), expired, "expired requests handed to the caller")
         );
     }
 
     @Test
     void pollSkipsAnExpiredRequestAndReturnsTheNextOne() throws Exception {
-        final ProcessorRegistration shortTimeout = new ProcessorRegistration("orders", Pattern.compile("/orders"),
-                Set.of("GET"), 5, Duration.ofMillis(200));
         final HttpRequestContainer expiredRequest = newContainer();
         final HttpRequestContainer freshRequest = newContainer();
-        shortTimeout.offer(expiredRequest);
-        Thread.sleep(300);
-        shortTimeout.offer(freshRequest);
+        registration.offer(expiredRequest);
+        now.set(TIMEOUT_NANOS + 1);
+        registration.offer(freshRequest);
         final List<HttpRequestContainer> expired = new ArrayList<>();
 
-        final HttpRequestContainer polled = shortTimeout.poll(0, TimeUnit.MILLISECONDS, expired);
+        final HttpRequestContainer polled = registration.poll(0, TimeUnit.MILLISECONDS, expired);
 
         assertAll(
                 () -> assertSame(freshRequest, polled, "request returned by poll after an expired one"),
