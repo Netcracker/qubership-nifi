@@ -10,6 +10,592 @@
         },
         "processGroups": [
             {
+                "identifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
+                "instanceIdentifier": "af799217-b793-494d-9cd5-dc06c2e21d0f",
+                "name": "qubership-nifi-http-processors",
+                "comments": "",
+                "position": {
+                    "x": 1208.0,
+                    "y": 1256.0
+                },
+                "processGroups": [],
+                "remoteProcessGroups": [],
+                "processors": [
+                    {
+                        "identifier": "2196f950-8bcc-4bb5-9a37-b943e76b97ec",
+                        "instanceIdentifier": "0f3c7cd8-2fa8-4bfd-aecf-e1957141052f",
+                        "name": "QubershipHandleHttpRequest orders",
+                        "comments": "",
+                        "position": {
+                            "x": 0.0,
+                            "y": 0.0
+                        },
+                        "type": "org.qubership.nifi.processors.http.QubershipHandleHttpRequest",
+                        "bundle": {
+                            "group": "org.qubership.nifi",
+                            "artifact": "qubership-nifi-http-processors-nar",
+                            "version": "2.2.1-SNAPSHOT"
+                        },
+                        "properties": {
+                            "http-router-service": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
+                            "request-path": "/orders(/.*)?",
+                            "http-context-map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "container-queue-size": "50",
+                            "allow-get": "true",
+                            "allow-post": "true",
+                            "allow-put": "true",
+                            "allow-delete": "true",
+                            "allow-head": "false",
+                            "allow-options": "false",
+                            "additional-http-methods": null,
+                            "parameters-to-attributes": "id",
+                            "multipart-request-max-size": "1 MB",
+                            "multipart-read-buffer-size": "512 KB"
+                        },
+                        "propertyDescriptors": {
+                            "http-router-service": {
+                                "name": "http-router-service",
+                                "displayName": "HTTP Router Service",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "request-path": {
+                                "name": "request-path",
+                                "displayName": "Request Path",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "http-context-map": {
+                                "name": "http-context-map",
+                                "displayName": "HTTP Context Map",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "container-queue-size": {
+                                "name": "container-queue-size",
+                                "displayName": "Container Queue Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-get": {
+                                "name": "allow-get",
+                                "displayName": "Allow GET",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-post": {
+                                "name": "allow-post",
+                                "displayName": "Allow POST",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-put": {
+                                "name": "allow-put",
+                                "displayName": "Allow PUT",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-delete": {
+                                "name": "allow-delete",
+                                "displayName": "Allow DELETE",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-head": {
+                                "name": "allow-head",
+                                "displayName": "Allow HEAD",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-options": {
+                                "name": "allow-options",
+                                "displayName": "Allow OPTIONS",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "additional-http-methods": {
+                                "name": "additional-http-methods",
+                                "displayName": "Additional HTTP Methods",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "parameters-to-attributes": {
+                                "name": "parameters-to-attributes",
+                                "displayName": "Parameters to Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "multipart-request-max-size": {
+                                "name": "multipart-request-max-size",
+                                "displayName": "Multipart Request Max Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "multipart-read-buffer-size": {
+                                "name": "multipart-read-buffer-size",
+                                "displayName": "Multipart Read Buffer Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    },
+                    {
+                        "identifier": "9df54daa-7748-4870-a1f9-293adb90a3d7",
+                        "instanceIdentifier": "1752a138-b47d-47b1-9c05-1658f0929076",
+                        "name": "QubershipHandleHttpRequest users",
+                        "comments": "",
+                        "position": {
+                            "x": 640.0,
+                            "y": 0.0
+                        },
+                        "type": "org.qubership.nifi.processors.http.QubershipHandleHttpRequest",
+                        "bundle": {
+                            "group": "org.qubership.nifi",
+                            "artifact": "qubership-nifi-http-processors-nar",
+                            "version": "2.2.1-SNAPSHOT"
+                        },
+                        "properties": {
+                            "http-router-service": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
+                            "request-path": "/users(/.*)?",
+                            "http-context-map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "container-queue-size": "50",
+                            "allow-get": "true",
+                            "allow-post": "true",
+                            "allow-put": "true",
+                            "allow-delete": "true",
+                            "allow-head": "false",
+                            "allow-options": "false",
+                            "additional-http-methods": null,
+                            "parameters-to-attributes": null,
+                            "multipart-request-max-size": "1 MB",
+                            "multipart-read-buffer-size": "512 KB"
+                        },
+                        "propertyDescriptors": {
+                            "http-router-service": {
+                                "name": "http-router-service",
+                                "displayName": "HTTP Router Service",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "request-path": {
+                                "name": "request-path",
+                                "displayName": "Request Path",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "http-context-map": {
+                                "name": "http-context-map",
+                                "displayName": "HTTP Context Map",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "container-queue-size": {
+                                "name": "container-queue-size",
+                                "displayName": "Container Queue Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-get": {
+                                "name": "allow-get",
+                                "displayName": "Allow GET",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-post": {
+                                "name": "allow-post",
+                                "displayName": "Allow POST",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-put": {
+                                "name": "allow-put",
+                                "displayName": "Allow PUT",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-delete": {
+                                "name": "allow-delete",
+                                "displayName": "Allow DELETE",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-head": {
+                                "name": "allow-head",
+                                "displayName": "Allow HEAD",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "allow-options": {
+                                "name": "allow-options",
+                                "displayName": "Allow OPTIONS",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "additional-http-methods": {
+                                "name": "additional-http-methods",
+                                "displayName": "Additional HTTP Methods",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "parameters-to-attributes": {
+                                "name": "parameters-to-attributes",
+                                "displayName": "Parameters to Attributes",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "multipart-request-max-size": {
+                                "name": "multipart-request-max-size",
+                                "displayName": "Multipart Request Max Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "multipart-read-buffer-size": {
+                                "name": "multipart-read-buffer-size",
+                                "displayName": "Multipart Read Buffer Size",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    },
+                    {
+                        "identifier": "309fecdb-7b8c-475b-a2ad-c6316472bb9a",
+                        "instanceIdentifier": "d9a136ea-287d-4da1-a71f-d60e80be3ced",
+                        "name": "HandleHttpResponse orders",
+                        "comments": "",
+                        "position": {
+                            "x": 0.0,
+                            "y": 300.0
+                        },
+                        "type": "org.apache.nifi.processors.standard.HandleHttpResponse",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "nifi-standard-nar",
+                            "version": "2.6.0"
+                        },
+                        "properties": {
+                            "HTTP Context Map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "Attributes to add to the HTTP Response (Regex)": null,
+                            "HTTP Status Code": "200",
+                            "X-Handler": "orders",
+                            "X-Request-Uri": "${http.request.uri}",
+                            "X-Request-Method": "${http.method}",
+                            "X-Param-Id": "${http.param.id}"
+                        },
+                        "propertyDescriptors": {
+                            "HTTP Context Map": {
+                                "name": "HTTP Context Map",
+                                "displayName": "HTTP Context Map",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "Attributes to add to the HTTP Response (Regex)": {
+                                "name": "Attributes to add to the HTTP Response (Regex)",
+                                "displayName": "Attributes to add to the HTTP Response (Regex)",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "HTTP Status Code": {
+                                "name": "HTTP Status Code",
+                                "displayName": "HTTP Status Code",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "X-Handler": {
+                                "name": "X-Handler",
+                                "displayName": "X-Handler",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "X-Request-Uri": {
+                                "name": "X-Request-Uri",
+                                "displayName": "X-Request-Uri",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "X-Request-Method": {
+                                "name": "X-Request-Method",
+                                "displayName": "X-Request-Method",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "X-Param-Id": {
+                                "name": "X-Param-Id",
+                                "displayName": "X-Param-Id",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "success",
+                            "failure"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    },
+                    {
+                        "identifier": "8720deb1-c0a2-4376-b66a-edc62281e447",
+                        "instanceIdentifier": "75d5060f-ce54-488e-a488-aa9155ff4e2b",
+                        "name": "HandleHttpResponse users",
+                        "comments": "",
+                        "position": {
+                            "x": 640.0,
+                            "y": 300.0
+                        },
+                        "type": "org.apache.nifi.processors.standard.HandleHttpResponse",
+                        "bundle": {
+                            "group": "org.apache.nifi",
+                            "artifact": "nifi-standard-nar",
+                            "version": "2.6.0"
+                        },
+                        "properties": {
+                            "HTTP Context Map": "c32706e5-6cb1-326d-8595-0e55899848a2",
+                            "Attributes to add to the HTTP Response (Regex)": null,
+                            "HTTP Status Code": "200",
+                            "X-Handler": "users",
+                            "X-Request-Uri": "${http.request.uri}",
+                            "X-Request-Method": "${http.method}"
+                        },
+                        "propertyDescriptors": {
+                            "HTTP Context Map": {
+                                "name": "HTTP Context Map",
+                                "displayName": "HTTP Context Map",
+                                "identifiesControllerService": true,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "Attributes to add to the HTTP Response (Regex)": {
+                                "name": "Attributes to add to the HTTP Response (Regex)",
+                                "displayName": "Attributes to add to the HTTP Response (Regex)",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "HTTP Status Code": {
+                                "name": "HTTP Status Code",
+                                "displayName": "HTTP Status Code",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": false
+                            },
+                            "X-Handler": {
+                                "name": "X-Handler",
+                                "displayName": "X-Handler",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "X-Request-Uri": {
+                                "name": "X-Request-Uri",
+                                "displayName": "X-Request-Uri",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            },
+                            "X-Request-Method": {
+                                "name": "X-Request-Method",
+                                "displayName": "X-Request-Method",
+                                "identifiesControllerService": false,
+                                "sensitive": false,
+                                "dynamic": true
+                            }
+                        },
+                        "style": {},
+                        "schedulingPeriod": "0 sec",
+                        "schedulingStrategy": "TIMER_DRIVEN",
+                        "executionNode": "ALL",
+                        "penaltyDuration": "30 sec",
+                        "yieldDuration": "1 sec",
+                        "bulletinLevel": "WARN",
+                        "runDurationMillis": 0,
+                        "concurrentlySchedulableTaskCount": 1,
+                        "autoTerminatedRelationships": [
+                            "success",
+                            "failure"
+                        ],
+                        "scheduledState": "ENABLED",
+                        "retryCount": 10,
+                        "retriedRelationships": [],
+                        "backoffMechanism": "PENALIZE_FLOWFILE",
+                        "maxBackoffPeriod": "10 mins",
+                        "componentType": "PROCESSOR",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    }
+                ],
+                "inputPorts": [],
+                "outputPorts": [],
+                "connections": [
+                    {
+                        "identifier": "09f42fd6-8a3d-4d2c-96bb-718f716e41c5",
+                        "instanceIdentifier": "692b2196-978b-481d-b245-24d778834648",
+                        "name": "",
+                        "source": {
+                            "id": "2196f950-8bcc-4bb5-9a37-b943e76b97ec",
+                            "type": "PROCESSOR",
+                            "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
+                            "name": "QubershipHandleHttpRequest orders",
+                            "comments": "",
+                            "instanceIdentifier": "0f3c7cd8-2fa8-4bfd-aecf-e1957141052f"
+                        },
+                        "destination": {
+                            "id": "309fecdb-7b8c-475b-a2ad-c6316472bb9a",
+                            "type": "PROCESSOR",
+                            "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
+                            "name": "HandleHttpResponse orders",
+                            "comments": "",
+                            "instanceIdentifier": "d9a136ea-287d-4da1-a71f-d60e80be3ced"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 1,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    },
+                    {
+                        "identifier": "fb607ee9-0044-4412-a252-2c0b0d9540b7",
+                        "instanceIdentifier": "a1ff0151-1f49-47aa-abe6-692fbf54dd91",
+                        "name": "",
+                        "source": {
+                            "id": "9df54daa-7748-4870-a1f9-293adb90a3d7",
+                            "type": "PROCESSOR",
+                            "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
+                            "name": "QubershipHandleHttpRequest users",
+                            "comments": "",
+                            "instanceIdentifier": "1752a138-b47d-47b1-9c05-1658f0929076"
+                        },
+                        "destination": {
+                            "id": "8720deb1-c0a2-4376-b66a-edc62281e447",
+                            "type": "PROCESSOR",
+                            "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
+                            "name": "HandleHttpResponse users",
+                            "comments": "",
+                            "instanceIdentifier": "75d5060f-ce54-488e-a488-aa9155ff4e2b"
+                        },
+                        "labelIndex": 0,
+                        "zIndex": 1,
+                        "selectedRelationships": [
+                            "success"
+                        ],
+                        "backPressureObjectThreshold": 10000,
+                        "backPressureDataSizeThreshold": "1 GB",
+                        "flowFileExpiration": "0 sec",
+                        "prioritizers": [],
+                        "bends": [],
+                        "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+                        "partitioningAttribute": "",
+                        "loadBalanceCompression": "DO_NOT_COMPRESS",
+                        "componentType": "CONNECTION",
+                        "groupIdentifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d"
+                    }
+                ],
+                "labels": [],
+                "funnels": [],
+                "controllerServices": [],
+                "defaultFlowFileExpiration": "0 sec",
+                "defaultBackPressureObjectThreshold": 10000,
+                "defaultBackPressureDataSizeThreshold": "1 GB",
+                "scheduledState": "ENABLED",
+                "executionEngine": "INHERITED",
+                "maxConcurrentTasks": 1,
+                "statelessFlowTimeout": "1 min",
+                "flowFileConcurrency": "UNBOUNDED",
+                "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+                "componentType": "PROCESS_GROUP",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
+            {
                 "identifier": "e29ce8b0-a4e4-5991-9e5c-634b2857c40d",
                 "instanceIdentifier": "c9a0ae01-7fd5-50f6-81b0-e288d1ef56bc",
                 "name": "python-extensions",
@@ -7634,6 +8220,84 @@
         "labels": [],
         "funnels": [],
         "controllerServices": [
+            {
+                "identifier": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
+                "instanceIdentifier": "ee7d5dee-fed1-4e56-aca9-deec6c6b51a3",
+                "name": "QubershipHttpRouterService",
+                "comments": "",
+                "type": "org.qubership.nifi.service.http.QubershipHttpRouterService",
+                "bundle": {
+                    "group": "org.qubership.nifi",
+                    "artifact": "qubership-nifi-http-service-nar",
+                    "version": "2.2.1-SNAPSHOT"
+                },
+                "properties": {
+                    "listening-port": "12982",
+                    "hostname": null,
+                    "ssl-context-service": null,
+                    "http-protocols": "HTTP_1_1",
+                    "maximum-threads": "200",
+                    "request-header-maximum-size": "8 KB"
+                },
+                "propertyDescriptors": {
+                    "listening-port": {
+                        "name": "listening-port",
+                        "displayName": "Listening Port",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": false
+                    },
+                    "hostname": {
+                        "name": "hostname",
+                        "displayName": "Hostname",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": false
+                    },
+                    "ssl-context-service": {
+                        "name": "ssl-context-service",
+                        "displayName": "SSL Context Service",
+                        "identifiesControllerService": true,
+                        "sensitive": false,
+                        "dynamic": false
+                    },
+                    "http-protocols": {
+                        "name": "http-protocols",
+                        "displayName": "HTTP Protocols",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": false
+                    },
+                    "maximum-threads": {
+                        "name": "maximum-threads",
+                        "displayName": "Maximum Threads",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": false
+                    },
+                    "request-header-maximum-size": {
+                        "name": "request-header-maximum-size",
+                        "displayName": "Request Header Maximum Size",
+                        "identifiesControllerService": false,
+                        "sensitive": false,
+                        "dynamic": false
+                    }
+                },
+                "controllerServiceApis": [
+                    {
+                        "type": "org.qubership.nifi.service.http.HttpRouterService",
+                        "bundle": {
+                            "group": "org.qubership.nifi",
+                            "artifact": "qubership-nifi-http-service-nar",
+                            "version": "2.2.1-SNAPSHOT"
+                        }
+                    }
+                ],
+                "scheduledState": "DISABLED",
+                "bulletinLevel": "WARN",
+                "componentType": "CONTROLLER_SERVICE",
+                "groupIdentifier": "31be4ebf-005c-3354-892e-75955472311b"
+            },
             {
                 "identifier": "153cdb7f-5780-3b9b-b9df-9c579c684847",
                 "instanceIdentifier": "967df3d4-3ed0-3811-3ee6-a2093cf15986",
