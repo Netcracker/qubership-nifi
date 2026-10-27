@@ -40,7 +40,7 @@ This is a multi-module Maven project that extends Apache NiFi 2.x with custom pr
 - **`qubership-nifi-bulk-redis-service/`** - Redis bulk operations NiFi controller service.
 - **`qubership-nifi-lookup-services/`** - NiFi lookup service implementation.
 - **`qubership-nifi-http-bundle/`** - HTTP Router Service controller service that runs one Jetty server shared by
-  several QubershipHandleHttpRequest processors, each serving its own paths on that port.
+  several HandleRoutedHttpRequest processors, each serving its own paths on that port.
 - **`qubership-nifi-consul-common/`** - Framework-agnostic consul integration library for configuration management and
   automated NiFi flow restore.
 - **`qubership-nifi-consul-templates/`** - nifi.properties and logback.xml templates for consul integration. Must be

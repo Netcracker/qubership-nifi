@@ -543,7 +543,7 @@
                             "script": {
                                 "exec": [
                                     "// HandleHttpRequest starts its HTTP server inside its first onTrigger call, and NiFi\r",
-                                    "// counts a task only after onTrigger returns. QubershipHandleHttpRequest registers on its\r",
+                                    "// counts a task only after onTrigger returns. HandleRoutedHttpRequest registers on its\r",
                                     "// HTTP Router Service in @OnScheduled, which NiFi completes before the first onTrigger call.\r",
                                     "// Once every listener of both types has a taskCount of at least 1, it accepts requests,\r",
                                     "// unless its start failed.\r",
@@ -551,7 +551,7 @@
                                     "    pm.response.to.have.status(200);\r",
                                     "});\r",
                                     "const responseJson = pm.response.json();\r",
-                                    "const listenerTypes = [\"HandleHttpRequest\", \"QubershipHandleHttpRequest\"];\r",
+                                    "const listenerTypes = [\"HandleHttpRequest\", \"HandleRoutedHttpRequest\"];\r",
                                     "\r",
                                     "function collectListeners(groupSnapshot) {\r",
                                     "    const listeners = (groupSnapshot.processorStatusSnapshots || [])\r",
@@ -1823,7 +1823,7 @@
             "name": "qubership-nifi-http-processors",
             "item": [
                 {
-                    "name": "QubershipHandleHttpRequest orders: GET",
+                    "name": "HandleRoutedHttpRequest orders: GET",
                     "event": [
                         {
                             "listen": "test",
@@ -1864,7 +1864,7 @@
                     "response": []
                 },
                 {
-                    "name": "QubershipHandleHttpRequest users: GET",
+                    "name": "HandleRoutedHttpRequest users: GET",
                     "event": [
                         {
                             "listen": "test",
@@ -1901,7 +1901,7 @@
                     "response": []
                 },
                 {
-                    "name": "QubershipHandleHttpRequest orders: POST with body",
+                    "name": "HandleRoutedHttpRequest orders: POST with body",
                     "event": [
                         {
                             "listen": "test",
@@ -1950,7 +1950,7 @@
                     "response": []
                 },
                 {
-                    "name": "QubershipHandleHttpRequest orders: Parameters to Attributes",
+                    "name": "HandleRoutedHttpRequest orders: Parameters to Attributes",
                     "event": [
                         {
                             "listen": "test",
@@ -1997,7 +1997,7 @@
                     "response": []
                 },
                 {
-                    "name": "QubershipHttpRouterService: path with no processor",
+                    "name": "StandardHttpRouterService: path with no processor",
                     "event": [
                         {
                             "listen": "test",
@@ -2028,7 +2028,7 @@
                     "response": []
                 },
                 {
-                    "name": "QubershipHttpRouterService: method not allowed",
+                    "name": "StandardHttpRouterService: method not allowed",
                     "event": [
                         {
                             "listen": "test",

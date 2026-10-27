@@ -24,7 +24,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |`QueryIdsAndFetchTableToJson`|migration-nifi-processors-open|Fetches data from source DB into JSON using query (Custom Query) and IDs obtained from IDs DB with query (IDs Custom Query). IDs query is executed first, then for each batch of IDs, main query is executed to get data and transform it to JSON. Data iscollected until Batch Size is reached, then it is loaded into FlowFile. Data collection continues until all rows are processed.|
 |`PutSQLRecord`|qubership-nifi-db-processors-nar|Executes given SQL statement using data from input records. All records within single  FlowFile are processed within single transaction.|
 |`PostgreSQLBulkLoader`|qubership-nifi-db-processors-nar|The processor supports copying from stdin using the incoming content of the Flow File or a file accessible by path.It is also possible to copy from DB to FlowFile content.|
-|`QubershipHandleHttpRequest`|qubership-nifi-http-processors-nar|Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.|
+|`HandleRoutedHttpRequest`|qubership-nifi-http-router-processors-nar|Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.|
 
 ## Additional processors properties description
 
@@ -198,7 +198,7 @@ It is also possible to copy from DB to FlowFile content.
 |Copy Mode|`copy-mode`|to|To, From|Provides a selection of copy mode (from stdin/to stdout).|
 |Read From|`read-from`|file-system|File System, Content|Provides a selection of data to copy.|
 
-### QubershipHandleHttpRequest
+### HandleRoutedHttpRequest
 
 Receives the HTTP requests that an HTTP Router Service routes to this processor and creates a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.
 
@@ -237,7 +237,7 @@ More information on their usage is available in Help (`Global Menu` -> `Help`) w
 |`JsonContentValidator`|qubership-service-nar|Provides validate method to check the JSON against a given schema.|
 |`QubershipPrometheusRecordSink`|qubership-service-nar|A Record Sink service that exposes metrics to Prometheus via an embedded HTTP server on a configurable port. Collects metrics from incoming records by treating string fields as labels, numeric fields as gauges, and nested records (with 'type' and 'value' fields) as counters or distribution summaries.|
 |`HttpLookupService`|qubership-nifi-lookup-service-nar|Sends HTTP GET request with specified URL and headers (set up via dynamic PROPERTY_DESCRIPTORS) to look up values. If the response status code is 2xx, the response body is parsed with Record Reader and returned as array of records. Otherwise (status code other than 2xx), the controller service throws exception and logs the response body.|
-|`QubershipHttpRouterService`|qubership-nifi-http-service-nar|Starts one HTTP server on one port and routes each incoming request to the processor whose path pattern matches the path of the request. This lets several flows share one port.|
+|`StandardHttpRouterService`|qubership-nifi-http-router-nar|Starts one HTTP server on one port and routes each incoming request to the processor whose path pattern matches the path of the request. This lets several flows share one port.|
 
 ## Additional controller services properties description
 
@@ -309,7 +309,7 @@ Otherwise (status code other than 2xx), the controller service throws exception 
 |Connection Timeout|`http-lookup-connection-timeout`|5 secs||Max wait time for connection to remote service.|
 |Read Timeout|`http-lookup-read-timeout`|15 secs||Max wait time for response from remote service.|
 
-### QubershipHttpRouterService
+### StandardHttpRouterService
 
 Starts one HTTP server on one port and routes each incoming request to the processor whose path pattern matches the path of the request. This lets several flows share one port.
 

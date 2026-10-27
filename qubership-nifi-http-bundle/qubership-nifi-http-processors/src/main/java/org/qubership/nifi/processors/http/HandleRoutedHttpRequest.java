@@ -106,7 +106,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
         + "a FlowFile for each request, or for each part of a multipart/form-data request. Several processors, "
         + "each with its own paths, share the port of one router service. Use it together with HandleHttpResponse.")
 @WritesAttributes({
-    @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_CONTEXT_ID, description = "The identifier under "
+    @WritesAttribute(attribute = HandleRoutedHttpRequest.HTTP_CONTEXT_ID, description = "The identifier under "
             + "which the request is registered on the HTTP Context Map. HandleHttpResponse uses it to answer "
             + "the request"),
     @WritesAttribute(attribute = "mime.type", description = "The MIME type of the data, taken from the "
@@ -118,17 +118,17 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
     @WritesAttribute(attribute = "http.method", description = "The HTTP method of the request, such as GET or POST"),
     @WritesAttribute(attribute = "http.local.addr", description = "The IP address of the server interface that "
             + "received the request"),
-    @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_LOCAL_NAME, description = "The IP address or "
+    @WritesAttribute(attribute = HandleRoutedHttpRequest.HTTP_LOCAL_NAME, description = "The IP address or "
             + "hostname of the server"),
-    @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_PORT, description = "The listening port of the "
+    @WritesAttribute(attribute = HandleRoutedHttpRequest.HTTP_PORT, description = "The listening port of the "
             + "server"),
     @WritesAttribute(attribute = "http.query.string", description = "The decoded query string of the request URL"),
-    @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_REMOTE_HOST, description = "The hostname of the "
+    @WritesAttribute(attribute = HandleRoutedHttpRequest.HTTP_REMOTE_HOST, description = "The hostname of the "
             + "client"),
     @WritesAttribute(attribute = "http.remote.addr", description = "The IP address of the client"),
     @WritesAttribute(attribute = "http.remote.user", description = "The username of the client"),
     @WritesAttribute(attribute = "http.protocol", description = "The protocol of the request, such as HTTP/1.1"),
-    @WritesAttribute(attribute = QubershipHandleHttpRequest.HTTP_REQUEST_URI, description = "The request URI"),
+    @WritesAttribute(attribute = HandleRoutedHttpRequest.HTTP_REQUEST_URI, description = "The request URI"),
     @WritesAttribute(attribute = "http.request.url", description = "The full request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP authorization used"),
     @WritesAttribute(attribute = "http.dispatcher.type", description = "The dispatcher type of the request"),
@@ -162,7 +162,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
             + "multipart/form-data request, the index of the part, starting with 1"),
     @WritesAttribute(attribute = "http.multipart.fragments.total.number", description = "For a "
             + "multipart/form-data request, the number of parts")})
-public final class QubershipHandleHttpRequest extends AbstractProcessor {
+public final class HandleRoutedHttpRequest extends AbstractProcessor {
 
     /**
      * Attribute with the identifier under which the request is registered on the HTTP Context Map.

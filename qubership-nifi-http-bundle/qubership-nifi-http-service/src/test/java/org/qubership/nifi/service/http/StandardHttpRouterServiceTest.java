@@ -65,7 +65,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * service puts in a queue stays open, so a test that needs a request waiting in a queue fills a queue of size 1 and
  * waits for the 503 that the next request receives.
  */
-class QubershipHttpRouterServiceTest {
+class StandardHttpRouterServiceTest {
 
     private static final long TIMEOUT_SECONDS = 10;
     private static final int QUEUE_SIZE = 5;
@@ -83,7 +83,7 @@ class QubershipHttpRouterServiceTest {
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
             .build();
     private TestRunner runner;
-    private QubershipHttpRouterService service;
+    private StandardHttpRouterService service;
     private int port;
 
     @BeforeEach
@@ -91,10 +91,10 @@ class QubershipHttpRouterServiceTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
-        service = new QubershipHttpRouterService();
+        service = new StandardHttpRouterService();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("router", service);
-        runner.setProperty(service, QubershipHttpRouterService.PORT, Integer.toString(port));
+        runner.setProperty(service, StandardHttpRouterService.PORT, Integer.toString(port));
     }
 
     @AfterEach
@@ -403,14 +403,14 @@ class QubershipHttpRouterServiceTest {
      */
     @Test
     void pollRequestAnswersAnExpiredRequestWith503InsteadOfReturningIt() throws Exception {
-        final QubershipHttpRouterService uncheckedService = new QubershipHttpRouterService() {
+        final StandardHttpRouterService uncheckedService = new StandardHttpRouterService() {
             @Override
             long getExpirationCheckMillis() {
                 return TimeUnit.HOURS.toMillis(1);
             }
         };
         runner.addControllerService("unchecked-router", uncheckedService);
-        runner.setProperty(uncheckedService, QubershipHttpRouterService.PORT, Integer.toString(port));
+        runner.setProperty(uncheckedService, StandardHttpRouterService.PORT, Integer.toString(port));
         runner.enableControllerService(uncheckedService);
         try {
             uncheckedService.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE,
@@ -543,7 +543,7 @@ class QubershipHttpRouterServiceTest {
     @Test
     void aRequestThatArrivesWhileTheServiceIsBeingDisabledIsAnsweredWith503() throws Exception {
         final List<Integer> statusesDuringStop = new CopyOnWriteArrayList<>();
-        final QubershipHttpRouterService stoppingService = new QubershipHttpRouterService() {
+        final StandardHttpRouterService stoppingService = new StandardHttpRouterService() {
             @Override
             void stopServer(final Server serverToStop) throws Exception {
                 statusesDuringStop.add(sendAndWait("GET", "/orders").statusCode());
@@ -551,7 +551,7 @@ class QubershipHttpRouterServiceTest {
             }
         };
         runner.addControllerService("stopping-router", stoppingService);
-        runner.setProperty(stoppingService, QubershipHttpRouterService.PORT, Integer.toString(port));
+        runner.setProperty(stoppingService, StandardHttpRouterService.PORT, Integer.toString(port));
         runner.enableControllerService(stoppingService);
         stoppingService.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"),
                 QUEUE_SIZE, QUEUE_TIMEOUT);
@@ -567,7 +567,7 @@ class QubershipHttpRouterServiceTest {
      */
     @Test
     void theIdleTimeoutDoesNotLimitARequestThatWaitsInTheQueueOrForAnAnswer() throws Exception {
-        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
+        runner.setProperty(service, StandardHttpRouterService.IDLE_TIMEOUT, "1 sec");
         runner.enableControllerService(service);
         service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
@@ -604,7 +604,7 @@ class QubershipHttpRouterServiceTest {
 
     @Test
     void aRequestWhoseHeadersExceedRequestHeaderMaximumSizeIsAnsweredWith431AndNotQueued() throws Exception {
-        runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
+        runner.setProperty(service, StandardHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
         runner.enableControllerService(service);
         service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
@@ -619,7 +619,7 @@ class QubershipHttpRouterServiceTest {
 
     @Test
     void aRequestWhoseHeadersFitRequestHeaderMaximumSizeIsQueued() throws Exception {
-        runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
+        runner.setProperty(service, StandardHttpRouterService.REQUEST_HEADER_MAX_SIZE, "1 KB");
         runner.enableControllerService(service);
         service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
@@ -648,7 +648,7 @@ class QubershipHttpRouterServiceTest {
     @Test
     void withAHostnameTheServerAcceptsConnectionsOnlyOnThatAddress() {
         assumeOtherLoopbackIsLocal();
-        runner.setProperty(service, QubershipHttpRouterService.HOSTNAME, LOOPBACK);
+        runner.setProperty(service, StandardHttpRouterService.HOSTNAME, LOOPBACK);
         runner.enableControllerService(service);
 
         assertAll(
@@ -664,7 +664,7 @@ class QubershipHttpRouterServiceTest {
      */
     @Test
     void theServerClosesAConnectionIdleForLongerThanIdleTimeout() throws Exception {
-        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "1 sec");
+        runner.setProperty(service, StandardHttpRouterService.IDLE_TIMEOUT, "1 sec");
         runner.enableControllerService(service);
         service.registerProcessor("orders", Pattern.compile("/orders"), Set.of("GET"), QUEUE_SIZE, QUEUE_TIMEOUT);
 
@@ -746,49 +746,49 @@ class QubershipHttpRouterServiceTest {
 
     @Test
     void maximumThreadsOf8IsValid() {
-        runner.setProperty(service, QubershipHttpRouterService.MAXIMUM_THREADS, "8");
+        runner.setProperty(service, StandardHttpRouterService.MAXIMUM_THREADS, "8");
 
         runner.assertValid(service);
     }
 
     @Test
     void maximumThreadsOf7IsInvalid() {
-        runner.setProperty(service, QubershipHttpRouterService.MAXIMUM_THREADS, "7");
+        runner.setProperty(service, StandardHttpRouterService.MAXIMUM_THREADS, "7");
 
         runner.assertNotValid(service);
     }
 
     @Test
     void maximumThreadsOf1000IsValid() {
-        runner.setProperty(service, QubershipHttpRouterService.MAXIMUM_THREADS, "1000");
+        runner.setProperty(service, StandardHttpRouterService.MAXIMUM_THREADS, "1000");
 
         runner.assertValid(service);
     }
 
     @Test
     void maximumThreadsOf1001IsInvalid() {
-        runner.setProperty(service, QubershipHttpRouterService.MAXIMUM_THREADS, "1001");
+        runner.setProperty(service, StandardHttpRouterService.MAXIMUM_THREADS, "1001");
 
         runner.assertNotValid(service);
     }
 
     @Test
     void aListeningPortAbove65535IsInvalid() {
-        runner.setProperty(service, QubershipHttpRouterService.PORT, "65536");
+        runner.setProperty(service, StandardHttpRouterService.PORT, "65536");
 
         runner.assertNotValid(service);
     }
 
     @Test
     void anIdleTimeoutWithoutAUnitIsInvalid() {
-        runner.setProperty(service, QubershipHttpRouterService.IDLE_TIMEOUT, "60");
+        runner.setProperty(service, StandardHttpRouterService.IDLE_TIMEOUT, "60");
 
         runner.assertNotValid(service);
     }
 
     @Test
     void aRequestHeaderMaximumSizeWithoutAUnitIsInvalid() {
-        runner.setProperty(service, QubershipHttpRouterService.REQUEST_HEADER_MAX_SIZE, "8");
+        runner.setProperty(service, StandardHttpRouterService.REQUEST_HEADER_MAX_SIZE, "8");
 
         runner.assertNotValid(service);
     }

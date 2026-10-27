@@ -27,7 +27,7 @@ import java.util.function.LongSupplier;
 import java.util.regex.Pattern;
 
 /**
- * Paths, methods, and request queue of one processor registered on QubershipHttpRouterService.
+ * Paths, methods, and request queue of one processor registered on StandardHttpRouterService.
  *
  * <p>A closed registration accepts no more requests, so a request offered while the processor unregisters is either
  * returned by close or refused by offer, and none is left in the queue unanswered.

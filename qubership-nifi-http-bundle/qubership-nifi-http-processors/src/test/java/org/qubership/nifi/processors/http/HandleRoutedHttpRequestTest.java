@@ -34,7 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.service.http.HttpRequestContainer;
 import org.qubership.nifi.service.http.HttpRouterService;
-import org.qubership.nifi.service.http.QubershipHttpRouterService;
+import org.qubership.nifi.service.http.StandardHttpRouterService;
 
 import java.io.BufferedReader;
 import java.io.FilterInputStream;
@@ -78,11 +78,11 @@ import static org.junit.jupiter.api.Assertions.fail;
  * A request that the router service routes to the processor becomes a FlowFile on success and is registered on the
  * HTTP Context Map, and the paths and methods the processor registers decide which requests reach it.
  *
- * <p>Each test starts a QubershipHttpRouterService on a free local port and sends real HTTP requests to it. The HTTP
+ * <p>Each test starts a StandardHttpRouterService on a free local port and sends real HTTP requests to it. The HTTP
  * Context Map is an in-memory fake that records each registered request, so a test answers the request through it
  * the way HandleHttpResponse does.
  */
-class QubershipHandleHttpRequestTest {
+class HandleRoutedHttpRequestTest {
 
     private static final long TIMEOUT_SECONDS = 10;
     private static final long POLL_INTERVAL_MILLIS = 10;
@@ -94,7 +94,7 @@ class QubershipHandleHttpRequestTest {
             .connectTimeout(Duration.ofSeconds(TIMEOUT_SECONDS))
             .build();
     private TestRunner runner;
-    private QubershipHttpRouterService routerService;
+    private StandardHttpRouterService routerService;
     private RecordingHttpContextMap contextMap;
     private int port;
 
@@ -103,20 +103,20 @@ class QubershipHandleHttpRequestTest {
         try (ServerSocket socket = new ServerSocket(0)) {
             port = socket.getLocalPort();
         }
-        runner = TestRunners.newTestRunner(QubershipHandleHttpRequest.class);
+        runner = TestRunners.newTestRunner(HandleRoutedHttpRequest.class);
 
-        routerService = new QubershipHttpRouterService();
+        routerService = new StandardHttpRouterService();
         runner.addControllerService("router", routerService);
-        runner.setProperty(routerService, QubershipHttpRouterService.PORT, Integer.toString(port));
+        runner.setProperty(routerService, StandardHttpRouterService.PORT, Integer.toString(port));
         runner.enableControllerService(routerService);
 
         contextMap = new RecordingHttpContextMap();
         runner.addControllerService("context-map", contextMap);
         runner.enableControllerService(contextMap);
 
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "router");
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_CONTEXT_MAP, "context-map");
-        runner.setProperty(QubershipHandleHttpRequest.REQUEST_PATH, "/orders(/.*)?");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "router");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_CONTEXT_MAP, "context-map");
+        runner.setProperty(HandleRoutedHttpRequest.REQUEST_PATH, "/orders(/.*)?");
     }
 
     @AfterEach
@@ -162,7 +162,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void aMethodWhoseAllowPropertyIsFalseIsAnsweredWith405() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.ALLOW_GET, "false");
+        runner.setProperty(HandleRoutedHttpRequest.ALLOW_GET, "false");
         startProcessor();
 
         final HttpResponse<String> response = sendAndWait("GET", "/orders");
@@ -172,7 +172,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void aMethodListedInAdditionalHttpMethodsReachesTheProcessor() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.ADDITIONAL_METHODS, "patch, PROPFIND");
+        runner.setProperty(HandleRoutedHttpRequest.ADDITIONAL_METHODS, "patch, PROPFIND");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = send("PROPFIND", "/orders");
@@ -185,16 +185,16 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void twoProcessorsOnOnePortEachReceiveOnlyTheRequestsForTheirOwnPath() throws Exception {
-        final TestRunner usersRunner = TestRunners.newTestRunner(QubershipHandleHttpRequest.class);
+        final TestRunner usersRunner = TestRunners.newTestRunner(HandleRoutedHttpRequest.class);
         final DelegatingHttpRouterService sharedRouter = new DelegatingHttpRouterService(routerService);
         usersRunner.addControllerService("router", sharedRouter);
         usersRunner.enableControllerService(sharedRouter);
         final RecordingHttpContextMap usersContextMap = new RecordingHttpContextMap();
         usersRunner.addControllerService("context-map", usersContextMap);
         usersRunner.enableControllerService(usersContextMap);
-        usersRunner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "router");
-        usersRunner.setProperty(QubershipHandleHttpRequest.HTTP_CONTEXT_MAP, "context-map");
-        usersRunner.setProperty(QubershipHandleHttpRequest.REQUEST_PATH, "/users(/.*)?");
+        usersRunner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "router");
+        usersRunner.setProperty(HandleRoutedHttpRequest.HTTP_CONTEXT_MAP, "context-map");
+        usersRunner.setProperty(HandleRoutedHttpRequest.REQUEST_PATH, "/users(/.*)?");
         startProcessor();
         usersRunner.run(1, false, true);
         try {
@@ -231,7 +231,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void onlyTheParametersListedInParametersToAttributesBecomeAttributes() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
+        runner.setProperty(HandleRoutedHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = send("GET", "/orders?status=new&limit=10");
@@ -247,7 +247,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void aUrlencodedFormBodyStaysInTheContentAndItsFieldsAreNotOutputAsAttributes() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
+        runner.setProperty(HandleRoutedHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = client.sendAsync(
@@ -268,7 +268,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void aMultipartFieldListedInParametersToAttributesBecomesAnAttribute() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
+        runner.setProperty(HandleRoutedHttpRequest.PARAMETERS_TO_ATTRIBUTES, "status");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithOneField());
@@ -289,7 +289,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals("HTTP/1.1 400 Bad Request", statusLine, "status line of GET /orders?note=%zz"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
         );
     }
@@ -300,7 +300,7 @@ class QubershipHandleHttpRequestTest {
      */
     @Test
     void aQueryParameterWithAnIncompleteUtf8SequenceIsAnsweredWith400AndProducesNoFlowFile() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
+        runner.setProperty(HandleRoutedHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
         startProcessor();
 
         final CompletableFuture<String> pending = sendRaw(rawGet("/orders?x=%C3"));
@@ -309,7 +309,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals("HTTP/1.1 400 Bad Request", statusLine, "status line of GET /orders?x=%C3"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
         );
     }
@@ -368,7 +368,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals(400, response.statusCode(), "status of a request with charset x-unsupported"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success")
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success")
         );
     }
 
@@ -377,7 +377,7 @@ class QubershipHandleHttpRequestTest {
         final RecordingHttpRouterService recordingRouter = new RecordingHttpRouterService();
         runner.addControllerService("recording-router", recordingRouter);
         runner.enableControllerService(recordingRouter);
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
 
         startProcessor();
 
@@ -396,7 +396,7 @@ class QubershipHandleHttpRequestTest {
         final RecordingHttpRouterService recordingRouter = new RecordingHttpRouterService();
         runner.addControllerService("recording-router", recordingRouter);
         runner.enableControllerService(recordingRouter);
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
 
         startProcessor();
 
@@ -421,7 +421,7 @@ class QubershipHandleHttpRequestTest {
 
         assertAll(
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
         );
     }
@@ -429,7 +429,7 @@ class QubershipHandleHttpRequestTest {
     @Test
     void aMultipartRequestOfExactlyMultipartRequestMaxSizeIsAccepted() throws Exception {
         final String body = multipartBodyWithOneField();
-        runner.setProperty(QubershipHandleHttpRequest.MULTIPART_REQUEST_MAX_SIZE, body.length() + " B");
+        runner.setProperty(HandleRoutedHttpRequest.MULTIPART_REQUEST_MAX_SIZE, body.length() + " B");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(body);
@@ -443,7 +443,7 @@ class QubershipHandleHttpRequestTest {
     @Test
     void aMultipartRequestOneByteOverMultipartRequestMaxSizeIsAnsweredWith400() throws Exception {
         final String body = multipartBodyWithOneField();
-        runner.setProperty(QubershipHandleHttpRequest.MULTIPART_REQUEST_MAX_SIZE, (body.length() - 1) + " B");
+        runner.setProperty(HandleRoutedHttpRequest.MULTIPART_REQUEST_MAX_SIZE, (body.length() - 1) + " B");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(body);
@@ -452,7 +452,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals(400, response.statusCode(), "status of a multipart request over the max size"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success")
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success")
         );
     }
 
@@ -467,7 +467,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals(503, response.statusCode(), "status of the request the context map refused"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success")
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success")
         );
     }
 
@@ -483,7 +483,7 @@ class QubershipHandleHttpRequestTest {
                 () -> assertEquals(503, response.statusCode(),
                         "status of the multipart request the context map refused"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success")
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success")
         );
     }
 
@@ -541,7 +541,7 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void stoppingAnswersTheQueuedRequestWith503() throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.CONTAINER_QUEUE_SIZE, "1");
+        runner.setProperty(HandleRoutedHttpRequest.CONTAINER_QUEUE_SIZE, "1");
         startProcessor();
         final CompletableFuture<HttpResponse<String>> first = send("GET", "/orders/1");
         final CompletableFuture<HttpResponse<String>> second = send("GET", "/orders/2");
@@ -584,21 +584,21 @@ class QubershipHandleHttpRequestTest {
 
     @Test
     void aRequestPathThatIsNotARegularExpressionIsInvalid() {
-        runner.setProperty(QubershipHandleHttpRequest.REQUEST_PATH, "/orders(");
+        runner.setProperty(HandleRoutedHttpRequest.REQUEST_PATH, "/orders(");
 
         runner.assertNotValid();
     }
 
     @Test
     void aRequestQueueTimeoutOfZeroIsInvalid() {
-        runner.setProperty(QubershipHandleHttpRequest.REQUEST_QUEUE_TIMEOUT, "0 sec");
+        runner.setProperty(HandleRoutedHttpRequest.REQUEST_QUEUE_TIMEOUT, "0 sec");
 
         runner.assertNotValid();
     }
 
     @Test
     void aRequestQueueTimeoutOfOneMillisecondIsValid() {
-        runner.setProperty(QubershipHandleHttpRequest.REQUEST_QUEUE_TIMEOUT, "1 millis");
+        runner.setProperty(HandleRoutedHttpRequest.REQUEST_QUEUE_TIMEOUT, "1 millis");
 
         runner.assertValid();
     }
@@ -622,8 +622,8 @@ class QubershipHandleHttpRequestTest {
 
     private static List<MockFlowFile> awaitFlowFiles(final TestRunner processorRunner, final int count) {
         triggerUntil(processorRunner, count + " FlowFiles on success", () -> processorRunner
-                .getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS).size() >= count);
-        return processorRunner.getFlowFilesForRelationship(QubershipHandleHttpRequest.REL_SUCCESS);
+                .getFlowFilesForRelationship(HandleRoutedHttpRequest.REL_SUCCESS).size() >= count);
+        return processorRunner.getFlowFilesForRelationship(HandleRoutedHttpRequest.REL_SUCCESS);
     }
 
     private <T> T awaitWhileTriggering(final CompletableFuture<T> future, final String awaited)
@@ -814,7 +814,7 @@ class QubershipHandleHttpRequestTest {
     @Test
     void aMultipartRequestWithAQueryParameterJettyCannotDecodeIsAnsweredWith400AndProducesNoFlowFile()
             throws Exception {
-        runner.setProperty(QubershipHandleHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
+        runner.setProperty(HandleRoutedHttpRequest.PARAMETERS_TO_ATTRIBUTES, "x");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending =
@@ -824,7 +824,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals(400, response.statusCode(), "status of a multipart POST /orders?x=%C3"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
         );
     }
@@ -839,7 +839,7 @@ class QubershipHandleHttpRequestTest {
         assertAll(
                 () -> assertEquals(400, response.statusCode(), "status of a multipart request with no parts"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map")
         );
     }
@@ -855,7 +855,7 @@ class QubershipHandleHttpRequestTest {
                 new PartStreamRecordingRouterService(routerService, true);
         runner.addControllerService("recording-router", recordingRouter);
         runner.enableControllerService(recordingRouter);
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
@@ -865,7 +865,7 @@ class QubershipHandleHttpRequestTest {
                 () -> assertEquals(400, response.statusCode(),
                         "status of a multipart request whose second part failed"),
                 () -> assertEquals(List.of(), runner.getFlowFilesForRelationship(
-                        QubershipHandleHttpRequest.REL_SUCCESS), "FlowFiles on success"),
+                        HandleRoutedHttpRequest.REL_SUCCESS), "FlowFiles on success"),
                 () -> assertEquals(0, contextMap.registeredCount(), "requests registered on the context map"),
                 () -> assertEquals(List.of(true, true), recordingRouter.closedStates(),
                         "closed state of the stream of each part")
@@ -878,7 +878,7 @@ class QubershipHandleHttpRequestTest {
                 new PartStreamRecordingRouterService(routerService, false);
         runner.addControllerService("recording-router", recordingRouter);
         runner.enableControllerService(recordingRouter);
-        runner.setProperty(QubershipHandleHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
+        runner.setProperty(HandleRoutedHttpRequest.HTTP_ROUTER_SERVICE, "recording-router");
         startProcessor();
 
         final CompletableFuture<HttpResponse<String>> pending = sendMultipart(multipartBodyWithTwoParts());
@@ -986,7 +986,7 @@ class QubershipHandleHttpRequestTest {
     /**
      * HTTP Router Service that passes every call to a router service enabled in another TestRunner.
      *
-     * <p>A second TestRunner cannot enable the same QubershipHttpRouterService, because enabling it starts another
+     * <p>A second TestRunner cannot enable the same StandardHttpRouterService, because enabling it starts another
      * server on the port the first one already listens on. Through this service, processors in two TestRunners
      * register on one server.
      */

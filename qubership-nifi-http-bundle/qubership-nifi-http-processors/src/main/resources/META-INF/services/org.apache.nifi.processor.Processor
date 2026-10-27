@@ -1,1 +1,1 @@
-org.qubership.nifi.processors.http.QubershipHandleHttpRequest
+org.qubership.nifi.processors.http.HandleRoutedHttpRequest

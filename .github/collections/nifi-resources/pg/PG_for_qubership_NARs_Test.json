@@ -24,16 +24,16 @@
                     {
                         "identifier": "2196f950-8bcc-4bb5-9a37-b943e76b97ec",
                         "instanceIdentifier": "0f3c7cd8-2fa8-4bfd-aecf-e1957141052f",
-                        "name": "QubershipHandleHttpRequest orders",
+                        "name": "HandleRoutedHttpRequest orders",
                         "comments": "",
                         "position": {
                             "x": 0.0,
                             "y": 0.0
                         },
-                        "type": "org.qubership.nifi.processors.http.QubershipHandleHttpRequest",
+                        "type": "org.qubership.nifi.processors.http.HandleRoutedHttpRequest",
                         "bundle": {
                             "group": "org.qubership.nifi",
-                            "artifact": "qubership-nifi-http-processors-nar",
+                            "artifact": "qubership-nifi-http-router-processors-nar",
                             "version": "2.2.1-SNAPSHOT"
                         },
                         "properties": {
@@ -173,16 +173,16 @@
                     {
                         "identifier": "9df54daa-7748-4870-a1f9-293adb90a3d7",
                         "instanceIdentifier": "1752a138-b47d-47b1-9c05-1658f0929076",
-                        "name": "QubershipHandleHttpRequest users",
+                        "name": "HandleRoutedHttpRequest users",
                         "comments": "",
                         "position": {
                             "x": 640.0,
                             "y": 0.0
                         },
-                        "type": "org.qubership.nifi.processors.http.QubershipHandleHttpRequest",
+                        "type": "org.qubership.nifi.processors.http.HandleRoutedHttpRequest",
                         "bundle": {
                             "group": "org.qubership.nifi",
-                            "artifact": "qubership-nifi-http-processors-nar",
+                            "artifact": "qubership-nifi-http-router-processors-nar",
                             "version": "2.2.1-SNAPSHOT"
                         },
                         "properties": {
@@ -515,7 +515,7 @@
                             "id": "2196f950-8bcc-4bb5-9a37-b943e76b97ec",
                             "type": "PROCESSOR",
                             "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
-                            "name": "QubershipHandleHttpRequest orders",
+                            "name": "HandleRoutedHttpRequest orders",
                             "comments": "",
                             "instanceIdentifier": "0f3c7cd8-2fa8-4bfd-aecf-e1957141052f"
                         },
@@ -551,7 +551,7 @@
                             "id": "9df54daa-7748-4870-a1f9-293adb90a3d7",
                             "type": "PROCESSOR",
                             "groupId": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
-                            "name": "QubershipHandleHttpRequest users",
+                            "name": "HandleRoutedHttpRequest users",
                             "comments": "",
                             "instanceIdentifier": "1752a138-b47d-47b1-9c05-1658f0929076"
                         },
@@ -8223,12 +8223,12 @@
             {
                 "identifier": "4b704dc5-e10b-4676-ae1b-67d9d9e01f63",
                 "instanceIdentifier": "ee7d5dee-fed1-4e56-aca9-deec6c6b51a3",
-                "name": "QubershipHttpRouterService",
+                "name": "StandardHttpRouterService",
                 "comments": "",
-                "type": "org.qubership.nifi.service.http.QubershipHttpRouterService",
+                "type": "org.qubership.nifi.service.http.StandardHttpRouterService",
                 "bundle": {
                     "group": "org.qubership.nifi",
-                    "artifact": "qubership-nifi-http-service-nar",
+                    "artifact": "qubership-nifi-http-router-nar",
                     "version": "2.2.1-SNAPSHOT"
                 },
                 "properties": {
@@ -8288,7 +8288,7 @@
                         "type": "org.qubership.nifi.service.http.HttpRouterService",
                         "bundle": {
                             "group": "org.qubership.nifi",
-                            "artifact": "qubership-nifi-http-service-nar",
+                            "artifact": "qubership-nifi-http-router-nar",
                             "version": "2.2.1-SNAPSHOT"
                         }
                     }

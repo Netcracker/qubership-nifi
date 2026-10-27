@@ -83,7 +83,7 @@ import java.util.stream.Collectors;
 @Tags({"http", "https", "server", "router", "listen"})
 @CapabilityDescription("Starts one HTTP server on one port and routes each incoming request to the processor whose "
         + "path pattern matches the path of the request. This lets several flows share one port.")
-public class QubershipHttpRouterService extends AbstractControllerService implements HttpRouterService {
+public class StandardHttpRouterService extends AbstractControllerService implements HttpRouterService {
 
     private static final long MINIMUM_THREADS = 8;
     private static final long EXPIRATION_CHECK_MILLIS = 1000;
@@ -227,7 +227,7 @@ public class QubershipHttpRouterService extends AbstractControllerService implem
         }
         server.set(newServer);
         final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(task -> {
-            final Thread thread = new Thread(task, "QubershipHttpRouterService-" + getIdentifier() + "-expiration");
+            final Thread thread = new Thread(task, "StandardHttpRouterService-" + getIdentifier() + "-expiration");
             thread.setDaemon(true);
             return thread;
         });
