@@ -91,24 +91,24 @@ Each run writes `results/http_load_<mode>_<interval_ms>ms_<timestamp>.csv`, wher
 HandleHttpRequest and `router` with `--router-port`. The file has one row per request, separated by `;`, and the
 script prints the same rows to standard output:
 
-| Column          | Content                                                                                                         |
-|-----------------|-----------------------------------------------------------------------------------------------------------------|
-| `chain`         | Chain number, 1 to `--count`                                                                                    |
-| `url`           | Request URL                                                                                                     |
-| `sent_at`       | Local time the request started, with milliseconds                                                               |
-| `received_at`   | Local time the response was read or the request failed                                                          |
-| `duration_ms`   | Time from sending the request to reading the whole response                                                     |
-| `response_code` | HTTP status code, or `ERROR <exception>: <message>` when no response arrived                                    |
+| Column          | Content                                                                                                                       |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `chain`         | Chain number, 1 to `--count`                                                                                                  |
+| `url`           | Request URL                                                                                                                   |
+| `sent_at`       | Local time the request started, with milliseconds                                                                             |
+| `received_at`   | Local time the response was read or the request failed                                                                        |
+| `duration_ms`   | Time from sending the request to reading the whole response                                                                   |
+| `response_code` | HTTP status code, or `ERROR <exception>: <message>` when no response arrived                                                  |
 | `check`         | `ok` when the response holds `"status": "processed by chain N"` for the chain called, `mismatch` otherwise, empty on an error |
 
 The script prints its progress to standard error:
 
-| Message                                                      | Printed when                                                               |
-|--------------------------------------------------------------|----------------------------------------------------------------------------|
-| `Started at <time>: mode ..., interval ..., duration ...`    | Before the first batch                                                     |
-| `Sending stopped at <time>, waiting for requests in flight`  | `duration_min` has passed or Ctrl+C was pressed; no new batches are sent  |
-| `Finished at <time>`                                         | Every request sent has a response or has failed                            |
-| `Log written to <file>`                                      | After `Finished`                                                           |
+| Message                                                     | Printed when                                                             |
+|-------------------------------------------------------------|--------------------------------------------------------------------------|
+| `Started at <time>: mode ..., interval ..., duration ...`   | Before the first batch                                                   |
+| `Sending stopped at <time>, waiting for requests in flight` | `duration_min` has passed or Ctrl+C was pressed; no new batches are sent |
+| `Finished at <time>`                                        | Every request sent has a response or has failed                          |
+| `Log written to <file>`                                     | After `Finished`                                                         |
 
 ## Results
 
