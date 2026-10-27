@@ -218,7 +218,6 @@
                 <version>${surefire-plugin.version}</version>
                 <configuration>
                     <argLine>-Duser.timezone=UTC</argLine>
-                    <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
                     <!-- Custom property to skip unit tests -->
                     <skipTests>${skipUnitTests}</skipTests>
                     <systemPropertyVariables>
