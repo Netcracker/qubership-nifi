@@ -12,7 +12,7 @@
             {
                 "identifier": "52eaa455-5646-4aa5-b720-3cb493b3b47d",
                 "instanceIdentifier": "af799217-b793-494d-9cd5-dc06c2e21d0f",
-                "name": "qubership-nifi-http-processors",
+                "name": "qubership-nifi-http-router-processors",
                 "comments": "",
                 "position": {
                     "x": 1208.0,

@@ -1820,7 +1820,7 @@
             ]
         },
         {
-            "name": "qubership-nifi-http-processors",
+            "name": "qubership-nifi-http-router-processors",
             "item": [
                 {
                     "name": "HandleRoutedHttpRequest orders: GET",
