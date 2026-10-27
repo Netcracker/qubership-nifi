@@ -22,7 +22,6 @@ import subprocess
 import sys
 import tempfile
 import urllib.parse
-from datetime import datetime
 from pathlib import Path
 
 INBOUND = "inbound"
@@ -74,23 +73,41 @@ def unpack_pkcs12(path, password, workdir):
 
 
 def _unpack_pkcs12_with_openssl(path, password, cert_pem, key_pem):
+    """Extract the PEM files with the openssl command.
+
+    OpenSSL 3 reads a PKCS#12 file encrypted with RC2 or 3DES, the default of older Java keytool
+    versions, only with -legacy, so a failed command is run once more with that option.
+    """
     if shutil.which("openssl") is None:
         raise CollectorError(
             "Reading a PKCS#12 file needs either the 'cryptography' package or the 'openssl' "
             "command. Install one, or use --auth cookie."
         )
     env = dict(os.environ, NIFIPW=password)
+    legacy = []
     extracted = []
     for args in (["-clcerts", "-nokeys"], ["-cacerts", "-nokeys"], ["-nocerts", "-nodes"]):
         command = ["openssl", "pkcs12", "-in", str(path), "-passin", "env:NIFIPW"] + args
-        result = subprocess.run(command, capture_output=True, env=env)
+        result = subprocess.run(command + legacy, capture_output=True, env=env)
+        if result.returncode != 0 and not legacy:
+            # Both errors go into the message: on OpenSSL 1.1, which has no -legacy option, the
+            # first one names the real problem, such as a wrong password.
+            first_error = _stderr(result)
+            legacy = ["-legacy"]
+            result = subprocess.run(command + legacy, capture_output=True, env=env)
+            if result.returncode != 0:
+                raise CollectorError("openssl could not read %s: %s; with -legacy: %s"
+                                     % (path, first_error, _stderr(result)))
         if result.returncode != 0:
-            raise CollectorError("openssl could not read %s: %s"
-                                 % (path, result.stderr.decode(errors="replace").strip()[:200]))
+            raise CollectorError("openssl could not read %s: %s" % (path, _stderr(result)))
         extracted.append(result.stdout)
     cert_pem.write_bytes(extracted[0] + extracted[1])
     key_pem.write_bytes(extracted[2])
     return cert_pem, key_pem
+
+
+def _stderr(result):
+    return result.stderr.decode(errors="replace").strip()[:200]
 
 
 def build_context(args, workdir):
@@ -111,6 +128,9 @@ def auth_headers(args):
         cookie = os.environ.get("NIFI_AUTHORIZATION_BEARER_COOKIE")
         if not cookie:
             raise CollectorError("Cookie mode reads the cookie from NIFI_AUTHORIZATION_BEARER_COOKIE.")
+        if re.search(r"[\x00-\x1f\x7f]", cookie):
+            raise CollectorError("NIFI_AUTHORIZATION_BEARER_COOKIE contains a line break or another control "
+                                 "character. Copy the cookie value again.")
         return {"Cookie": "__Secure-Authorization-Bearer=" + cookie}
     return {}
 
@@ -122,8 +142,14 @@ class Client:
         parsed = urllib.parse.urlparse(base_url)
         if parsed.scheme != "https":
             raise CollectorError("URL must use HTTPS; got '%s'." % base_url)
+        if not parsed.hostname:
+            raise CollectorError("URL has no host; got '%s'." % base_url)
+        try:
+            port = parsed.port
+        except ValueError:
+            raise CollectorError("URL has an invalid port; got '%s'." % base_url)
         self.host = parsed.hostname
-        self.port = parsed.port or 443
+        self.port = port or 443
         self.context = context
         self.headers = headers
         # Accept a URL that already ends in the API or UI path, so pasting either works.
@@ -170,7 +196,29 @@ class Client:
         return payload
 
     def get(self, path, params=None):
-        return json.loads(self.get_bytes(path, params))
+        return parse_json(self.get_bytes(path, params), "GET " + path)
+
+
+def parse_json(payload, source):
+    """Parse a JSON response body, or raise CollectorError when the body is not JSON.
+
+    A proxy in front of NiFi can answer an expired session with an HTML login page and HTTP 200,
+    so the start of the body goes into the message.
+    """
+    try:
+        return json.loads(payload)
+    except ValueError:
+        raise CollectorError("%s returned a body that is not JSON: %s"
+                             % (source, payload[:200].decode(errors="replace")))
+
+
+def require(data, source, *keys):
+    """The value at a path of keys in a JSON object, or CollectorError when a key is missing."""
+    for key in keys:
+        if not isinstance(data, dict) or key not in data:
+            raise CollectorError("%s returned an unexpected body: no '%s' key" % (source, key))
+        data = data[key]
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -589,6 +637,12 @@ def _cell(text):
     return (text or "").replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ")
 
 
+def _heading(text):
+    """Heading text on one line, with `\\` and `#` escaped, so a line break or a trailing `#` in a group
+    name stays part of the heading text."""
+    return re.sub(r"([\\#])", r"\\\1", " ".join((text or "").splitlines()))
+
+
 def _table(api_type, direction, items):
     columns = MARKDOWN_COLUMNS[(api_type, direction)]
     headers = [header for header, _ in columns] + ["Processor identifier", "Processor relative path"]
@@ -600,10 +654,11 @@ def _table(api_type, direction, items):
     return lines
 
 
-def render_markdown(report):
+def render_markdown(report, skipped=()):
+    """The Markdown report, ending with a table of the process groups that were skipped, if any."""
     lines = []
     for group in report:
-        lines.append("# %s" % group["pgName"])
+        lines.append("# %s" % _heading(group["pgName"]))
         lines.append("")
         for title, direction in (("Outbound", OUTBOUND), ("Inbound", INBOUND)):
             lines.append("## %s" % title)
@@ -620,7 +675,19 @@ def render_markdown(report):
                     lines.extend(_table(api_type, direction, items))
                     lines.append("")
     if not report:
-        lines.append("No process group has inbound or outbound APIs.")
+        lines.append("No analyzed process group has inbound or outbound APIs." if skipped
+                     else "No process group has inbound or outbound APIs.")
+        lines.append("")
+    if skipped:
+        lines.append("# Skipped process groups")
+        lines.append("")
+        lines.append("These groups were not analyzed, so their APIs are missing from this report.")
+        lines.append("")
+        lines.append("| Process group | Identifier | Reason |")
+        lines.append("| --- | --- | --- |")
+        for group in skipped:
+            cells = [_cell(group[key]) for key in ("pgName", "pgId", "reason")]
+            lines.append("| %s |" % " | ".join(cells))
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
@@ -632,13 +699,22 @@ def render_markdown(report):
 def root_variable_registry(client):
     """The variables defined on the root group of NiFi 1.x, which a group download leaves out."""
     registry = client.get("/process-groups/root/variable-registry").get("variableRegistry") or {}
-    return {item["variable"]["name"]: item["variable"].get("value")
-            for item in registry.get("variables") or [] if item.get("variable")}
+    variables = [item.get("variable") or {} for item in registry.get("variables") or []]
+    return {variable["name"]: variable.get("value") for variable in variables if variable.get("name")}
 
 
 def top_level_groups(client):
-    flow = client.get("/flow/process-groups/root")["processGroupFlow"]["flow"]
-    return [(group["id"], group["component"]["name"]) for group in flow.get("processGroups") or []]
+    """The (id, name) pairs of the top-level groups; the name is None for a group the user cannot read.
+
+    NiFi leaves the component, and with it the name, out of a group the user has no read access to.
+    """
+    path = "/flow/process-groups/root"
+    flow = require(client.get(path), "GET " + path, "processGroupFlow", "flow")
+    groups = []
+    for group in flow.get("processGroups") or []:
+        readable = (group.get("permissions") or {}).get("canRead", True) and "component" in group
+        groups.append((group["id"], group["component"].get("name") if readable else None))
+    return groups
 
 
 def _safe_file_name(text):
@@ -646,17 +722,32 @@ def _safe_file_name(text):
 
 
 def collect(client, download_dir, hosts=frozenset(), path_pattern=None):
-    version = client.get("/flow/about")["about"].get("version") or ""
+    """Download and analyze every top-level group.
+
+    Returns the report entries and the skipped groups. A group is skipped, with a warning, when the
+    user cannot read it, or when its download fails or is not a flow; the other groups are still
+    analyzed.
+    """
+    version = require(client.get("/flow/about"), "GET /flow/about", "about").get("version") or ""
     print("NiFi %s" % version)
     root_variables = root_variable_registry(client) if version.startswith("1.") else None
     report = []
+    skipped = []
     for group_id, group_name in top_level_groups(client):
+        if group_name is None:
+            _skip(skipped, group_id, None, "no read permission on the process group")
+            continue
         print("Downloading %s (%s)" % (group_name, group_id))
-        payload = client.get_bytes("/process-groups/%s/download" % group_id,
-                                   {"includeReferencedServices": "true"})
-        target = download_dir / ("%s-%s.json" % (_safe_file_name(group_name), group_id))
-        target.write_bytes(payload)
-        flow = json.loads(payload)
+        path = "/process-groups/%s/download" % group_id
+        try:
+            payload = client.get_bytes(path, {"includeReferencedServices": "true"})
+            target = download_dir / ("%s-%s.json" % (_safe_file_name(group_name), group_id))
+            target.write_bytes(payload)
+            flow = parse_json(payload, "GET " + path)
+            require(flow, "GET " + path, "flowContents")
+        except CollectorError as exc:
+            _skip(skipped, group_id, group_name, str(exc))
+            continue
         apis, excluded = apply_exclusions(analyze_flow(flow, root_variables), hosts, path_pattern)
         for direction, item, reason in excluded:
             print("Excluded %s %s processor '%s' (%s) at %s in %s (%s): %s"
@@ -668,7 +759,13 @@ def collect(client, download_dir, hosts=frozenset(), path_pattern=None):
         entry = {"pgId": group_id, "pgName": group_name}
         entry.update(apis)
         report.append(entry)
-    return report
+    return report, skipped
+
+
+def _skip(skipped, group_id, group_name, reason):
+    print("Warning: skipped process group %s (%s): %s" % (group_name or "<unreadable>", group_id, reason),
+          file=sys.stderr)
+    skipped.append({"pgId": group_id, "pgName": group_name or "", "reason": reason})
 
 
 # ---------------------------------------------------------------------------
@@ -708,28 +805,37 @@ def _path_regex(value):
         raise argparse.ArgumentTypeError("invalid regular expression '%s': %s" % (value, exc))
 
 
+# Exit code of a run that wrote the report without the groups it skipped. argparse uses 2 for usage errors.
+EXIT_PARTIAL = 3
+
+
 def main(argv=None):
     args = parse_args(argv)
-    download_dir = Path.cwd() / ("api-usage-tmp-" + datetime.now().strftime("%Y%m%d-%H%M%S"))
-    download_dir.mkdir()
+    download_dir = None
     try:
+        download_dir = Path(tempfile.mkdtemp(prefix="api-usage-tmp-", dir=Path.cwd()))
         with tempfile.TemporaryDirectory() as tls_dir:
             client = Client(args.url, build_context(args, Path(tls_dir)), auth_headers(args))
             try:
-                report = collect(client, download_dir, args.exclude_hosts, args.exclude_paths_regex)
+                report, skipped = collect(client, download_dir, args.exclude_hosts, args.exclude_paths_regex)
             finally:
                 client.close()
         Path(args.output_prefix + ".json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-        Path(args.output_prefix + ".md").write_text(render_markdown(report), encoding="utf-8")
+        Path(args.output_prefix + ".md").write_text(render_markdown(report, skipped), encoding="utf-8")
         print("Wrote %s.md and %s.json" % (args.output_prefix, args.output_prefix))
     except (CollectorError, OSError, ssl.SSLError, http.client.HTTPException) as exc:
         print("Error: %s" % exc, file=sys.stderr)
         return 1
     finally:
-        if args.keep_temp:
-            print("Downloaded flows are in %s" % download_dir)
-        else:
-            shutil.rmtree(download_dir, ignore_errors=True)
+        if download_dir is not None:
+            if args.keep_temp:
+                print("Downloaded flows are in %s" % download_dir)
+            else:
+                shutil.rmtree(download_dir, ignore_errors=True)
+    if skipped:
+        print("Warning: the report is incomplete; skipped process groups: %d. See the warnings above."
+              % len(skipped), file=sys.stderr)
+        return EXIT_PARTIAL
     return 0
 
 
