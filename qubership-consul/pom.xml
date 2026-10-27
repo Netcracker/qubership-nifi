@@ -75,14 +75,14 @@
         <jackson-bom.version>3.1.7</jackson-bom.version>
         <slf4j.version>2.0.17</slf4j.version>
         <!--test libraries-->
-        <junit.jupiter.version>5.11.1</junit.jupiter.version>
+        <junit.jupiter.version>5.14.4</junit.jupiter.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <!--plugin versions-->
         <pmd.version>3.28.0</pmd.version>
         <jacoco.version>0.8.15</jacoco.version>
         <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
         <surefire-plugin.version>3.6.0</surefire-plugin.version>
-        <central-publishing.plugin.version>0.11.0</central-publishing.plugin.version>
+        <central-publishing.plugin.version>0.12.0</central-publishing.plugin.version>
     </properties>
 
     <dependencyManagement>
