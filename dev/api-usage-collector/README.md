@@ -8,7 +8,8 @@ REST, Kafka, S3, and RabbitMQ processors in that group and in all its child grou
 
 1. Reads the top-level process groups from `GET /nifi-api/flow/process-groups/root`.
 2. Downloads each group with `GET /nifi-api/process-groups/{id}/download` into a new temporary directory,
-   `api-usage-tmp-<timestamp>`, under the current working directory.
+   `api-usage-tmp-<random suffix>`, under the current working directory. A group the user cannot read, or whose
+   download fails, is skipped with a warning; see [Skipped groups and exit codes](#skipped-groups-and-exit-codes).
 3. Finds the processors listed in [Detected processors](#detected-processors) in each download.
 4. Leaves out the REST entries that match `--exclude-hosts` or `--exclude-paths-regex`, printing a line for each.
 5. Writes `<prefix>.md` and `<prefix>.json` to the current working directory. A group with no inbound or outbound
@@ -16,11 +17,22 @@ REST, Kafka, S3, and RabbitMQ processors in that group and in all its child grou
 
 The script sends GET requests only and does not change the flow.
 
+Processors placed directly on the root canvas, outside any process group, are not analyzed and do not appear in the
+report. To include them, move them into a process group.
+
 ## Prerequisites
 
 - Python 3.10 or later.
-- For `--auth cert`: the `cryptography` package (`pip install -r requirements.txt`) or the `openssl` command, used to
-  read the PKCS#12 client certificate.
+- For `--auth cert`: the `cryptography` package or the `openssl` command, used to read the PKCS#12 client
+  certificate. `requirements.txt` pins `cryptography` and its dependencies with their hashes:
+
+  ```bash
+  python -m pip install --require-hashes -r requirements.txt
+  ```
+
+  When `cryptography` is not installed, the script runs `openssl pkcs12`. If OpenSSL 3 cannot read the file, which
+  happens with PKCS#12 files encrypted with RC2 or 3DES by older Java `keytool` versions, the script runs the command
+  again with `-legacy`.
 
 ## Usage
 
@@ -83,6 +95,26 @@ python <pathToScript>/collect_api_usage.py --url https://localhost:8443 --auth c
     --exclude-hosts 'localhost,internal.example.com' --exclude-paths-regex '/health.*|/metrics'
 ```
 
+### Skipped groups and exit codes
+
+A top-level process group is skipped when the user has no read permission on it, when its download fails (for
+example, with HTTP 403), or when the response is not a flow, such as an HTML login page returned by a proxy. For each
+skipped group, the script prints a warning to stderr and goes on with the other groups:
+
+```text
+Warning: skipped process group Billing (<group id>): GET /process-groups/<group id>/download -> HTTP 403: ...
+```
+
+The Markdown report then ends with a `# Skipped process groups` table that lists each skipped group with the reason.
+The JSON report holds only the groups that were analyzed.
+
+| Exit code | Meaning                                                                                  |
+| --------- | ---------------------------------------------------------------------------------------- |
+| 0         | Every top-level group was analyzed.                                                      |
+| 1         | The script stopped with an `Error:` message, such as a TLS failure, and wrote no report. |
+| 2         | Invalid command-line arguments.                                                          |
+| 3         | The report was written, but at least one group was skipped.                              |
+
 ## Detected processors
 
 Processors that read data are inbound, and processors that write data are outbound. HandleHttpResponse is not listed,
@@ -91,11 +123,13 @@ because it answers the request its HandleHttpRequest already reports.
 | Type     | Inbound                                                     | Outbound                                                  |
 | -------- | ----------------------------------------------------------- | --------------------------------------------------------- |
 | REST     | HandleHttpRequest, ListenHTTP, GetHTTP                      | InvokeHTTP, PostHTTP                                      |
-| Kafka    | ConsumeKafka, ConsumeKafkaRecord, with any version suffix   | PublishKafka, PublishKafkaRecord, with any version suffix |
+| Kafka    | ConsumeKafka, ConsumeKafkaRecord                            | PublishKafka, PublishKafkaRecord                          |
 | S3       | ListS3, FetchS3Object, GetS3ObjectMetadata, GetS3ObjectTags | PutS3Object, DeleteS3Object, CopyS3Object, TagS3Object    |
 | RabbitMQ | ConsumeAMQP                                                 | PublishAMQP                                               |
 
-The Kafka version suffixes are `_1_0`, `_2_0`, and `_2_6`. A processor whose type is not in the table is not reported.
+A Kafka processor is detected with no version suffix or with `_1_0`, `_2_0`, or `_2_6`; for example,
+`ConsumeKafka_2_6`. Other suffixes, such as `_0_10` and `_0_11`, are not detected. A processor whose type is not in
+the table is not reported.
 
 ## Property values
 
@@ -113,7 +147,8 @@ Property values in the report are resolved as follows:
 
 The Markdown report has a `# <process group name>` section for each top-level group that has APIs, with
 `## Outbound` and `## Inbound` subsections. Each subsection has one `### <type>` table per API type it contains, in the
-order REST, Kafka, S3, RabbitMQ. A subsection with no APIs says `None found.`:
+order REST, Kafka, S3, RabbitMQ. A subsection with no APIs says `None found.` When groups were
+[skipped](#skipped-groups-and-exit-codes), a `# Skipped process groups` table follows the last group:
 
 ```markdown
 # Orders
