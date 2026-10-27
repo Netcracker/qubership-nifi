@@ -94,7 +94,7 @@ jobs:
     permissions:
       contents: read
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Input parameters
         run: |
@@ -111,8 +111,11 @@ jobs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          # The key differs from the one in tools-integration-tests: that job skips unit tests, so its cache lacks
+          # the artifacts that Quarkus resolves when it starts the Quarkus tests.
+          key: ${{ runner.os }}-maven-build-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
+            ${{ runner.os }}-maven-build-
             ${{ runner.os }}-maven-
       - name: Set up JDK
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
@@ -122,11 +125,14 @@ jobs:
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
+      # --no-transfer-progress is required, not cosmetic. Quarkus test bootstrap reads the mvn options from
+      # MAVEN_CMD_LINE_ARGS, and without this option it prints each artifact download. Surefire captures that output under a class loader lock that
+      # Quarkus holds, so a download during test startup deadlocks the test JVM.
       - name: Run local maven build with sonar
         #skip if explicit skip is set or when SONAR_HOST_URL or SONAR_TOKEN are empty
         if: ${{ !inputs.skip-sonar && vars.SONAR_HOST_URL && env.SONAR_TOKEN }}
         run: >
-          mvn --batch-mode package
+          mvn --batch-mode --no-transfer-progress package
           -Dgpg.skip=true
           org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_PLUGIN_VERSION}:sonar
           -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.organization=${SONAR_ORGANIZATION}
@@ -143,7 +149,7 @@ jobs:
         #execute if explicit skip is set or when either SONAR_HOST_URL or SONAR_TOKEN are empty
         if: ${{ inputs.skip-sonar || !vars.SONAR_HOST_URL || !env.SONAR_TOKEN }}
         run: >
-          mvn --batch-mode package -Dgpg.skip=true
+          mvn --batch-mode package --no-transfer-progress -Dgpg.skip=true
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
@@ -180,8 +186,9 @@ jobs:
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-it-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
+            ${{ runner.os }}-maven-it-
             ${{ runner.os }}-maven-
       - name: Set up JDK
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
