@@ -75,7 +75,7 @@ jobs:
       packages: write
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -160,7 +160,7 @@ jobs:
           echo "GITHUB_OUTPUT:"
           cat "$GITHUB_OUTPUT"
       - name: Get Configuration File
-        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         id: config
         with:
           file-path: "${{ env.CONFIG_FILE }}"
@@ -181,7 +181,7 @@ jobs:
       - name: "Prepare Docker tags"
         if: ${{ github.event.inputs.mark-as-latest != 'true' }}
         id: meta
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         with:
           default-template: "{{major}}.{{minor}}.{{patch}},{{major}}.{{minor}},{{major}}"
           ref: ${{ needs.deploy.outputs.release-version }}
@@ -195,7 +195,7 @@ jobs:
 
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         with:
           component: ${{ toJson(matrix.component) }}
           ref: v${{ needs.deploy.outputs.release-version }}
@@ -211,7 +211,7 @@ jobs:
     permissions:
       contents: write
     if: ${{ needs.deploy.result == 'success' }}
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true
