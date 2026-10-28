@@ -25,7 +25,7 @@ USER root
 #add jq:
 RUN apk add --no-cache \
     jq=1.8.2-r0 \
-    python3=3.14.8-r0
+    python3=3.14.10-r1
 
 ENV NIFI_BASE_DIR=/opt/nifi
 ENV NIFI_HOME=$NIFI_BASE_DIR/nifi-current
@@ -67,6 +67,9 @@ COPY --chown=10001:0 qubership-bundle/qubership-nifi-processors-nar/target/migra
     qubership-nifi-lookup-services/qubership-nifi-lookup-service-nar/target/qubership-nifi-lookup-service-nar-*.nar \
     qubership-nifi-flow-analysis-rules/qubership-nifi-flow-analysis-rules-nar/target/qubership-nifi-flow-analysis-rules-nar-*.nar \
     qubership-nifi-db-bundle/qubership-nifi-db-processors-nar/target/qubership-nifi-db-processors-nar-*.nar \
+    qubership-nifi-http-bundle/qubership-nifi-http-router-api-nar/target/qubership-nifi-http-router-api-nar-*.nar \
+    qubership-nifi-http-bundle/qubership-nifi-http-router-nar/target/qubership-nifi-http-router-nar-*.nar \
+    qubership-nifi-http-bundle/qubership-nifi-http-router-processors-nar/target/qubership-nifi-http-router-processors-nar-*.nar \
     $NIFI_HOME/lib/
 
 RUN mkdir -p $NIFI_HOME/persistent_data \
