@@ -7,7 +7,7 @@ name: flow-diff-gitlab
 
 services:
   gitlab:
-    image: gitlab/gitlab-ce:18.11.12-ce.0@sha256:9dc94c49789d1ffec78e1998b088c83d7d1d9d5f2dc8b388cbb2bd2de328dd21
+    image: gitlab/gitlab-ce:18.11.13-ce.0@sha256:a1c10a9a1e46a7b22260c350088476f87f012359725786e095d42899cf261681
     container_name: flow-diff-gitlab
     hostname: gitlab
     # external_url names gitlab:8929 rather than localhost because GitLab bakes it into
