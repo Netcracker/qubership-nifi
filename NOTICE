@@ -3,6 +3,18 @@ Copyright 2020-2025 NetCracker Technology Corporation
 
 This product includes source code derived from Apache NiFi:
 
+* StandardHttpRouterService
+  Path: qubership-nifi-http-bundle/qubership-nifi-http-service/src/main/java/org/qubership/nifi/service/http/StandardHttpRouterService.java
+  Original: https://github.com/apache/nifi/blob/rel/nifi-2.12.0/nifi-extension-bundles/nifi-standard-bundle/nifi-standard-processors/src/main/java/org/apache/nifi/processors/standard/HandleHttpRequest.java
+
+* HandleRoutedHttpRequest
+  Path: qubership-nifi-http-bundle/qubership-nifi-http-processors/src/main/java/org/qubership/nifi/processors/http/HandleRoutedHttpRequest.java
+  Original: https://github.com/apache/nifi/blob/rel/nifi-2.12.0/nifi-extension-bundles/nifi-standard-bundle/nifi-standard-processors/src/main/java/org/apache/nifi/processors/standard/HandleHttpRequest.java
+
+* HttpProtocolStrategy
+  Path: qubership-nifi-http-bundle/qubership-nifi-http-service/src/main/java/org/qubership/nifi/service/http/HttpProtocolStrategy.java
+  Original: https://github.com/apache/nifi/blob/rel/nifi-2.12.0/nifi-extension-bundles/nifi-standard-bundle/nifi-standard-processors/src/main/java/org/apache/nifi/processors/standard/http/HttpProtocolStrategy.java
+
 Apache NiFi
 Copyright 2014-2026 The Apache Software Foundation
 
