@@ -75,7 +75,7 @@ grep -rn '<term>' \
   qubership-bundle/ qubership-nifi-db-bundle/ qubership-nifi-bulk-redis-service/ \
   qubership-nifi-consul-templates/ nifi-config/ nifi-scripts/ \
   qubership-nifi-common/ qubership-nifi-bundle-common/ \
-  qubership-consul/ qubership-nifi-lookup-services/ \
+  qubership-consul/ qubership-nifi-lookup-services/ qubership-nifi-http-bundle/ \
   qubership-nifi-quarkus-consul/ qubership-services/ \
   --include='*.xml' --include='*.json' --include='*.yaml' --include='*.yml' \
   --include='*.properties' --include='*.sh' --include='*.java' 2>/dev/null | grep -v '/target/'
