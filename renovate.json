@@ -153,6 +153,14 @@
     },
     {
       "description": [
+        "Guava publishes each release in an -android and a -jre flavor, and the NARs and tools run on a full JRE, so only -jre versions are allowed."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.google.guava:guava"],
+      "allowedVersions": "/-jre$/"
+    },
+    {
+      "description": [
         "The Maven API that the plugins compile against must match the Maven 3 runtime that executes them."
       ],
       "matchManagers": ["maven"],
@@ -262,6 +270,11 @@
         "matchPackageNames": ["ghcr.io/netcracker/qubership-nifi-registry"],
         "matchFileNames": [".github/docker/**"],
         "enabled": false
+      },
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": ["com.google.guava:guava"],
+        "allowedVersions": "/-jre$/"
       },
       {
         "matchManagers": ["maven"],
