@@ -56,7 +56,7 @@
         <junit.jupiter.version>5.14.4</junit.jupiter.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <!--plugin versions-->
-        <surefire-plugin.version>3.6.0</surefire-plugin.version>
+        <surefire-plugin.version>3.6.1</surefire-plugin.version>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <pmd.version>3.28.0</pmd.version>
         <jacoco.version>0.8.14</jacoco.version>
