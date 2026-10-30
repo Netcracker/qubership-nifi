@@ -16,6 +16,8 @@
 
 package org.qubership.nifi.processors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.qubership.nifi.processors.validation.JsonTestData;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.LogMessage;
@@ -26,7 +28,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,6 +106,39 @@ public class ValidateJsonTest {
                         || r.getName().equals("not_json")));
     }
 
+
+    /**
+     * A schema without {@code $schema} is read as draft-04. The boolean {@code exclusiveMaximum} is valid only in
+     * draft-04; later drafts require a number and reject the schema when the processor is scheduled.
+     */
+    @Test
+    public void schemaWithoutDialectIsReadAsDraft04() {
+        testRunner.setProperty(ValidateJson.SCHEMA, "{\"type\": \"object\","
+                + " \"properties\": {\"n\": {\"type\": \"number\", \"maximum\": 10, \"exclusiveMaximum\": true}}}");
+        testRunner.enqueue("{\"n\": 10}");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
+    }
+
+    @Test
+    public void errorDetailsAreEnglishUnderAnotherDefaultLocale() throws IOException {
+        Locale defaultLocale = Locale.getDefault();
+        Locale.setDefault(Locale.GERMAN);
+        try {
+            testRunner.setProperty(ValidateJson.SCHEMA, "{\"$schema\": \"http://json-schema.org/draft-04/schema#\","
+                    + " \"type\": \"object\", \"properties\": {\"o\": {\"type\": \"string\"}}}");
+            testRunner.enqueue("{\"o\": 1}");
+            testRunner.run();
+        } finally {
+            Locale.setDefault(defaultLocale);
+        }
+
+        testRunner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID).get(0);
+        JsonNode errors = new ObjectMapper().readTree(flowFile.getContent()).get("_errors");
+        assertEquals("o: integer found, string expected", errors.get(0).get("details").asText());
+    }
 
     @Test
     public void testNullFlowFile() {
