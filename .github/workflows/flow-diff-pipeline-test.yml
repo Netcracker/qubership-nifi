@@ -10,6 +10,13 @@ name: flow-diff-pipeline-test
 # only thing that reports a break in its rules: guard, its totals gate, or its sticky note.
 on:
   push:
+    # A push run on a pull request branch would report the same gate names as the pull request run,
+    # and its result would stand in for the required check until the pull request run finishes.
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'support/**'
     paths:
       - 'flow-diff-ci-cd-pipeline/**'
       - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
@@ -70,7 +77,7 @@ jobs:
   flow-diff-pipeline-test:
     needs: [ changes ]
     if: >-
-      !cancelled() && needs.changes.result != 'failure' &&
+      !cancelled() &&
       (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -189,6 +196,10 @@ jobs:
     timeout-minutes: 5
     permissions: {}
     steps:
-      - name: Fail if any dependency failed or was cancelled
-        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+      # A guarded job that a cancellation stops before it starts reports skipped, so a skipped job on a relevant
+      # pull request also fails the gate.
+      - name: Fail if the tests did not run and pass
+        if: >-
+          ${{ cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') ||
+          (needs.changes.outputs.relevant == 'true' && contains(needs.*.result, 'skipped')) }}
         run: exit 1
