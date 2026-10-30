@@ -78,12 +78,13 @@ quick check of the setup, run `handle_http_request_load.py 1000 1`.
 | `--count`        | `20`        | Number of chains, and number of requests in each batch.                                                  |
 | `--timeout`      | `70`        | Response timeout, in seconds. It is longer than the 1-minute Request Expiration of the HTTP Context Map. |
 | `--payload-size` | `1024`      | Length of the `payload` text in the request body, in characters.                                         |
+| `--threads`      | `2000`      | Number of threads that send requests.                                                                    |
 | `--log`          | see below   | CSV log file.                                                                                            |
 
 The default host is `127.0.0.1` rather than `localhost`. On Windows, `localhost` resolves to `::1` first, and when the
 ports are published on `127.0.0.1` only, every request waits about 2 seconds for the IPv6 attempt to fail.
 
-The script runs the requests in a pool of at most 500 threads. When every thread waits for a response, new requests
+The script runs the requests in a pool of `--threads` threads. When every thread waits for a response, new requests
 wait in the pool queue and start later than scheduled, so the run lasts longer than `duration_min`. The time a request
 waits in the pool queue is not part of `duration_ms`.
 
@@ -113,14 +114,32 @@ The script prints its progress to standard error:
 ## Results
 
 **Note:** all results were measured with Docker Desktop 27.4.0 on Windows 11, with 4 CPUs and 9.7 GiB of memory
-available to containers, NiFi 2.12.0 in the qubership-nifi image, and OpenJDK 25.0.4.1. Each run used 20 chains and
-`duration_min` of 10.
+available to containers, and qubership-nifi 2.9.2. Each run used 20 chains, `duration_min` of 10, and `--threads` of
+2000. The numbers apply only to this environment; on other hardware or settings, the results will differ.
 
 | Interval | Component                 | Requests | Mean, ms | Median, ms | Min, ms | Max, ms |
 |----------|---------------------------|----------|----------|------------|---------|---------|
-| 100 ms   | HandleHttpRequest         | 120000   | 53.7     | 52.3       | 7.5     | 813.9   |
-| 100 ms   | StandardHttpRouterService | 120000   | 52.2     | 52.2       | 6.3     | 271.6   |
-| 50 ms    | HandleHttpRequest         | 240000   | 1281.5   | 1294.3     | 69.9    | 1943.6  |
-| 50 ms    | StandardHttpRouterService | 240000   | 1269.2   | 1277.7     | 32.9    | 2391.0  |
-| 25 ms    | HandleHttpRequest         | 480000   | 1297.6   | 1293.0     | 27.1    | 2787.3  |
-| 25 ms    | StandardHttpRouterService | 480000   | 1303.6   | 1301.8     | 1.4     | 3221.3  |
+| 100 ms   | HandleHttpRequest         | 120000   | 52.7     | 51.4       | 6.4     | 724.9   |
+| 100 ms   | StandardHttpRouterService | 120000   | 52.1     | 52.1       | 0.8     | 261.0   |
+| 65 ms    | HandleHttpRequest         | 184620   | 55.5     | 52.8       | 4.6     | 357.6   |
+| 65 ms    | StandardHttpRouterService | 184620   | 56.7     | 54.1       | 5.7     | 391.2   |
+| 55 ms    | HandleHttpRequest         | 218200   | 305.7    | 63.4       | 5.7     | 3748.7  |
+| 55 ms    | StandardHttpRouterService | 218200   | 59.8     | 59.6       | 3.0     | 1201.0  |
+| 50 ms    | HandleHttpRequest         | 240000   | 2524.4   | 2626.0     | 5.3     | 9528.5  |
+| 50 ms    | StandardHttpRouterService | 240000   | 2535.3   | 2688.0     | 6.4     | 13223.1 |
+
+The 50 ms numbers are distorted by HTTP 503 responses: 18.4% of the requests to HandleHttpRequest and 19.2% of the
+requests to StandardHttpRouterService got 503. The table counts these requests together with the successful ones.
+
+The share of HTTP 503 responses in each run:
+
+| Interval | Component                 | Requests | 503   | 503 share |
+|----------|---------------------------|----------|-------|-----------|
+| 100 ms   | HandleHttpRequest         | 120000   | 0     | 0.0%      |
+| 100 ms   | StandardHttpRouterService | 120000   | 0     | 0.0%      |
+| 65 ms    | HandleHttpRequest         | 184620   | 0     | 0.0%      |
+| 65 ms    | StandardHttpRouterService | 184620   | 0     | 0.0%      |
+| 55 ms    | HandleHttpRequest         | 218200   | 683   | 0.3%      |
+| 55 ms    | StandardHttpRouterService | 218200   | 0     | 0.0%      |
+| 50 ms    | HandleHttpRequest         | 240000   | 44210 | 18.4%     |
+| 50 ms    | StandardHttpRouterService | 240000   | 46049 | 19.2%     |

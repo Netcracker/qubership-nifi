@@ -16,7 +16,7 @@ and the result of that check.
 Usage:
     python handle_http_request_load.py <interval_ms> <duration_min> [--router-port P] [--host H]
                                        [--first-port P] [--count N] [--timeout S] [--payload-size N]
-                                       [--log FILE]
+                                       [--threads N] [--log FILE]
 """
 import argparse
 import csv
@@ -79,10 +79,15 @@ def main():
                         help="response timeout, in seconds (StandardHttpContextMap expires requests after 1 min)")
     parser.add_argument("--payload-size", type=int, default=1024,
                         help="length of the payload text in the request body, in characters")
+    parser.add_argument("--threads", type=int, default=2000,
+                        help="number of threads that send requests; when all of them wait for responses, "
+                             "new requests wait in the queue and start later than scheduled")
     parser.add_argument("--log", help="CSV log file (default: results/ next to this script)")
     args = parser.parse_args()
     if args.interval_ms <= 0 or args.duration_min <= 0:
         parser.error("interval_ms and duration_min must be positive")
+    if args.threads <= 0:
+        parser.error("--threads must be positive")
     if args.payload_size < 0:
         parser.error("--payload-size must not be negative")
     payload = "x" * args.payload_size
@@ -97,13 +102,9 @@ def main():
         urls = {n: f"http://{args.host}:{args.first_port + n - 1}/" for n in chains}
     log = args.log or str(RESULTS_DIR / f"http_load_{mode}_{args.interval_ms}ms_{datetime.now():%Y%m%d_%H%M%S}.csv")
 
-    # Enough workers that slow responses do not delay the next batches.
-    batches_in_flight = max(1, int(args.timeout * 1000 / args.interval_ms) + 1)
-    workers = min(args.count * batches_in_flight, 500)
-
     Path(log).parent.mkdir(parents=True, exist_ok=True)
     lock = threading.Lock()
-    with open(log, "w", newline="", encoding="utf-8") as f, ThreadPoolExecutor(max_workers=workers) as pool:
+    with open(log, "w", newline="", encoding="utf-8") as f, ThreadPoolExecutor(max_workers=args.threads) as pool:
         writer = csv.writer(f, delimiter=";")
         header = ["chain", "url", "sent_at", "received_at", "duration_ms", "response_code", "check"]
         writer.writerow(header)
