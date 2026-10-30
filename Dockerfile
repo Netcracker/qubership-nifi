@@ -135,3 +135,5 @@ VOLUME ${NIFI_HOME}/conf \
 EXPOSE 8080 8443 10000 8000
 CMD ["bash", "../scripts/start.sh"]
 HEALTHCHECK NONE
+
+# Throwaway gate check, do not merge.
