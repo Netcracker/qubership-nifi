@@ -11,26 +11,53 @@ on:
       - 'dev/update-scripts-autotest/**'
       - 'dev/flow-rules-script/**'
       - 'dev-tools-integration-tests/**'
+      - 'pom.xml'
+      - 'Dockerfile'
+      - '.github/workflows/sh/nifi-lib.sh'
       - '.github/workflows/dev-tools-test.yml'
       - '.github/docker/oidc/docker-compose.yaml'
-  pull_request:
-    paths:
-      - 'dev/update-scripts-2.0/**'
-      - 'dev/update-scripts-prop-2.x/**'
-      - 'dev/update-scripts-flow-2.x/**'
-      - 'dev/update-scripts-ojdbc-location/**'
-      - 'dev/update-scripts-autotest/**'
-      - 'dev/flow-rules-script/**'
-      - 'dev-tools-integration-tests/**'
-      - '.github/workflows/dev-tools-test.yml'
-      - '.github/docker/oidc/docker-compose.yaml'
+  pull_request: null
   workflow_dispatch: null
 
 permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - 'dev/update-scripts-2.0/**'
+              - 'dev/update-scripts-prop-2.x/**'
+              - 'dev/update-scripts-flow-2.x/**'
+              - 'dev/update-scripts-ojdbc-location/**'
+              - 'dev/update-scripts-autotest/**'
+              - 'dev/flow-rules-script/**'
+              - 'dev-tools-integration-tests/**'
+              - 'pom.xml'
+              - 'Dockerfile'
+              - '.github/workflows/sh/nifi-lib.sh'
+              - '.github/workflows/dev-tools-test.yml'
+              - '.github/docker/oidc/docker-compose.yaml'
+
   dev-tools-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -160,3 +187,15 @@ jobs:
             down -v || true
           sudo rm -rf ./temp-vol ./docker.env ./nifi-sens-key.tmp ./consul-acl-token.tmp \
             ./consul-acl-read-token.tmp ./consul-acl-write-token.tmp
+
+  ci-gate:
+    name: Dev Tools CI Gate
+    needs: [ changes, dev-tools-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if any dependency failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1

@@ -12,23 +12,44 @@ on:
       - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
       - 'dev/api-usage-collector/**'
       - '.github/workflows/python-tests.yml'
-  pull_request:
-    paths:
-      - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
-      - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
-      - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
-      - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
-      - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
-      - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
-      - 'dev/api-usage-collector/**'
-      - '.github/workflows/python-tests.yml'
+  pull_request: null
   workflow_dispatch: null
 
 permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
+              - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
+              - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
+              - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
+              - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
+              - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
+              - 'dev/api-usage-collector/**'
+              - '.github/workflows/python-tests.yml'
+
   python-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -85,3 +106,15 @@ jobs:
             pytest-results-nifi-flow-builder.xml
             pytest-results-api-usage-collector.xml
           retention-days: 2
+
+  ci-gate:
+    name: Python CI Gate
+    needs: [ changes, python-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if any dependency failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1

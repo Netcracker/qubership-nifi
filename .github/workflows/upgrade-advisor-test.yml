@@ -7,20 +7,43 @@ on:
       - 'dev/upgrade-advisor/**'
       - 'dev/upgrade-advisor-autotest/**'
       - 'dev-tools-integration-tests/**'
+      - 'pom.xml'
       - '.github/workflows/upgrade-advisor-test.yml'
-  pull_request:
-    paths:
-      - 'dev/upgrade-advisor/**'
-      - 'dev/upgrade-advisor-autotest/**'
-      - 'dev-tools-integration-tests/**'
-      - '.github/workflows/upgrade-advisor-test.yml'
+  pull_request: null
   workflow_dispatch: null
 
 permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - 'dev/upgrade-advisor/**'
+              - 'dev/upgrade-advisor-autotest/**'
+              - 'dev-tools-integration-tests/**'
+              - 'pom.xml'
+              - '.github/workflows/upgrade-advisor-test.yml'
+
   upgrade-advisor-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -89,3 +112,15 @@ jobs:
           name: upgrade-advisor-test-results
           path: dev-tools-integration-tests/target/failsafe-reports/
           retention-days: 2
+
+  ci-gate:
+    name: Upgrade Advisor CI Gate
+    needs: [ changes, upgrade-advisor-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if any dependency failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1

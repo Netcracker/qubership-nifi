@@ -18,6 +18,8 @@ on:
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-nifi-http-bundle/**'
       - 'qubership-services/**'
+      - 'qubership-nifi-flow-analysis-rules/**'
+      - 'qubership-test-bundle/**'
       - 'pom.xml'
       - 'Dockerfile'
       - 'nifi-config/**'
@@ -29,33 +31,7 @@ on:
       - '.github/workflows/sh/**'
       - '.github/docker/**'
       - '.github/configuration/**'
-  pull_request:
-    paths:
-      - '.github/workflows/docker-build-and-test.yml'
-      - '.github/workflows/maven-build.yaml'
-      - 'qubership-bundle/**'
-      - 'qubership-consul/**'
-      - 'qubership-nifi-consul-common/**'
-      - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-quarkus-consul/**'
-      - 'qubership-nifi-bulk-redis-service/**'
-      - 'qubership-nifi-bundle-common/**'
-      - 'qubership-nifi-common/**'
-      - 'qubership-nifi-db-bundle/**'
-      - 'qubership-nifi-lookup-services/**'
-      - 'qubership-nifi-http-bundle/**'
-      - 'qubership-services/**'
-      - 'pom.xml'
-      - 'Dockerfile'
-      - 'nifi-config/**'
-      - 'nifi-scripts/**'
-      - 'qubership-nifi-deps/**'
-      - 'scripts/**'
-      - '.github/actions/**'
-      - '.github/collections/**'
-      - '.github/workflows/sh/**'
-      - '.github/docker/**'
-      - '.github/configuration/**'
+  pull_request: null
   workflow_dispatch:
     inputs:
       java-version:
@@ -68,7 +44,61 @@ permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - '.github/workflows/docker-build-and-test.yml'
+              - '.github/workflows/maven-build.yaml'
+              - 'qubership-bundle/**'
+              - 'qubership-consul/**'
+              - 'qubership-nifi-consul-common/**'
+              - 'qubership-nifi-consul-templates/**'
+              - 'qubership-nifi-quarkus-consul/**'
+              - 'qubership-nifi-bulk-redis-service/**'
+              - 'qubership-nifi-bundle-common/**'
+              - 'qubership-nifi-common/**'
+              - 'qubership-nifi-db-bundle/**'
+              - 'qubership-nifi-lookup-services/**'
+              - 'qubership-nifi-http-bundle/**'
+              - 'qubership-services/**'
+              - 'qubership-nifi-flow-analysis-rules/**'
+              - 'qubership-test-bundle/**'
+              - 'pom.xml'
+              - 'Dockerfile'
+              - 'nifi-config/**'
+              - 'nifi-scripts/**'
+              - 'qubership-nifi-deps/**'
+              - 'scripts/**'
+              - '.github/actions/**'
+              - '.github/collections/**'
+              - '.github/workflows/sh/**'
+              - '.github/docker/**'
+              - '.github/configuration/**'
+
   mvn:
+    needs: [ changes ]
+    if: >-
+      !cancelled() && needs.changes.result != 'failure' &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
+    # GitHub checks the permissions of a called job at startup, even when force-run skips that job, and a
+    # called workflow cannot hold more permissions than its caller grants.
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/maven-build.yaml
     with:
       java-version: ${{ github.event.inputs.java-version || '25' }}
@@ -76,6 +106,7 @@ jobs:
       upload-artifact: true
       skip-sonar: true
       skip-tools-it: true
+      force-run: true
   docker-build-and-test:
     strategy:
       fail-fast: false
@@ -94,6 +125,8 @@ jobs:
         - 'tls-consul-write'
         - 'upgrade-oidc'
     needs: [ mvn ]
+    # The default success() condition also checks indirect dependencies, and changes is skipped outside a pull request.
+    if: ${{ !cancelled() && needs.mvn.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Prepare test results
@@ -166,3 +199,15 @@ jobs:
           path: |
             ./test-results
           retention-days: 2
+
+  ci-gate:
+    name: Docker CI Gate
+    needs: [ changes, mvn, docker-build-and-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Fail if any dependency failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
