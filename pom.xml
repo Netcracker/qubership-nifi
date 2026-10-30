@@ -52,8 +52,8 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <maven.compiler.release>25</maven.compiler.release>
-        <surefire-plugin.version>3.6.0</surefire-plugin.version>
-        <failsafe-plugin.version>3.6.0</failsafe-plugin.version>
+        <surefire-plugin.version>3.6.1</surefire-plugin.version>
+        <failsafe-plugin.version>3.6.1</failsafe-plugin.version>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <jar-plugin.version>3.5.1</jar-plugin.version>
         <central-publishing.plugin.version>0.12.0</central-publishing.plugin.version>
@@ -310,7 +310,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
