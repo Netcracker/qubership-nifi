@@ -10,6 +10,13 @@ name: flow-diff-pipeline-test
 # only thing that reports a break in its rules: guard, its totals gate, or its sticky note.
 on:
   push:
+    # A push run on a pull request branch would report the same gate names as the pull request run,
+    # and its result would stand in for the required check until the pull request run finishes.
+    # release/** stays out because zizmor treats a push to such a branch as publishing and flags the caches.
+    branches:
+      - main
+      - develop
+      - 'support/**'
     paths:
       - 'flow-diff-ci-cd-pipeline/**'
       - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
@@ -22,19 +29,7 @@ on:
       - '.github/workflows/sh/flow-diff-gitlab-lib.sh'
       - '.github/docker/flow-diff-gitlab/**'
       - '.github/configuration/flow-diff-gitlab/**'
-  pull_request:
-    paths:
-      - 'flow-diff-ci-cd-pipeline/**'
-      - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
-      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli/**'
-      - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps/**'
-      - 'qubership-nifi-tools/qubership-nifi-tools-common/**'
-      - 'qubership-nifi-tools/pom.xml'
-      - 'pom.xml'
-      - '.github/workflows/flow-diff-pipeline-test.yml'
-      - '.github/workflows/sh/flow-diff-gitlab-lib.sh'
-      - '.github/docker/flow-diff-gitlab/**'
-      - '.github/configuration/flow-diff-gitlab/**'
+  pull_request: null
   workflow_dispatch: null
 
 permissions:
@@ -50,7 +45,40 @@ env:
   FLOW_DIFF_COMPOSE_FILE: .github/docker/flow-diff-gitlab/docker-compose.yaml
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - 'flow-diff-ci-cd-pipeline/**'
+              - 'qubership-nifi-tools/qubership-nifi-flow-diff-core/**'
+              - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli/**'
+              - 'qubership-nifi-tools/qubership-nifi-flow-diff-cli-deps/**'
+              - 'qubership-nifi-tools/qubership-nifi-tools-common/**'
+              - 'qubership-nifi-tools/pom.xml'
+              - 'pom.xml'
+              - '.github/workflows/flow-diff-pipeline-test.yml'
+              - '.github/workflows/sh/flow-diff-gitlab-lib.sh'
+              - '.github/docker/flow-diff-gitlab/**'
+              - '.github/configuration/flow-diff-gitlab/**'
+
   flow-diff-pipeline-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -159,3 +187,19 @@ jobs:
         run: |
           docker compose -f "$FLOW_DIFF_COMPOSE_FILE" down -v || true
           rm -f ./flow-diff-gitlab-context.env ./flow-diff-gitlab.log
+
+  ci-gate:
+    name: Flow Diff CI Gate
+    needs: [ changes, flow-diff-pipeline-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      # A guarded job that a cancellation stops before it starts reports skipped, so a skipped job on a relevant
+      # pull request also fails the gate.
+      - name: Fail if the tests did not run and pass
+        if: >-
+          ${{ cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') ||
+          (needs.changes.outputs.relevant == 'true' && contains(needs.*.result, 'skipped')) }}
+        run: exit 1

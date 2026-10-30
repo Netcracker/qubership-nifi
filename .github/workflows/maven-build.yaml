@@ -3,9 +3,18 @@ name: maven-build-and-test
 
 on:
   push:
+    # A push run on a pull request branch would report the same gate names as the pull request run,
+    # and its result would stand in for the required check until the pull request run finishes.
+    # release/** stays out because zizmor treats a push to such a branch as publishing and flags the caches.
+    branches:
+      - main
+      - develop
+      - 'support/**'
     paths:
       - '.github/workflows/maven-build.yaml'
       - 'docs/openapi/**'
+      - 'docs/template/**'
+      - 'docs/user-guide.md'
       - 'qubership-bundle/**'
       - 'qubership-consul/**'
       - 'qubership-nifi-bulk-redis-service/**'
@@ -15,29 +24,16 @@ on:
       - 'qubership-nifi-lookup-services/**'
       - 'qubership-nifi-http-bundle/**'
       - 'qubership-services/**'
+      - 'qubership-nifi-flow-analysis-rules/**'
+      - 'qubership-nifi-deps/**'
+      - 'qubership-test-bundle/**'
+      - 'dev-tools-integration-tests/**'
       - 'qubership-nifi-tools/**'
       - 'qubership-nifi-consul-common/**'
       - 'qubership-nifi-consul-templates/**'
       - 'qubership-nifi-quarkus-consul/**'
       - 'pom.xml'
-  pull_request:
-    paths:
-      - '.github/workflows/maven-build.yaml'
-      - 'docs/openapi/**'
-      - 'qubership-bundle/**'
-      - 'qubership-consul/**'
-      - 'qubership-nifi-bulk-redis-service/**'
-      - 'qubership-nifi-bundle-common/**'
-      - 'qubership-nifi-common/**'
-      - 'qubership-nifi-db-bundle/**'
-      - 'qubership-nifi-lookup-services/**'
-      - 'qubership-nifi-http-bundle/**'
-      - 'qubership-services/**'
-      - 'qubership-nifi-tools/**'
-      - 'qubership-nifi-consul-common/**'
-      - 'qubership-nifi-consul-templates/**'
-      - 'qubership-nifi-quarkus-consul/**'
-      - 'pom.xml'
+  pull_request: null
   workflow_dispatch:
     inputs:
       java-version:
@@ -87,12 +83,62 @@ on:
         default: false
         required: false
         type: boolean
+      # A called workflow sees the event of its caller, so without this input the path list in the changes job would
+      # skip the build that the caller needs on a pull request outside that list.
+      force-run:
+        default: false
+        required: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request' && !inputs.force-run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - '.github/workflows/maven-build.yaml'
+              - 'docs/openapi/**'
+              - 'docs/template/**'
+              - 'docs/user-guide.md'
+              - 'qubership-bundle/**'
+              - 'qubership-consul/**'
+              - 'qubership-nifi-bulk-redis-service/**'
+              - 'qubership-nifi-bundle-common/**'
+              - 'qubership-nifi-common/**'
+              - 'qubership-nifi-db-bundle/**'
+              - 'qubership-nifi-lookup-services/**'
+              - 'qubership-nifi-http-bundle/**'
+              - 'qubership-services/**'
+              - 'qubership-nifi-flow-analysis-rules/**'
+              - 'qubership-nifi-deps/**'
+              - 'qubership-test-bundle/**'
+              - 'dev-tools-integration-tests/**'
+              - 'qubership-nifi-tools/**'
+              - 'qubership-nifi-consul-common/**'
+              - 'qubership-nifi-consul-templates/**'
+              - 'qubership-nifi-quarkus-consul/**'
+              - 'pom.xml'
+
   maven-build-and-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() &&
+      (inputs.force-run || github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -174,7 +220,10 @@ jobs:
 
   # Runs in parallel with maven-build-and-test to cut the wall-clock time of the workflow.
   tools-integration-tests:
-    if: ${{ !inputs.skip-tools-it }}
+    needs: [ changes ]
+    if: >-
+      !inputs.skip-tools-it && !cancelled() &&
+      (inputs.force-run || github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -219,3 +268,19 @@ jobs:
             **/target/failsafe-reports/**/*.xml
             **/target/failsafe-reports/**/*.txt
           retention-days: 2
+
+  ci-gate:
+    name: Maven CI Gate
+    needs: [ changes, maven-build-and-test, tools-integration-tests ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      # A guarded job that a cancellation stops before it starts reports skipped, so a skipped job on a relevant
+      # pull request also fails the gate.
+      - name: Fail if the tests did not run and pass
+        if: >-
+          ${{ cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') ||
+          (needs.changes.outputs.relevant == 'true' && contains(needs.*.result, 'skipped')) }}
+        run: exit 1
