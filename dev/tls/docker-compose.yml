@@ -91,7 +91,7 @@ services:
       start_period: 15s
     restart: unless-stopped
   qubership-nifi-registry:
-    image: ghcr.io/netcracker/qubership-nifi-registry:latest@sha256:0d6dafa40f8183886f39aeeab394afc16ebdcfe25c18b8ea03e8821d2e644e56
+    image: ghcr.io/netcracker/qubership-nifi-registry:latest@sha256:6d240ad9839c40f87918791ba25b7704dc53a7ba712fef4fecdced9d980085fb
     container_name: qubership-nifi-registry
     depends_on:
       qubership-nifi-toolkit:
