@@ -5,9 +5,17 @@
     "github>Netcracker/renovate-config:github-actions",
     "github>Netcracker/renovate-config:maven-groupid",
     "github>Netcracker/renovate-config:netcracker-dependencies",
+    "github>Netcracker/renovate-config:automerge",
     "github>Netcracker/renovate-config:apm"
   ],
   "packageRules": [
+    {
+      "description": [
+        "Major updates wait for review. The automerge preset also merges majors of the actions under actions/* and github/*, but some of them run only in workflows that no PR check runs."
+      ],
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
     {
       "description": [
         "These artifacts are modules of this repository, and the release plugin sets their versions, so Renovate has nothing to update. Many of them are not on Maven Central, and looking them up there can abort the run with a rate limit error."
@@ -263,13 +271,31 @@
       "matchPackageNames": ["**"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": [
+        "A Renovate PR does not run the changed action in these workflows. maven-release-v2, security-scan, and nifi-flow-diff-publish have no PR trigger, cla uses pull_request_target, which runs the copy from the base branch, and profanity-filter skips bots. A person reviews updates of their actions, along with any group that contains one."
+      ],
+      "matchManagers": ["github-actions"],
+      "matchFileNames": [
+        ".github/workflows/maven-release-v2.yaml",
+        ".github/workflows/security-scan.yml",
+        ".github/workflows/nifi-flow-diff-publish.yml",
+        ".github/workflows/cla.yaml",
+        ".github/workflows/profanity-filter.yaml"
+      ],
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {
     "description": [
-      "Repeat the rules above, because a disabling packageRule does not reliably stop a vulnerability alert PR."
+      "Repeat the rules above that disable an update, limit its versions, or hold back automerge, because a packageRule does not reliably reach a vulnerability alert PR."
     ],
     "packageRules": [
+      {
+        "matchUpdateTypes": ["major"],
+        "automerge": false
+      },
       {
         "matchManagers": ["maven"],
         "matchPackageNames": ["org.qubership.nifi:*", "org.qubership.nifi.plugins:*"],
@@ -350,6 +376,17 @@
         "matchManagers": ["maven"],
         "matchPackageNames": ["io.netty:netty-bom"],
         "allowedVersions": "/^4\\.1\\./"
+      },
+      {
+        "matchManagers": ["github-actions"],
+        "matchFileNames": [
+          ".github/workflows/maven-release-v2.yaml",
+          ".github/workflows/security-scan.yml",
+          ".github/workflows/nifi-flow-diff-publish.yml",
+          ".github/workflows/cla.yaml",
+          ".github/workflows/profanity-filter.yaml"
+        ],
+        "automerge": false
       }
     ]
   }
