@@ -10,6 +10,46 @@
   "packageRules": [
     {
       "description": [
+        "These artifacts are modules of this repository, and the release plugin sets their versions, so Renovate has nothing to update. Many of them are not on Maven Central, and looking them up there can abort the run with a rate limit error."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["org.qubership.nifi:*", "org.qubership.nifi.plugins:*"],
+      "enabled": false
+    },
+    {
+      "description": [
+        "This BOM is not on Maven Central, and Renovate has no credentials for GitHub Packages, so the lookup cannot succeed. The BOM is upgraded by hand together with the Quarkus platform."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.netcracker.cloud:core-quarkus-external-bom"],
+      "enabled": false
+    },
+    {
+      "description": [
+        "The repositories in pom.xml include a URL that is not a Maven repository, a snapshots-only repository, and GitHub Packages, which needs credentials Renovate lacks. Third-party artifacts are looked up in Maven Central only."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["!/^com\\.netcracker[.:]/", "!/^org\\.qubership[.:]/"],
+      "registryUrls": ["https://repo.maven.apache.org/maven2"]
+    },
+    {
+      "description": [
+        "registry.example.com/flow-diff-cli:X.Y.Z is a placeholder in dev/gitlab-ci-cd-flow-diff/.gitlab-ci.yml, and that host does not exist."
+      ],
+      "matchManagers": ["gitlabci"],
+      "matchPackageNames": ["registry.example.com/**"],
+      "enabled": false
+    },
+    {
+      "description": [
+        "The autotests build local-nifi:test locally, so no registry has this image."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["local-nifi"],
+      "enabled": false
+    },
+    {
+      "description": [
         "NiFi provides these at runtime, so the versions must match the NiFi distribution and move only with it."
       ],
       "matchManagers": ["maven"],
@@ -90,10 +130,10 @@
     },
     {
       "description": [
-        "Quarkus majors break extensions and configuration, and the Netcracker Quarkus BOM is imported next to the Quarkus platform BOM, so the two move together."
+        "Quarkus majors break extensions and configuration, so they are upgraded by hand after dashboard approval."
       ],
       "matchManagers": ["maven"],
-      "matchPackageNames": ["io.quarkus*", "com.netcracker.cloud:core-quarkus-*"],
+      "matchPackageNames": ["io.quarkus*"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
     },
@@ -230,6 +270,26 @@
       "Repeat the rules above, because a disabling packageRule does not reliably stop a vulnerability alert PR."
     ],
     "packageRules": [
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": ["org.qubership.nifi:*", "org.qubership.nifi.plugins:*"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["maven"],
+        "matchPackageNames": ["com.netcracker.cloud:core-quarkus-external-bom"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["gitlabci"],
+        "matchPackageNames": ["registry.example.com/**"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["docker-compose"],
+        "matchPackageNames": ["local-nifi"],
+        "enabled": false
+      },
       {
         "matchManagers": ["maven"],
         "matchPackageNames": [
