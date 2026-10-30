@@ -5,10 +5,10 @@ on:
   push:
     # A push run on a pull request branch would report the same gate names as the pull request run,
     # and its result would stand in for the required check until the pull request run finishes.
+    # release/** stays out because zizmor treats a push to such a branch as publishing and flags the caches.
     branches:
       - main
       - develop
-      - 'release/**'
       - 'support/**'
     paths:
       - 'dev/update-scripts-2.0/**'
