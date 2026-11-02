@@ -143,3 +143,8 @@ The share of HTTP 503 responses in each run:
 | 55 ms    | StandardHttpRouterService | 218200   | 0     | 0.0%      |
 | 50 ms    | HandleHttpRequest         | 240000   | 44210 | 18.4%     |
 | 50 ms    | StandardHttpRouterService | 240000   | 46049 | 19.2%     |
+
+The Run Schedule of HandleHttpRequest and HandleRoutedHttpRequest has to be shorter than the interval between
+requests. In both flows, the Run Schedule is 50 ms, and a margin of 5 ms was enough: at an interval of 55 ms,
+StandardHttpRouterService answered every request, and HandleHttpRequest got HTTP 503 for only 0.3% of them. Once the
+interval drops to the Run Schedule, the processors fall behind, and about a fifth of the requests get HTTP 503.
