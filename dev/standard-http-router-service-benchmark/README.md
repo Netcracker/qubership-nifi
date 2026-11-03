@@ -114,8 +114,9 @@ The script prints its progress to standard error:
 ## Results
 
 **Note:** all results were measured with Docker Desktop 27.4.0 on Windows 11, with 4 CPUs and 9.7 GiB of memory
-available to containers, and qubership-nifi 2.9.2. Each run used 20 chains, `duration_min` of 10, and `--threads` of
-2000. The numbers apply only to this environment; on other hardware or settings, the results will differ.
+available to containers, and qubership-nifi 2.10.0 with a Maximum Timer Driven Thread Count of 10 and
+`NIFI_JVM_HEAP_MAX` of `512m`. Each run used 20 chains, `duration_min` of 10, and `--threads` of 2000. The numbers
+apply only to this environment; on other hardware or settings, the results will differ.
 
 | Interval | Component                 | Requests | Mean, ms | Median, ms | Min, ms | Max, ms |
 |----------|---------------------------|----------|----------|------------|---------|---------|
@@ -145,6 +146,8 @@ The share of HTTP 503 responses in each run:
 | 50 ms    | StandardHttpRouterService | 240000   | 46049 | 19.2%     |
 
 The Run Schedule of HandleHttpRequest and HandleRoutedHttpRequest has to be shorter than the interval between
-requests. In both flows, the Run Schedule is 50 ms, and a margin of 5 ms was enough: at an interval of 55 ms,
-StandardHttpRouterService answered every request, and HandleHttpRequest got HTTP 503 for only 0.3% of them. Once the
-interval drops to the Run Schedule, the processors fall behind, and about a fifth of the requests get HTTP 503.
+requests. In both flows, the Run Schedule is 50 ms. StandardHttpRouterService handled an interval of 55 ms, a 5 ms
+margin, with no HTTP 503 responses. HandleHttpRequest needed a 15 ms margin: at 65 ms it got no HTTP 503, while at
+55 ms 0.3% of its requests got HTTP 503 and its mean response time rose to 305.7 ms. Once the interval drops to the
+Run Schedule, both components fall behind, and about a fifth of the requests get HTTP 503. These margins are
+approximate and hold for the environment described in the note above; on other hardware or settings, they will differ.
