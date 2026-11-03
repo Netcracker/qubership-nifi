@@ -3,6 +3,13 @@ name: python-tests
 
 on:
   push:
+    # A push run on a pull request branch would report the same gate names as the pull request run,
+    # and its result would stand in for the required check until the pull request run finishes.
+    # release/** stays out because zizmor treats a push to such a branch as publishing and flags the caches.
+    branches:
+      - main
+      - develop
+      - 'support/**'
     paths:
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
       - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
@@ -10,39 +17,63 @@ on:
       - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
       - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
       - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
+      - 'dev/api-usage-collector/**'
       - '.github/workflows/python-tests.yml'
-  pull_request:
-    paths:
-      - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
-      - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
-      - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
-      - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
-      - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
-      - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
-      - '.github/workflows/python-tests.yml'
+  pull_request: null
   workflow_dispatch: null
 
 permissions:
   contents: read
 
 jobs:
+  # The path list lives here rather than under on.pull_request, so that the workflow always starts and the
+  # gate job always reports the required check. A workflow that does not start leaves that check pending.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - name: Check the changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            relevant:
+              - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/scripts/**'
+              - 'agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/**'
+              - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/scripts/**'
+              - 'agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/**'
+              - 'agent-packages/qubership-nifi-lint-hook/.apm/hooks/**'
+              - 'agent-packages/qubership-nifi-lint-hook-claude/.apm/hooks/**'
+              - 'dev/api-usage-collector/**'
+              - '.github/workflows/python-tests.yml'
+
   python-test:
+    needs: [ changes ]
+    if: >-
+      !cancelled() &&
+      (github.event_name != 'pull_request' || needs.changes.outputs.relevant == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
           cache: 'pip'
           cache-dependency-path: |
             agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/requirements-test.txt
             agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests/requirements-test.txt
+            dev/api-usage-collector/tests/requirements-test.txt
 
       - name: Install dependencies
         run: python3 -m pip install --require-hashes -r agent-packages/adapt-nifi-flows-to-2-x/.apm/skills/adapt-nifi-flows-to-2-x/tests/requirements-test.txt
@@ -58,6 +89,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 -m pytest agent-packages/nifi-development-kit/.apm/skills/nifi-flow-builder/tests --junitxml=pytest-results-nifi-flow-builder.xml
 
+      - name: Install api-usage-collector dependencies
+        if: ${{ !cancelled() }}
+        run: python3 -m pip install --require-hashes -r dev/api-usage-collector/tests/requirements-test.txt
+
+      - name: Run api-usage-collector pytest
+        if: ${{ !cancelled() }}
+        run: python3 -m pytest dev/api-usage-collector/tests --junitxml=pytest-results-api-usage-collector.xml
+
       - name: Check that the lint hook script copies are identical
         if: ${{ !cancelled() }}
         run: >-
@@ -72,4 +111,21 @@ jobs:
           path: |
             pytest-results-adapt-nifi-flows-to-2-x.xml
             pytest-results-nifi-flow-builder.xml
+            pytest-results-api-usage-collector.xml
           retention-days: 2
+
+  ci-gate:
+    name: Python CI Gate
+    needs: [ changes, python-test ]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      # A guarded job that a cancellation stops before it starts reports skipped, so a skipped job on a relevant
+      # pull request also fails the gate.
+      - name: Fail if the tests did not run and pass
+        if: >-
+          ${{ cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') ||
+          (needs.changes.outputs.relevant == 'true' && contains(needs.*.result, 'skipped')) }}
+        run: exit 1

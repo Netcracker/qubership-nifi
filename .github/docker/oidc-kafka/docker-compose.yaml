@@ -125,7 +125,7 @@ services:
       timeout: 3s
       retries: 12
   keycloak:
-    image: keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+    image: keycloak/keycloak:26.8.1@sha256:a78d6b79572168cb25886b80a8b5b8d4ed4390743e3eecb810538683e209dd6b
     hostname: keycloak
     restart: on-failure:3
     depends_on:
@@ -186,7 +186,7 @@ services:
       timeout: 5s
       retries: 12
   redis:
-    image: redis:8.10.2@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6
+    image: redis:8.10.2@sha256:97ec88159e6d7cfb5ddef9015386087d58a912de80112f06ebdfa78fa5989901
     ports:
       - "127.0.0.1:26379:6379"
     container_name: redis
@@ -203,7 +203,7 @@ services:
       timeout: 5s
       retries: 12
   kafka:
-    image: apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+    image: apache/kafka:4.4.0@sha256:833b867a9585a141da455dc2b57431c65cbccb27f11c91f694444cca9f777e0f
     container_name: kafka
     hostname: kafka
     environment:
