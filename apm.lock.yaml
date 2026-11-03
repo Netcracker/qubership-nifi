@@ -4,7 +4,7 @@ apm_version: 0.26.0
 dependencies:
 - repo_url: _local/nifi-development-kit
   name: nifi-development-kit
-  version: 1.1.0
+  version: 1.2.0
   package_type: apm_package
   deployed_files:
   - .agents/skills/nifi-custom-component-developer-skill
