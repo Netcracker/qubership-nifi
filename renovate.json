@@ -96,10 +96,19 @@
     },
     {
       "description": [
-        "Each Dockerfile pins its base image through separate version and digest ARGs, which Renovate cannot update as one dependency."
+        "The root Dockerfile pins the NiFi image through separate version and digest ARGs, which Renovate cannot update as one dependency. NiFi upgrades are done by hand."
       ],
       "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["apache/nifi"],
       "enabled": false
+    },
+    {
+      "description": [
+        "Base image tags have the form <Java major>-alpine-<release>. Renovate updates only to a tag with the same <Java major>-alpine prefix and compares the release part, so it keeps the Java major and ignores CI build tags such as 25-alpine-344-merge-snapshot."
+      ],
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["ghcr.io/netcracker/qubership-java-base"],
+      "versioning": "regex:^(?<compatibility>\\d+-alpine)-(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"
     },
     {
       "description": [
@@ -344,6 +353,7 @@
       },
       {
         "matchManagers": ["dockerfile"],
+        "matchPackageNames": ["apache/nifi"],
         "enabled": false
       },
       {

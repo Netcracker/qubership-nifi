@@ -54,11 +54,11 @@ die() {
 
 # Prints the base image reference pinned in the repository Dockerfile.
 base_image() {
-    local version sha
-    version=$(sed -n "s/^ARG BASE_IMAGE_VERSION='\(.*\)'$/\1/p" "$REPO_ROOT/Dockerfile")
-    sha=$(sed -n "s/^ARG BASE_IMAGE_VERSION_SHA256='\(.*\)'$/\1/p" "$REPO_ROOT/Dockerfile")
-    [ -n "$version" ] && [ -n "$sha" ] || die "Cannot read BASE_IMAGE_VERSION from $REPO_ROOT/Dockerfile"
-    echo "ghcr.io/netcracker/qubership-java-base:${version}@${sha}"
+    local image
+    image=$(sed -n 's/^FROM \(ghcr\.io\/netcracker\/qubership-java-base:[^ ]*@sha256:[0-9a-f]*\) AS base.*$/\1/p' \
+        "$REPO_ROOT/Dockerfile")
+    [ -n "$image" ] || die "Cannot read the qubership-java-base image from $REPO_ROOT/Dockerfile"
+    echo "$image"
 }
 
 check_framework() {
