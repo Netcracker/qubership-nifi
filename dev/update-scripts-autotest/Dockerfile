@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-java-base:25-alpine-2.5.9@sha256:0761288c4696b1830b7ed7d76e0c2ab57562eb2c78a5e7df2894ac5c933f9f09
+FROM ghcr.io/netcracker/qubership-java-base:25-alpine-2.5.10@sha256:23e07d15bf555a0b7d6e27237f48c6a2736d21223194cc313e3886913a89ab6d
 USER root
 RUN apk add --no-cache jq=1.8.2-r0
 USER 1001
