@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.qubership.nifi.JsonUtils;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
 import lombok.RequiredArgsConstructor;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -74,7 +75,7 @@ public class JsonContentValidator extends AbstractControllerService implements C
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         String sSchema = context.getProperty(SCHEMA).evaluateAttributeExpressions().getValue();
-        schemaInstance = JsonSchemaFactory.getInstance().getSchema(sSchema);
+        schemaInstance = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(sSchema);
     }
 
     /**

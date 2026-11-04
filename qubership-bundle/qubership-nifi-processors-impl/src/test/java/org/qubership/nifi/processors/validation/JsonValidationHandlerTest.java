@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
 import org.apache.nifi.documentation.init.NopComponentLog;
 import org.apache.nifi.logging.ComponentLog;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,8 @@ public class JsonValidationHandlerTest {
     private ComponentLog nopCopLogger = new NopComponentLog();
 
     private void initDataForSchema2() {
-        this.testJsonSchema = JsonSchemaFactory.getInstance().getSchema(JsonTestData.TEST_JSON_SCHEMA_2);
+        this.testJsonSchema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)
+                .getSchema(JsonTestData.TEST_JSON_SCHEMA_2);
         try {
             this.testJson = new ObjectMapper().readTree(JsonTestData.INVALID_TEST_JSON_BY_SHEMA2);
         } catch (IOException e) {
@@ -44,7 +46,8 @@ public class JsonValidationHandlerTest {
     }
 
     private void initDataForAcp() {
-        this.testJsonSchema = JsonSchemaFactory.getInstance().getSchema(JsonTestData.CUSTOMER_PRODUCT_SCHEMA);
+        this.testJsonSchema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)
+                .getSchema(JsonTestData.CUSTOMER_PRODUCT_SCHEMA);
 
         try {
             this.testJson = new ObjectMapper().readTree(JsonTestData.ALL_CUSTOMER_PRODUCT_REQUEST);
@@ -267,7 +270,8 @@ public class JsonValidationHandlerTest {
 
     @Test
     public void testUnwrapWithInvalidInstanceSourceIdPath() throws IOException {
-        JsonSchema jsonSchema = JsonSchemaFactory.getInstance().getSchema(JsonTestData.CUSTOMER_PRODUCT_SCHEMA);
+        JsonSchema jsonSchema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)
+                .getSchema(JsonTestData.CUSTOMER_PRODUCT_SCHEMA);
         JsonNode json = new ObjectMapper().readTree(JsonTestData.MEDIUM_ACP_REQUEST_LOSTED_INNER_SOURCE_ID);
 
         JsonValidationHandler validationHandler =
@@ -296,5 +300,44 @@ public class JsonValidationHandlerTest {
         assertEquals("_sourceId", firstPath);
     }
 
+    @Test
+    public void additionalPropertyPathEndsWithTheExtraProperty() throws IOException {
+        String schema = "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\","
+                + " \"properties\": {\"o\": {\"type\": \"object\", \"properties\": {\"id\": {}},"
+                + " \"additionalProperties\": false}}}";
 
+        assertEquals("o.extra", firstErrorPath(schema, "{\"o\": {\"id\": 1, \"extra\": 2}}"));
+    }
+
+    /**
+     * The library reports the property that triggered the dependency, not the missing one, so the path stays at the
+     * object that holds both.
+     */
+    @Test
+    public void dependencyPathIsTheObjectHoldingTheTriggerProperty() throws IOException {
+        String schema = "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\","
+                + " \"properties\": {\"o\": {\"type\": \"object\", \"dependencies\": {\"card\": [\"billing\"]}}}}";
+
+        assertEquals("o", firstErrorPath(schema, "{\"o\": {\"card\": 1}}"));
+    }
+
+    @Test
+    public void typeMismatchPathIsTheMismatchedValue() throws IOException {
+        String schema = "{\"$schema\": \"http://json-schema.org/draft-04/schema#\", \"type\": \"object\","
+                + " \"properties\": {\"o\": {\"type\": \"string\"}}}";
+
+        assertEquals("o", firstErrorPath(schema, "{\"o\": 1}"));
+    }
+
+    private String firstErrorPath(String schema, String json) throws IOException {
+        JsonSchema jsonSchema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(schema);
+        JsonValidationHandler validationHandler = new JsonValidationHandler(
+                new ObjectMapper().readTree(json),
+                new ProcessorProperty("_businessEntityType", "_sourceId", "ME-JV-0002", jsonSchema, null),
+                nopCopLogger);
+
+        JsonNode errors = validationHandler.process().getValidatedJson().get("_errors");
+        assertEquals(1, errors.size(), "errors: " + errors);
+        return errors.get(0).get("source").get("path").asText();
+    }
 }

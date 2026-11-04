@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public class JsonValidationHandler {
+public final class JsonValidationHandler {
 
     private static final String DEFAULT_BE_TYPE_VALUE = "object";
     private static final String DEFAULT_SOURCE_ID_VALUE = "";
@@ -51,18 +51,43 @@ public class JsonValidationHandler {
 
     private static final String ROOT_OBJECT_IN_JSON_PATH = "$.";
 
+    // Keywords whose error is located at the parent object, with the missing or extra property reported separately.
+    // The error path includes that property. A dependencies error also reports a property, the one that triggered
+    // the check, and its path stays at the parent object.
+    private static final Set<String> PROPERTY_PATH_KEYWORDS = Set.of("required", "additionalProperties");
+
     private JsonSchema jsonSchema;
     private JsonNode originalJsonNode;
     private ProcessorProperty property;
     private ComponentLog logger;
 
-    public JsonValidationHandler(JsonNode originalJsonNode, ProcessorProperty property, ComponentLog componentLog) {
-        this.jsonSchema = property.getSchema();
-        this.originalJsonNode = originalJsonNode;
-        this.property = property;
+    /**
+     * Creates a handler that validates a JSON document against the schema of a {@link ProcessorProperty}.
+     *
+     * @param jsonNode the document to validate. If validation fails, {@link #process()} sets an {@code _errors}
+     *                 array on this node in place, replacing any existing one.
+     * @param processorProperty the schema, the error code, and the attribute names the error entries use
+     * @param componentLog the logger for warnings raised while building the error entries
+     */
+    public JsonValidationHandler(
+            final JsonNode jsonNode,
+            final ProcessorProperty processorProperty,
+            final ComponentLog componentLog) {
+        this.jsonSchema = processorProperty.getSchema();
+        this.originalJsonNode = jsonNode;
+        this.property = processorProperty;
         this.logger = componentLog;
     }
 
+    /**
+     * Validates the document against the schema.
+     *
+     * <p>A valid document is returned unchanged. For an invalid one, an {@code _errors} array with one entry per
+     * validation message is set on the document itself, and the same node is returned.</p>
+     *
+     * @return the document and whether it passed validation
+     * @throws ProcessException if the document fails validation and is not a JSON object
+     */
     public ValidationContext process() {
         Set<ValidationMessage> errors = jsonSchema.validate(originalJsonNode);
         if (errors.isEmpty()) {
@@ -86,7 +111,7 @@ public class JsonValidationHandler {
 
     private JsonNode createErrorJson(ValidationMessage error) {
         StringBuilder titleBuilder = new StringBuilder();
-        String path = extractPath(error.getMessage());
+        String path = extractPath(error);
         String shortPath = extractShortPath(path);
 
         String beType = extractBeTypeValue();
@@ -103,7 +128,9 @@ public class JsonValidationHandler {
         node
                 .put(KEY_ERROR_CODE, property.getErrorCode())
                 .put(KEY_TITLE, titleBuilder.toString())
-                .put(KEY_DETAIL, error.getMessage() == null ? null : error.getMessage().replace(ROOT_OBJECT_IN_JSON_PATH, ""));
+                .put(KEY_DETAIL, error.getMessage() == null
+                        ? null
+                        : error.getMessage().replace(ROOT_OBJECT_IN_JSON_PATH, ""));
 
         node.set(KEY_SOURCE_ATTR, sourceAttr);
         return node;
@@ -121,7 +148,8 @@ public class JsonValidationHandler {
         try {
             String wrapperPath = matcher.group();
             path = path.replace(wrapperPath, "");
-            DocumentContext jsonPath = JsonPath.parse(this.originalJsonNode, JsonPathHelper.DEFAULT_JACKSON_CONFIGURATION);
+            DocumentContext jsonPath =
+                    JsonPath.parse(this.originalJsonNode, JsonPathHelper.DEFAULT_JACKSON_CONFIGURATION);
             TextNode instanceId = jsonPath.read(wrapperPath + this.property.getSourceIdAttrName());
 
             return createSourceNode(path, instanceId.asText());
@@ -144,10 +172,12 @@ public class JsonValidationHandler {
 
     }
 
-    private String extractPath(String message) {
-        if (message == null) return "null";
-        String PATH_MESSAGE_DELIMITER = ":";
-        return message.substring(0, message.indexOf(PATH_MESSAGE_DELIMITER));
+    private String extractPath(ValidationMessage error) {
+        String path = error.getInstanceLocation().toString();
+        if (PROPERTY_PATH_KEYWORDS.contains(error.getType()) && error.getProperty() != null) {
+            return path + JSON_PATH_DELIMITER + error.getProperty();
+        }
+        return path;
     }
 
     private JsonNode addErrorArrayToJson(ArrayNode errorArray, ObjectNode objectNode) {
@@ -177,8 +207,9 @@ public class JsonValidationHandler {
 
     private String extractBeTypeValue() {
         JsonNode beType = this.originalJsonNode.get(property.getBeTypeAttrName());
-        if (beType != null && beType.isValueNode()) return beType.asText();
-        else {
+        if (beType != null && beType.isValueNode()) {
+            return beType.asText();
+        } else {
             logger.warn("Can't get business entity type value by $.{}", new Object[]{property.getBeTypeAttrName()});
             return DEFAULT_BE_TYPE_VALUE;
         }
@@ -186,8 +217,9 @@ public class JsonValidationHandler {
 
     private String extractSourceIdValue() {
         JsonNode sourceId = this.originalJsonNode.get(property.getSourceIdAttrName());
-        if (sourceId != null && sourceId.isValueNode()) return sourceId.asText();
-        else {
+        if (sourceId != null && sourceId.isValueNode()) {
+            return sourceId.asText();
+        } else {
             logger.warn("Can't get sourceId value by $.{}", new Object[]{property.getSourceIdAttrName()});
             return DEFAULT_SOURCE_ID_VALUE;
         }

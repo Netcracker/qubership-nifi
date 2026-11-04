@@ -24,6 +24,9 @@ import org.qubership.nifi.processors.validation.ValidationContext;
 import org.qubership.nifi.processors.validator.JsonTreeValidator;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -46,6 +49,7 @@ import java.util.Set;
 import java.util.List;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.ArrayList;
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS;
 import static org.qubership.nifi.NiFiUtils.MAPPER;
@@ -234,7 +238,13 @@ public class ValidateJson extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         String sSchema = context.getProperty(SCHEMA).getValue();
-        JsonSchema schema = JsonSchemaFactory.getInstance().getSchema(sSchema);
+        // The validation messages and paths are written into the FlowFile content: keep the messages English whatever
+        // the JVM locale, and keep paths in the $.a[0].b form that the Wrapper Regex property matches.
+        SchemaValidatorsConfig config = SchemaValidatorsConfig.builder()
+                .locale(Locale.ENGLISH)
+                .pathType(PathType.LEGACY)
+                .build();
+        JsonSchema schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(sSchema, config);
 
         String beTypePath = context.getProperty(BE_TYPE_PATH_PROP_NAME).getValue();
         String idPath = context.getProperty(ID_PATH_PROP_NAME).getValue();

@@ -117,7 +117,7 @@
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>1.0.43</version>
+            <version>1.5.9</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jruby.joni</groupId>
