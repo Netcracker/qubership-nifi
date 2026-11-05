@@ -1,6 +1,6 @@
 ---
-description: Trigger for the javadoc-authoring skill: load it before writing, editing, or reviewing a doc comment or inline comment in Java, Kotlin, Groovy, or Scala.
-globs: "**/*.{java,kt,kts,groovy,scala}"
+description: 'Trigger for the javadoc-authoring skill: load it before writing, editing, or reviewing a doc comment or inline comment in Java, Kotlin, Groovy, or Scala.'
+globs: **/*.{java,kt,kts,groovy,scala}
 ---
 
 Before writing, editing, or reviewing a doc comment or inline comment in a `*.java`, `*.kt`, `*.kts`, `*.groovy`, or

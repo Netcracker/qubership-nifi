@@ -1,6 +1,6 @@
 ---
 description: Repository-wide commit-message conventions.
-globs: "**"
+globs: **
 ---
 
 ## Commit messages
