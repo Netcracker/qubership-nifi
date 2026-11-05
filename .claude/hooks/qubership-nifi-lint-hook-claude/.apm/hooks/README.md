@@ -29,18 +29,23 @@ It never hard-blocks your edits.
 
 ## Wiring
 
-The hook ships in two APM packages, because Claude Code needs a different command than
-Codex and Cursor, and APM selects harnesses per package, not per hook file:
+The hook ships in two APM packages, one for Claude Code and one for Codex and Cursor. Both
+declare the same command, `python "${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py"`, and
+need APM 0.35.0 or later.
 
-| Package                           | Harnesses     | Hook command                                                                    |
-|-----------------------------------|---------------|---------------------------------------------------------------------------------|
-| `qubership-nifi-lint-hook-claude` | Claude Code   | `python "${CLAUDE_PROJECT_DIR}/${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py"` |
-| `qubership-nifi-lint-hook`        | Codex, Cursor | `python "${PLUGIN_ROOT}/.apm/hooks/lint_changed_file.py"`                       |
+| Package                           | Harnesses     |
+|-----------------------------------|---------------|
+| `qubership-nifi-lint-hook-claude` | Claude Code   |
+| `qubership-nifi-lint-hook`        | Codex, Cursor |
 
-APM rewrites `${PLUGIN_ROOT}` to the installed package's own relative location. Declare
-both packages in the consumer's `apm.yml` with the object form, and route each one with
-`targets:`. Without `targets:`, APM deploys both hooks to every harness, and Claude Code
-runs the hook twice. For a consumer repository:
+One package cannot serve all three harnesses. Cursor can import the hooks from
+`.claude/settings.json`, so `apm install` refuses a package that deploys the same hook to
+both Claude Code and Cursor, with `Cursor native hooks overlap Claude import and may run
+twice`. APM selects harnesses per package, not per hook file, so the split is per package.
+
+Declare both packages in the consumer's `apm.yml` with the object form, and route each one
+with `targets:`. Without `targets:`, a package takes the project's `targets`, and when
+those include both `claude` and `cursor`, the install fails with the error above. For a consumer repository:
 
 ```yaml
 dependencies:
@@ -63,10 +68,16 @@ Claude Code hooks run with `cwd` set to the session's working directory at the m
 hook fires, which moves away from the repository root whenever the agent `cd`s into a
 subdirectory (e.g. to run `mvn test -pl <module>`). A bare `${PLUGIN_ROOT}`-relative
 command then fails with `python: can't open file ...`, because the path is resolved before
-Python starts. `${CLAUDE_PROJECT_DIR}`, which Claude Code sets on every hook subprocess to
-the project root (see <https://code.claude.com/docs/en/hooks>), anchors the path regardless
-of `cwd`. Codex and Cursor do not set `CLAUDE_PROJECT_DIR`, so their command stays
-`${PLUGIN_ROOT}`-relative.
+Python starts. For Claude Code, APM rewrites `${PLUGIN_ROOT}` to
+`${CLAUDE_PROJECT_DIR}/.claude/hooks/<package>`. Claude Code sets `CLAUDE_PROJECT_DIR` on
+every hook subprocess to the project root (see <https://code.claude.com/docs/en/hooks>), so
+the path resolves regardless of `cwd`. For Codex and Cursor, APM rewrites `${PLUGIN_ROOT}`
+to the relative `.codex/hooks/<package>` and `.cursor/hooks/<package>`, because neither
+harness sets `CLAUDE_PROJECT_DIR`.
+
+If you turn on Cursor's import of Claude Code hooks, Cursor runs both the Cursor hook and
+the imported Claude Code hook, and lints each file twice. APM cannot detect that setting,
+so leave the import off in a repository that declares both packages.
 
 Each package bundles its own copy of `lint_changed_file.py`, because APM deploys only files
 inside the package that declares the hook. The two copies must stay identical: edit both,
@@ -75,6 +86,26 @@ and the `python-tests` workflow fails when they differ.
 Do not hand-edit the generated `.claude/settings.json` hook entry (or the Cursor / Codex
 equivalents) - APM owns it and tracks it in the `.claude/apm-hooks.json` sidecar. Edit these
 packages and re-run `apm install` instead.
+
+### Upgrading from an APM version older than 0.35.0
+
+For a package declared with a local `path:`, APM 0.35.0 changed the ownership marker it
+stores from `<package>` to `_local/<package>`, so it does not recognize the hook entries an
+older version wrote. For Cursor, `apm install` then fails with:
+
+```text
+Cannot install hooks for qubership-nifi-lint-hook: unsupported Cursor event 'PostToolUse' or non-array entries. Use supported Cursor-native hooks or a single Claude-import route, then reinstall.
+```
+
+For Claude Code and Codex, the install succeeds and keeps the old entry beside the new one,
+so the hook runs twice. Remove the old entries once, then run `apm install`:
+
+1. Delete `.cursor/hooks.json` and `.cursor/apm-hooks.json`, or remove only the lint hook
+   entry from each if they hold other hooks.
+2. Do the same for `.codex/hooks.json` and `.codex/apm-hooks.json`.
+3. Remove the lint hook entry from `hooks.PostToolUse` in `.claude/settings.json`, and from
+   `.claude/apm-hooks.json`.
+4. Run `apm install`. Each harness file then holds one lint hook entry.
 
 ## Finding the consumer repository root
 

@@ -1,6 +1,6 @@
 ---
-description: Trigger for the docs-page-authoring skill: load it before writing or editing a README or any other documentation page, and when a change adds or renames an option, an error, or a supported version.
-globs: "**"
+description: 'Trigger for the docs-page-authoring skill: load it before writing or editing a README or any other documentation page, and when a change adds or renames an option, an error, or a supported version.'
+globs: **
 ---
 
 Before writing or editing a README, a reference page, a how-to, or any other documentation page, load

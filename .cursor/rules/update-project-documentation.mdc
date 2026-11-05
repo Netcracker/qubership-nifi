@@ -1,6 +1,6 @@
 ---
 description: Triggers documentation updates after significant qubership-nifi changes.
-globs: "**/*"
+globs: **/*
 ---
 
 When adding, removing, or changing an environment variable; adding a new NiFi

@@ -1,6 +1,6 @@
 ---
 description: Triggers the qubership-nifi troubleshooting skill.
-globs: "**/*"
+globs: **/*
 ---
 
 When diagnosing a qubership-nifi instance that fails to start, restarts, hangs, or

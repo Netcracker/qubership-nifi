@@ -1,6 +1,6 @@
 ---
-description: Trigger for the final-review skill: run it in a fresh subagent when a coding task's code, tests, and comments are written and before the commit is final.
-globs: "**"
+description: 'Trigger for the final-review skill: run it in a fresh subagent when a coding task''s code, tests, and comments are written and before the commit is final.'
+globs: **
 ---
 
 When a coding task has its code, tests, and comments written and the commit is about to be final, run `final-review`
