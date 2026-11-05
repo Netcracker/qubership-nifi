@@ -58,11 +58,23 @@ services:
         condition: service_healthy
       zookeeper:
         condition: service_healthy
+    # The root filesystem is read-only, as with readOnlyRootFilesystem in Kubernetes.
+    # Every path NiFi writes to must be listed in tmpfs or volumes.
+    read_only: ${NIFI_READ_ONLY_ROOT_FS:-true}
+    tmpfs:
+      - /tmp
     volumes:
       - nifi-conf0:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-0:/tmp/tls-certs-0
       - tls-cert-ca:/tmp/cert
       - tls-cert-zk:/tmp/cert-zk
+      - /opt/nifi/nifi-current/conf
+      - /opt/nifi/nifi-current/logs
+      - /opt/nifi/nifi-current/run
+      - /opt/nifi/nifi-current/work
+      - /opt/nifi/nifi-current/flowfile_repository
+      - /opt/nifi/nifi-current/provenance_repository
+      - /opt/nifi/nifi-current/persistent_data
     ports:
       - 127.0.0.1:8080:8080
     environment:
@@ -110,11 +122,23 @@ services:
         condition: service_healthy
       zookeeper:
         condition: service_healthy
+    # The root filesystem is read-only, as with readOnlyRootFilesystem in Kubernetes.
+    # Every path NiFi writes to must be listed in tmpfs or volumes.
+    read_only: ${NIFI_READ_ONLY_ROOT_FS:-true}
+    tmpfs:
+      - /tmp
     volumes:
       - nifi-conf1:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-1:/tmp/tls-certs-1
       - tls-cert-ca:/tmp/cert
       - tls-cert-zk:/tmp/cert-zk
+      - /opt/nifi/nifi-current/conf
+      - /opt/nifi/nifi-current/logs
+      - /opt/nifi/nifi-current/run
+      - /opt/nifi/nifi-current/work
+      - /opt/nifi/nifi-current/flowfile_repository
+      - /opt/nifi/nifi-current/provenance_repository
+      - /opt/nifi/nifi-current/persistent_data
     ports:
       - 127.0.0.1:9080:8080
     environment:
@@ -162,11 +186,23 @@ services:
         condition: service_healthy
       zookeeper:
         condition: service_healthy
+    # The root filesystem is read-only, as with readOnlyRootFilesystem in Kubernetes.
+    # Every path NiFi writes to must be listed in tmpfs or volumes.
+    read_only: ${NIFI_READ_ONLY_ROOT_FS:-true}
+    tmpfs:
+      - /tmp
     volumes:
       - nifi-conf2:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi-2:/tmp/tls-certs-2
       - tls-cert-ca:/tmp/cert
       - tls-cert-zk:/tmp/cert-zk
+      - /opt/nifi/nifi-current/conf
+      - /opt/nifi/nifi-current/logs
+      - /opt/nifi/nifi-current/run
+      - /opt/nifi/nifi-current/work
+      - /opt/nifi/nifi-current/flowfile_repository
+      - /opt/nifi/nifi-current/provenance_repository
+      - /opt/nifi/nifi-current/persistent_data
     ports:
       - 127.0.0.1:10080:8080
     environment:

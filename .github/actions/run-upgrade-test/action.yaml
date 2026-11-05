@@ -114,6 +114,14 @@ runs:
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
         RESULTS_DIR: ${{ inputs.run-mode }}
+    - name: Check read-only root filesystem after upgrade
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        check_read_only_root_fs "${RESULTS_DIR}" 'local-nifi'
+      env:
+        RESULTS_DIR: ${{ inputs.run-mode }}
     - name: Check OJDBC location test process group after upgrade
       continue-on-error: true
       uses: ./.github/actions/run-newman-tests
