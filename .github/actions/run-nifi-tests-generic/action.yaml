@@ -34,6 +34,19 @@ runs:
         check_auxiliary_classpath "${RUN_MODE}" 'local-nifi'
       env:
         RUN_MODE: ${{ inputs.run-mode }}
+    - name: Check read-only root filesystem
+      if: ${{ inputs.run-mode == 'oidc' || inputs.run-mode == 'tls-quarkus' || inputs.run-mode == 'cluster-statefulset' }}
+      shell: bash
+      continue-on-error: true
+      run: |
+        . .github/workflows/sh/nifi-lib.sh
+        if [ "${RUN_MODE}" == "cluster-statefulset" ]; then
+          check_read_only_root_fs "${RUN_MODE}" 'local-nifi' 'qubership-nifi-1' 'qubership-nifi-2'
+        else
+          check_read_only_root_fs "${RUN_MODE}" 'local-nifi'
+        fi
+      env:
+        RUN_MODE: ${{ inputs.run-mode }}
     - name: Test log level configuration
       shell: bash
       continue-on-error: true
