@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-java-base:25-alpine-2.5.10@sha256:23e07d15bf555a0b7d6e27237f48c6a2736d21223194cc313e3886913a89ab6d
+FROM ghcr.io/netcracker/qubership-java-base:25-alpine-2.5.11@sha256:62a1461795efe40eb05b584915cf335f24a4bb6b357faf173e175d454fee48bb
 
 USER root
 RUN apk add --no-cache git=2.54.0-r0 jq=1.8.2-r0
