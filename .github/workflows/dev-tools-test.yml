@@ -136,11 +136,13 @@ jobs:
         run: |
           . .github/workflows/sh/nifi-lib.sh
           setup_env_before_tests "oidc"
-          echo "NIFI_IMAGE=${{ matrix.nifi.image }}" >> ./docker.env
-          echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}" >> ./docker.env
           # Only the local image runs on a read-only root filesystem. Released images
           # before 2.8.1 write outside the mounted volumes and fail to start on one.
-          echo "NIFI_READ_ONLY_ROOT_FS=${{ matrix.nifi.build-local }}" >> ./docker.env
+          {
+            echo "NIFI_IMAGE=${{ matrix.nifi.image }}"
+            echo "NIFI_IMAGE_TAG=${{ matrix.nifi.tag }}"
+            echo "NIFI_READ_ONLY_ROOT_FS=${{ matrix.nifi.build-local }}"
+          } >> ./docker.env
 
       - name: Start NiFi environment and wait for health
         run: |
