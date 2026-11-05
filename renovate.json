@@ -42,6 +42,38 @@
     },
     {
       "description": [
+        "ojdbc8 and orai18n share ${ojdbc.version}, and Oracle releases them together, so one PR updates both."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.oracle.database*"],
+      "groupName": "Oracle JDBC"
+    },
+    {
+      "description": [
+        "jackson-databind and jackson-bom come from the same Jackson release, so one PR updates both version properties."
+      ],
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["com.fasterxml.jackson*"],
+      "groupName": "Jackson"
+    },
+    {
+      "description": [
+        "GitLab recommends a runner on the same major and minor version as the server, so one PR updates both images."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["gitlab/gitlab-ce", "gitlab/gitlab-runner"],
+      "groupName": "GitLab"
+    },
+    {
+      "description": [
+        "The compose files name the Consul image both with and without the docker.io prefix, so one PR updates both names."
+      ],
+      "matchManagers": ["docker-compose"],
+      "matchPackageNames": ["hashicorp/consul", "docker.io/hashicorp/consul"],
+      "groupName": "HashiCorp Consul"
+    },
+    {
+      "description": [
         "registry.example.com/flow-diff-cli:X.Y.Z is a placeholder in dev/gitlab-ci-cd-flow-diff/.gitlab-ci.yml, and that host does not exist."
       ],
       "matchManagers": ["gitlabci"],
