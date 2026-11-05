@@ -35,6 +35,8 @@ runs:
         export NIFI_SENSITIVE_KEY=$(cat ./nifi-sens-key.tmp)
         export NIFI_IMAGE="ghcr.io/netcracker/qubership-nifi"
         export NIFI_IMAGE_TAG="1.0.6"
+        # NiFi 1.x images write to the JDK truststore and cannot run on a read-only root filesystem.
+        export NIFI_READ_ONLY_ROOT_FS="false"
         start_containers_and_wait ".github/docker/${BASE_RUN_MODE}/docker-compose.yaml" "${RESULTS_DIR}" "180"
       env:
         BASE_RUN_MODE: ${{ steps.prepare-env.outputs.RUN_MODE }}
