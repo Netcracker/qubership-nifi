@@ -254,8 +254,8 @@ create_test_project() {
     git -C "$work_dir" commit --quiet -m 'seed the baseline flow'
     git -C "$work_dir" remote add origin \
         "http://oauth2:${FLOW_DIFF_GITLAB_TOKEN}@${GITLAB_HOST}/root/${PROJECT_NAME}.git"
-    git -C "$work_dir" push --quiet origin main
     export FLOW_DIFF_REPO_DIR="$work_dir"
+    push_branch main
 
     echo "ok: seeded project ${project_id} with ${FLOW_DIFF_PATH}/flow.json on main"
 }
@@ -263,6 +263,42 @@ create_test_project() {
 #
 # Repository edits
 #
+
+# push_branch <branch>; force-pushes the branch and waits until GitLab counts it as an existing
+# branch.
+#
+# The merge request API checks the source and target branches against a cached list of branch
+# names, and a background job refreshes that list after the push returns. A merge request opened
+# before the refresh is rejected with 400 "source_branch does not exist"; CI first hit this on
+# GitLab 19.
+push_branch() {
+    local branch="$1"
+    git -C "$FLOW_DIFF_REPO_DIR" push --quiet --force origin "$branch"
+    wait_for_branch "$branch"
+}
+
+# wait_for_branch <branch>; waits until HEAD /repository/branches/<branch> returns 204, and fails
+# with the last HTTP status after 60 seconds.
+#
+# HEAD runs the same branch_exists? check as merge request validation. GET on the same path reads
+# the repository directly and finds the branch as soon as the push returns, so it cannot show
+# whether the cached list has caught up. The branch names in this test contain no slash, so the name
+# goes into the API path unencoded.
+wait_for_branch() {
+    local branch="$1" deadline=$((SECONDS + 60)) status=''
+    while [ "$SECONDS" -lt "$deadline" ]; do
+        # curl prints 000 when it gets no response at all. --max-time keeps one hung request from
+        # outliving the deadline.
+        status="$(curl --silent --head --max-time 10 --output /dev/null --write-out '%{http_code}' \
+            --header "PRIVATE-TOKEN: ${FLOW_DIFF_GITLAB_TOKEN}" \
+            "${GITLAB_API}/projects/${FLOW_DIFF_PROJECT_ID}/repository/branches/${branch}")" || true
+        if [ "$status" = '204' ]; then
+            return 0
+        fi
+        sleep 1
+    done
+    fail "GitLab did not list branch ${branch} within 60 seconds; last HTTP status: ${status:-none}"
+}
 
 # apply_flow_change <message> <jq program>; rewrites the flow on the current branch, commits, and
 # pushes. Shared by start_flow_branch and push_flow_change, which differ only in the commit they
@@ -278,7 +314,7 @@ apply_flow_change() {
         fail "the jq program left ${FLOW_DIFF_PATH}/flow.json unchanged"
     fi
     git -C "$FLOW_DIFF_REPO_DIR" commit --quiet -am "$message"
-    git -C "$FLOW_DIFF_REPO_DIR" push --quiet --force origin "$(git -C "$FLOW_DIFF_REPO_DIR" branch --show-current)"
+    push_branch "$(git -C "$FLOW_DIFF_REPO_DIR" branch --show-current)"
 }
 
 # start_flow_branch <branch> <message> <jq program>; branches off main and pushes one flow change, so
@@ -305,7 +341,7 @@ commit_readme_change() {
     git -C "$FLOW_DIFF_REPO_DIR" checkout --quiet -B "$branch" main
     printf 'A change outside %s.\n' "$FLOW_DIFF_PATH" >> "${FLOW_DIFF_REPO_DIR}/README.md"
     git -C "$FLOW_DIFF_REPO_DIR" commit --quiet -am "$message"
-    git -C "$FLOW_DIFF_REPO_DIR" push --quiet --force origin "$branch"
+    push_branch "$branch"
 }
 
 #
