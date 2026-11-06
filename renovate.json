@@ -140,6 +140,15 @@
     },
     {
       "description": [
+        "python-tests.yml runs the tests on the oldest Python version that the scripts support, so that the tests fail when a script uses a newer language feature."
+      ],
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["python"],
+      "matchFileNames": [".github/workflows/python-tests.yml"],
+      "enabled": false
+    },
+    {
+      "description": [
         "The root Dockerfile pins the NiFi image through separate version and digest ARGs, which Renovate cannot update as one dependency. NiFi upgrades are done by hand."
       ],
       "matchManagers": ["dockerfile"],
@@ -393,6 +402,12 @@
       },
       {
         "matchManagers": ["pip_requirements"],
+        "enabled": false
+      },
+      {
+        "matchManagers": ["github-actions"],
+        "matchDepNames": ["python"],
+        "matchFileNames": [".github/workflows/python-tests.yml"],
         "enabled": false
       },
       {
