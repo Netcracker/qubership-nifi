@@ -173,6 +173,15 @@ jobs:
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
+      # Fails when sun_checks.xml names a module or property that the checkstyle version in pom.xml does not have.
+      # Violations do not fail the step, because the code does not pass every check yet.
+      - name: Validate checkstyle configuration
+        run: >
+          mvn --batch-mode --no-transfer-progress checkstyle:check
+          -Dcheckstyle.failOnViolation=false -Dcheckstyle.console=false
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # --no-transfer-progress is required, not cosmetic. Quarkus test bootstrap reads the mvn options from
       # MAVEN_CMD_LINE_ARGS, and without this option it prints each artifact download. Surefire captures that output under a class loader lock that
       # Quarkus holds, so a download during test startup deadlocks the test JVM.

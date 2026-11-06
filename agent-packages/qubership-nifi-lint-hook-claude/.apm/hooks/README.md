@@ -144,13 +144,13 @@ needs Node and reuses `.github/linters/.textlintrc` (the `terminology` rule).
 The checkstyle jar is **not** downloaded automatically. Download a standalone
 `checkstyle-<version>-all.jar` from the
 [checkstyle releases](https://github.com/checkstyle/checkstyle/releases) and point the
-`CHECKSTYLE_JAR` environment variable at it. Use **`13.2.0`** to match the
-`maven-checkstyle-plugin` dependency in `pom.xml` for identical rules.
+`CHECKSTYLE_JAR` environment variable at it. Use **`13.4.0`** to match the
+`maven-checkstyle-plugin` dependency in `pom.xml` and the super-linter CI job, so you get the same rules.
 
 Set it in your shell profile, for example:
 
-- `PowerShell`: `setx CHECKSTYLE_JAR "C:\tools\checkstyle-13.2.0-all.jar"` (new sessions)
-- `bash`/`zsh`: `export CHECKSTYLE_JAR=/path/to/checkstyle-13.2.0-all.jar`
+- `PowerShell`: `setx CHECKSTYLE_JAR "C:\tools\checkstyle-13.4.0-all.jar"` (new sessions)
+- `bash`/`zsh`: `export CHECKSTYLE_JAR=/path/to/checkstyle-13.4.0-all.jar`
 
 `CHECKSTYLE_JAR` may be absolute or relative to the repository root. When it is unset or
 points at a missing file, checkstyle is skipped; the other linters still run.
