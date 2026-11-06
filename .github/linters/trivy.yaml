@@ -5,6 +5,12 @@ exit-on-eol: 2
 severity:
   - CRITICAL
 scan:
+  # Since Trivy 0.71.0, a 429 from Maven Central while fetching remote POMs fails the scan,
+  # and GitHub runners hit that rate limit often. Offline mode resolves only the POMs in the
+  # repository, so versions managed by remote parents and BOMs, and transitive dependencies,
+  # are not scanned. The full scan runs in .github/workflows/security-scan.yml, which scans
+  # the published Docker images with Trivy every week.
+  offline: true
   scanners:
     - vuln
     - misconfig
