@@ -74,6 +74,18 @@
     },
     {
       "description": [
+        "super-linter and the Maven checkstyle plugin read the same sun_checks.xml, so the checkstyle version in pom.xml must match the one that super-linter ships. One PR updates both, and a person sets the pom.xml version to the one super-linter ships, because Renovate proposes the latest checkstyle instead."
+      ],
+      "matchPackageNames": [
+        "super-linter/super-linter",
+        "super-linter/super-linter/**",
+        "com.puppycrawl.tools:checkstyle"
+      ],
+      "groupName": "checkstyle and super-linter",
+      "automerge": false
+    },
+    {
+      "description": [
         "registry.example.com/flow-diff-cli:X.Y.Z is a placeholder in dev/gitlab-ci-cd-flow-diff/.gitlab-ci.yml, and that host does not exist."
       ],
       "matchManagers": ["gitlabci"],

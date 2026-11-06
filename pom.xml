@@ -433,10 +433,13 @@
                         <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                     <dependencies>
+                        <!-- Keep this version equal to the checkstyle version that the super-linter
+                             action in .github/workflows/super-linter.yaml ships, because both read
+                             .github/linters/sun_checks.xml. -->
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>13.11.0</version>
+                            <version>13.4.0</version>
                         </dependency>
                     </dependencies>
                 </plugin>
