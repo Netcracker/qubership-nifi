@@ -86,6 +86,10 @@ class KnowledgeBaseBuilderIT {
     private static final int PEM_LINE_LENGTH = 64;
     private static final int HTTP_MIN_SUCCESS = 200;
     private static final int HTTP_MAX_SUCCESS = 300;
+    private static final int HTTP_CONFLICT = 409;
+    private static final String SIGNER_NOT_CONFIGURED = "Signer not configured";
+    private static final Duration TOKEN_MAX_WAIT = Duration.ofSeconds(60);
+    private static final Duration TOKEN_RETRY_INTERVAL = Duration.ofSeconds(2);
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(30);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Set<String> COMPONENT_JSON_FIELDS =
@@ -473,6 +477,23 @@ class KnowledgeBaseBuilderIT {
         return caFilePath;
     }
 
+    /**
+     * Requests an access token, repeating the request while NiFi has not yet configured its JWT
+     * signer.
+     *
+     * <p>NiFi generates the signing key on a background thread after its web server starts, so a
+     * freshly started instance can reject the first token request with status 409 and the body
+     * {@code JSON Web Signature Signer not configured}. Only that response is retried, while
+     * {@link #TOKEN_MAX_WAIT} has not passed, so the last retry can end up to one
+     * {@link #TOKEN_RETRY_INTERVAL} later. Any other rejection fails on the first attempt.</p>
+     *
+     * @param sslContext TLS context that trusts the container's certificate
+     * @param base       NiFi base URL, without a trailing slash
+     * @param password   password of the {@link #USERNAME} single user
+     * @return the bearer token, trimmed
+     * @throws IllegalStateException if NiFi rejects the request, or the signer is still not
+     *                               configured once {@link #TOKEN_MAX_WAIT} has passed
+     */
     private static String requestToken(final SSLContext sslContext, final String base,
                                        final String password) throws Exception {
         final HttpClient client = HttpClient.newBuilder()
@@ -485,11 +506,19 @@ class KnowledgeBaseBuilderIT {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                 .build();
-        final HttpResponse<String> response =
+        final long deadline = System.nanoTime() + TOKEN_MAX_WAIT.toNanos();
+        HttpResponse<String> response =
                 client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        while (response.statusCode() == HTTP_CONFLICT
+                && response.body().contains(SIGNER_NOT_CONFIGURED)
+                && System.nanoTime() < deadline) {
+            Thread.sleep(TOKEN_RETRY_INTERVAL);
+            response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        }
         final int status = response.statusCode();
         if (status < HTTP_MIN_SUCCESS || status >= HTTP_MAX_SUCCESS) {
-            throw new IllegalStateException("Token request failed with status " + status);
+            throw new IllegalStateException("Token request failed with status " + status + ": "
+                    + response.body());
         }
         return response.body().trim();
     }
