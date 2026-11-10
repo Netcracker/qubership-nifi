@@ -6,10 +6,10 @@ targets:
   - codex
 dependencies:
   apm:
-    - Netcracker/qubership-ai-packages/agent-packages/qubership-repo-essentials#960635e1a8d8cc895e99d3dae7076fcdb3684d51 # main
-    - Netcracker/qubership-ai-packages/agent-packages/javadoc-authoring#960635e1a8d8cc895e99d3dae7076fcdb3684d51 # main
-    - Netcracker/qubership-ai-packages/agent-packages/final-review#960635e1a8d8cc895e99d3dae7076fcdb3684d51 # main
-    - Netcracker/qubership-ai-packages/agent-packages/test-authoring#960635e1a8d8cc895e99d3dae7076fcdb3684d51 # main
+    - Netcracker/qubership-ai-packages/agent-packages/qubership-repo-essentials#2923c287f1ec81cd0c55b4461b27ee7a8e041d75 # main
+    - Netcracker/qubership-ai-packages/agent-packages/javadoc-authoring#2923c287f1ec81cd0c55b4461b27ee7a8e041d75 # main
+    - Netcracker/qubership-ai-packages/agent-packages/final-review#2923c287f1ec81cd0c55b4461b27ee7a8e041d75 # main
+    - Netcracker/qubership-ai-packages/agent-packages/test-authoring#2923c287f1ec81cd0c55b4461b27ee7a8e041d75 # main
     - ./agent-packages/qubership-nifi-linters
     - path: ./agent-packages/qubership-nifi-lint-hook-claude
       targets: [claude]
