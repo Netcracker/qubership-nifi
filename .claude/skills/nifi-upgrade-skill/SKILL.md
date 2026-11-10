@@ -162,19 +162,20 @@ mvn exec:java \
 ## 14. Known issues analysis
 
 Find bugs in the target version that are related to the keywords `kafka`, `redis`, `json`, `sql`, `http`,
-`request`, `s3`, and decide whether they prevent the upgrade.
+`request`, `s3`, and classify them.
 
-This step runs without the user: it doesn't ask questions and doesn't stop the upgrade. Its result is
-`upgrade-temp-data/known-issues/known-issues-<TARGET>.md`, which the user reviews later to decide what matters.
+This step runs without the user: it doesn't ask questions, doesn't decide whether to upgrade, and doesn't stop the
+upgrade. Its result is `upgrade-temp-data/known-issues/known-issues-<TARGET>.md`. The user reviews it after the
+upgrade and decides whether to accept the upgrade.
 
 Search Jira with the script, not with your own query. It saves the found bugs to
 `upgrade-temp-data/known-issues/jira-issues-<TARGET>.json`:
 
 ```bash
-bash .claude/skills/nifi-upgrade-skill/scripts/searchJiraIssues.sh <TARGET>
+bash .claude/skills/nifi-upgrade-skill/scripts/searchJiraIssues.sh <CURRENT> <TARGET>
 ```
 
-- If the search fails, for example because Jira doesn't know `<TARGET>`, the script writes the error to
+- If the search fails, for example because Jira doesn't know `<CURRENT>` or `<TARGET>`, the script writes the error to
   `upgrade-temp-data/known-issues/known-issues-<TARGET>.md` and exits with code 1. Skip the rest of this step and
   name the error in the final report.
 - If `total` is `0`, no issue matches: save `[]` to `upgrade-temp-data/known-issues/classification-<TARGET>.json`
@@ -188,6 +189,7 @@ Run the `nifi-jira-issue-analyst` subagent (`.claude/agents/nifi-jira-issue-anal
 so text injected into an issue can't run a command or change a file. Pass it:
 
 - the path `upgrade-temp-data/known-issues/jira-issues-<TARGET>.json`;
+- the current version `<CURRENT>`;
 - the target version `<TARGET>`;
 - the keyword list.
 
@@ -210,20 +212,18 @@ bash .claude/skills/nifi-upgrade-skill/scripts/buildKnownIssues.sh <TARGET>
 ```
 
 It checks the classification, checks in Jira the version that introduced each regression named in `introduced_by`,
-and writes `upgrade-temp-data/known-issues/known-issues-<TARGET>.md` with the table of issues and the upgrade
-decision. Don't read the table.
+and writes `upgrade-temp-data/known-issues/known-issues-<TARGET>.md` with the table of issues. Don't read the table.
 
 If the script reports problems with the classification, run the subagent again and pass it the problem list, save
 the new array, and run the script again. If the problems remain, the script has written them to
 `known-issues-<TARGET>.md`: skip the rest of this step and name the problems in the final report.
 
-The script prints the decision: **no-go**, **go with caution**, or **go**. The decision is a recommendation: the user
-reviews the verdicts later, decides which broken features matter for qubership-nifi, and makes the final decision.
-Continue the upgrade whatever the decision is.
+Continue the upgrade whatever the verdicts are. Don't decide whether to upgrade and don't recommend it: the user
+reviews the verdicts, decides which broken features matter for qubership-nifi, and accepts or rejects the upgrade.
 
-In the final report, give the decision and the path to `known-issues-<TARGET>.md`. This step writes no files other
-than `jira-issues-<TARGET>.json`, `classification-<TARGET>.json`, and `known-issues-<TARGET>.md`, and runs no
-commands other than the two scripts.
+In the final report, give the path to `known-issues-<TARGET>.md` and ask the user to review it before accepting the
+upgrade. This step writes no files other than `jira-issues-<TARGET>.json`, `classification-<TARGET>.json`, and
+`known-issues-<TARGET>.md`, and runs no commands other than the two scripts.
 
 ## 15. Generate releases notes
 

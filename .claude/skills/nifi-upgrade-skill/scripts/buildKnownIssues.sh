@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Checks the classification of the known issues returned by the nifi-jira-issue-analyst subagent, checks in Jira the
 # version that introduced each regression, and joins the result with the Jira search result in
-# upgrade-temp-data/known-issues/known-issues-<version>.md together with the upgrade decision. The script, not the
-# agent, copies issue summaries from Jira into the table, so the agent never reads them.
+# upgrade-temp-data/known-issues/known-issues-<version>.md. The user reads the report and decides whether to accept
+# the upgrade. The script, not the agent, copies issue summaries from Jira into the table, so the agent never reads
+# them.
 set -Eeuo pipefail
 if [[ $# -ne 1 ]]; then
     echo "Usage: $0 <target_nifi_version>"
@@ -122,16 +123,6 @@ REPORT_DEFS='
             resolution: ($i.fields.resolution.name // "Unresolved" | cell),
             affects: ($i.fields.versions // [] | names | cell),
             fixes: ($i.fields.fixVersions // [] | map(.name))});
-    def keys_of($verdict): map(select(.verdict == $verdict) | .key);
-    # The decision lines hold only keys and version names, never issue text.
-    def decision: keys_of("breaks-feature") as $breaks | keys_of("workaround") as $workarounds
-        | if $breaks != [] then
-            "**no-go**: breaks-feature issues \($breaks | join(", ")).",
-            (map(select(.verdict == "breaks-feature") | .fixes | min_by(vkey)) as $first_fixes
-             | if any($first_fixes[]; . == null) then "No version fixes all of them yet."
-               else "The first version that fixes all of them: \($first_fixes | max_by(vkey))." end)
-          elif $workarounds != [] then "**go with caution**: workaround issues \($workarounds | join(", "))."
-          else "**go**: no breaks-feature or workaround issues." end;
 '
 
 jq -r --slurpfile cls "$CLASSIFICATION_FILE" --argjson introduced "$INTRODUCED" --arg target "$TARGET" \
@@ -143,7 +134,7 @@ jq -r --slurpfile cls "$CLASSIFICATION_FILE" --argjson introduced "$INTRODUCED" 
       (if ($search.duplicates // []) == [] then empty else
         "- Duplicates replaced by their originals: "
             + ($search.duplicates | map("\(.key | link) -> \(.original | link)") | join(", ")) end),
-      "", "JQL query:", "", "```text", $search.jql, "```", "",
+      "",
       if ($rows | length) == 0 then "No known issues found." else
         ("| key | summary | status | resolution | affects versions | fix versions | matched keywords | introduced by"
             + " | verdict | suspicious content | impact |"),
@@ -153,13 +144,9 @@ jq -r --slurpfile cls "$CLASSIFICATION_FILE" --argjson introduced "$INTRODUCED" 
             + "\(.verdict)\(if .classified then " (classified as \(.classified))" else "" end) | "
             + "\(.suspicious) | \(.impact | cell) |")
       end,
-      "", "## Decision", "", ($rows | decision), "",
-      "The decision is a recommendation: review the verdicts and decide which broken features matter.", "",
-      "Issues with suspicious content, to read in Jira:", "",
+      "", "## Suspicious content", "", "Issues with suspicious content, to read in Jira:", "",
       (($rows | map(select(.suspicious == "yes") | "- \(.key | link)")) as $suspicious
        | if $suspicious == [] then "- none" else $suspicious[] end)
 ' "$ISSUES_FILE" > "$REPORT_FILE"
 
 echo "Saved to ${REPORT_FILE}"
-jq -r --slurpfile cls "$CLASSIFICATION_FILE" --argjson introduced "$INTRODUCED" --arg target "$TARGET" \
-    "$REPORT_DEFS"'rows | "Decision: " + ([decision] | join(" "))' "$ISSUES_FILE"

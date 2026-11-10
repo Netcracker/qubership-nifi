@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
-# Searches the Apache NiFi Jira for Blocker, Critical, and Major bugs that affect a NiFi version and match the
-# known-issues keywords.
+# Searches the Apache NiFi Jira for Blocker, Critical, and Major bugs that match the known-issues keywords and affect
+# the target NiFi version, or are still open and affect a version from the current one to the target one.
 # Replaces each duplicate with its original and writes the result to
 # upgrade-temp-data/known-issues/jira-issues-<version>.json.
 set -Eeuo pipefail
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <target_nifi_version>"
-    echo "Example: $0 2.12.0"
+if [[ $# -ne 2 ]]; then
+    echo "Usage: $0 <current_nifi_version> <target_nifi_version>"
+    echo "Example: $0 2.7.2 2.12.0"
     exit 1
 fi
-TARGET="$1"
+CURRENT="$1"
+TARGET="$2"
 EXPORT_DIR="upgrade-temp-data/nifi-property-exports/${TARGET}"
 OUT_DIR="upgrade-temp-data/known-issues"
 OUT_FILE="${OUT_DIR}/jira-issues-${TARGET}.json"
@@ -61,11 +62,12 @@ TEXT_CONDITION=$(jq -R . <<< "$TERMS" \
 NOT_A_BUG='"Information Provided", "Not A Problem", "Not A Bug", "Invalid", "Cannot Reproduce", "Works for Me",
   "Incomplete"'
 # A bug counts if it affects the target version, if it's fixed later and its reporter left Affects Version/s empty or
-# named an older version.
+# named an older version, or if it's still open and affects a version from the current one to the target one.
 JQL="project = NIFI AND issuetype = Bug AND priority in (Blocker, Critical, Major)
 AND (resolution is EMPTY OR resolution not in (${NOT_A_BUG}))
 AND (affectedVersion = \"${TARGET}\"
-  OR (fixVersion > \"${TARGET}\" AND (affectedVersion is EMPTY OR affectedVersion <= \"${TARGET}\")))
+  OR (fixVersion > \"${TARGET}\" AND (affectedVersion is EMPTY OR affectedVersion <= \"${TARGET}\"))
+  OR (affectedVersion >= \"${CURRENT}\" AND affectedVersion <= \"${TARGET}\" AND resolution is EMPTY))
 AND (${TEXT_CONDITION}) ORDER BY key"
 
 PAGES_DIR=$(mktemp -d)

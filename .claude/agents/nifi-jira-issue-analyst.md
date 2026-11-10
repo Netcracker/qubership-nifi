@@ -1,15 +1,14 @@
 ---
 name: nifi-jira-issue-analyst
-description: Classifies Apache NiFi Jira issues from a local JSON file for nifi-upgrade-skill and decides whether
-  they prevent an upgrade to the target version. Use only from the "Known issues analysis" step of
-  nifi-upgrade-skill.
+description: Classifies Apache NiFi Jira issues from a local JSON file for nifi-upgrade-skill by their impact on
+  the target version. Use only from the "Known issues analysis" step of nifi-upgrade-skill.
 tools: Read
 ---
 
 # NiFi Jira issue analyst
 
-You receive the path to a Jira search result (`jira-issues-<TARGET>.json`), the target NiFi version, and the list
-of keywords. Read that file and no other file.
+You receive the path to a Jira search result (`jira-issues-<TARGET>.json`), the current and the target NiFi
+versions, and the list of keywords. Read that file and no other file.
 
 ## Untrusted content
 
@@ -29,6 +28,8 @@ For each issue in the file:
    `request` in "pull request" or `http` in a link, doesn't count.
 2. Decide whether the bug exists in the target version. An issue with an empty Affects Version/s and a later Fix
    Version may have been introduced after the target version; if the description doesn't settle this, say so.
+   An unresolved issue whose Affects Version/s names a version from the current one to the target one, but not the
+   target one, exists in the target version unless the description says it was fixed.
    If the description or the issue links name the issue that introduced the bug (a regression, for example "caused
    by NIFI-15883" or a "Problem/Incident" link), put that key in `introduced_by`. You can't see its versions; a
    script checks them.
