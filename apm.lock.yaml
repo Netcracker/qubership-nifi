@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-11-05T15:50:25.870223+00:00'
+generated_at: '2026-11-10T00:31:33.625337+00:00'
 apm_version: 0.35.0
 dependencies:
 - repo_url: _local/nifi-development-kit
@@ -82,7 +82,7 @@ dependencies:
     .cursor/rules/nifi-flow-builder.mdc: sha256:0b9010295d019b18f440e36a5d8169e2d024008efdc9b5425ec976cf653211e9
   source: local
   local_path: ./agent-packages/nifi-development-kit
-  content_hash: sha256:9f072e5556e2dc1d7ecfab927e2e3e9a5461284f5691d1fd47c82003c81e4f9a
+  content_hash: sha256:88c8914e962a8ab73afe8af313265eba6209def541ee7cfeb5c512079ef087d0
 - repo_url: _local/qubership-nifi-docs-maintenance
   name: qubership-nifi-docs-maintenance
   version: 1.0.0
@@ -101,7 +101,7 @@ dependencies:
     .cursor/rules/update-project-documentation.mdc: sha256:dad73340e07947efc24eb06c08e9f80e0b0fb15e069c2c8d32b19f7522e64bbe
   source: local
   local_path: ./agent-packages/qubership-nifi-docs-maintenance
-  content_hash: sha256:18e17f0c42cbf668c70cd2a30b9bd28a5339cadb204b9d1f929523165e522217
+  content_hash: sha256:d78760f4bf505059ab388dcb38c543ec1fa9ad447cc2a6440591450872de4016
 - repo_url: _local/qubership-nifi-lint-hook
   name: qubership-nifi-lint-hook
   version: 1.0.1
@@ -118,7 +118,7 @@ dependencies:
     .cursor/hooks/qubership-nifi-lint-hook/.apm/hooks/lint_changed_file.py: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
   source: local
   local_path: ./agent-packages/qubership-nifi-lint-hook
-  content_hash: sha256:1ec84776e43d20c8846626dc4c6c37ceb30a74194dd9ce633ccfe371f5880d43
+  content_hash: sha256:9bba9f63a929d3f26abcc7ea05464fd3e59cd7f2bedbaadc2588c44d6d0d5ab0
   target_subset:
   - codex
   - cursor
@@ -130,11 +130,11 @@ dependencies:
   - .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md
   - .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
   deployed_file_hashes:
-    .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md: sha256:82f8017156b36abd93cfce1e793888f60d1e80306efb36ab99e3ce1b20334bfd
+    .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/README.md: sha256:c4b1b057f58ebdf002579636f57370637cf5a0f53a5b7373b03361e723c8a0be
     .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py: sha256:d83cbb2da7d7b635958b03dd2c8e4a85e8158d105a32f0494a0fa77c3cf0cf10
   source: local
   local_path: ./agent-packages/qubership-nifi-lint-hook-claude
-  content_hash: sha256:d4d1acdd21ed8d382112468f9ba6025c8639b4927f8d35fdec1f885e7e8137af
+  content_hash: sha256:c3b0113b617929997587e6796fb3a864dbe752995b4b80da2f6a6501a583c464
   target_subset:
   - claude
 - repo_url: _local/qubership-nifi-linters
@@ -149,7 +149,7 @@ dependencies:
     .cursor/commands/lint.md: sha256:090f2a75ea85c8fa63f8819399eac212f7d48ad0e3e5ea91e540701b4d027804
   source: local
   local_path: ./agent-packages/qubership-nifi-linters
-  content_hash: sha256:57606a042cf2cac3339dc704dcc789bb3e0fe5f53fa407e4a88af8b5250e82b8
+  content_hash: sha256:6431329e74c5900725ea781a69551a9aaf619c34905beb7b35c0c0ae3c2e21e2
 - repo_url: _local/qubership-nifi-troubleshooting
   name: qubership-nifi-troubleshooting
   version: 1.0.0
@@ -180,63 +180,53 @@ dependencies:
     .cursor/rules/nifi-troubleshooting.mdc: sha256:acb207952fae75504f794b8000b37e08eb35d227e7b3b818f3035b92c661fc96
   source: local
   local_path: ./agent-packages/qubership-nifi-troubleshooting
-  content_hash: sha256:359b373b9bb7b231f30537d45d988c6ead331a78970199a1726bb3cadb1668cf
+  content_hash: sha256:b454421e72492dfa635bf561f0525a6f3d0f340c9c8524e050647bcca3233919
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: final-review
   host: github.com
-  resolved_commit: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  resolved_ref: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  version: 1.0.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.2.0
   virtual_path: agent-packages/final-review
   is_virtual: true
   package_type: apm_package
   deployed_files:
   - .agents/skills/final-review
-  - .agents/skills/final-review/SKILL.md
   - .agents/skills/final-review/scripts/comment-drift.py
   - .claude/rules/final-review.md
   - .claude/skills/final-review
-  - .claude/skills/final-review/SKILL.md
   - .claude/skills/final-review/scripts/comment-drift.py
   - .cursor/rules/final-review.mdc
   deployed_file_hashes:
-    .agents/skills/final-review/SKILL.md: sha256:937127a6b56c1352298ca0aebccbe0f2468a25b7b1b919acbe6c9281771e0bcc
     .agents/skills/final-review/scripts/comment-drift.py: sha256:690ab92375ce9e1ef52dece9d4edd370f98ee3a3509bd5961a7dc845ba705d78
-    .claude/rules/final-review.md: sha256:e0d9e101e61b7b69d0470b60cda0a8a740071f567c1b822f615bca0d3e94e085
-    .claude/skills/final-review/SKILL.md: sha256:937127a6b56c1352298ca0aebccbe0f2468a25b7b1b919acbe6c9281771e0bcc
+    .claude/rules/final-review.md: sha256:f895f4752ffcab08bc8a5f28f61e7316887976db3f1641fb9beba0b5e6c4ebe1
     .claude/skills/final-review/scripts/comment-drift.py: sha256:690ab92375ce9e1ef52dece9d4edd370f98ee3a3509bd5961a7dc845ba705d78
-    .cursor/rules/final-review.mdc: sha256:6c39680e5309a9041f33e9459bfee763279aa8d8db31339a7e143579af24ba53
-  content_hash: sha256:3a2d5b408a1b807819f520850c8ab2a005c8790295abcaafd135aba3e061cb7c
+    .cursor/rules/final-review.mdc: sha256:f55c55585d9d74f77eca4b0c478c23dbdef31740a2d3248e529b7bf9f6982af5
+  content_hash: sha256:1bd0132054cea6ef063fcd97c5309d424e3a36f9eca547507240676de77d6e5f
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: javadoc-authoring
   host: github.com
-  resolved_commit: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  resolved_ref: 0e384f374d05bf6dc1900f518312db62e71b71f4
-  version: 1.2.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.3.0
   virtual_path: agent-packages/javadoc-authoring
   is_virtual: true
   package_type: apm_package
   deployed_files:
-  - .agents/skills/javadoc-authoring
-  - .agents/skills/javadoc-authoring/SKILL.md
   - .claude/rules/javadoc-authoring.md
-  - .claude/skills/javadoc-authoring
-  - .claude/skills/javadoc-authoring/SKILL.md
   - .cursor/rules/javadoc-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/javadoc-authoring/SKILL.md: sha256:f32712c99235044ec14a91f4b4ef9651ff4fe06e897f2fd077494fc359eb74fe
     .claude/rules/javadoc-authoring.md: sha256:e8ba2c356cd94a2920e7e751b58ed3ef8f9d9988924b90482a3480bfd1b01df9
-    .claude/skills/javadoc-authoring/SKILL.md: sha256:f32712c99235044ec14a91f4b4ef9651ff4fe06e897f2fd077494fc359eb74fe
     .cursor/rules/javadoc-authoring.mdc: sha256:769d0a6216c1a63b4b4f6269017e63dfa14a7a65d7d9a358c8a225de26730e6a
-  content_hash: sha256:3f1f427e4eb9aec68afecc879bede9c1d9d141acbca76fe0147893e76677984e
+  content_hash: sha256:3ed1bdabf4bf0a2ed2bf662354c25861ae5d995f37b806a8c28e1633da607105
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: qubership-repo-essentials
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
   version: 1.4.0
   virtual_path: agent-packages/qubership-repo-essentials
   is_virtual: true
@@ -252,129 +242,45 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: test-authoring
   host: github.com
-  resolved_commit: f35ad41ca673086fd76d353fcf8246c9a9e54fcd
-  resolved_ref: f35ad41ca673086fd76d353fcf8246c9a9e54fcd
-  version: 1.1.1
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.2.0
   virtual_path: agent-packages/test-authoring
   is_virtual: true
   package_type: apm_package
   deployed_files:
-  - .agents/skills/test-authoring
-  - .agents/skills/test-authoring/SKILL.md
-  - .agents/skills/test-authoring/references/go/testify.md
-  - .agents/skills/test-authoring/references/go/testing.md
-  - .agents/skills/test-authoring/references/java/archunit.md
-  - .agents/skills/test-authoring/references/java/assertj.md
-  - .agents/skills/test-authoring/references/java/hamcrest.md
-  - .agents/skills/test-authoring/references/java/jetcheck.md
-  - .agents/skills/test-authoring/references/java/junit4-assert.md
-  - .agents/skills/test-authoring/references/java/junit4.md
-  - .agents/skills/test-authoring/references/java/junit5-assertions.md
-  - .agents/skills/test-authoring/references/java/junit5.md
-  - .agents/skills/test-authoring/references/java/mockito.md
-  - .agents/skills/test-authoring/references/java/truth.md
-  - .agents/skills/test-authoring/references/javascript/jest.md
-  - .agents/skills/test-authoring/references/javascript/node-test.md
-  - .agents/skills/test-authoring/references/javascript/vitest.md
-  - .agents/skills/test-authoring/references/mutation-tools.md
-  - .agents/skills/test-authoring/references/python/pytest.md
-  - .agents/skills/test-authoring/references/rust/libtest.md
   - .claude/rules/test-authoring.md
-  - .claude/skills/test-authoring
-  - .claude/skills/test-authoring/SKILL.md
-  - .claude/skills/test-authoring/references/go/testify.md
-  - .claude/skills/test-authoring/references/go/testing.md
-  - .claude/skills/test-authoring/references/java/archunit.md
-  - .claude/skills/test-authoring/references/java/assertj.md
-  - .claude/skills/test-authoring/references/java/hamcrest.md
-  - .claude/skills/test-authoring/references/java/jetcheck.md
-  - .claude/skills/test-authoring/references/java/junit4-assert.md
-  - .claude/skills/test-authoring/references/java/junit4.md
-  - .claude/skills/test-authoring/references/java/junit5-assertions.md
-  - .claude/skills/test-authoring/references/java/junit5.md
-  - .claude/skills/test-authoring/references/java/mockito.md
-  - .claude/skills/test-authoring/references/java/truth.md
-  - .claude/skills/test-authoring/references/javascript/jest.md
-  - .claude/skills/test-authoring/references/javascript/node-test.md
-  - .claude/skills/test-authoring/references/javascript/vitest.md
-  - .claude/skills/test-authoring/references/mutation-tools.md
-  - .claude/skills/test-authoring/references/python/pytest.md
-  - .claude/skills/test-authoring/references/rust/libtest.md
   - .cursor/rules/test-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/test-authoring/SKILL.md: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
-    .agents/skills/test-authoring/references/go/testify.md: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-    .agents/skills/test-authoring/references/go/testing.md: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
-    .agents/skills/test-authoring/references/java/archunit.md: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
-    .agents/skills/test-authoring/references/java/assertj.md: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
-    .agents/skills/test-authoring/references/java/hamcrest.md: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
-    .agents/skills/test-authoring/references/java/jetcheck.md: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-    .agents/skills/test-authoring/references/java/junit4-assert.md: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
-    .agents/skills/test-authoring/references/java/junit4.md: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
-    .agents/skills/test-authoring/references/java/junit5-assertions.md: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-    .agents/skills/test-authoring/references/java/junit5.md: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
-    .agents/skills/test-authoring/references/java/mockito.md: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
-    .agents/skills/test-authoring/references/java/truth.md: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-    .agents/skills/test-authoring/references/javascript/jest.md: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
-    .agents/skills/test-authoring/references/javascript/node-test.md: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
-    .agents/skills/test-authoring/references/javascript/vitest.md: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
-    .agents/skills/test-authoring/references/mutation-tools.md: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-    .agents/skills/test-authoring/references/python/pytest.md: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
-    .agents/skills/test-authoring/references/rust/libtest.md: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
     .claude/rules/test-authoring.md: sha256:538d9f18993dd3fec2dd39216cf87ae2bed5af4d2197987422ebb133c5c513ab
-    .claude/skills/test-authoring/SKILL.md: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
-    .claude/skills/test-authoring/references/go/testify.md: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-    .claude/skills/test-authoring/references/go/testing.md: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
-    .claude/skills/test-authoring/references/java/archunit.md: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
-    .claude/skills/test-authoring/references/java/assertj.md: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
-    .claude/skills/test-authoring/references/java/hamcrest.md: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
-    .claude/skills/test-authoring/references/java/jetcheck.md: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-    .claude/skills/test-authoring/references/java/junit4-assert.md: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
-    .claude/skills/test-authoring/references/java/junit4.md: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
-    .claude/skills/test-authoring/references/java/junit5-assertions.md: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-    .claude/skills/test-authoring/references/java/junit5.md: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
-    .claude/skills/test-authoring/references/java/mockito.md: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
-    .claude/skills/test-authoring/references/java/truth.md: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-    .claude/skills/test-authoring/references/javascript/jest.md: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
-    .claude/skills/test-authoring/references/javascript/node-test.md: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
-    .claude/skills/test-authoring/references/javascript/vitest.md: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
-    .claude/skills/test-authoring/references/mutation-tools.md: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-    .claude/skills/test-authoring/references/python/pytest.md: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
-    .claude/skills/test-authoring/references/rust/libtest.md: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
     .cursor/rules/test-authoring.mdc: sha256:ac94a1d80bcaa9806861d72003e1720cf745de4c6f51b2f8b18cbf513b8e1220
-  content_hash: sha256:a8ae203f485f7c7efb346b8b6d2c3f451e1cbf21bfb9bbec01fde57f77e635ce
+  content_hash: sha256:614cc7512b8300122ee5029a7c4d29e162e6c5158e2f2b769e336154ea39a24e
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: apm-authoring
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  version: 1.0.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.2.1
   virtual_path: agent-packages/apm-authoring
   is_virtual: true
   depth: 2
   resolved_by: Netcracker/qubership-ai-packages
   package_type: apm_package
   deployed_files:
-  - .agents/skills/apm-authoring
-  - .agents/skills/apm-authoring/SKILL.md
   - .claude/rules/apm-authoring.md
-  - .claude/skills/apm-authoring
-  - .claude/skills/apm-authoring/SKILL.md
   - .cursor/rules/apm-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/apm-authoring/SKILL.md: sha256:1832abc93a14884504dc87d97cc0c2825c7e7b4a6786f2daccf1d6ef172bc907
     .claude/rules/apm-authoring.md: sha256:5c4185d3d69333a810c01f5e26a8ea46b033e7082a21f1551433d6c97d8a24a2
-    .claude/skills/apm-authoring/SKILL.md: sha256:1832abc93a14884504dc87d97cc0c2825c7e7b4a6786f2daccf1d6ef172bc907
     .cursor/rules/apm-authoring.mdc: sha256:f5935b93802f6b703f4340b3b491a06428daa1856f2036f0cac97dc2f8b65c7d
-  content_hash: sha256:1d731d0a26376eda0b82629e6e1cff1b41dfeae13fe8d7e5debb24a1699ea4a8
+  content_hash: sha256:62deff0de177223ebc3c5b0498c3567dbbba2102fe869d933190ca578422c1a7
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: change-description-authoring
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  version: 1.0.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.8.0
   virtual_path: agent-packages/change-description-authoring
   is_virtual: true
   depth: 2
@@ -382,73 +288,61 @@ dependencies:
   package_type: apm_package
   deployed_files:
   - .agents/skills/change-description-authoring
-  - .agents/skills/change-description-authoring/SKILL.md
+  - .agents/skills/change-description-authoring/references/merge-model.md
   - .claude/rules/change-description-authoring.md
   - .claude/skills/change-description-authoring
-  - .claude/skills/change-description-authoring/SKILL.md
+  - .claude/skills/change-description-authoring/references/merge-model.md
   - .cursor/rules/change-description-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/change-description-authoring/SKILL.md: sha256:cd3ee460024dafe83f64897b0290fbc93fdd62755f99ad42654e673fa69925ce
+    .agents/skills/change-description-authoring/references/merge-model.md: sha256:039e97546d1d40b6947a923b369d2139b77ef51838e42ba88c8be9cb8110cd6b
     .claude/rules/change-description-authoring.md: sha256:874c537436380c5a66a67ef11c9165141e5f27d7b055774fc941cff987e6beb2
-    .claude/skills/change-description-authoring/SKILL.md: sha256:cd3ee460024dafe83f64897b0290fbc93fdd62755f99ad42654e673fa69925ce
+    .claude/skills/change-description-authoring/references/merge-model.md: sha256:039e97546d1d40b6947a923b369d2139b77ef51838e42ba88c8be9cb8110cd6b
     .cursor/rules/change-description-authoring.mdc: sha256:654904a7beea8515f694e2000f09420dfba321a4f01a4b5721e2afc04b3cc790
-  content_hash: sha256:dc0dee1302733a6c1e60995acb0c9ed5a622276e0bf012e013345981d9ac2019
+  content_hash: sha256:a0819e071238eccc92f4bc03ad52fa9be8d90c6daf5f92d095770e6f26afb8ce
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: docs-page-authoring
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  version: 1.0.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 1.1.0
   virtual_path: agent-packages/docs-page-authoring
   is_virtual: true
   depth: 2
   resolved_by: Netcracker/qubership-ai-packages
   package_type: apm_package
   deployed_files:
-  - .agents/skills/docs-page-authoring
-  - .agents/skills/docs-page-authoring/SKILL.md
   - .claude/rules/docs-page-authoring.md
-  - .claude/skills/docs-page-authoring
-  - .claude/skills/docs-page-authoring/SKILL.md
   - .cursor/rules/docs-page-authoring.mdc
   deployed_file_hashes:
-    .agents/skills/docs-page-authoring/SKILL.md: sha256:b68881e4c799851da18d76605829f0cf8fecf338eb0fe815f52d70884d97d3b2
-    .claude/rules/docs-page-authoring.md: sha256:3122143e5091fafce44154675cafb0425361ffa79cee76192d0248ecf04d984f
-    .claude/skills/docs-page-authoring/SKILL.md: sha256:b68881e4c799851da18d76605829f0cf8fecf338eb0fe815f52d70884d97d3b2
-    .cursor/rules/docs-page-authoring.mdc: sha256:ba9f4501a7d5d916b7fee1c3941944b467f5022797b57ad94bbbc1339d7667fd
-  content_hash: sha256:16481ba4960f46420e4b7e42e63d26c4ddf82e4fa8e8ddddffb2c00cc4576ab9
+    .claude/rules/docs-page-authoring.md: sha256:7939dec1bf2914c4e3af148a6057abfe2b4fa97192b3f55eeabc4ae2b7cb90a2
+    .cursor/rules/docs-page-authoring.mdc: sha256:2db4b9740f5efc94a764d1ca34cfd8f73d50af7e04ef6bc4c8252a239aa1d2fd
+  content_hash: sha256:65a36854033ed41ce75aca142654d27a39211236a9369fffd824591a2c411f6a
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: english-us-developer-style
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  version: 2.1.0
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  version: 2.2.0
   virtual_path: agent-packages/english-us-developer-style
   is_virtual: true
   depth: 2
   resolved_by: Netcracker/qubership-ai-packages
   package_type: apm_package
   deployed_files:
-  - .agents/skills/english-developer-style
-  - .agents/skills/english-developer-style/SKILL.md
   - .claude/rules/english-developer-style.md
-  - .claude/skills/english-developer-style
-  - .claude/skills/english-developer-style/SKILL.md
   - .cursor/rules/english-developer-style.mdc
   deployed_file_hashes:
-    .agents/skills/english-developer-style/SKILL.md: sha256:9fa75b769c101eb4f90927c80414e96c41ba6db1b10937dc612ebffaba8043fc
     .claude/rules/english-developer-style.md: sha256:2da9f6889756beb319a6395f3f363826d144b9b48c97d742cfd1a89ce0017d58
-    .claude/skills/english-developer-style/SKILL.md: sha256:9fa75b769c101eb4f90927c80414e96c41ba6db1b10937dc612ebffaba8043fc
     .cursor/rules/english-developer-style.mdc: sha256:e6e830aa5469bcadacd7019c0421f84af09889e16db8a1225f2ad6f34a748fa9
-  content_hash: sha256:f97efa2a8e0d5c1bd68ddf9f12a3dcf96d2b9b952d5e4aa968f0bc7c71767034
+  content_hash: sha256:89d056a026b5f5dac3d67928e3bd149a49b34db4b063dbd776e0a6e0c01696b7
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: markdown-line-length-120
   host: github.com
-  resolved_commit: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
-  resolved_ref: 19056c1d07fd6bbe8163f28a222a7d29cfd47007
+  resolved_commit: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
+  resolved_ref: 2923c287f1ec81cd0c55b4461b27ee7a8e041d75
   version: 1.0.1
   virtual_path: agent-packages/markdown-line-length-120
   is_virtual: true
@@ -560,7 +454,7 @@ dependencies:
     .claude/skills/qubership-workflow-conventions/workflow-patterns.md: sha256:5e3162d18c8d8a205dd5a42a30e7d20447135de535786fb43ce384f184707b25
     .claude/skills/qubership-workflow-conventions/zizmor-rules.md: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
     .cursor/rules/qubership-workflow-hub-usage.mdc: sha256:4370214b5f0aa197a566188742fcb9f3403ceab32f5703aaab8f7d6926f238b2
-  content_hash: sha256:ccf846dd161c6ab1ccc0413225895998420ed2ece2b1a36ff37b8d99c08d10b5
+  content_hash: sha256:6d135ff9b92ab29986cc6c64265e6f7abc3c4f223726ed4b1a429dc2556a2689
 deployments:
 - kind: project-relative
   target: claude
@@ -579,7 +473,7 @@ deployments:
   owners:
   - ./agent-packages/qubership-nifi-lint-hook-claude
   active_owner: ./agent-packages/qubership-nifi-lint-hook-claude
-  content_hash: sha256:82f8017156b36abd93cfce1e793888f60d1e80306efb36ab99e3ce1b20334bfd
+  content_hash: sha256:c4b1b057f58ebdf002579636f57370637cf5a0f53a5b7373b03361e723c8a0be
 - kind: project-relative
   target: claude
   value: .claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py
@@ -615,7 +509,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: sha256:3122143e5091fafce44154675cafb0425361ffa79cee76192d0248ecf04d984f
+  content_hash: sha256:7939dec1bf2914c4e3af148a6057abfe2b4fa97192b3f55eeabc4ae2b7cb90a2
 - kind: project-relative
   target: claude
   value: .claude/rules/english-developer-style.md
@@ -633,7 +527,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/final-review
   active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
-  content_hash: sha256:e0d9e101e61b7b69d0470b60cda0a8a740071f567c1b822f615bca0d3e94e085
+  content_hash: sha256:f895f4752ffcab08bc8a5f28f61e7316887976db3f1641fb9beba0b5e6c4ebe1
 - kind: project-relative
   target: claude
   value: .claude/rules/javadoc-authoring.md
@@ -708,24 +602,6 @@ deployments:
   content_hash: sha256:e680628acc6ee9db850a4456eb55e1ad1d07c2d9830236ae3c3008365d52e8a7
 - kind: project-relative
   target: claude
-  value: .claude/skills/apm-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  content_hash: null
-- kind: project-relative
-  target: claude
-  value: .claude/skills/apm-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  content_hash: sha256:1832abc93a14884504dc87d97cc0c2825c7e7b4a6786f2daccf1d6ef172bc907
-- kind: project-relative
-  target: claude
   value: .claude/skills/change-description-authoring
   runtime: null
   scope: project
@@ -735,49 +611,13 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: claude
-  value: .claude/skills/change-description-authoring/SKILL.md
+  value: .claude/skills/change-description-authoring/references/merge-model.md
   runtime: null
   scope: project
   owners:
   - netcracker/qubership-ai-packages/agent-packages/change-description-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/change-description-authoring
-  content_hash: sha256:cd3ee460024dafe83f64897b0290fbc93fdd62755f99ad42654e673fa69925ce
-- kind: project-relative
-  target: claude
-  value: .claude/skills/docs-page-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: null
-- kind: project-relative
-  target: claude
-  value: .claude/skills/docs-page-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: sha256:b68881e4c799851da18d76605829f0cf8fecf338eb0fe815f52d70884d97d3b2
-- kind: project-relative
-  target: claude
-  value: .claude/skills/english-developer-style
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  active_owner: netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  content_hash: null
-- kind: project-relative
-  target: claude
-  value: .claude/skills/english-developer-style/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  active_owner: netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  content_hash: sha256:9fa75b769c101eb4f90927c80414e96c41ba6db1b10937dc612ebffaba8043fc
+  content_hash: sha256:039e97546d1d40b6947a923b369d2139b77ef51838e42ba88c8be9cb8110cd6b
 - kind: project-relative
   target: claude
   value: .claude/skills/final-review
@@ -789,15 +629,6 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: claude
-  value: .claude/skills/final-review/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/final-review
-  active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
-  content_hash: sha256:937127a6b56c1352298ca0aebccbe0f2468a25b7b1b919acbe6c9281771e0bcc
-- kind: project-relative
-  target: claude
   value: .claude/skills/final-review/scripts/comment-drift.py
   runtime: null
   scope: project
@@ -805,24 +636,6 @@ deployments:
   - netcracker/qubership-ai-packages/agent-packages/final-review
   active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
   content_hash: sha256:690ab92375ce9e1ef52dece9d4edd370f98ee3a3509bd5961a7dc845ba705d78
-- kind: project-relative
-  target: claude
-  value: .claude/skills/javadoc-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  content_hash: null
-- kind: project-relative
-  target: claude
-  value: .claude/skills/javadoc-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  content_hash: sha256:f32712c99235044ec14a91f4b4ef9651ff4fe06e897f2fd077494fc359eb74fe
 - kind: project-relative
   target: claude
   value: .claude/skills/markdown-line-length-120
@@ -1230,186 +1043,6 @@ deployments:
   content_hash: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
 - kind: project-relative
   target: claude
-  value: .claude/skills/test-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: null
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/go/testify.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/go/testing.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/archunit.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/assertj.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/hamcrest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/jetcheck.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/junit4-assert.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/junit4.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/junit5-assertions.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/junit5.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/mockito.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/java/truth.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/javascript/jest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/javascript/node-test.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/javascript/vitest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/mutation-tools.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/python/pytest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
-- kind: project-relative
-  target: claude
-  value: .claude/skills/test-authoring/references/rust/libtest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
-- kind: project-relative
-  target: claude
   value: .claude/skills/update-project-documentation
   runtime: null
   scope: project
@@ -1428,24 +1061,6 @@ deployments:
   content_hash: sha256:b865531716b89ec89d3f12ea4e52659714707a9a7bafd8b6d835fca8a0488383
 - kind: project-relative
   target: codex
-  value: .agents/skills/apm-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  content_hash: null
-- kind: project-relative
-  target: codex
-  value: .agents/skills/apm-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/apm-authoring
-  content_hash: sha256:1832abc93a14884504dc87d97cc0c2825c7e7b4a6786f2daccf1d6ef172bc907
-- kind: project-relative
-  target: codex
   value: .agents/skills/change-description-authoring
   runtime: null
   scope: project
@@ -1455,49 +1070,13 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: codex
-  value: .agents/skills/change-description-authoring/SKILL.md
+  value: .agents/skills/change-description-authoring/references/merge-model.md
   runtime: null
   scope: project
   owners:
   - netcracker/qubership-ai-packages/agent-packages/change-description-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/change-description-authoring
-  content_hash: sha256:cd3ee460024dafe83f64897b0290fbc93fdd62755f99ad42654e673fa69925ce
-- kind: project-relative
-  target: codex
-  value: .agents/skills/docs-page-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: null
-- kind: project-relative
-  target: codex
-  value: .agents/skills/docs-page-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: sha256:b68881e4c799851da18d76605829f0cf8fecf338eb0fe815f52d70884d97d3b2
-- kind: project-relative
-  target: codex
-  value: .agents/skills/english-developer-style
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  active_owner: netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  content_hash: null
-- kind: project-relative
-  target: codex
-  value: .agents/skills/english-developer-style/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  active_owner: netcracker/qubership-ai-packages/agent-packages/english-us-developer-style
-  content_hash: sha256:9fa75b769c101eb4f90927c80414e96c41ba6db1b10937dc612ebffaba8043fc
+  content_hash: sha256:039e97546d1d40b6947a923b369d2139b77ef51838e42ba88c8be9cb8110cd6b
 - kind: project-relative
   target: codex
   value: .agents/skills/final-review
@@ -1509,15 +1088,6 @@ deployments:
   content_hash: null
 - kind: project-relative
   target: codex
-  value: .agents/skills/final-review/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/final-review
-  active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
-  content_hash: sha256:937127a6b56c1352298ca0aebccbe0f2468a25b7b1b919acbe6c9281771e0bcc
-- kind: project-relative
-  target: codex
   value: .agents/skills/final-review/scripts/comment-drift.py
   runtime: null
   scope: project
@@ -1525,24 +1095,6 @@ deployments:
   - netcracker/qubership-ai-packages/agent-packages/final-review
   active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
   content_hash: sha256:690ab92375ce9e1ef52dece9d4edd370f98ee3a3509bd5961a7dc845ba705d78
-- kind: project-relative
-  target: codex
-  value: .agents/skills/javadoc-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  content_hash: null
-- kind: project-relative
-  target: codex
-  value: .agents/skills/javadoc-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/javadoc-authoring
-  content_hash: sha256:f32712c99235044ec14a91f4b4ef9651ff4fe06e897f2fd077494fc359eb74fe
 - kind: project-relative
   target: codex
   value: .agents/skills/markdown-line-length-120
@@ -1950,186 +1502,6 @@ deployments:
   content_hash: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
 - kind: project-relative
   target: codex
-  value: .agents/skills/test-authoring
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: null
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/SKILL.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8fb33e4c3d49196a5cdf8047e844dbc2d56e8c4e123a67930786316313efd416
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/go/testify.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:6180080bad2580c87f4987f439228462bdde46f402bcfb031b780a719a6e8e6e
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/go/testing.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:dcb99b0127996036c2890333ebdbe6df8e8ee9dde004330fb74772c6d039cb82
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/archunit.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:8b22a316dc3fee26ed7705b27a795799dbf166f5e19095e2711f006985df411b
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/assertj.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:60bf464539ba15ae47c75a94514c7f5bc5915fb797cc68cfacb75967ab7e6da3
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/hamcrest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:fbb9104ae1b019e3b97233b8850a5fed4b9078e994e21dc34d22a72c61d05a90
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/jetcheck.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:0f56bbbc0ef51bc1380ffc5ef165d0debba328fc32f5135cbb01662bf0a4d5b2
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/junit4-assert.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:1319491843e3e459be6ffae28c118555cea606e41a7a1cba53c7c373b18f6e5a
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/junit4.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:9627a9d5cbc8149f5086203ad9f50a6d2c313f3d02873d30b324b7a5db301877
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/junit5-assertions.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:bc8e0beb29ae531b358fa7367e7feed75f26deea80418f1b8773d401a6c6b704
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/junit5.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:d6925721bd033d05d3891a12d6d482ab91c2ab16ef3de0d02fe0fc834cf3bc26
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/mockito.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:dea1ed1247e2ae798c7ff839471e192294f582be33283a27f94c9695a392bec2
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/java/truth.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:bd6b6a9470acc710f05a09408de1d4f633ec241ca28c7db688e212a914d2605a
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/javascript/jest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:21cfe35a8f52a726ecfdb0735a8478b566a1d6667f0671e5114b2d052000224b
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/javascript/node-test.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:75e537dbb9100cd7d9b385bd9a743b00c4e092dac78211949220da9281d0c872
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/javascript/vitest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:a1900af99e9d31f38a396c5bbedc4076ede06d58e448eafa1381ef0a11816f22
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/mutation-tools.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:959663892db206bf40c652e42e4a4ee334a727d084f9fb427587369fb6ee2940
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/python/pytest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:a8e9553359e9b42faabb8e46119aa36f0692006c67d19a077e0fce290c05458a
-- kind: project-relative
-  target: codex
-  value: .agents/skills/test-authoring/references/rust/libtest.md
-  runtime: null
-  scope: project
-  owners:
-  - netcracker/qubership-ai-packages/agent-packages/test-authoring
-  active_owner: netcracker/qubership-ai-packages/agent-packages/test-authoring
-  content_hash: sha256:f45a916ab7182b7f3f29c2264e3ab1361c5d5adbbe44036e1a32d4d01e537b39
-- kind: project-relative
-  target: codex
   value: .agents/skills/update-project-documentation
   runtime: null
   scope: project
@@ -2217,7 +1589,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
   active_owner: netcracker/qubership-ai-packages/agent-packages/docs-page-authoring
-  content_hash: sha256:ba9f4501a7d5d916b7fee1c3941944b467f5022797b57ad94bbbc1339d7667fd
+  content_hash: sha256:2db4b9740f5efc94a764d1ca34cfd8f73d50af7e04ef6bc4c8252a239aa1d2fd
 - kind: project-relative
   target: cursor
   value: .cursor/rules/english-developer-style.mdc
@@ -2235,7 +1607,7 @@ deployments:
   owners:
   - netcracker/qubership-ai-packages/agent-packages/final-review
   active_owner: netcracker/qubership-ai-packages/agent-packages/final-review
-  content_hash: sha256:6c39680e5309a9041f33e9459bfee763279aa8d8db31339a7e143579af24ba53
+  content_hash: sha256:f55c55585d9d74f77eca4b0c478c23dbdef31740a2d3248e529b7bf9f6982af5
 - kind: project-relative
   target: cursor
   value: .cursor/rules/javadoc-authoring.mdc
