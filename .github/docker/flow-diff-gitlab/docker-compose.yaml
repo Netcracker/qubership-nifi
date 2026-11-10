@@ -7,7 +7,7 @@ name: flow-diff-gitlab
 
 services:
   gitlab:
-    image: gitlab/gitlab-ce:18.11.14-ce.0@sha256:bbfd0b2d484574ffd18fa71aa5023df39cb0c5e99f50f121ec68af52cb60dac8
+    image: gitlab/gitlab-ce:19.5.3-ce.0@sha256:6863d156a1a477bd6f69fc674b671d0163cd8b06bf63bb17cc4a4a803b78b27c
     container_name: flow-diff-gitlab
     hostname: gitlab
     # external_url names gitlab:8929 rather than localhost because GitLab bakes it into
@@ -37,7 +37,7 @@ services:
       retries: 60
       start_period: 120s
   gitlab-runner:
-    image: gitlab/gitlab-runner:v18.11.4@sha256:96fbcefea955010d39e22408abd71e76c4da0c732bc200506fbef1c001c4d1c6
+    image: gitlab/gitlab-runner:v19.5.2@sha256:6d4cdfe23443fa5463bffa65cba9074a4517f68784756b69bcc362ca86f3d4c6
     container_name: flow-diff-gitlab-runner
     depends_on:
       gitlab:
