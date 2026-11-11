@@ -27,7 +27,7 @@ services:
       - TRUSTSTORE_PASSWORD=${TRUSTSTORE_PASSWORD}
       - IS_CLUSTER=true
   zookeeper:
-    image: zookeeper:3.9.6@sha256:5bad433c71701a1d788b4df86c921d91bfb65c23a1443bcb18a80f40373ae9d9
+    image: zookeeper:3.9.6@sha256:bbf678337a9242fcb6e49e51193855078ec515251cf11fe0bcfabae6a10e040a
     ports:
       - 127.0.0.1:2182:2182
     volumes:
@@ -45,7 +45,7 @@ services:
       timeout: 5s
       retries: 12
   zookeeper-initial-config:
-    image: zookeeper:3.9.6@sha256:5bad433c71701a1d788b4df86c921d91bfb65c23a1443bcb18a80f40373ae9d9
+    image: zookeeper:3.9.6@sha256:bbf678337a9242fcb6e49e51193855078ec515251cf11fe0bcfabae6a10e040a
     depends_on:
       zookeeper:
         condition: service_healthy
