@@ -15,14 +15,9 @@ DIR="upgrade-temp-data/known-issues"
 ISSUES_FILE="${DIR}/jira-issues-${TARGET}.json"
 CLASSIFICATION_FILE="${DIR}/classification-${TARGET}.json"
 REPORT_FILE="${DIR}/known-issues-${TARGET}.md"
-ISSUE_URL="https://issues.apache.org/jira/rest/api/2/issue"
-# Timeout of one Jira request, in seconds.
-TIMEOUT="${JIRA_TIMEOUT:-30}"
-if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || (( 10#$TIMEOUT == 0 )); then
-    echo "Error: JIRA_TIMEOUT must be a positive integer, got '${TIMEOUT}'." >&2
-    exit 1
-fi
-
+# A report left by an earlier run must not pass for the result of this one.
+rm -f "$REPORT_FILE"
+SEARCH_URL="https://issues.apache.org/jira/rest/api/2/search"
 # Prints the error message $1, writes it to the known-issues report in place of the issue table, and exits with an
 # error.
 fail() {
@@ -33,16 +28,27 @@ fail() {
     exit 1
 }
 
+# Timeout of one Jira request, in seconds.
+TIMEOUT="${JIRA_TIMEOUT:-30}"
+if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || (( 10#$TIMEOUT == 0 )); then
+    fail "Error: JIRA_TIMEOUT must be a positive integer, got '${TIMEOUT}'."
+fi
+TIMEOUT=$((10#$TIMEOUT))
 for file in "$ISSUES_FILE" "$CLASSIFICATION_FILE"; do
     if [[ ! -f "$file" ]]; then
         fail "Error: '${file}' not found."
     fi
 done
-if ! jq -e '.keywords | type == "array"' "$ISSUES_FILE" > /dev/null; then
-    fail "Error: '${ISSUES_FILE}' has no keyword list. Run searchJiraIssues.sh again."
+if ! jq -e '(.keywords | type == "array") and (.issues | type == "array")' "$ISSUES_FILE" > /dev/null 2>&1; then
+    fail "Error: '${ISSUES_FILE}' isn't valid JSON or has no keyword list or issue list. Run searchJiraIssues.sh again."
 fi
-if ! jq -e . "$CLASSIFICATION_FILE" > /dev/null 2>&1; then
+if ! jq empty "$CLASSIFICATION_FILE" > /dev/null 2>&1; then
     fail "Error: '${CLASSIFICATION_FILE}' isn't valid JSON."
+fi
+# The file must hold exactly one JSON value, an array: a second value after it would be read as another
+# classification.
+if ! jq -es 'length == 1 and (.[0] | type == "array")' "$CLASSIFICATION_FILE" > /dev/null 2>&1; then
+    fail "Error: '${CLASSIFICATION_FILE}' must contain exactly one top-level JSON array."
 fi
 
 # The classification comes from a subagent that read untrusted issue text. Accept only the fixed values, and report
@@ -51,53 +57,89 @@ PROBLEMS=$(jq -r --slurpfile jira "$ISSUES_FILE" '
     def is_key: type == "string" and test("^NIFI-[0-9]+$");
     ($jira[0].issues | map(.key)) as $keys
     | $jira[0].keywords as $keywords
-    | if type != "array" then "the classification isn'"'"'t a JSON array" else
-        (to_entries[] | (.key + 1) as $n | .value as $e
-            | (if ($e | type) == "object" and ($e.key | is_key) then $e.key else "entry \($n)" end) as $id
-            | if ($e | type) != "object" then "\($id): not an object"
-              elif ($e | keys) != (["impact", "introduced_by", "key", "keywords", "suspicious", "verdict"])
-              then "\($id): wrong set of fields"
-              else
-                (if ($e.key | is_key) | not then "\($id): key isn'"'"'t NIFI-<digits>"
-                 elif ($keys | index($e.key)) == null then "\($id): not in the search result" else empty end),
-                (if ($e.verdict | IN("breaks-feature", "workaround", "not relevant")) | not
-                 then "\($id): invalid verdict" else empty end),
-                (if ($e.keywords | type) != "array" or ($e.keywords - $keywords) != []
-                 then "\($id): keywords not from the keyword list" else empty end),
-                (if ($e.introduced_by == "" or ($e.introduced_by | is_key)) | not
-                 then "\($id): introduced_by isn'"'"'t empty or NIFI-<digits>" else empty end),
-                (if ($e.suspicious | IN("yes", "no")) | not then "\($id): suspicious isn'"'"'t yes or no"
-                 else empty end),
-                (if ($e.impact | type) != "string" or ($e.impact | length) == 0 or ($e.impact | length) > 200
-                    or ($e.impact | test("[\r\n]"))
-                 then "\($id): impact isn'"'"'t one line of 1-200 characters" else empty end)
-              end),
-        (map(.key?) | group_by(.) | map(select(length > 1) | .[0]) | .[]
-            | "\(if is_key then . else "an entry" end): classified more than once"),
-        (($keys - map(.key?)) | .[] | "\(.): not classified")
-      end
+    | (to_entries[] | (.key + 1) as $n | .value as $e
+        | (if ($e | type) == "object" and ($e.key | is_key) then $e.key else "entry \($n)" end) as $id
+        | if ($e | type) != "object" then "\($id): not an object"
+          elif ($e | keys) != (["impact", "introduced_by", "key", "keywords", "suspicious", "verdict"])
+          then "\($id): wrong set of fields"
+          else
+            (if ($e.key | is_key) | not then "\($id): key isn'"'"'t NIFI-<digits>"
+             elif ($keys | index($e.key)) == null then "\($id): not in the search result" else empty end),
+            (if ($e.verdict | IN("breaks-feature", "workaround", "not relevant")) | not
+             then "\($id): invalid verdict" else empty end),
+            (if ($e.keywords | type) != "array" or ($e.keywords - $keywords) != []
+             then "\($id): keywords not from the keyword list" else empty end),
+            (if ($e.introduced_by == "" or ($e.introduced_by | is_key)) | not
+             then "\($id): introduced_by isn'"'"'t empty or NIFI-<digits>" else empty end),
+            (if ($e.suspicious | IN("yes", "no")) | not then "\($id): suspicious isn'"'"'t yes or no"
+             else empty end),
+            (if ($e.impact | type) != "string" or ($e.impact | length) == 0 or ($e.impact | length) > 200
+                or ($e.impact | test("[\r\n]"))
+             then "\($id): impact isn'"'"'t one line of 1-200 characters" else empty end)
+          end),
+    (map(.key?) | group_by(.) | map(select(length > 1) | .[0]) | .[]
+        | "\(if is_key then . else "an entry" end): classified more than once"),
+    (($keys - map(.key?)) | .[] | "\(.): not classified")
 ' "$CLASSIFICATION_FILE")
 if [[ -n "$PROBLEMS" ]]; then
     fail "Error: the classification in ${CLASSIFICATION_FILE} has problems:"$'\n'"${PROBLEMS}"
 fi
 
 # A regression exists in the target version only if the issue that introduced it was fixed in the target version or
-# earlier. Fetch the fix versions of each such issue; null means that they couldn't be fetched.
+# earlier. Fetch the fix versions of all such issues in one search; null means that they couldn't be fetched. The
+# validator above accepted only NIFI-<digits> keys, so the keys are safe to put into the query. With validateQuery
+# false, a key that Jira doesn't know is left out of the result instead of failing the whole search.
+KEYS=$(jq -c '[.[].introduced_by | select(. != "")] | unique' "$CLASSIFICATION_FILE")
 INTRODUCED='{}'
-for key in $(jq -r '[.[].introduced_by | select(. != "")] | unique | .[]' "$CLASSIFICATION_FILE" | tr -d '\r'); do
-    if body=$(curl -sS --fail-with-body --max-time "$TIMEOUT" "${ISSUE_URL}/${key}?fields=fixVersions") \
-        && versions=$(jq -c '[.fields.fixVersions[]?.name]' <<< "$body" 2> /dev/null); then
-        :
+if [[ "$KEYS" != "[]" ]]; then
+    if body=$(jq -n --argjson keys "$KEYS" '{jql: "key in (\($keys | join(", ")))", fields: ["fixVersions"],
+                maxResults: ($keys | length), validateQuery: false}' \
+            | curl -sS --fail-with-body --max-time "$TIMEOUT" -X POST -H "Content-Type: application/json" \
+                --data @- "$SEARCH_URL") \
+        && INTRODUCED=$(jq -c --argjson keys "$KEYS" '
+            (.issues | map({(.key): [.fields.fixVersions[]?.name]}) | add // {}) as $found
+            | $keys | map({(.): $found[.]}) | add' <<< "$body" 2> /dev/null); then
+        MISSING=$(jq -r 'to_entries | map(select(.value == null) | .key) | join(", ")' <<< "$INTRODUCED")
     else
-        echo "Warning: couldn't fetch the fix versions of ${key}; its regression isn't checked." >&2
-        versions=null
+        INTRODUCED=$(jq -c 'map({(.): null}) | add' <<< "$KEYS")
+        MISSING=$(jq -r 'join(", ")' <<< "$KEYS")
     fi
-    INTRODUCED=$(jq -c --arg k "$key" --argjson v "$versions" '. + {($k): $v}' <<< "$INTRODUCED")
-done
+    if [[ -n "$MISSING" ]]; then
+        echo "Warning: couldn't fetch the fix versions of ${MISSING}; their regressions aren't checked." >&2
+    fi
+fi
 
-# Issue summaries and statuses are untrusted text: keep each on one line and escape the table separator.
+# Issue summaries, statuses, impact lines, and version names are untrusted text. The report shows them as plain text:
+# links and images keep only their text or alt text, URLs and e-mail addresses are removed, and angle brackets are
+# escaped, so that HTML shows as text and Java types such as Map<String, Object> keep their words. The user opens the
+# issue in Jira to see the original. Each value is kept on one line, and Markdown brackets, backslashes, and the
+# table separator are escaped.
 REPORT_DEFS='
-    def cell: tostring | gsub("[\r\n]+"; " ") | gsub("\\|"; "\\|");
+    def cell: tostring | gsub("[\r\n]+"; " ")
+        # Markdown images and links: inline, with one level of parentheses in the URL; reference style; and
+        # reference definitions [ref]: url.
+        | gsub("!?\\[(?<t>[^\\]]*)\\]\\((?:[^()]|\\([^()]*\\))*\\)"; "\(.t)")
+        | gsub("!?\\[(?<t>[^\\]]*)\\]\\[[^\\]]*\\]"; "\(.t)") | gsub("\\[[^\\]]*\\]:\\s*\\S+"; "")
+        # Jira links [text|url] and images !file.png! or !file.png|options!.
+        | gsub("\\[(?<t>[^\\]|]*)\\|[^\\]]*\\]"; "\(.t)")
+        | gsub("![^!\\s]+\\.(?:png|jpe?g|gif|svg|bmp|webp)(?:\\|[^!]*)?!"; ""; "i")
+        # HTML images keep their alt text, and autolinks such as <https://...> or <name@example.com> are removed.
+        | gsub("<img\\b[^>]*\\balt\\s*=\\s*\"(?<t>[^\"]*)\"[^>]*>"; "\(.t)"; "i")
+        | gsub("<(?:https?|ftp|mailto):[^>]*>"; ""; "i") | gsub("<[^<>\\s@]+@[^<>\\s]+>"; "")
+        # Bare URLs and e-mail addresses, which Markdown viewers turn into links.
+        # No word boundary before them: GitHub also links a URL that follows "_", as in _https://..._.
+        | gsub("(?:https?|ftp)://[^\\s\"<>\\[\\]()]*"; ""; "i") | gsub("www\\.[^\\s\"<>\\[\\]()]*"; ""; "i")
+        | gsub("(?:mailto:)?[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"; ""; "i")
+        # The brackets left by a link without text.
+        | gsub("\\[\\s*\\]|\\(\\s*\\)"; "")
+        # Any other HTML is shown as text.
+        | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;")
+        # The spaces left around a removed link.
+        | gsub("\\s{2,}"; " ") | gsub("^\\s+|\\s+$"; "")
+        # Markdown escapes: a link that the rules above missed, such as one with brackets in its text, can no longer
+        # be parsed as a link. The backslash goes first, so that an escape in the text stays text.
+        | gsub("\\\\"; "\\\\") | gsub("\\["; "\\[") | gsub("\\]"; "\\]")
+        | gsub("\\|"; "\\|");
     def link: "[\(.)](https://issues.apache.org/jira/browse/\(.))";
     def names: map(.name) | join(", ");
     # A sort key for versions such as 2.0.0-M4: a milestone sorts before its release.
@@ -111,9 +153,10 @@ REPORT_DEFS='
         | if $v == null then . + {introduced: "\($by), fix versions not fetched"}
           elif $v == [] then . + {introduced: "\($by), no fix version"}
           elif all($v[]; vkey > ($target | vkey))
-          then . + {verdict: "not relevant", introduced: "\($by), fixed in \($v | join(", ")), after \($target)"}
+          then . + {verdict: "not relevant",
+                    introduced: "\($by), fixed in \($v | map(cell) | join(", ")), after \($target)"}
               + (if .verdict == "not relevant" then {} else {classified: .verdict} end)
-          else . + {introduced: "\($by), fixed in \($v | join(", "))"} end
+          else . + {introduced: "\($by), fixed in \($v | map(cell) | join(", "))"} end
         end;
     def rows: ($cls[0] | map({(.key): checked}) | add // {}) as $by_key
         | .issues | sort_by(.key | ltrimstr("NIFI-") | tonumber)

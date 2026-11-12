@@ -18,6 +18,8 @@ REPORT_FILE="${OUT_DIR}/known-issues-${TARGET}.md"
 SEARCH_URL="https://issues.apache.org/jira/rest/api/2/search"
 KEYWORDS="kafka redis json sql http request s3"
 NL=$'\n'
+# A report left by an earlier run must not pass for the result of this one.
+rm -f "$REPORT_FILE"
 
 # Prints the error message $1, writes it to the known-issues report in place of the issue table, and exits with an
 # error.
@@ -89,12 +91,13 @@ search_all() {
         if jq -e '.errorMessages // empty | length > 0' "$page" > /dev/null 2>&1; then
             fail "Error: Jira rejected the search:${NL}$(jq -r '.errorMessages[]' "$page")"
         fi
+        # The response body can hold issue summaries and descriptions, which are untrusted text: the errors below
+        # don't quote it, so that it never reaches the report or the agent that reads the error.
         if [[ "$curl_status" -ne 0 ]]; then
-            fail "Error: the Jira request failed with curl exit code ${curl_status}.${NL}$(
-                head -c 500 "$page" 2> /dev/null)"
+            fail "Error: the Jira request failed with curl exit code ${curl_status}."
         fi
         if ! jq -e '(.total | type == "number") and (.issues | type == "array")' "$page" > /dev/null 2>&1; then
-            fail "Error: the Jira response isn't a search result:${NL}$(head -c 500 "$page")"
+            fail "Error: the Jira response isn't a search result."
         fi
         total=$(jq '.total' "$page")
         # Jira may return fewer issues than maxResults, so move by the number of issues actually returned.
