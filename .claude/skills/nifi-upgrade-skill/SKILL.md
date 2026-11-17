@@ -5,9 +5,21 @@ description: Upgrades Apache NiFi to a target version. Updates scripts, configs,
 
 # NiFi Upgrade Skill
 
+Run every `mvn` command in this skill with `--batch-mode --no-transfer-progress -Dgpg.skip=true`. The build signs
+artifacts with GPG in the verify phase, so `mvn install` fails on a machine without a GPG key unless
+`-Dgpg.skip=true` is set.
+
 ## 1. Get versions
 
-- Ask the user for **target NiFi version** and **SHA256 hash** if not provided. Don't proceed without both.
+- Take the **target NiFi version** and its **SHA256 hash** from the `NIFI_VERSION` and `NIFI_DIGEST` environment
+  variables. The `check` job of `.github/workflows/nifi-version-update.yml` sets them, and the hash has the
+  `sha256:<hex>` form that `NIFI_VERSION_SHA256` in the Dockerfile uses.
+
+  ```bash
+  echo "$NIFI_VERSION $NIFI_DIGEST"
+  ```
+
+- When either variable is empty, as in a local run, ask the user for the missing value. Don't proceed without both.
 - Get current version from Dockerfile:
 
 ```bash
@@ -88,7 +100,7 @@ grep -rn '<term>' \
 
 ```bash
 mvn clean install -DskipUnitTests=true -Dgpg.skip=true -q
-mvn clean install 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
+mvn clean install -Dgpg.skip=true 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
 ```
 
 ## 11. Export & compare nifi component properties
@@ -124,17 +136,25 @@ displayNameMapping:
       Old_Display_Name: New_Display_Name
 ```
 
-Additionally, ask the user to review all properties marked as `deleted` before continuing. For each
-deleted property, ask the user whether it can be removed unconditionally, or whether it is a sensitive
-property with complex migration logic that Apache NiFi only handles when the property has a value (if
-left empty, its value is absent from the export but its descriptor remains, and the orphaned sensitive
-descriptor breaks import).
+Then put every property marked as `deleted` that is not part of a rename into one of two sections:
 
-- Properties that can be removed unconditionally go under `propertiesAllowedToDelete`.
-- Sensitive properties that must be removed only when their value is empty go under
-  `propertiesToRemoveWhenEmpty`.
+- `propertiesToRemoveWhenEmpty` - the property is sensitive. Apache NiFi migrates a sensitive property only when it
+  has a value. An empty one is absent from the export, but its descriptor remains, and the orphaned sensitive
+  descriptor breaks import, so the descriptor is removed only when the value is empty.
+- `propertiesAllowedToDelete` - every other deleted property, removed unconditionally.
 
-A property must be listed in exactly one of the two sections, never both.
+Decide by the `sensitive` field of the property in the `<CURRENT>` export:
+`upgrade-temp-data/nifi-property-exports/<CURRENT>/<Component Type>/<Component Name>.json`, under
+`propertyDescriptors."<Old Api Name>"`, with `Component Type`, `Component Name`, and `Old Api Name` taken from the CSV
+row. `true` means `propertiesToRemoveWhenEmpty`; `false` or a missing field means `propertiesAllowedToDelete`.
+
+```bash
+jq '.propertyDescriptors["<Old Api Name>"].sensitive' \
+  "upgrade-temp-data/nifi-property-exports/<CURRENT>/<Component Type>/<Component Name>.json"
+```
+
+A property must be listed in exactly one of the two sections, never both. Don't ask the user to sort them. In the
+final report, list the properties of each section by component, so the reviewer can check the choice.
 
 ```yaml
 propertiesAllowedToDelete:
@@ -166,8 +186,9 @@ this upgrade and write the results to `upgrade-temp-data/releases-notes/`.
 
 Versions to substitute:
 
-- `<qubership-nifi.version>` - ask the user for the **planned qubership-nifi
-  release version** (e.g. `2.9.0`). Don't proceed without it.
+- `<qubership-nifi.version>` - the **planned qubership-nifi release version** (e.g. `2.9.0`), taken from the
+  `QUBERSHIP_NIFI_VERSION` environment variable, which `.github/workflows/sh/nifi-upgrade-agent.sh` sets. When the
+  variable is empty, as in a local run, ask the user for it. Don't proceed without it.
 - `<nifi.version>` - the target Apache NiFi version (`<TARGET>` from step 1).
 - `<previous-nifi.version>` - the current Apache NiFi version (`<CURRENT>` from step 1).
 - `<nifi-api.version>` - the `nifi-api.version` property set in `./pom.xml` in step 8.
