@@ -34,13 +34,19 @@ if ! [[ "$TIMEOUT" =~ ^[0-9]+$ ]] || (( 10#$TIMEOUT == 0 )); then
     fail "Error: JIRA_TIMEOUT must be a positive integer, got '${TIMEOUT}'."
 fi
 TIMEOUT=$((10#$TIMEOUT))
-for file in "$ISSUES_FILE" "$CLASSIFICATION_FILE"; do
-    if [[ ! -f "$file" ]]; then
-        fail "Error: '${file}' not found."
-    fi
-done
+if [[ ! -f "$ISSUES_FILE" ]]; then
+    fail "Error: '${ISSUES_FILE}' not found."
+fi
 if ! jq -e '(.keywords | type == "array") and (.issues | type == "array")' "$ISSUES_FILE" > /dev/null 2>&1; then
     fail "Error: '${ISSUES_FILE}' isn't valid JSON or has no keyword list or issue list. Run searchJiraIssues.sh again."
+fi
+# With no issues found, the subagent isn't run and there is nothing to classify. A classification left by an earlier
+# run is replaced too: it would name issues that this search didn't find.
+if jq -e '.issues == []' "$ISSUES_FILE" > /dev/null; then
+    echo '[]' > "$CLASSIFICATION_FILE"
+fi
+if [[ ! -f "$CLASSIFICATION_FILE" ]]; then
+    fail "Error: '${CLASSIFICATION_FILE}' not found."
 fi
 if ! jq empty "$CLASSIFICATION_FILE" > /dev/null 2>&1; then
     fail "Error: '${CLASSIFICATION_FILE}' isn't valid JSON."

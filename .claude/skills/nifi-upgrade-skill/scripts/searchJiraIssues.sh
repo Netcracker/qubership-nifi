@@ -16,7 +16,8 @@ OUT_DIR="upgrade-temp-data/known-issues"
 OUT_FILE="${OUT_DIR}/jira-issues-${TARGET}.json"
 REPORT_FILE="${OUT_DIR}/known-issues-${TARGET}.md"
 SEARCH_URL="https://issues.apache.org/jira/rest/api/2/search"
-KEYWORDS="kafka redis json sql http request s3"
+# One keyword per line.
+KEYWORDS_FILE="$(dirname "${BASH_SOURCE[0]}")/../conf/known-issues-keywords.txt"
 NL=$'\n'
 # A report left by an earlier run must not pass for the result of this one.
 rm -f "$REPORT_FILE"
@@ -45,6 +46,15 @@ PAGE_SIZE=$(positive_int_env JIRA_PAGE_SIZE 100)
 # Timeout of one Jira request, in seconds.
 TIMEOUT=$(positive_int_env JIRA_TIMEOUT 30)
 
+if [[ ! -f "$KEYWORDS_FILE" ]]; then
+    fail "Error: keyword file '${KEYWORDS_FILE}' not found."
+fi
+# The keywords go into a regular expression and into quotes in the JQL query: allow letters and digits only.
+KEYWORDS=$(tr -d '\r' < "$KEYWORDS_FILE" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' | sort -u || true)
+if [[ -z "$KEYWORDS" ]] || grep -qv '^[A-Za-z0-9]*$' <<< "$KEYWORDS"; then
+    fail "Error: '${KEYWORDS_FILE}' must list one keyword of letters and digits per line."
+fi
+
 if [[ ! -d "$EXPORT_DIR" ]]; then
     fail "Error: component export directory '${EXPORT_DIR}' not found. Run the component export step first."
 fi
@@ -52,14 +62,15 @@ mkdir -p "$OUT_DIR"
 
 # Jira matches whole words only, so "sql" doesn't match "ExecuteSQL". Add every exported component name that
 # contains a keyword as a search term of its own.
-KEYWORD_REGEX=$(tr ' ' '|' <<< "$KEYWORDS")
-TERMS=$( { tr ' ' '\n' <<< "$KEYWORDS"
+KEYWORD_REGEX=$(paste -sd '|' <<< "$KEYWORDS")
+TERMS=$( { echo "$KEYWORDS"
     find "$EXPORT_DIR" -name '*.json' -exec basename {} .json \; | grep -i -E "$KEYWORD_REGEX" || true
 } | sort -u)
 # Match the summary and the description only: "text ~" also searches comments and finds unrelated issues, such as
-# "request" in "pull request".
+# "request" in "pull request". Each term is quoted: Jira rejects a reserved JQL word, such as "file" or "string", that
+# isn't in quotes.
 TEXT_CONDITION=$(jq -R . <<< "$TERMS" \
-    | jq -rs 'map("summary ~ \(.) OR description ~ \(.)") | join(" OR ")')
+    | jq -rs 'map("summary ~ \"\(.)\" OR description ~ \"\(.)\"") | join(" OR ")')
 # Resolutions with which the project found no bug in NiFi.
 NOT_A_BUG='"Information Provided", "Not A Problem", "Not A Bug", "Invalid", "Cannot Reproduce", "Works for Me",
   "Incomplete"'
@@ -76,15 +87,17 @@ PAGES_DIR=$(mktemp -d)
 trap 'rm -rf "$PAGES_DIR"' EXIT
 
 # Runs the JQL query $1, fetches every result page, and prints the issues of all pages as one JSON array.
+# With $2 set to false, Jira leaves out the issue keys it doesn't know instead of rejecting the query.
 # Exits with an error if Jira rejects the query, the request fails, or fewer issues arrive than the Jira total.
 search_all() {
-    local jql="$1" start=0 total returned page curl_status
+    local jql="$1" validate="${2:-true}" start=0 total returned page curl_status
     rm -f "$PAGES_DIR"/page-*.json
     while :; do
         page="${PAGES_DIR}/page-${start}.json"
         curl_status=0
         jq -n --arg jql "$jql" --argjson startAt "$start" --argjson maxResults "$PAGE_SIZE" \
-            '{jql: $jql, startAt: $startAt, maxResults: $maxResults,
+            --argjson validate "$validate" \
+            '{jql: $jql, startAt: $startAt, maxResults: $maxResults, validateQuery: $validate,
               fields: ["summary", "description", "status", "resolution", "versions", "fixVersions", "issuelinks"]}' \
             | curl -sS --fail-with-body --max-time "$TIMEOUT" -X POST -H "Content-Type: application/json" \
                 --data @- -o "$page" "$SEARCH_URL" || curl_status=$?
@@ -111,8 +124,8 @@ search_all() {
     jq -s 'map(.issues) | add // []' "$PAGES_DIR"/page-*.json
 }
 
-# Keys of the issues that the issues resolved as Duplicate are linked to by a Duplicate link, in either direction
-# (reporters link both ways), and that aren't in the list yet.
+# is_duplicate: the issue is resolved as Duplicate. duplicate_links: the keys of the issues that the issue is linked to
+# by a Duplicate link, in either direction (reporters link both ways).
 DUPLICATE_LINK_DEFS='
     def is_duplicate: .fields.resolution.name == "Duplicate";
     def duplicate_links: [.fields.issuelinks[]? | select(.type.name == "Duplicate")
@@ -124,15 +137,25 @@ search_all "$JQL" > "$ISSUES_FILE"
 echo "Issues matching the search: $(jq length "$ISSUES_FILE")"
 
 # A duplicate tells less than its original, which the search may miss: the original can have another priority,
-# other versions, or other words. Add the originals; originals that are duplicates themselves are followed too.
-for _ in 1 2 3 4 5; do
-    MISSING=$(jq -r "$DUPLICATE_LINK_DEFS"'
+# other versions, or other words. Add the originals; originals that are duplicates themselves are followed too, one
+# level of the duplicate chains per request, until no new original is left. Each key is requested once, so the loop
+# ends even when the links form a cycle or Jira returns a moved issue under another key.
+REQUESTED='[]'
+while :; do
+    MISSING=$(jq -cj --argjson requested "$REQUESTED" "$DUPLICATE_LINK_DEFS"'
         (map(.key)) as $keys
-        | [.[] | select(is_duplicate) | duplicate_links[]] | unique - $keys | join(", ")' "$ISSUES_FILE")
-    [[ -n "$MISSING" ]] || break
+        | [.[] | select(is_duplicate) | duplicate_links[]] | unique - $keys - $requested' "$ISSUES_FILE")
+    [[ "$MISSING" != "[]" ]] || break
+    REQUESTED=$(jq -cj --argjson missing "$MISSING" '. + $missing' <<< "$REQUESTED")
+    MISSING=$(jq -j 'join(", ")' <<< "$MISSING")
     echo "Adding the originals of duplicates: ${MISSING}"
-    search_all "key in (${MISSING}) ORDER BY key" > "${PAGES_DIR}/originals.json"
-    jq -s 'add' "$ISSUES_FILE" "${PAGES_DIR}/originals.json" > "${PAGES_DIR}/merged.json"
+    # A Duplicate link can lead to a deleted issue or one hidden from anonymous users: skip it instead of failing the
+    # search. Its duplicate then has no original in the list and stays.
+    search_all "key in (${MISSING}) ORDER BY key" false > "${PAGES_DIR}/originals.json"
+    # Jira returns a moved issue under its new key. Keep only NIFI issues, which the report sorts by number, and don't
+    # add an issue that is already in the list.
+    jq -s 'add | map(select(.key | type == "string" and test("^NIFI-[0-9]+$"))) | unique_by(.key)' \
+        "$ISSUES_FILE" "${PAGES_DIR}/originals.json" > "${PAGES_DIR}/merged.json"
     mv "${PAGES_DIR}/merged.json" "$ISSUES_FILE"
 done
 
@@ -153,7 +176,7 @@ jq -s "$DUPLICATE_LINK_DEFS"'
     | ($replaced | map(.key)) as $dropped
     | ($all | map(select(.key as $k | $dropped | index($k) | not))
         | sort_by(.key | ltrimstr("NIFI-") | tonumber)) as $issues
-    | {total: ($issues | length), date: $date, jql: $jql, keywords: ($keywords | split(" ")),
+    | {total: ($issues | length), date: $date, jql: $jql, keywords: ($keywords | split("\n")),
        duplicates: $replaced, issues: $issues}
 ' --arg date "$(date -u +%Y-%m-%d)" --arg jql "$JQL" --arg keywords "$KEYWORDS" --argjson not_a_bug "[${NOT_A_BUG}]" \
     "$ISSUES_FILE" > "$OUT_FILE"
