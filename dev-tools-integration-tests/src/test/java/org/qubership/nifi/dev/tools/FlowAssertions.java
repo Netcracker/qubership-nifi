@@ -237,6 +237,37 @@ final class FlowAssertions {
         }
     }
 
+    /**
+     * Asserts that a processor's {@code Script Body} property contains the given text. The processor
+     * is looked up by name in the given group and every nested group.
+     *
+     * @param flowContents  the {@code flowContents} node from the exported flow JSON
+     * @param processorName the processor whose script body to check
+     * @param expected      text the script body must contain
+     */
+    static void assertScriptBodyContains(final JsonNode flowContents, final String processorName,
+                                         final String expected) {
+        JsonNode processor = findProcessorByNameInTree(flowContents, processorName);
+        assertNotNull(processor, "flow must contain a " + processorName + " processor");
+        String scriptBody = processor.path("properties").path("Script Body").asText();
+        assertTrue(scriptBody.contains(expected),
+                processorName + " Script Body must contain '" + expected + "', but was: " + scriptBody);
+    }
+
+    private static JsonNode findProcessorByNameInTree(final JsonNode group, final String name) {
+        JsonNode processor = findProcessorByName(group, name);
+        if (processor != null) {
+            return processor;
+        }
+        for (JsonNode child : group.path("processGroups")) {
+            processor = findProcessorByNameInTree(child, name);
+            if (processor != null) {
+                return processor;
+            }
+        }
+        return null;
+    }
+
     private static int countPropertyValue(final JsonNode properties, final String value) {
         int count = 0;
         for (JsonNode propValue : properties) {
