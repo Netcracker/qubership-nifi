@@ -13,9 +13,12 @@ on:
 permissions: {}
 
 env:
-  # The agent's own instructions and tools, and the CI that runs it. A change to them would steer the next run of the
-  # agent, so a person makes such a change; the upgrade fails when its change touches one of these paths.
-  PROTECTED_PATHS: '^(\.github|\.agents|\.claude|\.codex|\.cursor|\.opencode|agent-packages)/|^apm(\.lock)?\.ya?ml$|(^|/)(AGENTS|CLAUDE)\.md$'
+  # The agent's own instructions and tools, the CI that runs it, and the build tooling and repository configuration
+  # rather than the product. A change to them would steer the next run of the agent, so a person makes such a change;
+  # the upgrade fails when its change touches one of these paths. .agents/ and .claude/ are matched in any directory,
+  # and AGENTS.md and CLAUDE.md in any directory and with any suffix, such as AGENTS.override.md or CLAUDE.local.md.
+  PROTECTED_PATHS: >-
+    ^(\.github|\.codex|\.cursor|\.opencode|\.qubership|\.mvn|agent-packages)/|(^|/)\.(agents|claude)/|^(opencode\.jsonc?|mvnw(\.cmd)?|renovate\.json|\.gitattributes|\.gitmodules|apm(\.lock)?\.ya?ml)$|(^|/)(AGENTS|CLAUDE)(\.[^/]*)?\.md$
 
 concurrency:
   group: maintenance-${{ github.workflow }}
@@ -43,7 +46,8 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
-          MIN_AGE_DAYS: "7"
+          MIN_AGE_DAYS_PATCH: "7"
+          MIN_AGE_DAYS_MINOR: "14"
           TARGET_VERSION: ${{ inputs.nifi-version }}
         run: bash .github/workflows/sh/nifi-version-check.sh
 
@@ -88,7 +92,7 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           REPORT_FILE: upgrade-temp-data/pr-body.md
         run: bash .github/workflows/sh/nifi-upgrade-agent.sh
 
@@ -134,16 +138,30 @@ jobs:
             exit 1
           fi
           # --no-renames lists both paths of a rename, so a file moved out of a protected path is caught too.
-          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames | grep -E "$PROTECTED_PATHS" || true)
+          # -z prints raw NUL-terminated paths: without it, git quotes a path with non-ASCII characters, such as
+          # ".claude/skills/\303\251/SKILL.md", and the quoted path does not match PROTECTED_PATHS.
+          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames -z \
+            | grep -zE "$PROTECTED_PATHS" | tr '\0' '\n' || true)
           if [ -n "$CHANGED_PROTECTED" ]; then
             echo "::error::The agent changed protected files, which only a person may change:"
             echo "$CHANGED_PROTECTED"
+            exit 1
+          fi
+          # A symlink can point outside the repository and a submodule pulls in another repository, so the change
+          # may not add, remove, or switch to either. git diff --summary prints their modes, 120000 and 160000.
+          SPECIAL_ENTRIES=$(git diff --cached --summary --no-renames | grep -E ' (120000|160000)( |$)' || true)
+          if [ -n "$SPECIAL_ENTRIES" ]; then
+            echo "::error::The agent changed symlinks or submodules, which the upgrade does not allow:"
+            echo "$SPECIAL_ENTRIES"
             exit 1
           fi
           git diff --cached --stat
           git diff --cached --no-renames > "$OUT_DIR/changes.patch"
           if [ -s upgrade-temp-data/pr-body.md ]; then
             cp upgrade-temp-data/pr-body.md "$OUT_DIR/pr-body.md"
+          fi
+          if [ -s upgrade-temp-data/agent-signature.md ]; then
+            cp upgrade-temp-data/agent-signature.md "$OUT_DIR/agent-signature.md"
           fi
 
       - name: Upload patch
@@ -152,6 +170,7 @@ jobs:
           name: nifi-upgrade
           path: ${{ runner.temp }}/nifi-upgrade/
           if-no-files-found: error
+          retention-days: 1
 
   pull-request:
     name: Open pull request
@@ -189,10 +208,19 @@ jobs:
             echo "$BINARY_FILES"
             exit 1
           fi
+          # git apply --summary prints the modes of symlinks, 120000, and submodules, 160000.
+          SPECIAL_ENTRIES=$(git apply --summary "$PATCH_FILE" | grep -E ' (120000|160000)( |$)' || true)
+          if [ -n "$SPECIAL_ENTRIES" ]; then
+            echo "::error::The patch changes symlinks or submodules, which the upgrade does not allow:"
+            echo "$SPECIAL_ENTRIES"
+            exit 1
+          fi
           git apply "$PATCH_FILE"
           # The check runs on the files the patch actually changed, so no form of the patch can hide a path.
           git add --all
-          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames | grep -E "$PROTECTED_PATHS" || true)
+          # -z prints raw NUL-terminated paths, because git quotes a path with non-ASCII characters otherwise.
+          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames -z \
+            | grep -zE "$PROTECTED_PATHS" | tr '\0' '\n' || true)
           if [ -n "$CHANGED_PROTECTED" ]; then
             echo "::error::The patch changes protected files, which only a person may change:"
             echo "$CHANGED_PROTECTED"
@@ -208,9 +236,20 @@ jobs:
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           printf '\n---\n\nThe release notes are in the release-notes artifact, and the other files of this run in the upgrade-temp-data artifact, of [workflow run %s](%s).\n' \
             "$GITHUB_RUN_ID" "$RUN_URL" >> "$BODY_FILE"
+          SIGNATURE_FILE="$RUNNER_TEMP/nifi-upgrade/agent-signature.md"
+          if [ -s "$SIGNATURE_FILE" ]; then
+            printf '\n' >> "$BODY_FILE"
+            cat "$SIGNATURE_FILE" >> "$BODY_FILE"
+          fi
           echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
           echo "model=$(jq -r '.model' .github/opencode.json)" >> "$GITHUB_OUTPUT"
 
+      # token, author, and committer keep the defaults of the action:
+      # - token is GITHUB_TOKEN. Events from it start no workflow runs on their own, so the CI workflows of the
+      #   pull request wait for a maintainer to approve them in the pull request before they run.
+      # - author is the user who triggered the workflow run, github.actor; for a scheduled run, that is the user
+      #   who last changed the schedule.
+      # - committer is the GitHub Actions bot, github-actions[bot].
       - name: Create pull request
         uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
         with:

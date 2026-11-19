@@ -12,8 +12,7 @@ artifacts with GPG in the verify phase, so `mvn install` fails on a machine with
 ## 1. Get versions
 
 - Take the **target NiFi version** and its **SHA256 hash** from the `NIFI_VERSION` and `NIFI_DIGEST` environment
-  variables. The `check` job of `.github/workflows/nifi-version-update.yml` sets them, and the hash has the
-  `sha256:<hex>` form that `NIFI_VERSION_SHA256` in the Dockerfile uses.
+  variables. The hash has the `sha256:<hex>` form that `NIFI_VERSION_SHA256` in the Dockerfile uses.
 
   ```bash
   echo "$NIFI_VERSION $NIFI_DIGEST"
@@ -100,7 +99,7 @@ grep -rn '<term>' \
 
 ```bash
 mvn clean install -DskipUnitTests=true -Dgpg.skip=true -q
-mvn clean install -Dgpg.skip=true 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
+mvn clean install --batch-mode --no-transfer-progress -Dgpg.skip=true 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
 ```
 
 ## 11. Export & compare nifi component properties
@@ -108,7 +107,7 @@ mvn clean install -Dgpg.skip=true 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | 
 Export both versions:
 
 ```bash
-mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
+mvn exec:java --batch-mode --no-transfer-progress -q -f <PROJECT_ROOT>/pom.xml \
   -pl qubership-nifi-tools/qubership-nifi-api-export-tool \
   -DROOT_LOG_LEVEL=ERROR \
   -Dexec.args="--version <VERSION> --output-dir ./upgrade-temp-data/nifi-property-exports/<VERSION>"
@@ -117,7 +116,7 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
 Compare:
 
 ```bash
-mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
+mvn exec:java --batch-mode --no-transfer-progress -q -f <PROJECT_ROOT>/pom.xml \
   -pl qubership-nifi-tools/qubership-nifi-component-comparator-tool \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
@@ -153,8 +152,14 @@ jq '.propertyDescriptors["<Old Api Name>"].sensitive' \
   "upgrade-temp-data/nifi-property-exports/<CURRENT>/<Component Type>/<Component Name>.json"
 ```
 
-A property must be listed in exactly one of the two sections, never both. Don't ask the user to sort them. In the
-final report, list the properties of each section by component, so the reviewer can check the choice.
+A property must be listed in exactly one of the two sections, never both. Who checks the choice depends on the run:
+
+- In a manual run, where the `CI` environment variable is not `true`, ask the user to review the deleted properties
+  before continuing. Show the proposed section of each property by component, and for each one ask whether it can be
+  removed unconditionally, or whether it is a sensitive property with complex migration logic that must be removed
+  only when its value is empty. Move the properties the user corrects.
+- In CI, where `CI` is `true`, nobody can answer, so don't ask. In the final report, list the properties of each
+  section by component, so the reviewer can check the choice.
 
 ```yaml
 propertiesAllowedToDelete:
@@ -187,8 +192,8 @@ this upgrade and write the results to `upgrade-temp-data/releases-notes/`.
 Versions to substitute:
 
 - `<qubership-nifi.version>` - the **planned qubership-nifi release version** (e.g. `2.9.0`), taken from the
-  `QUBERSHIP_NIFI_VERSION` environment variable, which `.github/workflows/sh/nifi-upgrade-agent.sh` sets. When the
-  variable is empty, as in a local run, ask the user for it. Don't proceed without it.
+  `QUBERSHIP_NIFI_VERSION` environment variable. When the variable is empty, as in a local run, ask the user for it.
+  Don't proceed without it.
 - `<nifi.version>` - the target Apache NiFi version (`<TARGET>` from step 1).
 - `<previous-nifi.version>` - the current Apache NiFi version (`<CURRENT>` from step 1).
 - `<nifi-api.version>` - the `nifi-api.version` property set in `./pom.xml` in step 8.

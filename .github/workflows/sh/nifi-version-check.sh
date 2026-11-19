@@ -4,26 +4,36 @@
 # All three values are empty when there is nothing to upgrade to.
 #
 # A version qualifies when its apache/nifi Docker Hub tag is X.Y.Z with the current
-# major version, is newer than the current version, and was pushed at least
-# MIN_AGE_DAYS ago. The highest qualifying version is chosen. It is skipped when a pull
-# request from its branch exists in any state: closing one without a merge skips the version.
+# major version, is newer than the current version, and is old enough: pushed at least
+# MIN_AGE_DAYS_PATCH ago when only the patch version differs from the current one, and at
+# least MIN_AGE_DAYS_MINOR ago when the minor version differs. The highest qualifying
+# version is chosen. It is skipped when its branch, feat/upgrade-nifi-to-<version>, exists;
+# pull requests from a deleted branch are ignored, so deleting the branch lets the version
+# be upgraded to again.
 #
 # When TARGET_VERSION is set, that version is used instead of the newest qualifying one.
 # It must be X.Y.Z with the current major version, be newer than the current version, and
-# have a tag on Docker Hub; otherwise the script fails. MIN_AGE_DAYS does not apply to it.
+# have a tag on Docker Hub; otherwise the script fails. The minimum ages do not apply to it.
+# When its branch exists and a pull request from the branch exists in any state, the script
+# fails and asks to close the pull request and delete the branch, so that a manual run can
+# redo an upgrade.
 #
 # Environment:
 #   TARGET_VERSION     version to upgrade to; the newest qualifying version when unset or empty
 #   CURRENT_VERSION    current version; read from nifi.version in pom.xml when unset
-#   MIN_AGE_DAYS       minimum tag age in days, 7 by default
+#   MIN_AGE_DAYS_PATCH minimum tag age in days for a patch version change, 7 by default
+#   MIN_AGE_DAYS_MINOR minimum tag age in days for a minor version change, 14 by default
+#   TAGS_URL           first page of the apache/nifi tag list, Docker Hub by default; a single tag is read
+#                      from the same URL without the query, followed by /<version>
 #   GH_TOKEN           token for the GitHub CLI
 #   GITHUB_REPOSITORY  owner/name of the repository; gh uses the git remote when unset
 #   GITHUB_OUTPUT      file for the step outputs; set by GitHub Actions
 
 set -euo pipefail
 
-MIN_AGE_DAYS="${MIN_AGE_DAYS:-7}"
-TAGS_URL="https://hub.docker.com/v2/repositories/apache/nifi/tags?page_size=100"
+MIN_AGE_DAYS_PATCH="${MIN_AGE_DAYS_PATCH:-7}"
+MIN_AGE_DAYS_MINOR="${MIN_AGE_DAYS_MINOR:-14}"
+TAGS_URL="${TAGS_URL:-https://hub.docker.com/v2/repositories/apache/nifi/tags?page_size=100}"
 
 write_output() {
     local version="$1" digest="$2" branch="$3"
@@ -68,10 +78,11 @@ select_version() {
     local current="$1"
     jq -s -c \
         --arg current "$current" \
-        --argjson min_age_days "$MIN_AGE_DAYS" '
+        --argjson min_age_days_patch "$MIN_AGE_DAYS_PATCH" \
+        --argjson min_age_days_minor "$MIN_AGE_DAYS_MINOR" '
         def semver: split(".") | map(tonumber);
         ($current | semver) as $cur
-        | (now - $min_age_days * 86400) as $cutoff
+        | now as $now
         | map(select(
             (.name | test("^[0-9]+[.][0-9]+[.][0-9]+$"))
             and .tag_last_pushed != null
@@ -81,7 +92,8 @@ select_version() {
         | map(select(
             .semver[0] == $cur[0]
             and .semver > $cur
-            and (.tag_last_pushed | sub("[.][0-9]+Z$"; "Z") | fromdateiso8601) <= $cutoff
+            and (.tag_last_pushed | sub("[.][0-9]+Z$"; "Z") | fromdateiso8601)
+                <= $now - (if .semver[1] == $cur[1] then $min_age_days_patch else $min_age_days_minor end) * 86400
         ))
         | max_by(.semver)
         | if . == null then {} else {version: .name, digest: .digest, pushed: .tag_last_pushed} end
@@ -109,7 +121,24 @@ select_target_version() {
         echo "::error::Cannot read the apache/nifi:$target tag from Docker Hub." >&2
         return 1
     fi
+    # select_version skips a tag without a digest, and the Dockerfile needs one, so such a tag is an error here.
+    if [ "$(echo "$tag" | jq -r '.digest // ""')" = "" ]; then
+        echo "::error::The apache/nifi:$target tag on Docker Hub has no digest." >&2
+        return 1
+    fi
     echo "$tag" | jq -c '{version: .name, digest: .digest, pushed: .tag_last_pushed}'
+}
+
+# Prints the ref of the branch when the branch exists in the repository, and nothing otherwise.
+find_branch() {
+    local branch="$1" repo="${GITHUB_REPOSITORY:-}"
+    if [ -z "$repo" ]; then
+        # gh fills in the placeholders from the git remote.
+        repo='{owner}/{repo}'
+    fi
+    # matching-refs returns an empty list rather than 404 for a missing branch, so any error is a real one.
+    gh api "repos/$repo/git/matching-refs/heads/$branch" \
+        --jq ".[] | select(.ref == \"refs/heads/$branch\") | .ref"
 }
 
 # Prints "#<number> (<state>)" for each pull request from the branch, in any state.
@@ -124,7 +153,7 @@ find_pull_requests() {
 }
 
 main() {
-    local current result version digest branch prs
+    local current result version digest branch existing prs
 
     current="${CURRENT_VERSION:-}"
     if [ -z "$current" ]; then
@@ -140,17 +169,26 @@ main() {
     version=$(echo "$result" | jq -r '.version // ""')
     digest=$(echo "$result" | jq -r '.digest // ""')
     if [ -z "$version" ]; then
-        echo "No Apache NiFi version newer than $current was pushed at least $MIN_AGE_DAYS days ago."
+        echo "No Apache NiFi version newer than $current is old enough: $MIN_AGE_DAYS_PATCH days for a patch version, $MIN_AGE_DAYS_MINOR days for a minor version."
         write_output "" "" ""
         return 0
     fi
     echo "Found Apache NiFi $version, pushed $(echo "$result" | jq -r '.pushed'), digest $digest."
 
     branch="feat/upgrade-nifi-to-$version"
-    prs=$(find_pull_requests "$branch")
-    if [ -n "$prs" ]; then
-        echo "Pull requests from $branch already exist, skipping the update:"
-        echo "$prs"
+    existing=$(find_branch "$branch")
+    if [ -n "$existing" ]; then
+        if [ -n "${TARGET_VERSION:-}" ]; then
+            prs=$(find_pull_requests "$branch")
+            if [ -n "$prs" ]; then
+                echo "::error::Branch $branch and pull requests from it already exist:" \
+                    "$(echo "$prs" | paste -sd ' ' -). To upgrade to Apache NiFi $version again," \
+                    "close the pull requests, delete the branch, and run the workflow again." >&2
+                return 1
+            fi
+        fi
+        echo "Branch $branch already exists, skipping the update." \
+            "Delete the branch to upgrade to Apache NiFi $version again."
         write_output "" "" ""
         return 0
     fi
