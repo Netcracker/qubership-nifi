@@ -101,15 +101,26 @@ class UpdateScriptsIT {
      * <p>On NiFi 2.5.0, {@code PutS3Object} reports its sensitive dynamic properties as unsupported,
      * so that validation error is tolerated. On newer versions {@code PutS3Object} is valid and the
      * tolerated entry is a no-op.
+     *
+     * <p>NiFi intermittently fails the first script load of a newly created
+     * {@code InvokeScriptedProcessor} with "No processor was defined by the script", although the
+     * script assigns {@code processor}. The processor caches that result and stays invalid until a
+     * property changes, so waiting does not clear it, and that validation error is tolerated too.
      */
     @Test
     void testTransformAndImport2() throws Exception {
         JsonNode flowContents = HARNESS.readFlow("flows/Upgrade_Test_PG1.json").path("flowContents");
+        // The tolerated error would also hide an update script that dropped this assignment, so the
+        // transformed script body is checked directly.
+        FlowAssertions.assertScriptBodyContains(flowContents, "InvokeScriptedProcessor",
+                "processor = new TestScriptedProcessor()");
         HARNESS.importAndValidate(flowContents,
                 List.of(new NifiFlowApiClient.IgnoredDifference(
                         "PutS3Object", "From 'Standard' to 'STANDARD'")),
                 List.of(new NifiFlowApiClient.IgnoredValidationError(
-                        "PutS3Object", "Sensitive Dynamic Properties")));
+                                "PutS3Object", "Sensitive Dynamic Properties"),
+                        new NifiFlowApiClient.IgnoredValidationError(
+                                "InvokeScriptedProcessor", "No processor was defined by the script")));
     }
 
     /**
