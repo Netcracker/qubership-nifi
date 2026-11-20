@@ -1,0 +1,7 @@
+kafka
+redis
+json
+sql
+http
+request
+s3
