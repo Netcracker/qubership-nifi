@@ -15,6 +15,8 @@ import pytest
 import yaml
 
 import check_openapi
+from openapi_exceptions import REASON_PLACEHOLDER
+from openapi_lint_exceptions import REASON_PLACEHOLDER as LINT_REASON_PLACEHOLDER
 
 
 PACKAGE = "/api/v2/packages/CI.NIFI"
@@ -250,7 +252,7 @@ def test_unapproved_lint_warning_fails_and_proposes_an_exact_exception(apihub, w
     }
     assert yaml.safe_load((work_dir / "reports" / LINT_PROPOSAL).read_text(encoding="utf-8")) == {
         "exceptions": [{**LINT_SCOPE, "issues": [{
-            **lint_issue("warning"), "reason": "Add the reason for accepting this lint finding.",
+            **lint_issue("warning"), "reason": LINT_REASON_PLACEHOLDER,
         }]}],
     }
 
@@ -280,7 +282,7 @@ def test_lint_exceptions_preserve_findings_and_gate_only_unapproved_ones(apihub,
     else:
         proposed, = yaml.safe_load(proposal.read_text(encoding="utf-8"))["exceptions"]
         assert proposed["issues"] == [
-            *approvals, {**lint_issue("warning"), "reason": "Add the reason for accepting this lint finding."},
+            *approvals, {**lint_issue("warning"), "reason": LINT_REASON_PLACEHOLDER},
         ]
         assert read_report(work_dir, "check-failures") == {
             "lint": "Unapproved lint findings (errors 0, warnings 1)",
@@ -313,7 +315,7 @@ def test_document_level_lint_finding_without_a_wire_path_can_be_proposed(apihub,
     proposed, = yaml.safe_load((work_dir / "reports" / LINT_PROPOSAL).read_text(encoding="utf-8"))["exceptions"]
     assert proposed == {
         **LINT_SCOPE,
-        "issues": [{**issue, "path": [], "reason": "Add the reason for accepting this lint finding."}],
+        "issues": [{**issue, "path": [], "reason": LINT_REASON_PLACEHOLDER}],
     }
 
 
@@ -373,8 +375,10 @@ def test_successful_rerun_clears_obsolete_proposals_and_failure_report(apihub, w
     compatibility_proposal = reports / PROPOSAL
     failures = reports / "check-failures.json"
     assert {path.name for path in reports.iterdir()} >= {LINT_PROPOSAL, PROPOSAL, failures.name}
-    (work_dir / "approved-lint.yml").write_bytes(lint_proposal.read_bytes())
-    (work_dir / "approved.yml").write_bytes(compatibility_proposal.read_bytes())
+    (work_dir / "approved-lint.yml").write_text(lint_proposal.read_text(encoding="utf-8").replace(
+        LINT_REASON_PLACEHOLDER, "The warning was reviewed."), encoding="utf-8")
+    (work_dir / "approved.yml").write_text(compatibility_proposal.read_text(encoding="utf-8").replace(
+        REASON_PLACEHOLDER, "The ETag header was reviewed."), encoding="utf-8")
     notes = reports / "notes.txt"
     notes.write_text("Review notes", encoding="utf-8")
     mock_publication(backend)
@@ -396,6 +400,8 @@ def test_rerun_can_use_a_proposal_as_input_and_write_a_followup(apihub, work_dir
 
     assert check_openapi.main() == 1
     proposal = reports / PROPOSAL
+    reviewed = proposal.read_text(encoding="utf-8").replace(REASON_PLACEHOLDER, "The ETag header was reviewed.")
+    proposal.write_text(reviewed, encoding="utf-8")
     original = proposal.read_bytes()
     monkeypatch.setattr(sys, "argv", ["check_openapi.py", str(work_dir), "--exceptions", str(proposal)])
     mock_publication(backend)

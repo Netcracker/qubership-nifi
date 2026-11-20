@@ -1,7 +1,9 @@
 import pytest
 import yaml
 
-from openapi_exceptions import APPROVED_EXCEPTIONS_PATH, apply_exceptions, load_exceptions
+from openapi_exceptions import (
+    APPROVED_EXCEPTIONS_PATH, REASON_PLACEHOLDER, apply_exceptions, load_exception_groups, load_exceptions,
+)
 
 
 UPGRADE = {"previousNifiVersion": "2.9.0", "currentNifiVersion": "2.10.0"}
@@ -47,7 +49,7 @@ def test_a_location_or_hash_omitted_from_approval_cannot_match_a_detailed_findin
     assert apply_exceptions(config, UPGRADE, operations, tmp_path / "proposed.yml") == (1, 0)
 
 
-def test_proposal_adds_only_unmatched_breaks_and_can_be_applied(tmp_path):
+def test_proposal_adds_only_unmatched_breaks_and_applies_once_its_reason_is_reviewed(tmp_path):
     config_path = tmp_path / "approved.yml"
     proposal = tmp_path / "proposed.yml"
     approval = {**OPERATION, **REMOVAL, "reason": REASON}
@@ -63,6 +65,10 @@ def test_proposal_adds_only_unmatched_breaks_and_can_be_applied(tmp_path):
 
     assert apply_exceptions(config, UPGRADE, operations, proposal) == (1, 1)
     assert config_path.read_text(encoding="utf-8") == original
+    with pytest.raises(ValueError, match="group 1, change 2 has the proposed placeholder reason"):
+        load_exceptions(proposal)
+    reviewed = "The new security declaration hash was reviewed."
+    proposal.write_text(proposal.read_text(encoding="utf-8").replace(REASON_PLACEHOLDER, reviewed), encoding="utf-8")
     proposed_config = load_exceptions(proposal)
     approved, suggested = proposed_config["exceptions"][0]["changes"]
     assert approved == approval
@@ -71,7 +77,7 @@ def test_proposal_adds_only_unmatched_breaks_and_can_be_applied(tmp_path):
     proposal.unlink()
     assert apply_exceptions(proposed_config, UPGRADE, operations, proposal) == (0, 2)
     assert not proposal.exists()
-    assert [issue["exceptionReason"] for issue in issues if "exceptionReason" in issue] == [REASON, suggested["reason"]]
+    assert [issue["exceptionReason"] for issue in issues if "exceptionReason" in issue] == [REASON, reviewed]
 
 
 def test_renames_match_the_previous_and_current_keys(tmp_path):
@@ -88,7 +94,7 @@ def test_renames_match_the_previous_and_current_keys(tmp_path):
 
     assert apply_exceptions(config, UPGRADE, operations, proposal) == (2, 1)
     assert [issue.get("exceptionReason") for issue in issues] == [REASON, None, None]
-    assert apply_exceptions(load_exceptions(proposal), UPGRADE, operations, proposal) == (0, 3)
+    assert apply_exceptions({"exceptions": load_exception_groups(proposal)}, UPGRADE, operations, proposal) == (0, 3)
 
 
 def test_removed_operation_uses_its_previous_method_and_path(tmp_path):
@@ -98,7 +104,7 @@ def test_removed_operation_uses_its_previous_method_and_path(tmp_path):
     proposal = tmp_path / "proposed.yml"
 
     assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (1, 0)
-    proposed, = load_exceptions(proposal)["exceptions"][0]["changes"]
+    proposed, = load_exception_groups(proposal)[0]["changes"]
     assert {field: value for field, value in proposed.items() if field != "reason"} == {**operation, **removal}
 
 

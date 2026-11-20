@@ -13,6 +13,7 @@ HASH_FIELDS = ("previousValueHash", "currentValueHash")
 KEY_FIELDS = ("previousKey", "currentKey")
 ISSUE_FIELDS = REQUIRED_ISSUE_FIELDS + PATH_FIELDS + HASH_FIELDS + KEY_FIELDS
 SELECTOR_FIELDS = OPERATION_FIELDS + ISSUE_FIELDS
+REASON_PLACEHOLDER = "Add the reason for accepting this change."
 
 
 class ExceptionLoader(yaml.SafeLoader):
@@ -81,6 +82,8 @@ def load_exceptions(path):
             if (not isinstance(change, dict) or set(change) - {*SELECTOR_FIELDS, "reason"}
                     or not all(is_nonempty_string(change.get(field)) for field in required)):
                 raise ValueError(f"{location} must specify method, path, action, scope, and reason")
+            if change["reason"].strip() == REASON_PLACEHOLDER:
+                raise ValueError(f"{location} has the proposed placeholder reason; replace it with the reason for the change")
             for field in HASH_FIELDS:
                 if field in change and not is_nonempty_string(change[field]):
                     raise ValueError(f"{location} must specify {field} as a nonempty string")
@@ -127,7 +130,7 @@ def apply_exceptions(config, versions, operations, proposal_path):
                 unmatched += 1
                 proposals.setdefault(key, {
                     **selector,
-                    "reason": "Add the reason for accepting this change.",
+                    "reason": REASON_PLACEHOLDER,
                 })
 
     if proposals:
