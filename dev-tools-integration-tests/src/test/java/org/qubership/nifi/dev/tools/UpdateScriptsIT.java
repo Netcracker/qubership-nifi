@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.NifiFlowApiClient;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * {@code nifi.registry.url}, {@code scripts.docker.network}, {@code nifi.client.cert.file},
  * {@code nifi.ca.cert.file}.
  */
+@Tag("DockerBased")
 class UpdateScriptsIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpdateScriptsIT.class);

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.NifiFlowApiClient;
 
@@ -32,6 +33,7 @@ import java.util.List;
  *
  * <p>Shared setup and the scripts container live in {@link UpdateScriptsTestHarness}.
  */
+@Tag("DockerBased")
 class UpdateScriptsVersionsIT {
 
     private static final UpdateScriptsTestHarness HARNESS = new UpdateScriptsTestHarness();

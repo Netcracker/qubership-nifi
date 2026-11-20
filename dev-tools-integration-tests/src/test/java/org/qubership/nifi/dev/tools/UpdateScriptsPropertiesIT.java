@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  * apply on every supported target (the properties update itself requires NiFi 2.5 or later). Shared
  * setup and the scripts container live in {@link UpdateScriptsTestHarness}.
  */
+@Tag("DockerBased")
 class UpdateScriptsPropertiesIT {
 
     /** Minimum target minor version that applies the fixture's ConvertRecord property renames. */
