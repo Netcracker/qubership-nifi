@@ -175,8 +175,8 @@ def apihub(monkeypatch):
 
 @pytest.fixture
 def work_dir(monkeypatch, tmp_path):
-    for name, field in (("previous", "previousNifiVersion"), ("current", "currentNifiVersion")):
-        spec = {"openapi": "3.0.3", "info": {"title": "NiFi REST API", "version": VERSIONS[field]}, "paths": {}}
+    for name, version_key in (("previous", "previousNifiVersion"), ("current", "currentNifiVersion")):
+        spec = {"openapi": "3.0.3", "info": {"title": "NiFi REST API", "version": VERSIONS[version_key]}, "paths": {}}
         (tmp_path / f"{name}.json").write_text(json.dumps(spec), encoding="utf-8")
     exceptions = tmp_path / "approved.yml"
     exceptions.write_text("exceptions: []\n", encoding="utf-8")

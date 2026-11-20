@@ -64,13 +64,13 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{connectorId}/flow/process-groups/{processGroupId}/controller-services', get, security,
-          '0', 'Read - /connectors/{uuid}']
+               '0', 'Read - /connectors/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{connectorId}/flow/process-groups/{processGroupId}/parameter-context', get, security, '0',
-          'Read - /connectors/{uuid}']
+               'Read - /connectors/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -155,7 +155,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{id}/configuration-steps/{configurationStepName}/property-groups/{propertyGroupName}/properties/{propertyName}/allowable-values',
-          get, security, '0', 'Read - /connectors/{uuid}']
+               get, security, '0', 'Read - /connectors/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -179,13 +179,13 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{id}/configuration-steps/{configurationStepName}/verify-config/{requestId}', delete, security,
-          '0', Only the user that submitted the request can remove it]
+               '0', Only the user that submitted the request can remove it]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{id}/configuration-steps/{configurationStepName}/verify-config/{requestId}', get, security,
-          '0', Only the user that submitted the request can get it]
+               '0', Only the user that submitted the request can get it]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -206,7 +206,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{id}/controller-services/{controllerServiceId}/state/clear-requests', post, security, '0',
-          'Write - /connectors/{uuid}']
+               'Write - /connectors/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -286,7 +286,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/connectors/{id}/remote-process-groups/{remoteProcessGroupId}/status/history', get, security, '0',
-          'Read - /connectors/{uuid}']
+               'Read - /connectors/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -547,13 +547,13 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/controller/flow-analysis-rules/{id}/config/verification-requests/{requestId}', delete, security, '0',
-          Only the user that submitted the request can remove it]
+               Only the user that submitted the request can remove it]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/controller/flow-analysis-rules/{id}/config/verification-requests/{requestId}', get, security, '0',
-          Only the user that submitted the request can get it]
+               Only the user that submitted the request can get it]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -681,7 +681,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/controller/registry-clients/{id}/config/verification-requests/{requestId}', delete, security, '0',
-          Only the user that submitted the request can remove it]
+               Only the user that submitted the request can remove it]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -749,7 +749,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/data-transfer/input-ports/{portId}/transactions/{transactionId}/flow-files', post, security, '0',
-          'Write - /data-transfer/input-ports/{uuid}']
+               'Write - /data-transfer/input-ports/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -766,7 +766,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/data-transfer/output-ports/{portId}/transactions/{transactionId}/flow-files', get, security, '0',
-          'Write - /data-transfer/output-ports/{uuid}']
+               'Write - /data-transfer/output-ports/{uuid}']
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning
@@ -1088,7 +1088,7 @@ exceptions:
       - severity: warning
         code: oas3-operation-security-defined
         path: [paths, '/flow/registries/{registry-id}/branches/{branch-id-a}/buckets/{bucket-id-a}/flows/{flow-id-a}/{version-a}/diff/branches/{branch-id-b}/buckets/{bucket-id-b}/flows/{flow-id-b}/{version-b}',
-          get, security, '0', Read - /flow]
+               get, security, '0', Read - /flow]
         message: Operation "security" values must match a scheme defined in the "components.securitySchemes" object.
         reason: Existing Spectral warning in the Apache NiFi 2.12.0 OpenAPI spec.
       - severity: warning

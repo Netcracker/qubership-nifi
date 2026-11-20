@@ -4,7 +4,7 @@ name: OpenAPI spec check
 run-name: "Check the OpenAPI spec for ${{ github.ref_name }} (${{ github.event_name }})"
 
 on:
-  pull_request:
+  pull_request: {}
   push:
     branches:
       - main
