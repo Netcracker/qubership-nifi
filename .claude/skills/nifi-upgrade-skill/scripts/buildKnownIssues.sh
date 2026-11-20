@@ -121,7 +121,9 @@ fi
 # issue in Jira to see the original. Each value is kept on one line, and Markdown brackets, backslashes, and the
 # table separator are escaped.
 REPORT_DEFS='
-    def cell: tostring | gsub("[\r\n]+"; " ")
+    # Joins lines, removes links, images, URLs, e-mail addresses, and the empty brackets they leave, and collapses
+    # whitespace.
+    def strip: gsub("[\r\n]+"; " ")
         # Markdown images and links: inline, with one level of parentheses in the URL; reference style; and
         # reference definitions [ref]: url.
         | gsub("!?\\[(?<t>[^\\]]*)\\]\\((?:[^()]|\\([^()]*\\))*\\)"; "\(.t)")
@@ -138,14 +140,20 @@ REPORT_DEFS='
         | gsub("(?:mailto:)?[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"; ""; "i")
         # The brackets left by a link without text.
         | gsub("\\[\\s*\\]|\\(\\s*\\)"; "")
-        # Any other HTML is shown as text.
-        | gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;")
         # The spaces left around a removed link.
-        | gsub("\\s{2,}"; " ") | gsub("^\\s+|\\s+$"; "")
-        # Markdown escapes: a link that the rules above missed, such as one with brackets in its text, can no longer
-        # be parsed as a link. The backslash goes first, so that an escape in the text stays text.
+        | gsub("\\s{2,}"; " ") | gsub("^\\s+|\\s+$"; "");
+    # Escapes HTML and the Markdown characters \ [ ] |, so that HTML shows as text and a link that strip missed, such as
+    # one with brackets in its text, can no longer be parsed as a link. The backslash goes first, so that an escape in
+    # the text stays text.
+    def escape: gsub("&"; "&amp;") | gsub("<"; "&lt;") | gsub(">"; "&gt;")
         | gsub("\\\\"; "\\\\") | gsub("\\["; "\\[") | gsub("\\]"; "\\]")
         | gsub("\\|"; "\\|");
+    # Applies f until the value stops changing.
+    def fixpoint(f): def r: f as $n | if $n == . then . else $n | r end; r;
+    # A removal can join the text around it into a new link: removing "()" turns "htt()ps://example.com" into a URL.
+    # Strip again until nothing changes, then escape once. Each pass that changes the value makes it shorter, or
+    # replaces line breaks once, so the repetition ends.
+    def cell: tostring | fixpoint(strip) | escape;
     def link: "[\(.)](https://issues.apache.org/jira/browse/\(.))";
     def names: map(.name) | join(", ");
     # A sort key for versions such as 2.0.0-M4: a milestone sorts before its release.
