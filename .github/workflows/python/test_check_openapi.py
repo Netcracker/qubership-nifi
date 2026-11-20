@@ -480,6 +480,42 @@ def test_failed_baseline_publication_still_runs_candidate_lint(apihub, work_dir)
     assert not (work_dir / "reports" / "compatibility-summary.json").exists()
 
 
+def test_failed_candidate_publication_keeps_the_summary_and_the_baseline_failure(apihub, work_dir):
+    backend, linter = apihub
+    backend.respond("GET", f"{PUBLISH}/baseline/status", Response(200, {"status": "error", "message": "Bad baseline"}))
+    backend.respond("GET", f"{PUBLISH}/candidate/status", Response(200, {"status": "error", "message": "Bad candidate"}))
+
+    assert check_openapi.main() == 1
+    assert outputs(work_dir) == {"lint_findings": "false", "breaking": "false"}
+    failures = read_report(work_dir, "check-failures")
+    assert sorted(failures) == ["compatibility", "publication"]
+    assert "Bad baseline" in failures["compatibility"]
+    assert "Bad candidate" in failures["publication"]
+    assert "APIHUB could not publish the candidate spec." in (work_dir / "summary").read_text(encoding="utf-8")
+    assert linter.requests == []
+
+
+def test_failed_candidate_publication_skips_lint_and_comparison(apihub, work_dir):
+    backend, linter = apihub
+    backend.respond("GET", f"{PUBLISH}/candidate/status", Response(200, {"status": "error", "message": "Bad candidate"}))
+
+    assert check_openapi.main() == 1
+    assert outputs(work_dir) == {"lint_findings": "false", "breaking": "false"}
+    assert list(read_report(work_dir, "check-failures")) == ["publication"]
+    assert linter.requests == []
+    assert [request.target for request in backend.requests if urlsplit(request.target).path == COMPARISON] == []
+
+
+@pytest.mark.parametrize("status", ["error", "failed"], ids=["error", "unknown-status"])
+def test_lint_stops_polling_on_a_final_status_other_than_success(apihub, work_dir, status):
+    _, linter = apihub
+    linter.respond("GET", f"{LINT}/summary", Response(200, {"status": status, "documents": []}))
+
+    assert check_openapi.main() == 1
+    assert f"APIHUB linting ended with status '{status}'" in read_report(work_dir, "check-failures")["lint"]
+    assert [request.target for request in linter.requests] == [f"{LINT}/summary"]
+
+
 def test_comparison_preserves_available_findings_when_an_operation_details_request_fails(apihub, work_dir):
     backend, _ = apihub
     mock_comparison(backend, breaking=2, affected=2)

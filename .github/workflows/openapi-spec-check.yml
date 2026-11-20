@@ -33,7 +33,7 @@ jobs:
           spec_changes=$(git diff --name-only "$baseline" HEAD -- docs/openapi/openapi.json)
           validator_changes=$(git diff --name-only "$baseline" HEAD -- \
             .github/workflows/openapi-spec-check.yml .github/workflows/python/ \
-            .github/docker/apihub/docker-compose.yaml \
+            .github/docker-apihub/docker-compose.yaml \
             docs/openapi/openapi-compatibility-exceptions.yml docs/openapi/openapi-lint-exceptions.yml)
           if [[ -n "$spec_changes" || -n "$validator_changes" ]]; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
@@ -49,7 +49,7 @@ jobs:
     needs: [ changes ]
     if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
     steps:
@@ -76,7 +76,7 @@ jobs:
           fi
 
       - name: Validate the APIHUB Compose configuration
-        run: docker compose -f .github/docker/apihub/docker-compose.yaml config --no-interpolate --quiet
+        run: docker compose -f .github/docker-apihub/docker-compose.yaml config --no-interpolate --quiet
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -88,20 +88,34 @@ jobs:
           python3 -m pip install --require-hashes --only-binary=:all: -r .github/workflows/python/requirements-openapi.txt
           python3 -m pytest .github/workflows/python
 
+      - name: Pull the APIHUB images
+        timeout-minutes: 5
+        run: docker compose -f .github/docker-apihub/docker-compose.yaml pull --quiet
+
+      # The health wait (120 s) and the script limit (480 s) end the shell before this step limit, so the EXIT trap
+      # saves the container logs. A step that times out fails rather than cancels the job, so the reports are still
+      # uploaded. Keep both waits below this limit, and the pull, this step, and the steps before them below the job limit.
       - name: Run APIHUB lint and compatibility checks
         id: validate
+        timeout-minutes: 12
         shell: bash
         run: |
           work_dir="$RUNNER_TEMP/openapi-check"
-          compose=(docker compose -f .github/docker/apihub/docker-compose.yaml)
+          compose=(docker compose -f .github/docker-apihub/docker-compose.yaml)
           APIHUB_DB_PASSWORD=$(openssl rand -hex 24)
           APIHUB_ACCESS_TOKEN=$(openssl rand -hex 24)
           APIHUB_ADMIN_PASSWORD=$(openssl rand -hex 24)
           APIHUB_JWT_PRIVATE_KEY=$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl base64 -A)
           export APIHUB_DB_PASSWORD APIHUB_ACCESS_TOKEN APIHUB_ADMIN_PASSWORD APIHUB_JWT_PRIVATE_KEY
-          trap '"${compose[@]}" down --volumes' EXIT
+          trap '"${compose[@]}" logs --no-color > "$work_dir/reports/apihub-compose.log" 2>&1; "${compose[@]}" down --volumes' EXIT
           "${compose[@]}" up --detach --wait --wait-timeout 120
-          python3 .github/workflows/python/check_openapi.py "$work_dir"
+          timeout 480 python3 .github/workflows/python/check_openapi.py "$work_dir" || {
+            status=$?
+            if [[ $status == 124 ]]; then
+              echo "The APIHUB checks did not finish within 480 s." | tee "$work_dir/reports/check-timeout.txt" >&2
+            fi
+            exit $status
+          }
 
       - name: Upload OpenAPI reports
         if: >-

@@ -24,6 +24,7 @@ BASELINE = "0.0.1"
 CANDIDATE = "0.0.2"
 PUBLISH_TIMEOUT = 120
 LINT_TIMEOUT = 120
+LINT_IN_PROGRESS = "inProgress"
 PAGE_SIZE = 100
 LINT_PROPOSAL = "proposed-openapi-lint-exceptions.yml"
 COMPATIBILITY_PROPOSAL = "proposed-openapi-compatibility-exceptions.yml"
@@ -133,11 +134,13 @@ def lint(client, package, reports, nifi_version):
         )
         if status == 200:
             write_report(reports, "lint-summary", summary)
-            if summary["status"] in ("success", "error"):
+            if summary["status"] != LINT_IN_PROGRESS:
                 break
         time.sleep(2)
     else:
         raise TimeoutError("APIHUB linting timed out")
+    if summary["status"] != "success":
+        raise RuntimeError(f"APIHUB linting ended with status {summary['status']!r}")
 
     documents = summary.get("documents", [])
     details = []
@@ -145,7 +148,7 @@ def lint(client, package, reports, nifi_version):
         slug = quote(document["slug"], safe="")
         details.append(client.get(f"{endpoint}/documents/{slug}/details", linter=True))
         write_report(reports, "lint-issues", details)
-    if summary["status"] != "success" or len(details) != 1:
+    if len(details) != 1:
         raise RuntimeError("APIHUB did not validate the candidate OpenAPI document")
 
     spectral = [result for result in details[0]["results"] if result["linter"] == "spectral"]
@@ -241,30 +244,7 @@ def spec_version(spec):
     return version
 
 
-def run(work_dir, reports, exceptions_path):
-    current = (work_dir / "current.json").read_bytes()
-    previous_file = work_dir / "previous.json"
-    versions = {"previousNifiVersion": None, "currentNifiVersion": spec_version(current)}
-
-    client = ApiHub()
-    client.login()
-    workspace = client.create_package(f"CI{uuid.uuid4().hex[:8]}", "workspace")
-    package = client.create_package("NIFI", "package", workspace)
-    messages = []
-    failures = {}
-    baseline = None
-    if previous_file.exists():
-        try:
-            previous = previous_file.read_bytes()
-            versions["previousNifiVersion"] = spec_version(previous)
-            client.publish(package, BASELINE, previous)
-            baseline = BASELINE
-        except Exception as error:
-            messages.append("Compatibility check could not prepare the baseline. See the check diagnostics.")
-            failures["compatibility"] = repr(error)
-    write_report(reports, "spec-versions", versions)
-    client.publish(package, CANDIDATE, current, baseline)
-
+def check_candidate(client, package, reports, versions, exceptions_path, baseline, messages, failures):
     lint_findings = False
     try:
         active_lint, excepted_lint = lint(client, package, reports, versions["currentNifiVersion"])
@@ -295,6 +275,40 @@ def run(work_dir, reports, exceptions_path):
             failures["compatibility"] = repr(error)
     elif "compatibility" not in failures:
         messages.append("Compatibility check skipped because this commit adds the spec.")
+    return lint_findings, matched + unmatched > 0
+
+
+def run(work_dir, reports, exceptions_path):
+    current = (work_dir / "current.json").read_bytes()
+    previous_file = work_dir / "previous.json"
+    versions = {"previousNifiVersion": None, "currentNifiVersion": spec_version(current)}
+
+    client = ApiHub()
+    client.login()
+    workspace = client.create_package(f"CI{uuid.uuid4().hex[:8]}", "workspace")
+    package = client.create_package("NIFI", "package", workspace)
+    messages = []
+    failures = {}
+    baseline = None
+    if previous_file.exists():
+        try:
+            previous = previous_file.read_bytes()
+            versions["previousNifiVersion"] = spec_version(previous)
+            client.publish(package, BASELINE, previous)
+            baseline = BASELINE
+        except Exception as error:
+            messages.append("Compatibility check could not prepare the baseline. See the check diagnostics.")
+            failures["compatibility"] = repr(error)
+    write_report(reports, "spec-versions", versions)
+    try:
+        client.publish(package, CANDIDATE, current, baseline)
+    except Exception as error:
+        messages.append("APIHUB could not publish the candidate spec. See the check diagnostics.")
+        failures["publication"] = repr(error)
+        lint_findings, breaking = False, False
+    else:
+        lint_findings, breaking = check_candidate(client, package, reports, versions, exceptions_path, baseline,
+                                                  messages, failures)
 
     for line in messages:
         print(line)
@@ -304,7 +318,7 @@ def run(work_dir, reports, exceptions_path):
     if output_path := os.environ.get("GITHUB_OUTPUT"):
         with Path(output_path).open("a", encoding="utf-8") as output:
             output.write(f"lint_findings={str(lint_findings).lower()}\n")
-            output.write(f"breaking={str(matched + unmatched > 0).lower()}\n")
+            output.write(f"breaking={str(breaking).lower()}\n")
     if failures:
         write_report(reports, "check-failures", failures)
         for check, failure in failures.items():
