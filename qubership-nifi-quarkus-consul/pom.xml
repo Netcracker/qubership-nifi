@@ -98,6 +98,18 @@
 
     <profiles>
         <profile>
+            <id>skip-docker-tests</id>
+            <activation>
+                <property>
+                    <name>skipDockerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <excludedGroups>DockerBased</excludedGroups>
+            </properties>
+        </profile>
+        <profile>
             <id>default</id>
             <activation>
                 <activeByDefault>true</activeByDefault>

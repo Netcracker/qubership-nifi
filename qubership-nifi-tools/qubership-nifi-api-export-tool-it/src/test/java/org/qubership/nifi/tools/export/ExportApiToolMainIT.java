@@ -19,6 +19,7 @@ package org.qubership.nifi.tools.export;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -29,8 +30,8 @@ import java.nio.file.Path;
  * Integration tests that spin up a real NiFi container via TestContainers,
  * run the full Main pipeline, and verify the output file structure.
  * These tests require Docker and take several minutes each.
- * Run selectively: mvn test -pl qubership-nifi-api-export-tool -Dgroups=docker
  */
+@Tag("DockerBased")
 class ExportApiToolMainIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
