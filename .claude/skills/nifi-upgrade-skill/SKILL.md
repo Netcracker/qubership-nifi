@@ -152,14 +152,89 @@ where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replace
 Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml \
 --version <TARGET>`.
 
-## 13. Update OpenAPI specification
+## 13. Update dev scripts
+
+The scripts in `dev/update-scripts-flow-2.x` and `dev/update-scripts-prop-2.x` rename and remove properties in
+exports made on older NiFi versions. Each upgrade adds one mapping step for the target version, built from the
+comparator results of steps 11-12.
+
+`<TARGET_MINOR>` is the minor part of `<TARGET>` (`12` for `2.12.0`). Create files and steps only for `<TARGET>`,
+never for the versions skipped between `<CURRENT>` and `<TARGET>`: an upgrade from 2.10.0 to 2.12.0 adds step `12`
+and nothing for 2.11. The scripts apply a step to every export older than the step, so the one step covers the whole
+range.
+
+The comparator writes the mapping files with the `_2_<TARGET_MINOR>` suffix only when it runs with `--version`. If
+`./upgrade-temp-data/nifi-property-comparison` has no `*_2_<TARGET_MINOR>.json` files, re-run the comparator from
+step 11 with `--version <TARGET>`, and with `--dictionaryPath` if step 12 created a dictionary.
+
+### Flow exports script
+
+A flow script entry that removes a property runs before the import, so NiFi's own migration never sees that
+property. Some properties must stay in the flow for NiFi to migrate them. For example, the flow script has no
+2.11 step, so it keeps `Validate Field Names` of `AvroSchemaRegistry`, and NiFi 2.11 converts the value `false` to
+`Validation Strategy` `NONE` on import.
+
+1. Show the user every entry that removes a property, and ask whether the flow script must remove it or leave it for
+   NiFi to migrate:
+   - every `null` value in `csPropConfig_2_<TARGET_MINOR>.json` and `procPropConfig_2_<TARGET_MINOR>.json`, which
+     removes the property even when it carries a value;
+   - every entry in `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` and
+     `procRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`, which removes the descriptor when the property has no value.
+
+   Entries that rename a property need no question.
+2. Copy all four files from `./upgrade-temp-data/nifi-property-comparison` to `dev/update-scripts-flow-2.x`, without
+   the entries the user declined. Copy a file even when it holds only `{}`, and end every file with a newline:
+   - `csPropConfig_2_<TARGET_MINOR>.json`
+   - `procPropConfig_2_<TARGET_MINOR>.json`
+   - `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`
+   - `procRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`
+
+   `updateFlowExports.sh` fails on a step whose `csPropConfig` or `procPropConfig` file is missing.
+3. Append `<TARGET_MINOR>` to `local steps=(...)` in `update_properties()` of `updateFlowExports.sh`.
+4. Add a `<TARGET>` row to both mapping tables in `dev/update-scripts-flow-2.x/README.md`.
+
+### Controller services script
+
+`upgradeConfig_2_<TARGET_MINOR>.json` holds controller service mappings only, and the file exists only when the
+target version renamed or removed a controller service property.
+
+1. Merge `csPropConfig_2_<TARGET_MINOR>.json` with the `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` entries the
+   user approves. Take both files from `./upgrade-temp-data/nifi-property-comparison`, with the entries declined for
+   the flow script still in them: `upgradeConfig_2_11.json` removes `Validate Field Names`, which the flow script
+   keeps. Show the user every `csRemoveWhenEmptyConfig` entry and ask whether the controller service import must
+   remove that property. In this script a `null` value removes the property even when it carries a value.
+2. If the merged mapping is `{}`, skip the rest of this section, README included, and say so in the final report.
+   The README version range ends at the latest version that has an `upgradeConfig` file.
+3. Write the merged mapping to `dev/update-scripts-prop-2.x/upgradeConfig_2_<TARGET_MINOR>.json`, ending the file
+   with a newline.
+4. In `analyzeAndUpdateNiFiExports.sh`, copy the blocks of the latest existing version and change them to
+   `<TARGET_MINOR>`:
+   - the `declare -a listForUpdate_2_<MINOR>` line;
+   - the export version check that fills `listForUpdate_2_<MINOR>`;
+   - the `echo "Flow for update 2.<MINOR>: "` line;
+   - the block that runs `upgradeExports_2_x.sh` with `upgradeConfig_2_<MINOR>.json`.
+5. In `dev/update-scripts-prop-2.x/README.md`, update the supported version range in the opening sentence and the
+   list of mapping files under "Mapping configuration".
+
+### Check the scripts
+
+```bash
+bash -n dev/update-scripts-flow-2.x/updateFlowExports.sh
+bash -n dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
+shellcheck dev/update-scripts-flow-2.x/updateFlowExports.sh dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
+```
+
+In the final report, list the files added and changed in both directories, and the removal entries the user
+approved or declined, separately for the flow script and for `upgradeConfig_2_<TARGET_MINOR>.json`.
+
+## 14. Update OpenAPI specification
 
 ```bash
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
 ```
 
-## 14. Generate releases notes
+## 15. Generate releases notes
 
 Fill in the wiki templates from `docs/template/wiki/` with the versions used in
 this upgrade and write the results to `upgrade-temp-data/releases-notes/`.
