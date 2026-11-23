@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>qubership-consul</artifactId>
     <packaging>pom</packaging>
-    <version>2.10.1-SNAPSHOT</version>
+    <version>2.10.2-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -80,7 +80,7 @@
         <!--plugin versions-->
         <pmd.version>3.28.0</pmd.version>
         <jacoco.version>0.8.16</jacoco.version>
-        <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
+        <flatten-maven-plugin.version>1.9.0</flatten-maven-plugin.version>
         <surefire-plugin.version>3.6.1</surefire-plugin.version>
         <central-publishing.plugin.version>0.12.0</central-publishing.plugin.version>
     </properties>
@@ -98,6 +98,18 @@
     </dependencyManagement>
 
     <profiles>
+        <profile>
+            <id>skip-docker-tests</id>
+            <activation>
+                <property>
+                    <name>skipDockerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <excludedGroups>DockerBased</excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>default</id>
             <activation>

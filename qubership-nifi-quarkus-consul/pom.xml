@@ -5,7 +5,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>qubership-nifi-quarkus-consul</artifactId>
     <packaging>pom</packaging>
-    <version>2.10.1-SNAPSHOT</version>
+    <version>2.10.2-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>
@@ -51,7 +51,7 @@
         <quarkus-plugin.version>3.33.3.3</quarkus-plugin.version>
         <core-quarkus-external-bom.version>1.0.9</core-quarkus-external-bom.version>
         <netty.version>4.1.140.Final</netty.version>
-        <jackson.version>2.22.4</jackson.version>
+        <jackson.version>2.23.0</jackson.version>
         <!--test libraries versions-->
         <junit.jupiter.version>5.14.4</junit.jupiter.version>
         <testcontainers.version>1.21.4</testcontainers.version>
@@ -60,7 +60,7 @@
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <pmd.version>3.28.0</pmd.version>
         <jacoco.version>0.8.14</jacoco.version>
-        <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
+        <flatten-maven-plugin.version>1.9.0</flatten-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -97,6 +97,18 @@
     </dependencyManagement>
 
     <profiles>
+        <profile>
+            <id>skip-docker-tests</id>
+            <activation>
+                <property>
+                    <name>skipDockerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <excludedGroups>DockerBased</excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>default</id>
             <activation>
@@ -357,7 +369,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.23.0</version>
+                <version>2.25.2</version>
             </plugin>
         </plugins>
     </build>

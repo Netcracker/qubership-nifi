@@ -5,10 +5,13 @@ Instructions for AI assistants working on this repository (Cursor, Claude Code, 
 ## Build & Development Commands
 
 ```bash
-# Full build
+# Full build with Docker-based tests
 mvn clean install
 
-# Skip tests for faster builds
+# Build and run tests without Docker
+mvn clean install -DskipDockerTests
+
+# Skip unit tests
 mvn clean install -DskipUnitTests=true
 
 # Run integration tests
@@ -21,9 +24,9 @@ mvn test -pl qubership-nifi-docs-generator
 docker build .
 ```
 
-Prerequisites: JDK 25, Maven 3.x, Docker.
+The Maven build requires JDK 25 and Maven 3.x.
+Docker is required for container-based tests and image builds.
 
-Integration tests use Testcontainers and require Docker.
 The `TEST_DOCKER_URL` environment variable can override the Docker host.
 
 ## Architecture Overview

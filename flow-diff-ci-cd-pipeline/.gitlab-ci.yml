@@ -12,7 +12,7 @@ flow-diff:
   stage: flow-diff
   allow_failure: true
   image:
-    name: ghcr.io/netcracker/qubership-nifi-flow-diff-cli:2.10.0@sha256:847bb88e1cb0d712bf95cbee9db7a67275b538e508fbf95ff80f40907be75aad
+    name: ghcr.io/netcracker/qubership-nifi-flow-diff-cli:2.10.1@sha256:2610d450044e55321cf5265446e6fb4435a32da70911d4b06e4631a395a7e22b
   resource_group: "flow-diff-$CI_MERGE_REQUEST_IID"
   interruptible: true
   variables:
