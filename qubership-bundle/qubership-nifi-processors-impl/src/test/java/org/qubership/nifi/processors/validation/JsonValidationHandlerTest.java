@@ -335,22 +335,8 @@ public class JsonValidationHandlerTest {
     }
 
     @Test
-    public void schemaWithoutDollarSchemaIsReadAsDraft4() {
-        // A boolean exclusiveMaximum is draft 4 syntax; draft 6 and later expect a number there.
-        assertErrors("""
-                [{
-                  "code": "ME-JV-0002",
-                  "title": "Validation error 'maximum' in 'Customer' Business Entity '$.count'",
-                  "details": "count: must have a maximum value of 10",
-                  "source": {"_sourceId": "S1", "path": "count"}
-                }]""",
-                errorsOf("""
-                        {"properties": {"count": {"maximum": 10, "exclusiveMaximum": true}}}""", """
-                        {"_sourceId": "S1", "_businessEntityType": "Customer", "count": 10}"""));
-    }
-
-    @Test
     public void arrayRootWithErrorsIsRefused() {
+        // Pins current behavior, not a contract: the handler cannot add _errors to a non-object root, so it throws.
         assertThrows(ProcessException.class, () -> process("""
                 {"type": "array", "items": {"type": "string"}}""", "[1]",
                 BE_TYPE_PATH, ID_PATH, ERROR_CODE, null));

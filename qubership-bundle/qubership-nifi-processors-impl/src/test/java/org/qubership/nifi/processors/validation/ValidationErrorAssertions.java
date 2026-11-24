@@ -17,8 +17,10 @@
 package org.qubership.nifi.processors.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.UncheckedIOException;
 import java.util.Map;
@@ -36,7 +38,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * each error occurs is not. The fields inside each error are compared exactly.</p>
  */
 public final class ValidationErrorAssertions {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+            .build();
 
     private ValidationErrorAssertions() {
     }
@@ -57,10 +61,11 @@ public final class ValidationErrorAssertions {
     }
 
     /**
-     * Parses JSON text written in a test.
+     * Parses JSON text written in a test or produced by the processor.
      *
      * @param json JSON text
      * @return the parsed tree
+     * @throws UncheckedIOException if the text is not JSON or has anything but whitespace after the first value
      */
     public static JsonNode readTree(String json) {
         try {

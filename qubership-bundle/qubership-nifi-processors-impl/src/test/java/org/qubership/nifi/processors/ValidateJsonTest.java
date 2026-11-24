@@ -188,6 +188,9 @@ public class ValidateJsonTest {
         testRunner.clearTransferState();
 
         runOne(JsonTestData.TEST_JSON_SCHEMA_4, JsonTestData.INVALID_TEST_JSON_BY_SHEMA2, ValidateJson.REL_VALID);
+        testRunner.clearTransferState();
+
+        runOne(JsonTestData.TEST_JSON_SCHEMA_4, JsonTestData.INVALID_TEST1_JSON_BY_SHEMA4, ValidateJson.REL_INVALID);
     }
 
     @Test
@@ -273,7 +276,8 @@ public class ValidateJsonTest {
     }
 
     @Test
-    public void schemaWithANonStringTypeRejectsEveryDocument() {
+    public void schemaWithANonStringTypeRoutesAnObjectToInvalid() {
+        // Pins current behavior, not a contract: {"type": 5} is not a valid schema, yet the processor accepts it.
         MockFlowFile flowFile = runOne("""
                 {"type": 5}""", """
                 {"_sourceId": "S1", "_businessEntityType": "Customer"}""", ValidateJson.REL_INVALID);
@@ -329,6 +333,8 @@ public class ValidateJsonTest {
 
     @Test
     public void arrayRootWithErrorsFailsTheTrigger() {
+        // Pins current behavior, not a contract: the session rolls back, so the FlowFile is retried and never
+        // reaches invalid.
         testRunner.setProperty(ValidateJson.SCHEMA, STRING_ARRAY_SCHEMA);
         testRunner.enqueue("[1]");
 
