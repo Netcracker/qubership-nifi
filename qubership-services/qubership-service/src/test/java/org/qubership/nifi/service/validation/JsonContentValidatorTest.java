@@ -64,7 +64,8 @@ public class JsonContentValidatorTest {
     @Test
     public void documentMatchingTheSchemaIsValid() throws Exception {
         assertEquals(true, validate(ENTITY_SCHEMA, """
-                {"id": 1, "status": "Active", "updated": "2018-02-11T11:27:38.795Z"}"""), "validate(id 1, status Active)");
+                {"id": 1, "status": "Active", "updated": "2018-02-11T11:27:38.795Z"}"""),
+                "validate(id 1, status Active)");
     }
 
     @Test
