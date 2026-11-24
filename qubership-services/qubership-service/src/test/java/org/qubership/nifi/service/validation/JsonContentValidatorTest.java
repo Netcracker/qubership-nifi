@@ -16,6 +16,7 @@
 
 package org.qubership.nifi.service.validation;
 
+import com.networknt.schema.JsonSchemaException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -29,6 +30,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonContentValidatorTest {
     private static final String ENTITY_SCHEMA = """
@@ -108,9 +110,13 @@ public class JsonContentValidatorTest {
         testRunner.setProperty(validator, JsonContentValidator.SCHEMA, """
                 {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object"}""");
 
-        assertThrows(AssertionError.class, () -> testRunner.enableControllerService(validator),
-                "enabling with a draft-07 schema; JsonSchemaFactory.getInstance() in json-schema-validator 1.0.43 "
-                        + "knows only the draft 4 meta-schema");
+        AssertionError error = assertThrows(AssertionError.class,
+                () -> testRunner.enableControllerService(validator), "enabling with a draft-07 schema");
+
+        // The test runner reports an exception from the @OnEnabled method only in the message of its AssertionError.
+        assertTrue(error.getMessage().contains(JsonSchemaException.class.getName()),
+                () -> "cause of the enable failure; JsonSchemaFactory.getInstance() in json-schema-validator 1.0.43 "
+                        + "knows only the draft 4 meta-schema, got: " + error.getMessage());
         assertFalse(testRunner.isControllerServiceEnabled(validator), "isControllerServiceEnabled(validator)");
     }
 

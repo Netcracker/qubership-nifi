@@ -21,35 +21,39 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Compares the {@code _errors} array that {@link JsonValidationHandler} adds to a document with an expected array.
  *
- * <p>The order of the errors is ignored, because the schema library reports them as a set. The fields inside each
- * error are compared exactly.</p>
+ * <p>The order of the errors is ignored, because the schema library reports them as a set, but the number of times
+ * each error occurs is not. The fields inside each error are compared exactly.</p>
  */
 public final class ValidationErrorAssertions {
     private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Comparator<JsonNode> BY_DETAILS_THEN_TITLE = Comparator
-            .comparing((JsonNode error) -> error.path("details").asText())
-            .thenComparing(error -> error.path("title").asText());
 
     private ValidationErrorAssertions() {
     }
 
     /**
-     * Asserts that {@code actualErrors} holds the same errors as {@code expectedErrorsJson}, in any order.
+     * Asserts that {@code actualErrors} is an array holding the same errors as {@code expectedErrorsJson}, in any
+     * order.
      *
      * @param expectedErrorsJson the expected {@code _errors} array as JSON text
      * @param actualErrors the {@code _errors} node of the validated document, or {@code null} if it has none
      */
     public static void assertErrors(String expectedErrorsJson, JsonNode actualErrors) {
-        assertEquals(sorted(readTree(expectedErrorsJson)), sorted(actualErrors), "_errors, in any order");
+        if (actualErrors != null) {
+            assertTrue(actualErrors.isArray(), () -> "_errors is an array, got " + actualErrors);
+        }
+        assertEquals(counted(readTree(expectedErrorsJson)), counted(actualErrors),
+                "_errors, each error with its number of occurrences, in any order");
     }
 
     /**
@@ -66,13 +70,11 @@ public final class ValidationErrorAssertions {
         }
     }
 
-    private static List<JsonNode> sorted(JsonNode errors) {
+    private static Map<JsonNode, Long> counted(JsonNode errors) {
         if (errors == null) {
             return null;
         }
-        List<JsonNode> list = new ArrayList<>();
-        errors.forEach(list::add);
-        list.sort(BY_DETAILS_THEN_TITLE);
-        return list;
+        return StreamSupport.stream(errors.spliterator(), false)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
     }
 }

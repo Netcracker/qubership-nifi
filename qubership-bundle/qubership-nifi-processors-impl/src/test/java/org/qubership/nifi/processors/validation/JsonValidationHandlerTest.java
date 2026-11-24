@@ -259,6 +259,8 @@ public class JsonValidationHandlerTest {
     @Test
     public void errorDetailsStayInEnglishUnderAnotherDefaultLocale() {
         Locale defaultLocale = Locale.getDefault();
+        Locale formatLocale = Locale.getDefault(Locale.Category.FORMAT);
+        Locale displayLocale = Locale.getDefault(Locale.Category.DISPLAY);
         JsonNode errors;
         try {
             Locale.setDefault(Locale.GERMANY);
@@ -266,7 +268,10 @@ public class JsonValidationHandlerTest {
                     {"properties": {"name": {"type": "string", "minLength": 3}}}""", """
                     {"_sourceId": "S1", "_businessEntityType": "Customer", "name": "ab"}""");
         } finally {
+            // Locale.setDefault(Locale) also overwrites both category defaults, so they are restored after it.
             Locale.setDefault(defaultLocale);
+            Locale.setDefault(Locale.Category.FORMAT, formatLocale);
+            Locale.setDefault(Locale.Category.DISPLAY, displayLocale);
         }
 
         assertErrors("""
