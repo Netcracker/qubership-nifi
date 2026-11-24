@@ -1,0 +1,78 @@
+/*
+ * Copyright 2020-2025 NetCracker Technology Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.qubership.nifi.processors.validation;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * Compares the {@code _errors} array that {@link JsonValidationHandler} adds to a document with an expected array.
+ *
+ * <p>The order of the errors is ignored, because the schema library reports them as a set. The fields inside each
+ * error are compared exactly.</p>
+ */
+public final class ValidationErrorAssertions {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Comparator<JsonNode> BY_DETAILS_THEN_TITLE = Comparator
+            .comparing((JsonNode error) -> error.path("details").asText())
+            .thenComparing(error -> error.path("title").asText());
+
+    private ValidationErrorAssertions() {
+    }
+
+    /**
+     * Asserts that {@code actualErrors} holds the same errors as {@code expectedErrorsJson}, in any order.
+     *
+     * @param expectedErrorsJson the expected {@code _errors} array as JSON text
+     * @param actualErrors the {@code _errors} node of the validated document, or {@code null} if it has none
+     */
+    public static void assertErrors(String expectedErrorsJson, JsonNode actualErrors) {
+        assertEquals(sorted(readTree(expectedErrorsJson)), sorted(actualErrors), "_errors, in any order");
+    }
+
+    /**
+     * Parses JSON text written in a test.
+     *
+     * @param json JSON text
+     * @return the parsed tree
+     */
+    public static JsonNode readTree(String json) {
+        try {
+            return MAPPER.readTree(json);
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static List<JsonNode> sorted(JsonNode errors) {
+        if (errors == null) {
+            return null;
+        }
+        List<JsonNode> list = new ArrayList<>();
+        errors.forEach(list::add);
+        list.sort(BY_DETAILS_THEN_TITLE);
+        return list;
+    }
+}

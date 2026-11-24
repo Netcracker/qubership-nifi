@@ -16,9 +16,6 @@
 
 package org.qubership.nifi.processors.validation;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class JsonTestData {
     public static final String VALID_TEST_JSON_BY_SHEMA1 = "{\n" +
             "            \"_sourceId\": \"CUST#223456789\",\n" +
@@ -1018,39 +1015,4 @@ public class JsonTestData {
             "\t\t}\n" +
             "\t]\n" +
             "}";
-
-
-
-    private Map<String, String> validJsonSchemaMap;
-    private Map<String, String> invalidJsonSchemaMap;
-
-    public JsonTestData() {
-        this.validJsonSchemaMap = new HashMap<>();
-        this.invalidJsonSchemaMap = new HashMap<>();
-        fillTestDataCollection();
-    }
-
-    private void fillTestDataCollection() {
-        validJsonSchemaMap.put(VALID_TEST_JSON_BY_SHEMA1, TEST_JSON_SCHEMA_1);
-        validJsonSchemaMap.put(VALID_TEST_JSON_BY_SHEMA2, TEST_JSON_SCHEMA_2);
-        validJsonSchemaMap.put(VALID_TEST_JSON_BY_SHEMA4, TEST_JSON_SCHEMA_4);
-
-        invalidJsonSchemaMap.put(INVALID_TEST_JSON_BY_SHEMA1, TEST_JSON_SCHEMA_1);
-        invalidJsonSchemaMap.put(INVALID_TEST_JSON_BY_SHEMA2, TEST_JSON_SCHEMA_2);
-        invalidJsonSchemaMap.put(INVALID_TEST_JSON_BY_SHEMA3, TEST_JSON_SCHEMA_3);
-
-        invalidJsonSchemaMap.put(INVALID_TEST1_JSON_BY_SHEMA4, TEST_JSON_SCHEMA_4);
-        invalidJsonSchemaMap.put(INVALID_TEST2_JSON_BY_SHEMA4, TEST_JSON_SCHEMA_4);
-
-    }
-
-    public Map<String, String> getValidJsonSchemaMap() {
-        return validJsonSchemaMap;
-    }
-
-    public Map<String, String> getInvalidJsonSchemaMap() {
-        return invalidJsonSchemaMap;
-    }
-
-
 }
