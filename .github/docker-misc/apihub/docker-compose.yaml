@@ -86,7 +86,7 @@ configs:
         apihubExternalUrl: "http://127.0.0.1:${APIHUB_PORT:-18090}"
       zeroDayConfiguration:
         accessToken: "${APIHUB_ACCESS_TOKEN:?Set APIHUB_ACCESS_TOKEN}"
-        adminEmail: "${APIHUB_ADMIN_EMAIL:-ci@example.test}"
+        adminEmail: "${APIHUB_ADMIN_EMAIL:-apihub-test-user@example.com}"
         adminPassword: "${APIHUB_ADMIN_PASSWORD:?Set APIHUB_ADMIN_PASSWORD}"
       olric:
         discoveryMode: local

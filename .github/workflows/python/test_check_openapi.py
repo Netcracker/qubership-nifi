@@ -180,7 +180,7 @@ def apihub(monkeypatch):
         clock.now += seconds
 
     monkeypatch.setattr(check_openapi, "time", SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
-    monkeypatch.setenv("APIHUB_ADMIN_EMAIL", "ci@example.test")
+    monkeypatch.setenv("APIHUB_ADMIN_EMAIL", "apihub-test-user@example.com")
     monkeypatch.setenv("APIHUB_ADMIN_PASSWORD", "mock-password")
 
     services = {18090: backend, 18091: linter}
@@ -240,7 +240,7 @@ def test_publishes_both_specs_as_distinct_drafts_and_waits_for_lint(apihub, work
     assert check_openapi.main() == 0
 
     login, *requests = backend.requests
-    credential = base64.b64encode(b"ci@example.test:mock-password").decode()
+    credential = base64.b64encode(b"apihub-test-user@example.com:mock-password").decode()
     assert (login.target, login.headers["Authorization"]) == ("/api/v3/auth/local", f"Basic {credential}")
     assert {request.headers["Cookie"] for request in [*requests, *linter.requests]} == {
         "apihub-access-token=mock-session"

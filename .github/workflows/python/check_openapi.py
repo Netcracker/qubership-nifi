@@ -103,7 +103,7 @@ class ApiHub:
         return self.request("GET", path, **kwargs)[2]
 
     def login(self, deadline):
-        email = os.environ.get("APIHUB_ADMIN_EMAIL", "ci@example.test")
+        email = os.environ.get("APIHUB_ADMIN_EMAIL", "apihub-test-user@example.com")
         password = os.environ["APIHUB_ADMIN_PASSWORD"]
         credentials = base64.b64encode(f"{email}:{password}".encode()).decode()
         _, headers, _ = self.request(
