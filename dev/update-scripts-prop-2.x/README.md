@@ -3,7 +3,7 @@
 ## Scripts overview
 
 The script `analyzeAndUpdateNiFiExports.sh` upgrades controller services and reporting tasks exports
-done from older NiFi versions to be compatible with NiFi 2.5.0 through 2.11.0.
+done from older NiFi versions to be compatible with NiFi 2.5.0 through 2.12.0.
 The script automatically checks version in target NiFi instance, as well as version in export
 and determines, what changes must be applied to export to make it compatible.
 
