@@ -165,6 +165,32 @@ public class ValidateJsonTest {
     }
 
     @Test
+    public void invalidCustomerWithMissingCustomMetadataGetsFallbackErrors() {
+        testRunner.setProperty(ValidateJson.BE_TYPE_PATH_PROP, "missingType");
+        testRunner.setProperty(ValidateJson.ID_PATH_PROP, "missingId");
+
+        MockFlowFile flowFile = runOne(JsonTestData.TEST_JSON_SCHEMA_2, JsonTestData.INVALID_TEST_JSON_BY_SHEMA2,
+                ValidateJson.REL_INVALID);
+
+        assertErrors("""
+                [{
+                  "code": "ME-JV-0002",
+                  "title": "Validation error 'type' in 'object' Business Entity 'key5.key6'",
+                  "details": "inner.key31.key5[0].key6: integer found, string expected",
+                  "source": {"missingId": "", "path": "inner.key31.key5[0].key6"}
+                }]""",
+                readTree(flowFile.getContent()).get("_errors"));
+    }
+
+    @Test
+    public void schemaChangedBetweenRunsIsUsedAfterRescheduling() {
+        runOne(JsonTestData.TEST_JSON_SCHEMA_2, JsonTestData.INVALID_TEST_JSON_BY_SHEMA2, ValidateJson.REL_INVALID);
+        testRunner.clearTransferState();
+
+        runOne(JsonTestData.TEST_JSON_SCHEMA_4, JsonTestData.INVALID_TEST_JSON_BY_SHEMA2, ValidateJson.REL_VALID);
+    }
+
+    @Test
     public void nestedCustomerMatchingSchema2IsRoutedToValidUnchanged() {
         assertRoutedToValidUnchanged(JsonTestData.TEST_JSON_SCHEMA_2, JsonTestData.VALID_TEST_JSON_BY_SHEMA2);
     }
@@ -258,6 +284,23 @@ public class ValidateJsonTest {
                   "title": "Validation error 'type' in 'Customer' Business Entity '$'",
                   "details": "$: object found, unknown expected",
                   "source": {"_sourceId": "S1", "path": "$"}
+                }]""",
+                readTree(flowFile.getContent()).get("_errors"));
+    }
+
+    @Test
+    public void schemaWithoutDollarSchemaIsReadAsDraft4() {
+        // A boolean exclusiveMaximum is draft 4 syntax; draft 6 and later expect a number there.
+        MockFlowFile flowFile = runOne("""
+                {"properties": {"count": {"maximum": 10, "exclusiveMaximum": true}}}""", """
+                {"_sourceId": "S1", "_businessEntityType": "Customer", "count": 10}""", ValidateJson.REL_INVALID);
+
+        assertErrors("""
+                [{
+                  "code": "ME-JV-0002",
+                  "title": "Validation error 'maximum' in 'Customer' Business Entity '$.count'",
+                  "details": "count: must have a maximum value of 10",
+                  "source": {"_sourceId": "S1", "path": "count"}
                 }]""",
                 readTree(flowFile.getContent()).get("_errors"));
     }
