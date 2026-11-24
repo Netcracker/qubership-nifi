@@ -1,3 +1,4 @@
+from itertools import takewhile
 import json
 from pathlib import Path
 
@@ -11,8 +12,8 @@ REQUIRED_ISSUE_FIELDS = ("action", "scope")
 PATH_FIELDS = ("previousDeclarationJsonPaths", "currentDeclarationJsonPaths")
 HASH_FIELDS = ("previousValueHash", "currentValueHash")
 KEY_FIELDS = ("previousKey", "currentKey")
-ISSUE_FIELDS = REQUIRED_ISSUE_FIELDS + PATH_FIELDS + HASH_FIELDS + KEY_FIELDS
-SELECTOR_FIELDS = OPERATION_FIELDS + ISSUE_FIELDS
+OPTIONAL_ISSUE_FIELDS = PATH_FIELDS + HASH_FIELDS + KEY_FIELDS
+SELECTOR_FIELDS = OPERATION_FIELDS + REQUIRED_ISSUE_FIELDS + OPTIONAL_ISSUE_FIELDS
 REASON_PLACEHOLDER = "Add the reason for accepting this change."
 
 
@@ -59,10 +60,15 @@ def load_exception_groups(path):
     return config["exceptions"]
 
 
-def write_exception_groups(path, groups, comment):
+def read_exception_header(path):
+    with path.open(encoding="utf-8") as source:
+        return "".join(takewhile(lambda line: not line.strip() or line.lstrip().startswith("#"), source))
+
+
+def write_exception_groups(path, groups, header):
     path.write_text(
-        f"# {comment}\n" + yaml.dump({"exceptions": groups}, Dumper=ExceptionDumper,
-                                     sort_keys=False, default_flow_style=None, width=120),
+        header + yaml.dump({"exceptions": groups}, Dumper=ExceptionDumper,
+                           sort_keys=False, default_flow_style=None, width=120),
         encoding="utf-8",
         newline="\n",
     )
@@ -112,7 +118,7 @@ def load_exceptions(path):
     return {"exceptions": groups}
 
 
-def apply_exceptions(config, versions, operations, proposal_path):
+def apply_exceptions(config, versions, operations, proposal_path, *, header=""):
     groups = config["exceptions"]
     active_group = next((group for group in groups if all(
         group[field] == versions[field] for field in VERSION_FIELDS
@@ -127,11 +133,10 @@ def apply_exceptions(config, versions, operations, proposal_path):
                 continue
             identity = operation.get("currentOperation") or operation["previousOperation"]
             selector = {field: identity[field] for field in OPERATION_FIELDS}
-            # load_exceptions rejects an empty hash, so the selector leaves one out, and an approval without that
-            # hash matches the finding.
+            selector.update({field: issue[field] for field in REQUIRED_ISSUE_FIELDS})
             selector.update({
-                field: issue[field] for field in ISSUE_FIELDS
-                if field in issue and (field not in HASH_FIELDS or is_nonempty_string(issue[field]))
+                field: issue[field] for field in OPTIONAL_ISSUE_FIELDS
+                if issue.get(field) is not None and (field not in HASH_FIELDS or is_nonempty_string(issue[field]))
             })
             key = signature(selector)
             if key in approved:
@@ -153,7 +158,5 @@ def apply_exceptions(config, versions, operations, proposal_path):
                 {**group, "changes": [*group["changes"], *suggested]} if group is active_group else group
                 for group in groups
             ]
-        write_exception_groups(
-            proposal_path, proposed_groups, "Review the proposed changes before replacing the repository exceptions file.",
-        )
+        write_exception_groups(proposal_path, proposed_groups, header)
     return unmatched, matched

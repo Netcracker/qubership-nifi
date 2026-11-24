@@ -118,7 +118,6 @@ def test_a_proposal_writes_mappings_in_block_style_and_path_arrays_in_flow_style
 
     assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0)
     assert proposal.read_text(encoding="utf-8") == f"""\
-# Review the proposed changes before replacing the repository exceptions file.
 exceptions:
   - previousNifiVersion: 2.9.0
     currentNifiVersion: 2.10.0
@@ -150,6 +149,25 @@ def test_a_proposal_leaves_out_an_empty_hash_so_the_reviewed_proposal_loads_and_
         **OPERATION, **{field: value for field, value in REMOVAL.items() if field != "previousValueHash"}, "reason": REASON,
     }]
     assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 1)
+
+
+@pytest.mark.parametrize(("field", "empty"), [
+    pytest.param("currentDeclarationJsonPaths", [], id="declaration-paths"),
+    pytest.param("previousKey", "", id="declaration-key"),
+])
+def test_only_null_declaration_fields_are_omitted_from_proposals(tmp_path, field, empty):
+    issues = [{"severity": "breaking", **REMOVAL, field: value} for value in (None, empty)]
+    operations = [{"currentOperation": OPERATION, "issues": issues}]
+    proposal = tmp_path / "proposed.yml"
+
+    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0)
+    proposal.write_text(proposal.read_text(encoding="utf-8").replace(REASON_PLACEHOLDER, REASON), encoding="utf-8")
+    config = load_exceptions(proposal)
+    base_selector = {**OPERATION, **REMOVAL, "reason": REASON}
+    assert sorted(config["exceptions"][0]["changes"], key=lambda change: field in change) == [
+        base_selector, {**base_selector, field: empty},
+    ]
+    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 2)
 
 
 def test_duplicate_config_keys_are_rejected(tmp_path):

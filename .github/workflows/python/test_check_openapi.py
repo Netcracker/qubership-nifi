@@ -1,11 +1,14 @@
 import base64
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass, field
 from email import policy
 from email.parser import BytesParser
 import io
 import json
+from socketserver import StreamRequestHandler, TCPServer
 import sys
+from threading import Event, Thread
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 import zipfile
@@ -55,6 +58,18 @@ class Response:
     def getheaders(self):
         return list(self.headers.items())
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return None
+
+
+class SlowResponse(Response):
+    def read(self):
+        check_openapi.time.sleep(20)
+        return super().read()
+
 
 @dataclass
 class Request:
@@ -86,6 +101,9 @@ class MockApiHub:
 class MockConnection:
     def __init__(self, service):
         self.service = service
+
+    def connect(self):
+        self.sock = SimpleNamespace(shutdown=lambda how: None)
 
     def request(self, method, target, body, headers):
         self.response = self.service.request(method, target, body, headers)
@@ -190,7 +208,6 @@ def work_dir(monkeypatch, tmp_path):
     lint_exceptions = tmp_path / "approved-lint.yml"
     lint_exceptions.write_text("exceptions: []\n", encoding="utf-8")
     monkeypatch.setattr(check_openapi, "APPROVED_LINT_EXCEPTIONS_PATH", lint_exceptions)
-    monkeypatch.setenv("GITHUB_OUTPUT", str(tmp_path / "outputs"))
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(tmp_path / "summary"))
     monkeypatch.setattr(sys, "argv", ["check_openapi.py", str(tmp_path), "--exceptions", str(exceptions)])
     return tmp_path
@@ -198,10 +215,6 @@ def work_dir(monkeypatch, tmp_path):
 
 def read_report(work_dir, name):
     return json.loads((work_dir / "reports" / f"{name}.json").read_text(encoding="utf-8"))
-
-
-def outputs(work_dir):
-    return dict(line.split("=", 1) for line in (work_dir / "outputs").read_text(encoding="utf-8").splitlines())
 
 
 def unpack_publish(request):
@@ -213,7 +226,7 @@ def unpack_publish(request):
         return json.loads(parts["config"]), json.loads(archive.read("openapi.json"))
 
 
-def test_publishes_both_specs_as_distinct_drafts_and_waits_for_lint(apihub, work_dir, monkeypatch):
+def test_publishes_both_specs_as_distinct_drafts_and_waits_for_lint(apihub, work_dir, monkeypatch, capsys):
     backend, linter = apihub
     backend.respond("GET", f"{PUBLISH}/baseline/status", Response(200, {"status": "running"}),
                     Response(200, {"status": "complete"}))
@@ -242,7 +255,8 @@ def test_publishes_both_specs_as_distinct_drafts_and_waits_for_lint(apihub, work
     assert [request.target for request in linter.requests] == [
         f"{LINT}/summary", f"{LINT}/summary", f"{LINT}/summary", f"{LINT}/documents/openapi/details",
     ]
-    assert outputs(work_dir) == {"lint_findings": "false", "breaking": "false"}
+    assert (work_dir / "reports" / "compatibility-summary.json").is_file()
+    assert "Requesting APIHUB lint" not in capsys.readouterr().out
 
 
 def test_unapproved_lint_warning_fails_and_proposes_an_exact_exception(apihub, work_dir):
@@ -250,7 +264,6 @@ def test_unapproved_lint_warning_fails_and_proposes_an_exact_exception(apihub, w
     mock_lint(linter, "warning")
 
     assert check_openapi.main() == 1
-    assert outputs(work_dir) == {"lint_findings": "true", "breaking": "false"}
     assert read_report(work_dir, "lint-issues")[0]["results"][0]["issues"] == [lint_issue("warning")]
     assert read_report(work_dir, "check-failures") == {
         "lint": "Unapproved lint findings (errors 0, warnings 1)",
@@ -274,7 +287,6 @@ def test_lint_exceptions_preserve_findings_and_gate_only_unapproved_ones(apihub,
     warning_is_approved = "warning" in approved_severities
 
     assert check_openapi.main() == (0 if warning_is_approved else 1)
-    assert outputs(work_dir) == {"lint_findings": "true", "breaking": "false"}
     assert config.read_bytes() == approved_config
     assert read_report(work_dir, "lint-issues")[0]["results"][0]["issues"] == [
         {**lint_issue("error"), "exceptionReason": reason},
@@ -346,7 +358,6 @@ def test_unapproved_breaks_and_lint_errors_keep_both_reports_and_a_proposal(apih
 
     assert check_openapi.main() == 1
 
-    assert outputs(work_dir) == {"lint_findings": "true", "breaking": "true"}
     assert read_report(work_dir, "check-failures") == {
         "lint": "Unapproved lint findings (errors 1, warnings 0)", "compatibility": "Unapproved breaking finding count = 1",
     }
@@ -374,15 +385,23 @@ def test_successful_rerun_clears_obsolete_proposals_and_failure_report(apihub, w
     mock_lint(linter, "warning")
     mock_breaking_change(backend)
     reports = work_dir / "reports"
+    compatibility_header = "# Approve only reviewed breaking changes.\n"
+    lint_header = "# Approved Spectral warnings.\n# Keep the reason with each approval.\n\n"
+    (work_dir / "approved.yml").write_text(compatibility_header + "exceptions: []\n", encoding="utf-8")
+    (work_dir / "approved-lint.yml").write_text(lint_header + "exceptions: []\n", encoding="utf-8")
 
     assert check_openapi.main() == 1
     lint_proposal = reports / LINT_PROPOSAL
     compatibility_proposal = reports / PROPOSAL
     failures = reports / "check-failures.json"
     assert {path.name for path in reports.iterdir()} >= {LINT_PROPOSAL, PROPOSAL, failures.name}
-    (work_dir / "approved-lint.yml").write_text(lint_proposal.read_text(encoding="utf-8").replace(
+    lint_text = lint_proposal.read_text(encoding="utf-8")
+    compatibility_text = compatibility_proposal.read_text(encoding="utf-8")
+    assert lint_text.startswith(lint_header + "exceptions:\n")
+    assert compatibility_text.startswith(compatibility_header + "exceptions:\n")
+    (work_dir / "approved-lint.yml").write_text(lint_text.replace(
         LINT_REASON_PLACEHOLDER, "The warning was reviewed."), encoding="utf-8")
-    (work_dir / "approved.yml").write_text(compatibility_proposal.read_text(encoding="utf-8").replace(
+    (work_dir / "approved.yml").write_text(compatibility_text.replace(
         REASON_PLACEHOLDER, "The ETag header was reviewed."), encoding="utf-8")
     notes = reports / "notes.txt"
     notes.write_text("Review notes", encoding="utf-8")
@@ -448,7 +467,6 @@ def test_approved_breaks_still_keep_the_report_and_apply_the_lint_gate(apihub, w
     )
 
     assert check_openapi.main() == status
-    assert outputs(work_dir) == {"lint_findings": str(bool(lint_issues)).lower(), "breaking": "true"}
     assert read_report(work_dir, "compatibility-issues")[0]["issues"] == [{**BREAKING, "exceptionReason": reason}]
     assert not (work_dir / "reports" / PROPOSAL).exists()
     failures = work_dir / "reports" / "check-failures.json"
@@ -479,7 +497,6 @@ def test_failed_baseline_publication_still_runs_candidate_lint(apihub, work_dir)
     assert check_openapi.main() == 1
     _, candidate = [unpack_publish(request)[0] for request in backend.requests if request.target == PUBLISH]
     assert "previousVersion" not in candidate
-    assert outputs(work_dir) == {"lint_findings": "true", "breaking": "false"}
     assert "Bad baseline" in read_report(work_dir, "check-failures")["compatibility"]
     assert (work_dir / "reports" / "lint-issues.json").is_file()
     assert not (work_dir / "reports" / "compatibility-summary.json").exists()
@@ -491,7 +508,6 @@ def test_failed_candidate_publication_keeps_the_summary_and_the_baseline_failure
     backend.respond("GET", f"{PUBLISH}/candidate/status", Response(200, {"status": "error", "message": "Bad candidate"}))
 
     assert check_openapi.main() == 1
-    assert outputs(work_dir) == {"lint_findings": "false", "breaking": "false"}
     failures = read_report(work_dir, "check-failures")
     assert sorted(failures) == ["compatibility", "publication"]
     assert "Bad baseline" in failures["compatibility"]
@@ -505,22 +521,35 @@ def test_failed_candidate_publication_skips_lint_and_comparison(apihub, work_dir
     backend.respond("GET", f"{PUBLISH}/candidate/status", Response(200, {"status": "error", "message": "Bad candidate"}))
 
     assert check_openapi.main() == 1
-    assert outputs(work_dir) == {"lint_findings": "false", "breaking": "false"}
     assert list(read_report(work_dir, "check-failures")) == ["publication"]
     assert linter.requests == []
     assert [request.target for request in backend.requests if urlsplit(request.target).path == COMPARISON] == []
 
 
-def test_lint_requests_the_validation_once_when_no_task_appears_within_the_grace_period(apihub, work_dir):
+@pytest.mark.parametrize("status", [200, 202], ids=["ok", "accepted"])
+def test_lint_requests_the_validation_once_when_no_task_appears_within_the_grace_period(apihub, work_dir, capsys, status):
     _, linter = apihub
     linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 15,
                    Response(200, {"status": "success", "documents": [{"slug": "openapi"}]}))
-    linter.respond("POST", START_LINT, Response(202, {"taskId": "lint"}))
+    linter.respond("POST", START_LINT, Response(status, {"taskId": "lint"}))
 
     assert check_openapi.main() == 0
+    assert capsys.readouterr().out.count("Requesting APIHUB lint after the validation summary returned HTTP 404.") == 1
     assert [(request.method, request.target) for request in linter.requests] == [
         *[("GET", f"{LINT}/summary")] * 11, ("POST", START_LINT), *[("GET", f"{LINT}/summary")] * 5,
         ("GET", f"{LINT}/documents/openapi/details"),
+    ]
+
+
+def test_lint_fallback_reports_an_http_conflict_as_a_failure(apihub, work_dir):
+    _, linter = apihub
+    linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 11)
+    linter.respond("POST", START_LINT, Response(409))
+
+    assert check_openapi.main() == 1
+    assert "HTTP 409" in read_report(work_dir, "check-failures")["lint"]
+    assert [(request.method, request.target) for request in linter.requests if request.method == "POST"] == [
+        ("POST", START_LINT),
     ]
 
 
@@ -548,6 +577,58 @@ def test_slow_publications_shorten_the_lint_wait_to_the_shared_budget(apihub, wo
     assert len(linter.requests) == 10, "lint starts at 220 s and polls every 2 s until the 240 s budget ends"
 
 
+@pytest.mark.parametrize(("status", "payload"), [
+    pytest.param(404, None, id="no-task"),
+    pytest.param(200, {"status": "success", "documents": [{"slug": "openapi"}]}, id="task-finished"),
+])
+def test_lint_summary_arriving_after_cutoff_cannot_start_another_request(apihub, work_dir, status, payload):
+    backend, linter = apihub
+    for build in ("baseline", "candidate"):
+        backend.respond("GET", f"{PUBLISH}/{build}/status", *[Response(200, {"status": "running"})] * 55,
+                        Response(200, {"status": "complete"}))
+    linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 9, SlowResponse(status, payload))
+
+    assert check_openapi.main() == 1
+    assert [(request.method, request.target) for request in linter.requests] == [("GET", f"{LINT}/summary")] * 10
+    assert read_report(work_dir, "check-failures") == {
+        "lint": "TimeoutError('APIHUB linting timed out at the 240 s check budget')",
+    }
+    assert read_report(work_dir, "compatibility-summary")["hasErrors"] is False
+
+
+def test_request_deadline_interrupts_a_trickling_response_body(monkeypatch):
+    body_started = Event()
+    body_completed = Event()
+    stop = Event()
+
+    class TricklingResponse(StreamRequestHandler):
+        def handle(self):
+            for line in self.rfile:
+                if line == b"\r\n":
+                    break
+            self.wfile.write(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{}")
+            body_started.set()
+            with suppress(ConnectionError):
+                for _ in range(80):
+                    if stop.wait(0.025):
+                        return
+                    self.wfile.write(b" ")
+                body_completed.set()
+
+    with TCPServer(("127.0.0.1", 0), TricklingResponse) as server:
+        monkeypatch.setenv("APIHUB_PORT", str(server.server_address[1]))
+        worker = Thread(target=server.handle_request, daemon=True)
+        worker.start()
+        deadline = check_openapi.Deadline(check_openapi.time.monotonic() + 0.5, "Response deadline expired")
+        try:
+            with pytest.raises(TimeoutError, match="Response deadline expired"):
+                check_openapi.ApiHub().get("/slow-response", deadline=deadline)
+            assert (body_started.is_set(), body_completed.is_set()) == (True, False)
+        finally:
+            stop.set()
+            worker.join(timeout=2)
+
+
 def test_the_check_budget_also_ends_a_publication_before_its_own_limit(apihub, work_dir, monkeypatch):
     backend, linter = apihub
     monkeypatch.setattr(check_openapi, "CHECK_BUDGET", 150)
@@ -565,13 +646,28 @@ def test_the_check_budget_also_ends_a_publication_before_its_own_limit(apihub, w
 
 
 def test_unused_lint_exceptions_are_reported_without_failing_the_check(apihub, work_dir):
+    backend, linter = apihub
     approval = {**lint_issue("warning"), "reason": "The warning was reviewed."}
-    (work_dir / "approved-lint.yml").write_text(
-        yaml.safe_dump({"exceptions": [{**LINT_SCOPE, "issues": [approval]}]}), encoding="utf-8",
-    )
+    approval_path = work_dir / "approved-lint.yml"
+    config = yaml.safe_dump({"exceptions": [{**LINT_SCOPE, "issues": [approval]}]})
+    approval_path.write_text(config, encoding="utf-8")
 
     assert check_openapi.main() == 0
-    assert "- Unused lint exceptions (1).\n" in (work_dir / "summary").read_text(encoding="utf-8")
+    assert "- Unused lint exceptions (1). See unused-lint-exceptions.json.\n" in (work_dir / "summary").read_text(
+        encoding="utf-8",
+    )
+    assert read_report(work_dir, "unused-lint-exceptions") == [{**LINT_SCOPE, **approval}]
+    assert approval_path.read_text(encoding="utf-8") == config
+
+    mock_publication(backend)
+    mock_lint(linter, "warning")
+    mock_comparison(backend)
+
+    assert check_openapi.main() == 0
+    assert not (work_dir / "reports" / "unused-lint-exceptions.json").exists()
+    assert read_report(work_dir, "lint-issues")[0]["results"][0]["issues"] == [
+        {**lint_issue("warning"), "exceptionReason": approval["reason"]},
+    ]
 
 
 def test_a_removed_operation_is_complete_whatever_breaking_count_apihub_reports(apihub, work_dir):
@@ -650,3 +746,82 @@ def test_comparison_reads_all_pages_of_breaking_operations(apihub, work_dir):
     assert pages == [["0"], ["1"]]
     report = read_report(work_dir, "compatibility-issues")
     assert [item["previousOperation"]["path"] for item in report] == [f"/operation-{index}" for index in range(101)]
+
+
+@pytest.mark.parametrize(("failed_page", "detail"), [
+    pytest.param(Response(503), "HTTP 503", id="http-error"),
+    pytest.param(Response(200, {"operations": {"unexpected": 0}}), "Page 1 did not contain", id="malformed-page"),
+    pytest.param(SlowResponse(200, {"operations": []}), "timed out at the 10 s comparison cutoff", id="timeout"),
+])
+def test_comparison_keeps_operations_from_pages_before_a_failed_page(apihub, work_dir, monkeypatch, failed_page,
+                                                                     detail):
+    backend, _ = apihub
+    monkeypatch.setattr(check_openapi, "COMPARISON_CUTOFF", 10)
+    first_page = [
+        {"previousOperation": {"method": "get", "path": f"/operation-{index}"}, "changeSummary": {"breaking": 1}}
+        for index in range(100)
+    ]
+    mock_comparison(backend, breaking=101, affected=101)
+    backend.respond("GET", OPERATIONS, Response(200, {"operations": first_page}), failed_page)
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "compatibility-issues") == first_page
+    failure = read_report(work_dir, "check-failures")["compatibility"]
+    assert "returned 100 of 101 affected operations" in failure
+    assert detail in failure
+    assert not (work_dir / "reports" / PROPOSAL).exists()
+
+
+def test_comparison_reports_breaking_changes_with_zero_affected_operations(apihub, work_dir):
+    backend, _ = apihub
+    mock_comparison(backend, breaking=3, affected=0)
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {
+        "compatibility": "RuntimeError('APIHUB reported 3 breaking changes affecting 0 operations')",
+    }
+    assert read_report(work_dir, "compatibility-summary")["operationTypes"][0]["changesSummary"] == {"breaking": 3}
+    assert [request.target for request in backend.requests if urlsplit(request.target).path == OPERATIONS] == []
+
+
+def test_comparison_deadline_preserves_completed_details(apihub, work_dir, monkeypatch):
+    backend, _ = apihub
+    monkeypatch.setattr(check_openapi, "COMPARISON_CUTOFF", 10)
+    removed = {"previousOperation": {"method": "get", "path": "/removed"}, "changeSummary": {"breaking": 1}}
+    slow = {"currentOperation": OPERATION, "changeSummary": {"breaking": 1}}
+    pending = {"currentOperation": {**OPERATION, "operationId": "get-about", "path": "/about"},
+               "changeSummary": {"breaking": 1}}
+    mock_comparison(backend, breaking=3, affected=3)
+    backend.respond("GET", OPERATIONS, Response(200, {"operations": [removed, slow, pending]}))
+    backend.respond("GET", f"{CANDIDATE}/rest/operations/get-flow/changes", SlowResponse(200, {"changes": [BREAKING]}))
+
+    assert check_openapi.main() == 1
+    timeout = "TimeoutError('APIHUB comparison timed out at the 10 s comparison cutoff')"
+    assert read_report(work_dir, "check-failures") == {"compatibility": timeout}
+    report = read_report(work_dir, "compatibility-issues")
+    assert report == [
+        {**removed, "issues": [{"severity": "breaking", "action": "remove", "scope": "root",
+                               "description": "The operation was removed."}]},
+        {**slow, "detailError": timeout},
+        pending,
+    ]
+    proposal = yaml.safe_load((work_dir / "reports" / PROPOSAL).read_text(encoding="utf-8"))
+    assert [change["path"] for group in proposal["exceptions"] for change in group["changes"]] == ["/removed"]
+
+
+def test_comparison_summary_decoded_after_cutoff_fails_the_check(apihub, work_dir, monkeypatch):
+    monkeypatch.setattr(check_openapi, "COMPARISON_CUTOFF", 10)
+
+    def slow_comparison_decode(data):
+        document = json.loads(data)
+        if "operationTypes" in document:
+            check_openapi.time.sleep(10)
+        return document
+
+    monkeypatch.setattr(check_openapi, "json", SimpleNamespace(loads=slow_comparison_decode, dumps=json.dumps))
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {
+        "compatibility": "TimeoutError('APIHUB comparison timed out at the 10 s comparison cutoff')",
+    }
+    assert not (work_dir / "reports" / "compatibility-summary.json").exists()

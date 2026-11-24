@@ -54,21 +54,20 @@ def load_lint_exceptions(path):
     return groups
 
 
-def count_unused_lint_exceptions(groups, result):
-    """Counts the approvals for the result's linter and ruleset that match none of its findings."""
-    approved = {
-        issue_signature(issue)
-        for group in groups
-        if group["linter"] == result["linter"] and group["ruleset"] == result["ruleset"]["name"]
-        for issue in group["issues"]
-    }
+def unused_lint_exceptions(groups, result):
     found = {
         issue_signature({"path": [], **issue}) for issue in result["issues"] if issue["severity"] in LINT_SEVERITIES
     }
-    return len(approved - found)
+    return [
+        {**{field: group[field] for field in SCOPE_FIELDS}, **issue}
+        for group in groups
+        if group["linter"] == result["linter"] and group["ruleset"] == result["ruleset"]["name"]
+        for issue in group["issues"]
+        if issue_signature(issue) not in found
+    ]
 
 
-def apply_lint_exceptions(groups, nifi_version, result, proposal_path):
+def apply_lint_exceptions(groups, nifi_version, result, proposal_path, *, header=""):
     scope = {"nifiVersion": nifi_version, "linter": result["linter"], "ruleset": result["ruleset"]["name"]}
     if not all(is_nonempty_string(value) for value in scope.values()):
         raise ValueError("A lint exception scope requires the NiFi version, linter, and ruleset name")
@@ -109,7 +108,5 @@ def apply_lint_exceptions(groups, nifi_version, result, proposal_path):
                 {**group, "issues": [*group["issues"], *suggested]} if group is active_group else group
                 for group in groups
             ]
-        write_exception_groups(
-            proposal_path, proposed_groups, "Review the proposed lint findings before updating the repository exceptions.",
-        )
+        write_exception_groups(proposal_path, proposed_groups, header)
     return unmatched, matched

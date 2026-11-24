@@ -89,12 +89,9 @@ jobs:
           python3 -m pytest .github/workflows/python
 
       # A local run with cold images took 33 s to pull, 9 s to start, 23 s to check, and 8 s to save logs and clean up.
-      # The pull limit (150 s), the health wait (120 s), and the script limit (270 s) end the shell before this step
-      # limit, so the EXIT trap saves the container logs. A step that times out fails rather than cancels the job, so the
-      # reports are still uploaded. Keep the pull and both waits below this limit, and this step and the steps before it
-      # below the job limit. The script's own phases share a 240 s budget, which leaves 30 s for the comparison.
+      # Pull, startup, and validation have 540 s combined. Log collection and teardown have 40 s combined.
+      # Each timeout allows 2 s for the command to exit before sending SIGKILL. The step limit covers all five commands.
       - name: Run APIHUB lint and compatibility checks
-        id: validate
         timeout-minutes: 10
         shell: bash
         run: |
@@ -105,7 +102,7 @@ jobs:
           APIHUB_ADMIN_PASSWORD=$(openssl rand -hex 24)
           APIHUB_JWT_PRIVATE_KEY=$(openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl base64 -A)
           export APIHUB_DB_PASSWORD APIHUB_ACCESS_TOKEN APIHUB_ADMIN_PASSWORD APIHUB_JWT_PRIVATE_KEY
-          timeout 150 "${compose[@]}" pull --quiet || {
+          timeout --kill-after=2 150 "${compose[@]}" pull --quiet || {
             status=$?
             if [[ $status == 124 ]]; then
               echo "The APIHUB images were not pulled within 150 s." >&2
@@ -117,12 +114,18 @@ jobs:
           trap 'status=$?
                 set +e
                 if [[ $status != 0 ]]; then
-                  "${compose[@]}" logs --no-color > "$work_dir/reports/apihub-compose.log" 2>&1
+                  timeout --kill-after=2 10 "${compose[@]}" logs --no-color > "$work_dir/reports/apihub-compose.log" 2>&1
                 fi
-                "${compose[@]}" down --volumes
+                timeout --kill-after=2 30 "${compose[@]}" down --volumes
                 exit $status' EXIT
-          "${compose[@]}" up --detach --wait --wait-timeout 120
-          timeout 270 python3 .github/workflows/python/check_openapi.py "$work_dir" || {
+          timeout --verbose --kill-after=2 120 "${compose[@]}" up --detach --wait --wait-timeout 120 || {
+            status=$?
+            if [[ $status == 124 ]]; then
+              echo "APIHUB did not start within 120 s." >&2
+            fi
+            exit $status
+          }
+          timeout --verbose --kill-after=2 270 python3 .github/workflows/python/check_openapi.py "$work_dir" || {
             status=$?
             if [[ $status == 124 ]]; then
               echo "The APIHUB checks did not finish within 270 s." | tee "$work_dir/reports/check-timeout.txt" >&2
@@ -131,9 +134,7 @@ jobs:
           }
 
       - name: Upload OpenAPI reports
-        if: >-
-          ${{ !cancelled() &&
-              (failure() || steps.validate.outputs.lint_findings == 'true' || steps.validate.outputs.breaking == 'true') }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: openapi-reports
