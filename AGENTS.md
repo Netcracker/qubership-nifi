@@ -71,11 +71,12 @@ Controller services follow the same pattern with interface and implementation sp
   `qubership-nifi-tools/qubership-nifi-docs-generator`.
 - The `docs/openapi/openapi.json` is generated: edit `qubership-nifi-tools/qubership-nifi-openapi-enricher` to change.
 - The `openapi-spec-check` workflow lints `docs/openapi/openapi.json` with APIHUB and compares it with the previous
-  version. The `openapi-reports` artifact contains the results, including unused lint approvals when present. When the
-  check fails on findings to accept, the artifact holds proposed versions of
-  `docs/openapi/openapi-lint-exceptions.yml` and `docs/openapi/openapi-compatibility-exceptions.yml`: replace each
-  placeholder reason and commit the file in place of the repository one. A compatibility exception applies only to its
-  exact pair of NiFi versions.
+  version. The `openapi-reports` artifact contains the results, including unused lint approvals when present. A check
+  that fails on unapproved lint findings adds `proposed-openapi-lint-exceptions.yml`, and one that fails on breaking
+  changes adds `proposed-openapi-compatibility-exceptions.yml`; the artifact holds one, both, or neither. For each
+  proposal present, replace every placeholder reason and commit the file in place of
+  `docs/openapi/openapi-lint-exceptions.yml` or `docs/openapi/openapi-compatibility-exceptions.yml` respectively. A
+  compatibility exception applies only to its exact pair of NiFi versions.
 - Use ASCII characters only in source code and documentation. Avoid Unicode punctuation such as em-dashes,
   smart quotes, and arrows; use the ASCII equivalents (`-`, `->`, straight quotes) instead.
 - Prefer a JDK standard-library API over a hand-rolled equivalent. The baseline is Java 21, and the root pom
