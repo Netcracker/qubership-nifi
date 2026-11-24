@@ -5,7 +5,8 @@ import yaml
 
 from openapi_exceptions import load_exception_groups
 from openapi_lint_exceptions import (
-    APPROVED_LINT_EXCEPTIONS_PATH, REASON_PLACEHOLDER, apply_lint_exceptions, load_lint_exceptions,
+    APPROVED_LINT_EXCEPTIONS_PATH, REASON_PLACEHOLDER, apply_lint_exceptions, count_unused_lint_exceptions,
+    load_lint_exceptions,
 )
 
 
@@ -68,6 +69,17 @@ def test_each_linter_ruleset_and_finding_field_must_match(tmp_path, scope_change
     proposed = next(group for group in groups if all(group[field] == value for field, value in scope.items()))
     suggested, = (issue for issue in proposed["issues"] if issue["reason"] != REASON)
     assert {field: suggested[field] for field in finding} == finding
+
+
+def test_unused_approvals_are_counted_only_for_the_linter_and_ruleset_of_the_result():
+    result = {"linter": "spectral", "ruleset": {"name": SCOPE["ruleset"]}, "issues": [dict(FINDING)]}
+    unused = {**FINDING, "code": "another-rule", "reason": REASON}
+    approvals = [
+        {**SCOPE, "issues": [{**FINDING, "reason": REASON}, unused]},
+        {**SCOPE, "ruleset": "custom-openapi", "issues": [unused]},
+    ]
+
+    assert count_unused_lint_exceptions(approvals, result) == 1
 
 
 def test_an_approval_applies_to_a_later_nifi_version_that_proposes_only_its_new_findings(tmp_path):

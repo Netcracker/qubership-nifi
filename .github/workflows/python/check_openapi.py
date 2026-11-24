@@ -15,7 +15,8 @@ import zipfile
 
 from openapi_exceptions import APPROVED_EXCEPTIONS_PATH, apply_exceptions, load_exceptions
 from openapi_lint_exceptions import (
-    APPROVED_LINT_EXCEPTIONS_PATH, LINT_SEVERITIES, apply_lint_exceptions, load_lint_exceptions,
+    APPROVED_LINT_EXCEPTIONS_PATH, LINT_SEVERITIES, apply_lint_exceptions, count_unused_lint_exceptions,
+    load_lint_exceptions,
 )
 
 
@@ -24,6 +25,10 @@ BASELINE = "0.0.1"
 CANDIDATE = "0.0.2"
 PUBLISH_TIMEOUT = 120
 LINT_TIMEOUT = 120
+# Lint is requested only after this wait, so that a publication event that does arrive starts the only lint task.
+LINT_START_GRACE = 20
+# The workflow stops the script at 270 s; the rest of that limit is left for the comparison and the reports.
+CHECK_BUDGET = 240
 LINT_IN_PROGRESS = "inProgress"
 PAGE_SIZE = 100
 LINT_PROPOSAL = "proposed-openapi-lint-exceptions.yml"
@@ -78,7 +83,7 @@ class ApiHub:
         )
         return package["packageId"]
 
-    def publish(self, package, version, spec, previous=None):
+    def publish(self, package, version, spec, budget, previous=None):
         config = {
             "packageId": package, "version": version, "status": "draft",
             "files": [{"fileId": "openapi.json", "publish": True}],
@@ -102,7 +107,7 @@ class ApiHub:
             "POST", endpoint, body=body,
             headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, expected=(202,),
         )
-        deadline = time.monotonic() + PUBLISH_TIMEOUT
+        deadline, limit = phase_deadline(PUBLISH_TIMEOUT, budget)
         while time.monotonic() < deadline:
             status = self.get(f"{endpoint}/{build['publishId']}/status")
             if status["status"] == "complete":
@@ -110,7 +115,15 @@ class ApiHub:
             if status["status"] == "error":
                 raise RuntimeError(f"APIHUB publication {version} failed: {status!r}")
             time.sleep(2)
-        raise TimeoutError(f"APIHUB publication {version} timed out")
+        raise TimeoutError(f"APIHUB publication {version} timed out at {limit}")
+
+
+def phase_deadline(timeout, budget):
+    """Returns the earlier of the phase's own deadline and the check budget, with the limit it represents."""
+    deadline = time.monotonic() + timeout
+    if deadline <= budget:
+        return deadline, f"its {timeout} s limit"
+    return budget, f"the {CHECK_BUDGET} s check budget"
 
 
 def write_report(reports, name, data):
@@ -125,9 +138,11 @@ def clear_generated_reports(reports, exceptions_path):
             report.unlink(missing_ok=True)
 
 
-def lint(client, package, reports, nifi_version):
+def lint(client, package, reports, nifi_version, budget):
     endpoint = f"/api/v2/packages/{package}/versions/{CANDIDATE}/validation"
-    deadline = time.monotonic() + LINT_TIMEOUT
+    started = time.monotonic()
+    deadline, limit = phase_deadline(LINT_TIMEOUT, budget)
+    validation_requested = False
     while time.monotonic() < deadline:
         status, _, summary = client.request(
             "GET", f"{endpoint}/summary", expected=(200, 404), linter=True,
@@ -136,9 +151,17 @@ def lint(client, package, reports, nifi_version):
             write_report(reports, "lint-summary", summary)
             if summary["status"] != LINT_IN_PROGRESS:
                 break
+        elif not validation_requested and time.monotonic() - started >= LINT_START_GRACE:
+            # The linter creates the task when it receives the publication event, and it loses an event that
+            # arrives before its listener is registered. Requesting the validation creates the task directly.
+            client.request(
+                "POST", f"/api/v1/packages/{package}/versions/{CANDIDATE}/validation",
+                expected=(200, 202), linter=True,
+            )
+            validation_requested = True
         time.sleep(2)
     else:
-        raise TimeoutError("APIHUB linting timed out")
+        raise TimeoutError(f"APIHUB linting timed out at {limit}")
     if summary["status"] != "success":
         raise RuntimeError(f"APIHUB linting ended with status {summary['status']!r}")
 
@@ -160,12 +183,10 @@ def lint(client, package, reports, nifi_version):
     for severity in LINT_SEVERITIES:
         if severity in reported and counts[severity] != reported[severity]:
             raise RuntimeError(f"APIHUB returned {counts[severity]} of {reported[severity]} {severity} findings")
-    findings = apply_lint_exceptions(
-        load_lint_exceptions(APPROVED_LINT_EXCEPTIONS_PATH), nifi_version, result,
-        reports / LINT_PROPOSAL,
-    )
+    approvals = load_lint_exceptions(APPROVED_LINT_EXCEPTIONS_PATH)
+    findings = apply_lint_exceptions(approvals, nifi_version, result, reports / LINT_PROPOSAL)
     write_report(reports, "lint-issues", details)
-    return findings
+    return (*findings, count_unused_lint_exceptions(approvals, result))
 
 
 def breaking_operations(client, package, expected_count):
@@ -213,9 +234,11 @@ def compare(client, package, reports, versions, exceptions_path):
                 operation_id = quote(current["operationId"], safe="")
                 details = client.get(f"{endpoint}/rest/operations/{operation_id}/changes?{query}")
                 operation["issues"] = [issue for issue in details["changes"] if issue["severity"] == "breaking"]
-            expected = operation["changeSummary"]["breaking"]
-            if len(operation["issues"]) != expected:
-                raise RuntimeError(f"APIHUB returned {len(operation['issues'])} of {expected} breaking issue details")
+                expected = operation["changeSummary"]["breaking"]
+                if len(operation["issues"]) != expected:
+                    raise RuntimeError(
+                        f"APIHUB returned {len(operation['issues'])} of {expected} breaking issue details"
+                    )
         except Exception as error:
             operation["detailError"] = repr(error)
             incomplete_operations += 1
@@ -244,16 +267,20 @@ def spec_version(spec):
     return version
 
 
-def check_candidate(client, package, reports, versions, exceptions_path, baseline, messages, failures):
+def check_candidate(client, package, reports, versions, exceptions_path, baseline, budget, messages, failures):
     lint_findings = False
     try:
-        active_lint, excepted_lint = lint(client, package, reports, versions["currentNifiVersion"])
+        active_lint, excepted_lint, unused_lint = lint(
+            client, package, reports, versions["currentNifiVersion"], budget,
+        )
         lint_findings = bool(active_lint or excepted_lint)
         errors, warnings = (active_lint[severity] for severity in LINT_SEVERITIES)
         messages.append(
             f"Unapproved lint findings (errors {errors}, warnings {warnings}). "
             f"Approved lint exceptions (errors {excepted_lint['error']}, warnings {excepted_lint['warning']})."
         )
+        if unused_lint:
+            messages.append(f"Unused lint exceptions ({unused_lint}).")
         if active_lint:
             messages.append("Review the proposed lint exceptions YAML in the openapi-reports artifact.")
             failures["lint"] = f"Unapproved lint findings (errors {errors}, warnings {warnings})"
@@ -283,6 +310,7 @@ def run(work_dir, reports, exceptions_path):
     previous_file = work_dir / "previous.json"
     versions = {"previousNifiVersion": None, "currentNifiVersion": spec_version(current)}
 
+    budget = time.monotonic() + CHECK_BUDGET
     client = ApiHub()
     client.login()
     workspace = client.create_package(f"CI{uuid.uuid4().hex[:8]}", "workspace")
@@ -294,21 +322,21 @@ def run(work_dir, reports, exceptions_path):
         try:
             previous = previous_file.read_bytes()
             versions["previousNifiVersion"] = spec_version(previous)
-            client.publish(package, BASELINE, previous)
+            client.publish(package, BASELINE, previous, budget)
             baseline = BASELINE
         except Exception as error:
             messages.append("Compatibility check could not prepare the baseline. See the check diagnostics.")
             failures["compatibility"] = repr(error)
     write_report(reports, "spec-versions", versions)
     try:
-        client.publish(package, CANDIDATE, current, baseline)
+        client.publish(package, CANDIDATE, current, budget, baseline)
     except Exception as error:
         messages.append("APIHUB could not publish the candidate spec. See the check diagnostics.")
         failures["publication"] = repr(error)
         lint_findings, breaking = False, False
     else:
         lint_findings, breaking = check_candidate(client, package, reports, versions, exceptions_path, baseline,
-                                                  messages, failures)
+                                                  budget, messages, failures)
 
     for line in messages:
         print(line)

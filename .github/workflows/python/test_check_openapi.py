@@ -6,7 +6,6 @@ from email.parser import BytesParser
 import io
 import json
 import sys
-import time
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 import zipfile
@@ -23,6 +22,7 @@ PACKAGE = "/api/v2/packages/CI.NIFI"
 PUBLISH = f"{PACKAGE}/publish"
 CANDIDATE = f"{PACKAGE}/versions/0.0.2"
 LINT = f"{CANDIDATE}/validation"
+START_LINT = "/api/v1/packages/CI.NIFI/versions/0.0.2/validation"
 COMPARISON = f"{CANDIDATE}/changes/summary"
 OPERATIONS = "/api/v4/packages/CI.NIFI/versions/0.0.2/rest/changes"
 VERSIONS = {"previousNifiVersion": "2.9.0", "currentNifiVersion": "2.10.0"}
@@ -156,7 +156,12 @@ def apihub(monkeypatch):
     mock_publication(backend)
     mock_lint(linter)
     mock_comparison(backend)
-    monkeypatch.setattr(check_openapi, "time", SimpleNamespace(monotonic=time.monotonic, sleep=lambda seconds: None))
+    clock = SimpleNamespace(now=0.0)
+
+    def sleep(seconds):
+        clock.now += seconds
+
+    monkeypatch.setattr(check_openapi, "time", SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
     monkeypatch.setenv("APIHUB_ADMIN_EMAIL", "ci@example.test")
     monkeypatch.setenv("APIHUB_ADMIN_PASSWORD", "mock-password")
 
@@ -504,6 +509,96 @@ def test_failed_candidate_publication_skips_lint_and_comparison(apihub, work_dir
     assert list(read_report(work_dir, "check-failures")) == ["publication"]
     assert linter.requests == []
     assert [request.target for request in backend.requests if urlsplit(request.target).path == COMPARISON] == []
+
+
+def test_lint_requests_the_validation_once_when_no_task_appears_within_the_grace_period(apihub, work_dir):
+    _, linter = apihub
+    linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 15,
+                   Response(200, {"status": "success", "documents": [{"slug": "openapi"}]}))
+    linter.respond("POST", START_LINT, Response(202, {"taskId": "lint"}))
+
+    assert check_openapi.main() == 0
+    assert [(request.method, request.target) for request in linter.requests] == [
+        *[("GET", f"{LINT}/summary")] * 11, ("POST", START_LINT), *[("GET", f"{LINT}/summary")] * 5,
+        ("GET", f"{LINT}/documents/openapi/details"),
+    ]
+
+
+def test_lint_times_out_after_one_validation_request_when_no_task_ever_appears(apihub, work_dir):
+    _, linter = apihub
+    linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 60)
+    linter.respond("POST", START_LINT, Response(202, {"taskId": "lint"}))
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures")["lint"] == "TimeoutError('APIHUB linting timed out at its 120 s limit')"
+    assert [request.method for request in linter.requests].count("POST") == 1
+
+
+def test_slow_publications_shorten_the_lint_wait_to_the_shared_budget(apihub, work_dir):
+    backend, linter = apihub
+    for build in ("baseline", "candidate"):
+        backend.respond("GET", f"{PUBLISH}/{build}/status", *[Response(200, {"status": "running"})] * 55,
+                        Response(200, {"status": "complete"}))
+    linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 10)
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures")["lint"] == (
+        "TimeoutError('APIHUB linting timed out at the 240 s check budget')"
+    )
+    assert len(linter.requests) == 10, "lint starts at 220 s and polls every 2 s until the 240 s budget ends"
+
+
+def test_the_check_budget_also_ends_a_publication_before_its_own_limit(apihub, work_dir, monkeypatch):
+    backend, linter = apihub
+    monkeypatch.setattr(check_openapi, "CHECK_BUDGET", 150)
+    backend.respond("GET", f"{PUBLISH}/baseline/status", *[Response(200, {"status": "running"})] * 55,
+                    Response(200, {"status": "complete"}))
+    backend.respond("GET", f"{PUBLISH}/candidate/status", *[Response(200, {"status": "running"})] * 20)
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {
+        "publication": "TimeoutError('APIHUB publication 0.0.2 timed out at the 150 s check budget')",
+    }
+    candidate_polls = [request for request in backend.requests if request.target == f"{PUBLISH}/candidate/status"]
+    assert len(candidate_polls) == 20, "the candidate starts at 110 s and polls every 2 s until the 150 s budget ends"
+    assert linter.requests == []
+
+
+def test_unused_lint_exceptions_are_reported_without_failing_the_check(apihub, work_dir):
+    approval = {**lint_issue("warning"), "reason": "The warning was reviewed."}
+    (work_dir / "approved-lint.yml").write_text(
+        yaml.safe_dump({"exceptions": [{**LINT_SCOPE, "issues": [approval]}]}), encoding="utf-8",
+    )
+
+    assert check_openapi.main() == 0
+    assert "- Unused lint exceptions (1).\n" in (work_dir / "summary").read_text(encoding="utf-8")
+
+
+def test_a_removed_operation_is_complete_whatever_breaking_count_apihub_reports(apihub, work_dir):
+    backend, _ = apihub
+    mock_comparison(backend, breaking=2, affected=1)
+    backend.respond("GET", OPERATIONS, Response(200, {"operations": [
+        {"previousOperation": {"method": "get", "path": "/nifi-api/about"}, "changeSummary": {"breaking": 2}},
+    ]}))
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {"compatibility": "Unapproved breaking finding count = 1"}
+
+
+def test_a_current_operation_with_fewer_breaking_details_than_its_count_is_incomplete(apihub, work_dir):
+    backend, _ = apihub
+    mock_comparison(backend, breaking=2, affected=1)
+    backend.respond("GET", OPERATIONS, Response(200, {"operations": [
+        {"currentOperation": OPERATION, "changeSummary": {"breaking": 2}},
+    ]}))
+    backend.respond("GET", f"{CANDIDATE}/rest/operations/get-flow/changes", Response(200, {"changes": [BREAKING]}))
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {
+        "compatibility": "RuntimeError('APIHUB returned incomplete breaking issue details for 1 operations')",
+    }
+    operation, = read_report(work_dir, "compatibility-issues")
+    assert operation["detailError"] == "RuntimeError('APIHUB returned 1 of 2 breaking issue details')"
 
 
 @pytest.mark.parametrize("status", ["error", "failed"], ids=["error", "unknown-status"])

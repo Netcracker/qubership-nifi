@@ -29,6 +29,12 @@ class ExceptionDumper(yaml.SafeDumper):
         return super().increase_indent(flow, indentless=False)
 
 
+# Mappings stay in block style, which yamllint's braces rule accepts; lists of scalars stay in flow style.
+ExceptionDumper.add_representer(
+    dict, lambda dumper, data: dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=False),
+)
+
+
 def signature(change):
     selector = {field: change[field] for field in SELECTOR_FIELDS if field in change}
     selector["method"] = selector["method"].lower()
@@ -121,7 +127,12 @@ def apply_exceptions(config, versions, operations, proposal_path):
                 continue
             identity = operation.get("currentOperation") or operation["previousOperation"]
             selector = {field: identity[field] for field in OPERATION_FIELDS}
-            selector.update({field: issue[field] for field in ISSUE_FIELDS if field in issue})
+            # load_exceptions rejects an empty hash, so the selector leaves one out, and an approval without that
+            # hash matches the finding.
+            selector.update({
+                field: issue[field] for field in ISSUE_FIELDS
+                if field in issue and (field not in HASH_FIELDS or is_nonempty_string(issue[field]))
+            })
             key = signature(selector)
             if key in approved:
                 issue["exceptionReason"] = approved[key]

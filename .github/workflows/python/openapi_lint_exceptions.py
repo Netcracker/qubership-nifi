@@ -54,6 +54,20 @@ def load_lint_exceptions(path):
     return groups
 
 
+def count_unused_lint_exceptions(groups, result):
+    """Counts the approvals for the result's linter and ruleset that match none of its findings."""
+    approved = {
+        issue_signature(issue)
+        for group in groups
+        if group["linter"] == result["linter"] and group["ruleset"] == result["ruleset"]["name"]
+        for issue in group["issues"]
+    }
+    found = {
+        issue_signature({"path": [], **issue}) for issue in result["issues"] if issue["severity"] in LINT_SEVERITIES
+    }
+    return len(approved - found)
+
+
 def apply_lint_exceptions(groups, nifi_version, result, proposal_path):
     scope = {"nifiVersion": nifi_version, "linter": result["linter"], "ruleset": result["ruleset"]["name"]}
     if not all(is_nonempty_string(value) for value in scope.values()):
