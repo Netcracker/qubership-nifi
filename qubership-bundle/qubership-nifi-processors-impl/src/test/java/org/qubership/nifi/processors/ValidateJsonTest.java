@@ -45,6 +45,9 @@ import static org.qubership.nifi.processors.validation.ValidationErrorAssertions
 import static org.qubership.nifi.processors.validation.ValidationErrorAssertions.readTree;
 
 public class ValidateJsonTest {
+    private static final String STRING_ARRAY_SCHEMA = """
+            {"type": "array", "items": {"type": "string"}}""";
+
     private static final String MONITORING_SCHEMA = """
             {
                "title":"Check Monitoring Request",
@@ -154,6 +157,14 @@ public class ValidateJsonTest {
     }
 
     @Test
+    public void validCustomerWithMissingCustomMetadataIsRoutedToValidUnchanged() {
+        testRunner.setProperty(ValidateJson.BE_TYPE_PATH_PROP, "missingType");
+        testRunner.setProperty(ValidateJson.ID_PATH_PROP, "missingId");
+
+        assertRoutedToValidUnchanged(JsonTestData.TEST_JSON_SCHEMA_1, JsonTestData.VALID_TEST_JSON_BY_SHEMA1);
+    }
+
+    @Test
     public void nestedCustomerMatchingSchema2IsRoutedToValidUnchanged() {
         assertRoutedToValidUnchanged(JsonTestData.TEST_JSON_SCHEMA_2, JsonTestData.VALID_TEST_JSON_BY_SHEMA2);
     }
@@ -255,23 +266,27 @@ public class ValidateJsonTest {
     public void schemaDeclaringDraft07FailsToSchedule() {
         testRunner.setProperty(ValidateJson.SCHEMA, """
                 {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object"}""");
-        testRunner.enqueue("{}");
 
-        AssertionError error = assertThrows(AssertionError.class, () -> testRunner.run());
+        AssertionError error = assertThrows(AssertionError.class, () -> testRunner.run(0),
+                "testRunner.run(0)");
 
         Throwable rootCause = error;
         while (rootCause.getCause() != null) {
             rootCause = rootCause.getCause();
         }
-        assertInstanceOf(JsonSchemaException.class, rootCause,
-                "root cause of the onScheduled failure; JsonSchemaFactory.getInstance() in json-schema-validator "
-                        + "1.0.43 knows only the draft 4 meta-schema");
+        JsonSchemaException schemaError = assertInstanceOf(JsonSchemaException.class, rootCause,
+                "root cause of the scheduling failure");
+        assertEquals("Unknown MetaSchema: https://json-schema.org/draft-07/schema", schemaError.getMessage());
+    }
+
+    @Test
+    public void arrayRootMatchingTheSchemaIsRoutedToValidUnchanged() {
+        assertRoutedToValidUnchanged(STRING_ARRAY_SCHEMA, "[\"a\"]");
     }
 
     @Test
     public void arrayRootWithErrorsFailsTheTrigger() {
-        testRunner.setProperty(ValidateJson.SCHEMA, """
-                {"type": "array", "items": {"type": "string"}}""");
+        testRunner.setProperty(ValidateJson.SCHEMA, STRING_ARRAY_SCHEMA);
         testRunner.enqueue("[1]");
 
         AssertionError error = assertThrows(AssertionError.class, () -> testRunner.run());

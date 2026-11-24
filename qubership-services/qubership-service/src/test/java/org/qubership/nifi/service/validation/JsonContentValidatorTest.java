@@ -114,9 +114,11 @@ public class JsonContentValidatorTest {
                 () -> testRunner.enableControllerService(validator), "enabling with a draft-07 schema");
 
         // The test runner reports an exception from the @OnEnabled method only in the message of its AssertionError.
-        assertTrue(error.getMessage().contains(JsonSchemaException.class.getName()),
-                () -> "cause of the enable failure; JsonSchemaFactory.getInstance() in json-schema-validator 1.0.43 "
-                        + "knows only the draft 4 meta-schema, got: " + error.getMessage());
+        String expectedReason = JsonSchemaException.class.getName()
+                + ": Unknown MetaSchema: https://json-schema.org/draft-07/schema";
+        assertTrue(error.getMessage().contains(expectedReason),
+                () -> "expected enable failure to contain <%s>, but was <%s>"
+                        .formatted(expectedReason, error.getMessage()));
         assertFalse(testRunner.isControllerServiceEnabled(validator), "isControllerServiceEnabled(validator)");
     }
 
