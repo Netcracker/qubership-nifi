@@ -139,6 +139,7 @@ jobs:
           name: openapi-reports
           path: ${{ runner.temp }}/openapi-check/reports/
           if-no-files-found: ignore
+          retention-days: 5
 
   ci-gate:
     name: OpenAPI CI Gate
