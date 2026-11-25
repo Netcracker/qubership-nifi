@@ -17,7 +17,11 @@
 package org.qubership.nifi.processors.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
 import org.apache.nifi.documentation.init.NopComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.jupiter.api.Test;
@@ -41,10 +45,19 @@ public class JsonValidationHandlerTest {
     private static final String ERROR_CODE = "ME-JV-0002";
     private static final String ITEMS_WRAPPER_REGEX = "(\\$\\._items\\[[0-9]+]\\.)";
 
+    // The same factory settings as ValidateJson.onScheduled, so the messages and paths match what the processor writes.
+    private static JsonSchema schemaOf(String schema) {
+        SchemaValidatorsConfig config = SchemaValidatorsConfig.builder()
+                .locale(Locale.ENGLISH)
+                .pathType(PathType.LEGACY)
+                .build();
+        return JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(schema, config);
+    }
+
     private static ValidationContext process(String schema, String json, String beTypePath, String idPath,
                                              String errorCode, String wrapperRegex) {
         ProcessorProperty property = new ProcessorProperty(beTypePath, idPath, errorCode,
-                JsonSchemaFactory.getInstance().getSchema(schema), wrapperRegex);
+                schemaOf(schema), wrapperRegex);
         return new JsonValidationHandler(readTree(json), property, new NopComponentLog()).process();
     }
 
@@ -62,7 +75,7 @@ public class JsonValidationHandlerTest {
 
         ValidationContext context = new JsonValidationHandler(input,
                 new ProcessorProperty(BE_TYPE_PATH, ID_PATH, ERROR_CODE,
-                        JsonSchemaFactory.getInstance().getSchema(JsonTestData.TEST_JSON_SCHEMA_2), null),
+                        schemaOf(JsonTestData.TEST_JSON_SCHEMA_2), null),
                 new NopComponentLog()).process();
 
         assertEquals(true, context.isValidJson(), "isValidJson()");
@@ -103,7 +116,7 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'Customer' Business Entity '$.customerNumber'",
-                  "details": "customerNumber: is missing but it is required",
+                  "details": "$: required property 'customerNumber' not found",
                   "source": {"_sourceId": "CUST#123456789", "path": "customerNumber"}
                 }, {
                   "code": "ME-JV-0002",
@@ -125,7 +138,7 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'Customer' Business Entity 'key5.key6'",
-                  "details": "inner.key31.key5[1].key6: is missing but it is required",
+                  "details": "inner.key31.key5[1]: required property 'key6' not found",
                   "source": {"_sourceId": "CUST#123456789", "path": "inner.key31.key5[1].key6"}
                 }]""",
                 errorsOf(JsonTestData.TEST_JSON_SCHEMA_3, JsonTestData.INVALID_TEST_JSON_BY_SHEMA3));
@@ -137,7 +150,7 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'Customer' Business Entity '$.name'",
-                  "details": "name: is missing but it is required",
+                  "details": "$: required property 'name' not found",
                   "source": {"_sourceId": "S1", "path": "name"}
                 }]""",
                 errorsOf("""
@@ -151,7 +164,7 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'Customer' Business Entity 'address.city'",
-                  "details": "address.city: is missing but it is required",
+                  "details": "address: required property 'city' not found",
                   "source": {"_sourceId": "S1", "path": "address.city"}
                 }]""",
                 errorsOf("""
@@ -165,7 +178,8 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'enum' in 'Order' Business Entity '$._businessEntityType'",
-                  "details": "_businessEntityType: does not have a value in the enumeration [Customer, Organization]",
+                  "details": "_businessEntityType: does not have a value in the enumeration \
+                [\\"Customer\\", \\"Organization\\"]",
                   "source": {"_sourceId": "S1", "path": "_businessEntityType"}
                 }]""",
                 errorsOf("""
@@ -174,24 +188,26 @@ public class JsonValidationHandlerTest {
     }
 
     @Test
-    public void invalidDateIsReportedAsADateTimeError() {
+    public void invalidDateIsReportedAsAFormatError() {
         assertErrors("""
                 [{
                   "code": "ME-JV-0002",
-                  "title": "Validation error 'date-time' in 'AllCustomerProducts' Business Entity '$._sourceTimeStamp'",
-                  "details": "_sourceTimeStamp: 2018-02-31T11:27:38.795Z is an invalid date-time",
+                  "title": "Validation error 'format' in 'AllCustomerProducts' Business Entity '$._sourceTimeStamp'",
+                  "details":
+                    "_sourceTimeStamp: does not match the date-time pattern must be a valid RFC 3339 date-time",
                   "source": {"_sourceId": "devapp995.qubership.org_SAMPLE_CUST#00000002", "path": "_sourceTimeStamp"}
                 }]""",
                 errorsOf(JsonTestData.TEST_JSON_SCHEMA_4, JsonTestData.INVALID_TEST1_JSON_BY_SHEMA4));
     }
 
     @Test
-    public void invalidHourIsReportedAsADateTimeError() {
+    public void invalidHourIsReportedAsAFormatError() {
         assertErrors("""
                 [{
                   "code": "ME-JV-0002",
-                  "title": "Validation error 'date-time' in 'AllCustomerProducts' Business Entity '$._sourceTimeStamp'",
-                  "details": "_sourceTimeStamp: 2018-02-11T56:27:38.795Z is an invalid date-time",
+                  "title": "Validation error 'format' in 'AllCustomerProducts' Business Entity '$._sourceTimeStamp'",
+                  "details":
+                    "_sourceTimeStamp: does not match the date-time pattern must be a valid RFC 3339 date-time",
                   "source": {"_sourceId": "devapp995.qubership.org_SAMPLE_CUST#00000002", "path": "_sourceTimeStamp"}
                 }]""",
                 errorsOf(JsonTestData.TEST_JSON_SCHEMA_4, JsonTestData.INVALID_TEST2_JSON_BY_SHEMA4));
@@ -203,7 +219,8 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'additionalProperties' in 'Customer' Business Entity '$.extra'",
-                  "details": "extra: is not defined in the schema and the schema does not allow additional properties",
+                  "details": "$: property 'extra' is not defined in the schema and the schema \
+                does not allow additional properties",
                   "source": {"_sourceId": "S1", "path": "extra"}
                 }]""",
                 errorsOf("""
@@ -257,34 +274,6 @@ public class JsonValidationHandlerTest {
     }
 
     @Test
-    public void errorDetailsStayInEnglishUnderAnotherDefaultLocale() {
-        Locale defaultLocale = Locale.getDefault();
-        Locale formatLocale = Locale.getDefault(Locale.Category.FORMAT);
-        Locale displayLocale = Locale.getDefault(Locale.Category.DISPLAY);
-        JsonNode errors;
-        try {
-            Locale.setDefault(Locale.GERMANY);
-            errors = errorsOf("""
-                    {"properties": {"name": {"type": "string", "minLength": 3}}}""", """
-                    {"_sourceId": "S1", "_businessEntityType": "Customer", "name": "ab"}""");
-        } finally {
-            // Locale.setDefault(Locale) also overwrites both category defaults, so they are restored after it.
-            Locale.setDefault(defaultLocale);
-            Locale.setDefault(Locale.Category.FORMAT, formatLocale);
-            Locale.setDefault(Locale.Category.DISPLAY, displayLocale);
-        }
-
-        assertErrors("""
-                [{
-                  "code": "ME-JV-0002",
-                  "title": "Validation error 'minLength' in 'Customer' Business Entity '$.name'",
-                  "details": "name: must be at least 3 characters long",
-                  "source": {"_sourceId": "S1", "path": "name"}
-                }]""",
-                errors);
-    }
-
-    @Test
     public void typeErrorBehindARefIsReportedAtTheReferringProperty() {
         assertErrors("""
                 [{
@@ -302,7 +291,7 @@ public class JsonValidationHandlerTest {
     }
 
     @Test
-    public void valueMatchingNoOneOfBranchReportsTheTypeErrorOfEachBranch() {
+    public void valueMatchingNoOneOfBranchReportsTheOneOfErrorAndTheTypeErrorOfEachBranch() {
         assertErrors("""
                 [{
                   "code": "ME-JV-0002",
@@ -313,6 +302,11 @@ public class JsonValidationHandlerTest {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'type' in 'Customer' Business Entity '$.value'",
                   "details": "value: boolean found, string expected",
+                  "source": {"_sourceId": "S1", "path": "value"}
+                }, {
+                  "code": "ME-JV-0002",
+                  "title": "Validation error 'oneOf' in 'Customer' Business Entity '$.value'",
+                  "details": "value: must be valid to one and only one schema, but 0 are valid",
                   "source": {"_sourceId": "S1", "path": "value"}
                 }]""",
                 errorsOf("""
@@ -358,12 +352,12 @@ public class JsonValidationHandlerTest {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' \
                 Business Entity 'relatedPartyRef.referredType'",
-                  "details": "_items[0].relatedPartyRef[1].referredType: is missing but it is required",
+                  "details": "_items[0].relatedPartyRef[1]: required property 'referredType' not found",
                   "source": {"_sourceId": "PI#TLO_01_CUST#00000002", "path": "relatedPartyRef[1].referredType"}
                 }, {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items.state'",
-                  "details": "_items[0].state: is missing but it is required",
+                  "details": "_items[0]: required property 'state' not found",
                   "source": {"_sourceId": "PI#TLO_01_CUST#00000002", "path": "state"}
                 }]""",
                 errorsOf(JsonTestData.CUSTOMER_PRODUCT_SCHEMA, JsonTestData.ALL_CUSTOMER_PRODUCT_REQUEST,
@@ -377,12 +371,12 @@ public class JsonValidationHandlerTest {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' \
                 Business Entity 'relatedPartyRef.referredType'",
-                  "details": "_items[0].relatedPartyRef[1].referredType: is missing but it is required",
+                  "details": "_items[0].relatedPartyRef[1]: required property 'referredType' not found",
                   "source": {"_sourceRefId": "CUST#00000002", "path": "referredType"}
                 }, {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items.state'",
-                  "details": "_items[0].state: is missing but it is required",
+                  "details": "_items[0]: required property 'state' not found",
                   "source": {"_sourceRefId": "", "path": "_items[0].state"}
                 }]""",
                 errorsOf(JsonTestData.CUSTOMER_PRODUCT_SCHEMA, JsonTestData.ALL_CUSTOMER_PRODUCT_REQUEST,
@@ -396,12 +390,12 @@ public class JsonValidationHandlerTest {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' \
                 Business Entity 'relatedPartyRef.referredType'",
-                  "details": "_items[0].relatedPartyRef[1].referredType: is missing but it is required",
+                  "details": "_items[0].relatedPartyRef[1]: required property 'referredType' not found",
                   "source": {"_sourceId": "CUST#00000002", "path": "_items[0].relatedPartyRef[1].referredType"}
                 }, {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items.state'",
-                  "details": "_items[0].state: is missing but it is required",
+                  "details": "_items[0]: required property 'state' not found",
                   "source": {"_sourceId": "CUST#00000002", "path": "_items[0].state"}
                 }]""",
                 errorsOf(JsonTestData.CUSTOMER_PRODUCT_SCHEMA, JsonTestData.ALL_CUSTOMER_PRODUCT_REQUEST,
@@ -415,12 +409,12 @@ public class JsonValidationHandlerTest {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' \
                 Business Entity 'relatedPartyRef.referredType'",
-                  "details": "_items[0].relatedPartyRef[1].referredType: is missing but it is required",
+                  "details": "_items[0].relatedPartyRef[1]: required property 'referredType' not found",
                   "source": {"_sourceId-invalid": "", "path": "relatedPartyRef[1].referredType"}
                 }, {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items.state'",
-                  "details": "_items[0].state: is missing but it is required",
+                  "details": "_items[0]: required property 'state' not found",
                   "source": {"_sourceId-invalid": "", "path": "state"}
                 }]""",
                 errorsOf(JsonTestData.CUSTOMER_PRODUCT_SCHEMA, JsonTestData.ALL_CUSTOMER_PRODUCT_REQUEST,
@@ -433,12 +427,12 @@ public class JsonValidationHandlerTest {
                 [{
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items._sourceId'",
-                  "details": "_items[0]._sourceId: is missing but it is required",
+                  "details": "_items[0]: required property '_sourceId' not found",
                   "source": {"_sourceId": "CUST#00000002", "path": "_sourceId"}
                 }, {
                   "code": "ME-JV-0002",
                   "title": "Validation error 'required' in 'AllCustomerProducts' Business Entity '_items.state'",
-                  "details": "_items[0].state: is missing but it is required",
+                  "details": "_items[0]: required property 'state' not found",
                   "source": {"_sourceId": "CUST#00000002", "path": "state"}
                 }]""",
                 errorsOf(JsonTestData.CUSTOMER_PRODUCT_SCHEMA, JsonTestData.MEDIUM_ACP_REQUEST_LOSTED_INNER_SOURCE_ID,
