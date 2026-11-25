@@ -24,11 +24,23 @@ services:
     depends_on:
       nifi-toolkit:
         condition: service_completed_successfully
+    # The root filesystem is read-only, as with readOnlyRootFilesystem in Kubernetes.
+    # Every path NiFi writes to must be listed in tmpfs or volumes.
+    read_only: ${NIFI_READ_ONLY_ROOT_FS:-true}
+    tmpfs:
+      - /tmp
     volumes:
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
       - tls-cert-pwd:/tmp/cert-pwd
       - nifi-sens-key:/tmp/nifi-sens-key
+      - /opt/nifi/nifi-current/conf
+      - /opt/nifi/nifi-current/logs
+      - /opt/nifi/nifi-current/run
+      - /opt/nifi/nifi-current/work
+      - /opt/nifi/nifi-current/flowfile_repository
+      - /opt/nifi/nifi-current/provenance_repository
+      - /opt/nifi/nifi-current/persistent_data
     ports:
       - 127.0.0.1:8080:8080
     environment:

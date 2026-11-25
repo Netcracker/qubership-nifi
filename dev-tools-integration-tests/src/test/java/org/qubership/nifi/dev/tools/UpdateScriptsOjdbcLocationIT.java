@@ -21,6 +21,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -53,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * Requires the {@code nifi.cert.dir} system property (otherwise the test is skipped) and the
  * {@code NIFI_CLIENT_PASSWORD} environment variable; see {@code UpdateScriptsIT} for the optional properties.
  */
+@Tag("DockerBased")
 class UpdateScriptsOjdbcLocationIT {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();

@@ -21,7 +21,7 @@
     <groupId>org.qubership.nifi</groupId>
     <artifactId>nifi</artifactId>
     <packaging>pom</packaging>
-    <version>2.10.1-SNAPSHOT</version>
+    <version>2.10.2-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>qubership-nifi is a fork of Apache NiFi, containing additional NARs and various configuration features</description>
@@ -52,8 +52,8 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <maven.compiler.release>25</maven.compiler.release>
-        <surefire-plugin.version>3.6.0</surefire-plugin.version>
-        <failsafe-plugin.version>3.6.0</failsafe-plugin.version>
+        <surefire-plugin.version>3.6.1</surefire-plugin.version>
+        <failsafe-plugin.version>3.6.1</failsafe-plugin.version>
         <compiler-plugin.version>3.16.0</compiler-plugin.version>
         <jar-plugin.version>3.5.1</jar-plugin.version>
         <central-publishing.plugin.version>0.12.0</central-publishing.plugin.version>
@@ -63,30 +63,30 @@
         <nifi.cassandra.nar.version>2.0.0-M2</nifi.cassandra.nar.version>
         <nifi.kafka_2_6.nar.version>2.0.0-M4</nifi.kafka_2_6.nar.version>
         <pmd.version>3.28.0</pmd.version>
-        <jacoco.version>0.8.15</jacoco.version>
+        <jacoco.version>0.8.16</jacoco.version>
         <resources.version>3.1.0</resources.version>
         <testcontainers.version>2.0.5</testcontainers.version>
-        <flatten-maven-plugin.version>1.8.0</flatten-maven-plugin.version>
-        <logback.version>1.6.5</logback.version>
+        <flatten-maven-plugin.version>1.9.0</flatten-maven-plugin.version>
+        <logback.version>1.6.7</logback.version>
         <hikari.cp.version>5.1.0</hikari.cp.version>
-        <okhttp.mockwebserver.version>5.5.0</okhttp.mockwebserver.version>
+        <okhttp.mockwebserver.version>5.5.1</okhttp.mockwebserver.version>
         <junit.jupiter.version>6.1.3</junit.jupiter.version>
         <mockito.version>5.24.0</mockito.version>
         <awaitility.version>4.3.0</awaitility.version>
-        <json.smart.version>2.6.0</json.smart.version>
+        <json.smart.version>2.6.1</json.smart.version>
         <com-google-guava.version>33.7.2-jre</com-google-guava.version>
         <h2.version>2.5.252</h2.version>
         <spring-framework.version>7.0.8</spring-framework.version>
         <postgresql.jdbc.version>42.7.14</postgresql.jdbc.version>
-        <ojdbc.version>19.32.0.0</ojdbc.version>
+        <ojdbc.version>19.33.0.0</ojdbc.version>
         <lombok.version>1.18.48</lombok.version>
-        <jgit.version>7.8.0.202609011348-r</jgit.version>
+        <jgit.version>7.8.1.202611041320-r</jgit.version>
         <snakeyaml.version>2.7</snakeyaml.version>
         <commons-csv.version>1.14.1</commons-csv.version>
         <micrometer.version>1.12.13</micrometer.version>
         <!--jackson and slf4j versions for direct dependencies-->
         <!--NiFi NARs use imported dependencies from NiFi BOMs-->
-        <jackson.databind.version>2.22.4</jackson.databind.version>
+        <jackson.databind.version>2.23.0</jackson.databind.version>
         <slf4j.version>2.0.20</slf4j.version>
 
         <!-- Version for provided artifact -->
@@ -121,7 +121,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>3.1.12.2</version>
+                <version>4.10.5.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -133,6 +133,18 @@
 
 
     <profiles>
+        <profile>
+            <id>skip-docker-tests</id>
+            <activation>
+                <property>
+                    <name>skipDockerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <excludedGroups>DockerBased</excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>default</id>
             <activation>
@@ -310,7 +322,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -348,12 +360,12 @@
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-java</artifactId>
-                        <version>7.28.0</version>
+                        <version>7.29.0</version>
                     </dependency>
                     <dependency>
                         <groupId>net.sourceforge.pmd</groupId>
                         <artifactId>pmd-core</artifactId>
-                        <version>7.28.0</version>
+                        <version>7.29.0</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -413,7 +425,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.23.0</version>
+                <version>2.25.2</version>
             </plugin>
         </plugins>
         <pluginManagement>
@@ -433,10 +445,13 @@
                         <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     </configuration>
                     <dependencies>
+                        <!-- Keep this version equal to the checkstyle version that the super-linter
+                             action in .github/workflows/super-linter.yaml ships, because both read
+                             .github/linters/sun_checks.xml. -->
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>13.11.0</version>
+                            <version>13.6.0</version>
                         </dependency>
                     </dependencies>
                 </plugin>

@@ -75,7 +75,7 @@ jobs:
       packages: write
     steps:
       - name: "Build and Publish current SNAPSHOT (dry run)"
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -101,9 +101,11 @@ jobs:
     outputs:
       release-version: ${{ steps.build-and-publish.outputs.release-version }}
     steps:
-      # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule
+      # This step is needed if there is a GitHub App used for authentication to bypass the protected branch rule.
+      # The token is not scoped with permission-* inputs because they made the release fail in CI,
+      # so zizmor's github-app audit is ignored for this step.
       - name: "Prepare app token"
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0 # zizmor: ignore[github-app]
         id: app-token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
@@ -111,7 +113,7 @@ jobs:
 
       - name: "Build and Publish"
         id: build-and-publish
-        uses: netcracker/qubership-workflow-hub/actions/maven-release@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        uses: netcracker/qubership-workflow-hub/actions/maven-release@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
         with:
           version-type: ${{ github.event.inputs.version-type }}
           ref: ${{ github.ref }}
@@ -128,7 +130,7 @@ jobs:
           java-version: "25"
 
       - name: "Upload all Maven target directories"
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ github.event.repository.name }}
           path: "${{ github.event.repository.name }}/**/target" # Upload all target directories in the repository
@@ -160,7 +162,7 @@ jobs:
           echo "GITHUB_OUTPUT:"
           cat "$GITHUB_OUTPUT"
       - name: Get Configuration File
-        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        uses: netcracker/qubership-workflow-hub/actions/docker-config-resolver@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
         id: config
         with:
           file-path: "${{ env.CONFIG_FILE }}"
@@ -181,7 +183,7 @@ jobs:
       - name: "Prepare Docker tags"
         if: ${{ github.event.inputs.mark-as-latest != 'true' }}
         id: meta
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
         with:
           default-template: "{{major}}.{{minor}}.{{patch}},{{major}}.{{minor}},{{major}}"
           ref: ${{ needs.deploy.outputs.release-version }}
@@ -195,7 +197,7 @@ jobs:
 
       - name: "Docker Build"
         id: docker_build
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
         with:
           component: ${{ toJson(matrix.component) }}
           ref: v${{ needs.deploy.outputs.release-version }}
@@ -211,7 +213,7 @@ jobs:
     permissions:
       contents: write
     if: ${{ needs.deploy.result == 'success' }}
-    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+    uses: netcracker/qubership-workflow-hub/.github/workflows/release-drafter.yml@cdfcd0a8abd7ba80d7a04a4e9debfb4e24995f1a # v3.0.1
     with:
       version: ${{ needs.deploy.outputs.release-version }}
       publish: true

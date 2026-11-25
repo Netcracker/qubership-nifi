@@ -81,7 +81,7 @@ Build process requires the following tools:
 
 - Java - JDK 25
 - Maven - Maven 3.x, see [maven installation guide](https://maven.apache.org/install.html) for details on how to install
-- Docker - any version of Docker Engine or any compatible Docker container runtime.
+- Docker Engine or a compatible container runtime for Docker-based tests and image builds.
 
 ### Project build
 
@@ -89,6 +89,12 @@ To execute maven build, run:
 
 ```shell
 mvn clean install
+```
+
+Docker-based tests run by default. Run the following command to build and test without Docker.
+
+```shell
+mvn clean install -DskipDockerTests
 ```
 
 Once maven build is completed, you can execute Docker build. To do that, run:

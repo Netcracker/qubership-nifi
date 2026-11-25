@@ -44,9 +44,37 @@ public void onTrigger(final ProcessContext context, final ProcessSession session
 }
 ```
 
+## Controller Service -> initialize in `@OnEnabled`
+
+A Controller Service has no `@OnScheduled` or `onTrigger`. It reads its
+configuration once in `@OnEnabled` from a `ConfigurationContext`, and
+FlowFile data arrives as parameters of each service method call, such as
+the `context` map of `LookupService.lookup(...)`. The same split applies:
+evaluate a configuration-only value in `@OnEnabled` and store it as a
+field. For a property with EL scope `FLOWFILE_ATTRIBUTES`, store the
+unevaluated `PropertyValue` in `@OnEnabled` and evaluate it in each call
+with the attributes passed to that call. A service instance is shared by
+every component that references it, so a value derived from one call's
+attributes must stay a local variable.
+
+```java
+@OnEnabled
+public void onEnabled(final ConfigurationContext context) {
+    timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+    urlTemplate = context.getProperty(URL);
+}
+
+@Override
+public Optional<Record> lookup(final Map<String, Object> coordinates, final Map<String, String> context) {
+    final String endpoint = urlTemplate.evaluateAttributeExpressions(context).getValue();
+    // ...
+}
+```
+
 ## Rules
 
 - EL scope `NONE` / `ENVIRONMENT`, or no EL support -> evaluate once in `@OnScheduled`, cache as an instance field.
 - EL scope `FLOWFILE_ATTRIBUTES` -> evaluate per FlowFile in `onTrigger`, never cache.
 - Never store a FlowFile-derived value in an instance field - concurrent `onTrigger` invocations share the same processor instance.
+- Controller Service: evaluate configuration-only values once in `@OnEnabled`; for EL scope `FLOWFILE_ATTRIBUTES`, store the `PropertyValue` in `@OnEnabled` and evaluate it per call with the attributes passed to the service method, never caching the result.
 - When unsure, check the property's `.expressionLanguageSupported(...)` declaration - it settles which case applies.

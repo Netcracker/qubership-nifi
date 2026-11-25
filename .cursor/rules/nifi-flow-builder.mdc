@@ -1,6 +1,6 @@
 ---
 description: Trigger for the nifi-flow-builder skill when working with NiFi flow definitions.
-globs: "**/*.json"
+globs: **/*.json
 ---
 
 ## Skill trigger: `nifi-flow-builder`

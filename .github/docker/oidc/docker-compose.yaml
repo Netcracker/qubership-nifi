@@ -24,11 +24,23 @@ services:
         condition: service_healthy
       consul:
         condition: service_healthy
+    # The root filesystem is read-only, as with readOnlyRootFilesystem in Kubernetes.
+    # Every path NiFi writes to must be listed in tmpfs or volumes.
+    read_only: ${NIFI_READ_ONLY_ROOT_FS:-true}
+    tmpfs:
+      - /tmp
     volumes:
       - nifi-ext:/opt/nifi/nifi-current/extensions
       - nifi-conf:/opt/nifi/nifi-current/persistent_conf
       - tls-cert-nifi:/tmp/tls-certs
       - tls-cert-ca:/tmp/cert
+      - /opt/nifi/nifi-current/conf
+      - /opt/nifi/nifi-current/logs
+      - /opt/nifi/nifi-current/run
+      - /opt/nifi/nifi-current/work
+      - /opt/nifi/nifi-current/flowfile_repository
+      - /opt/nifi/nifi-current/provenance_repository
+      - /opt/nifi/nifi-current/persistent_data
     ports:
       - 127.0.0.1:8080:8080
       - 127.0.0.1:8091:8091
@@ -128,7 +140,7 @@ services:
       timeout: 3s
       retries: 12
   keycloak:
-    image: keycloak/keycloak:26.8.0@sha256:27b3230fbabb8c9ff3c66c864cf09dcd8a41aca82e5100679d109ef0eeb05741
+    image: keycloak/keycloak:26.8.1@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332
     hostname: keycloak
     restart: on-failure:3
     depends_on:
@@ -169,7 +181,7 @@ services:
       retries: 24
       start_period: 15s
   postgresql:
-    image: postgres:16.15@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+    image: postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
     ports:
       - "127.0.0.1:5430:5432"
     volumes:
@@ -189,7 +201,7 @@ services:
       timeout: 5s
       retries: 12
   redis:
-    image: redis:8.10.2@sha256:2c2dff791878316e3b083188be0d578423b24813cdda5de0e80ea4f7b3e6bfd6
+    image: redis:8.10.3@sha256:1f88291b4c57bdf249f02eb085a8669889b2d2954e91d4de5118a5da6b78dd53
     ports:
       - "127.0.0.1:26379:6379"
     container_name: redis

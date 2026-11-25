@@ -1,6 +1,6 @@
 ---
-description: Trigger for the test-authoring skill: load it before writing, editing, or reviewing a test, and when a coding task ends in one.
-globs: "**"
+description: 'Trigger for the test-authoring skill: load it before writing, editing, or reviewing a test, and when a coding task ends in one.'
+globs: **
 ---
 
 Before writing, editing, or reviewing a test in any language, load `test-authoring`, and with it the developer-style

@@ -8,7 +8,7 @@
           "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qubership-nifi-lint-hook-claude/.apm/hooks/lint_changed_file.py\""
         }
       ],
-      "_apm_source": "qubership-nifi-lint-hook-claude"
+      "_apm_source": "_local/qubership-nifi-lint-hook-claude"
     }
   ]
 }

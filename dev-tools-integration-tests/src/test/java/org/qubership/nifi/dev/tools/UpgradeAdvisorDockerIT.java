@@ -18,6 +18,7 @@ package org.qubership.nifi.dev.tools;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.DockerClientFactory;
@@ -40,14 +41,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code docker build -t qubership-nifi-upgrade-advisor:test . -f dev/upgrade-advisor-autotest/Dockerfile}
  * from the repository root, or point {@code -Dupgrade.advisor.image=...} at an equivalent image.
  *
- * <p>An unreachable Docker daemon fails the class instead of skipping it. A skipped suite leaves
- * the build green with nothing asserted, which is indistinguishable from a passing run. On a
- * machine without Docker, leave the ITs out by not passing {@code -DskipITs=false}.
+ * <p>The class fails when the Docker daemon is unreachable. Pass {@code -DskipDockerTests}
+ * to run the Bash suite on a machine without Docker.
  *
  * <p>The exports are bound read-only, and the working directory is bound separately: the advisor
  * writes its report and temporary files into the current directory, and the reporting-task check
  * greps every file under the exports path, so keeping the two apart avoids false positives.
  */
+@Tag("DockerBased")
 final class UpgradeAdvisorDockerIT extends AbstractUpgradeAdvisorTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(UpgradeAdvisorDockerIT.class);

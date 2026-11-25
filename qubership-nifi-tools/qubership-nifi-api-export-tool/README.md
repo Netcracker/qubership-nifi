@@ -69,7 +69,7 @@ mvn test -pl qubership-nifi-tools/qubership-nifi-api-export-tool
 Integration tests (Docker required):
 
 ```shell
-mvn test -pl qubership-nifi-tools/qubership-nifi-api-export-tool -Dgroups=docker
+mvn verify -pl :qubership-nifi-api-export-tool-it -am -P tools-integration-tests -DskipUnitTests=true -Dgpg.skip=true
 ```
 
 ## NiFi 1.x temporary resources

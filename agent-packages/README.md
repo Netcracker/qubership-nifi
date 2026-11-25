@@ -74,8 +74,9 @@ edits a file, the hook runs codespell, editorconfig-checker, checkstyle, markdow
 textlint on it and returns any findings to the agent. It uses the same linter
 configuration, exclusions, and missing-linter handling as the `/lint` prompt.
 
-The hook command is anchored to `${CLAUDE_PROJECT_DIR}`, so it keeps working after the
-agent changes into a subdirectory. Declare the package with `targets: [claude]`:
+APM anchors the installed hook command to `${CLAUDE_PROJECT_DIR}`, so it keeps working after
+the agent changes into a subdirectory. The package needs APM 0.35.0 or later. Declare it with
+`targets: [claude]`:
 
 ```yaml
 dependencies:
@@ -86,17 +87,18 @@ dependencies:
       targets: [claude]
 ```
 
-Without `targets:`, APM also deploys the hook to Codex and Cursor, where its command fails
-because neither sets `CLAUDE_PROJECT_DIR`.
+Without `targets:`, the package takes the project's `targets`. When those include both
+`claude` and `cursor`, `apm install` fails with
+`Cursor native hooks overlap Claude import and may run twice`.
 
 See the [linter hook documentation](qubership-nifi-lint-hook-claude/.apm/hooks/README.md) for
 tool prerequisites, configuration lookup, and a manual dry-run example.
 
 ### `qubership-nifi-lint-hook`
 
-Provides the same `PostToolUse` linter hook for Codex and Cursor. Its command is relative
-to the working directory, because neither harness sets `CLAUDE_PROJECT_DIR`. Declare the
-package with `targets: [codex, cursor]`:
+Provides the same `PostToolUse` linter hook for Codex and Cursor. It is a separate package
+because APM refuses to deploy one hook to both Claude Code and Cursor. The package needs APM
+0.35.0 or later. Declare it with `targets: [codex, cursor]`:
 
 ```yaml
 dependencies:
@@ -107,12 +109,14 @@ dependencies:
       targets: [codex, cursor]
 ```
 
-Without `targets:`, APM also deploys the hook to Claude Code, which then lints each file
-twice.
+Without `targets:`, the package takes the project's `targets`. When those include both
+`claude` and `cursor`, `apm install` fails with the same overlap error.
 
 The package carries its own copy of the hook script, identical to the one in
 `qubership-nifi-lint-hook-claude`. Its prerequisites are the same; see the
-[linter hook documentation](qubership-nifi-lint-hook-claude/.apm/hooks/README.md).
+[linter hook documentation](qubership-nifi-lint-hook-claude/.apm/hooks/README.md). That page
+also describes the one-time cleanup that local `path:` declarations need when upgrading from
+an APM version older than 0.35.0.
 
 ### `nifi-development-kit`
 
