@@ -405,6 +405,7 @@ def test_successful_rerun_clears_obsolete_proposals_and_failure_report(apihub, w
         REASON_PLACEHOLDER, "The ETag header was reviewed."), encoding="utf-8")
     notes = reports / "notes.txt"
     notes.write_text("Review notes", encoding="utf-8")
+    (reports / "unused-compatibility-exceptions.json").write_text("[{}]\n", encoding="utf-8")
     mock_publication(backend)
     mock_lint(linter, "warning")
     mock_breaking_change(backend)
@@ -475,6 +476,34 @@ def test_approved_breaks_still_keep_the_report_and_apply_the_lint_gate(apihub, w
     )
 
 
+@pytest.mark.parametrize("has_breaking_change", [False, True], ids=["no-breaks", "approved-break"])
+def test_unused_compatibility_exceptions_are_reported_for_the_compared_pair(apihub, work_dir, has_breaking_change):
+    backend, _ = apihub
+    if has_breaking_change:
+        mock_breaking_change(backend)
+    approval = {
+        "method": "get", "path": OPERATION["path"], "reason": "The response header removal was reviewed.",
+        **{field: value for field, value in BREAKING.items() if field != "severity"},
+    }
+    obsolete = {**approval, "previousValueHash": "obsolete-hash"}
+    approvals = {"exceptions": [
+        {**VERSIONS, "changes": [approval, obsolete]},
+        {**VERSIONS, "previousNifiVersion": "2.8.0", "changes": [approval]},
+    ]}
+    approved = work_dir / "approved.yml"
+    approved.write_text(yaml.safe_dump(approvals), encoding="utf-8")
+
+    assert check_openapi.main() == 0
+    unused = [obsolete] if has_breaking_change else [approval, obsolete]
+    assert read_report(work_dir, "unused-compatibility-exceptions") == [{**VERSIONS, **change} for change in unused]
+    assert (
+        f"- Unused compatibility exceptions ({len(unused)}). See unused-compatibility-exceptions.json.\n"
+        in (work_dir / "summary").read_text(encoding="utf-8")
+    )
+    assert not (work_dir / "reports" / PROPOSAL).exists()
+    assert yaml.safe_load(approved.read_text(encoding="utf-8")) == approvals
+
+
 def test_added_spec_runs_lint_and_skips_compatibility(apihub, work_dir):
     backend, linter = apihub
     (work_dir / "previous.json").unlink()
@@ -487,6 +516,17 @@ def test_added_spec_runs_lint_and_skips_compatibility(apihub, work_dir):
     assert "previousVersion" not in publish
     assert read_report(work_dir, "check-failures") == {"lint": "Unapproved lint findings (errors 1, warnings 0)"}
     assert not (work_dir / "reports" / "compatibility-summary.json").exists()
+
+
+def test_login_without_a_session_cookie_adds_setup_failure_to_the_summary(apihub, work_dir):
+    backend, _ = apihub
+    backend.respond("POST", "/api/v3/auth/local", Response(200))
+
+    assert check_openapi.main() == 1
+    assert read_report(work_dir, "check-failures") == {"setup": "KeyError('apihub-access-token')"}
+    assert (work_dir / "summary").read_text(encoding="utf-8") == (
+        "## OpenAPI checks\n\n- OpenAPI check setup failed. See check-failures.json in the openapi-reports artifact.\n"
+    )
 
 
 def test_failed_baseline_publication_still_runs_candidate_lint(apihub, work_dir):
@@ -715,6 +755,13 @@ def test_comparison_preserves_available_findings_when_an_operation_details_reque
         {"previousOperation": {"method": "get", "path": "/nifi-api/about"}, "changeSummary": {"breaking": 1}},
     ]}))
     backend.respond("GET", f"{CANDIDATE}/rest/operations/get-flow/changes", Response(503))
+    approval = {
+        "method": OPERATION["method"], "path": OPERATION["path"], "reason": "The ETag removal was reviewed.",
+        **{field: value for field, value in BREAKING.items() if field != "severity"},
+    }
+    (work_dir / "approved.yml").write_text(
+        yaml.safe_dump({"exceptions": [{**VERSIONS, "changes": [approval]}]}), encoding="utf-8",
+    )
 
     assert check_openapi.main() == 1
     operations = read_report(work_dir, "compatibility-issues")
@@ -724,9 +771,8 @@ def test_comparison_preserves_available_findings_when_an_operation_details_reque
     assert removal["issues"] == [{
         "severity": "breaking", "action": "remove", "scope": "root", "description": "The operation was removed.",
     }]
-    proposed, = yaml.safe_load((work_dir / "reports" / PROPOSAL).read_text(encoding="utf-8"))["exceptions"]
-    match, = proposed["changes"]
-    assert match["path"] == "/nifi-api/about"
+    assert not (work_dir / "reports" / PROPOSAL).exists()
+    assert not (work_dir / "reports" / "unused-compatibility-exceptions.json").exists()
     assert "incomplete breaking issue details" in read_report(work_dir, "check-failures")["compatibility"]
 
 
@@ -805,8 +851,7 @@ def test_comparison_deadline_preserves_completed_details(apihub, work_dir, monke
         {**slow, "detailError": timeout},
         pending,
     ]
-    proposal = yaml.safe_load((work_dir / "reports" / PROPOSAL).read_text(encoding="utf-8"))
-    assert [change["path"] for group in proposal["exceptions"] for change in group["changes"]] == ["/removed"]
+    assert not (work_dir / "reports" / PROPOSAL).exists()
 
 
 def test_comparison_summary_decoded_after_cutoff_fails_the_check(apihub, work_dir, monkeypatch):

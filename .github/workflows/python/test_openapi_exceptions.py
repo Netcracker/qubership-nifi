@@ -36,7 +36,7 @@ def test_exception_matches_only_its_exact_nifi_version_pair(tmp_path, previous, 
     issue = {"severity": "breaking", **REMOVAL}
     operations = [{"currentOperation": OPERATION, "issues": [issue]}]
 
-    assert apply_exceptions(config, versions, operations, tmp_path / "proposed.yml") == expected
+    assert apply_exceptions(config, versions, operations, tmp_path / "proposed.yml") == (*expected, [])
     assert issue.get("exceptionReason") == reason
 
 
@@ -46,7 +46,7 @@ def test_a_location_or_hash_omitted_from_approval_cannot_match_a_detailed_findin
     config = write_approvals(tmp_path / "approved.yml", approval)
     operations = [{"currentOperation": OPERATION, "issues": [{"severity": "breaking", **REMOVAL}]}]
 
-    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "proposed.yml") == (1, 0)
+    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "proposed.yml") == (1, 0, [{**UPGRADE, **approval}])
 
 
 def test_proposal_adds_only_unmatched_breaks_and_applies_once_its_reason_is_reviewed(tmp_path):
@@ -63,7 +63,7 @@ def test_proposal_adds_only_unmatched_breaks_and_applies_once_its_reason_is_revi
     ]
     operations = [{"currentOperation": OPERATION, "issues": issues}]
 
-    assert apply_exceptions(config, UPGRADE, operations, proposal) == (1, 1)
+    assert apply_exceptions(config, UPGRADE, operations, proposal) == (1, 1, [])
     assert config_path.read_text(encoding="utf-8") == original
     with pytest.raises(ValueError, match="group 1, change 2 has the proposed placeholder reason"):
         load_exceptions(proposal)
@@ -75,7 +75,7 @@ def test_proposal_adds_only_unmatched_breaks_and_applies_once_its_reason_is_revi
     assert {field: value for field, value in suggested.items() if field != "reason"} == {**OPERATION, **unapproved}
 
     proposal.unlink()
-    assert apply_exceptions(proposed_config, UPGRADE, operations, proposal) == (0, 2)
+    assert apply_exceptions(proposed_config, UPGRADE, operations, proposal) == (0, 2, [])
     assert not proposal.exists()
     assert [issue["exceptionReason"] for issue in issues if "exceptionReason" in issue] == [REASON, reviewed]
 
@@ -92,9 +92,9 @@ def test_renames_match_the_previous_and_current_keys(tmp_path):
     ]
     operations = [{"currentOperation": OPERATION, "issues": issues}]
 
-    assert apply_exceptions(config, UPGRADE, operations, proposal) == (2, 1)
+    assert apply_exceptions(config, UPGRADE, operations, proposal) == (2, 1, [])
     assert [issue.get("exceptionReason") for issue in issues] == [REASON, None, None]
-    assert apply_exceptions({"exceptions": load_exception_groups(proposal)}, UPGRADE, operations, proposal) == (0, 3)
+    assert apply_exceptions({"exceptions": load_exception_groups(proposal)}, UPGRADE, operations, proposal) == (0, 3, [])
 
 
 def test_removed_operation_uses_its_previous_method_and_path(tmp_path):
@@ -103,7 +103,7 @@ def test_removed_operation_uses_its_previous_method_and_path(tmp_path):
     operations = [{"previousOperation": operation, "issues": [{"severity": "breaking", **removal}]}]
     proposal = tmp_path / "proposed.yml"
 
-    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (1, 0)
+    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (1, 0, [])
     proposed, = load_exception_groups(proposal)[0]["changes"]
     assert {field: value for field, value in proposed.items() if field != "reason"} == {**operation, **removal}
 
@@ -116,7 +116,7 @@ def test_a_proposal_writes_mappings_in_block_style_and_path_arrays_in_flow_style
     ]
     proposal = tmp_path / "proposed.yml"
 
-    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0)
+    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0, [])
     assert proposal.read_text(encoding="utf-8") == f"""\
 exceptions:
   - previousNifiVersion: 2.9.0
@@ -142,13 +142,13 @@ def test_a_proposal_leaves_out_an_empty_hash_so_the_reviewed_proposal_loads_and_
     operations = [{"currentOperation": OPERATION, "issues": [{"severity": "breaking", **REMOVAL, "previousValueHash": ""}]}]
     proposal = tmp_path / "proposed.yml"
 
-    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (1, 0)
+    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (1, 0, [])
     proposal.write_text(proposal.read_text(encoding="utf-8").replace(REASON_PLACEHOLDER, REASON), encoding="utf-8")
     config = load_exceptions(proposal)
     assert config["exceptions"][0]["changes"] == [{
         **OPERATION, **{field: value for field, value in REMOVAL.items() if field != "previousValueHash"}, "reason": REASON,
     }]
-    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 1)
+    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 1, [])
 
 
 @pytest.mark.parametrize(("field", "empty"), [
@@ -160,14 +160,14 @@ def test_only_null_declaration_fields_are_omitted_from_proposals(tmp_path, field
     operations = [{"currentOperation": OPERATION, "issues": issues}]
     proposal = tmp_path / "proposed.yml"
 
-    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0)
+    assert apply_exceptions({"exceptions": []}, UPGRADE, operations, proposal) == (2, 0, [])
     proposal.write_text(proposal.read_text(encoding="utf-8").replace(REASON_PLACEHOLDER, REASON), encoding="utf-8")
     config = load_exceptions(proposal)
     base_selector = {**OPERATION, **REMOVAL, "reason": REASON}
     assert sorted(config["exceptions"][0]["changes"], key=lambda change: field in change) == [
         base_selector, {**base_selector, field: empty},
     ]
-    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 2)
+    assert apply_exceptions(config, UPGRADE, operations, tmp_path / "next.yml") == (0, 2, [])
 
 
 def test_duplicate_config_keys_are_rejected(tmp_path):

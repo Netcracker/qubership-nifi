@@ -123,7 +123,8 @@ def apply_exceptions(config, versions, operations, proposal_path, *, header=""):
     active_group = next((group for group in groups if all(
         group[field] == versions[field] for field in VERSION_FIELDS
     )), None)
-    approved = {signature(change): change["reason"] for change in (active_group or {}).get("changes", [])}
+    approved = {signature(change): change for change in (active_group or {}).get("changes", [])}
+    used = set()
     proposals = {}
     unmatched = 0
     matched = 0
@@ -140,7 +141,8 @@ def apply_exceptions(config, versions, operations, proposal_path, *, header=""):
             })
             key = signature(selector)
             if key in approved:
-                issue["exceptionReason"] = approved[key]
+                issue["exceptionReason"] = approved[key]["reason"]
+                used.add(key)
                 matched += 1
             else:
                 unmatched += 1
@@ -159,4 +161,5 @@ def apply_exceptions(config, versions, operations, proposal_path, *, header=""):
                 for group in groups
             ]
         write_exception_groups(proposal_path, proposed_groups, header)
-    return unmatched, matched
+    unused = [{**versions, **change} for key, change in approved.items() if key not in used]
+    return unmatched, matched, unused

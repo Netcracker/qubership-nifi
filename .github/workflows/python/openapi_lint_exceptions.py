@@ -101,12 +101,18 @@ def apply_lint_exceptions(groups, nifi_version, result, proposal_path, *, header
 
     if proposals:
         suggested = [proposals[key] for key in sorted(proposals)]
+        unused = {issue_signature(issue) for issue in unused_lint_exceptions(groups, result)}
+        proposed_groups = []
+        for group in groups:
+            if any(group[field] != scope[field] for field in LINTER_RULESET_FIELDS):
+                proposed_groups.append(group)
+                continue
+            issues = [issue for issue in group["issues"] if issue_signature(issue) not in unused]
+            if group is active_group:
+                issues.extend(suggested)
+            if issues:
+                proposed_groups.append({**group, "issues": issues})
         if active_group is None:
-            proposed_groups = [*groups, {**scope, "issues": suggested}]
-        else:
-            proposed_groups = [
-                {**group, "issues": [*group["issues"], *suggested]} if group is active_group else group
-                for group in groups
-            ]
+            proposed_groups.append({**scope, "issues": suggested})
         write_exception_groups(proposal_path, proposed_groups, header)
     return unmatched, matched

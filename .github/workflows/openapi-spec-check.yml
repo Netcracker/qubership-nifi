@@ -28,7 +28,7 @@ jobs:
         id: paths
         shell: bash
         run: |
-          # The PR merge commit's first parent is the target commit. On main, it is the pushed commit's predecessor.
+          # The first parent is the PR target commit or the previous tip of squash-only main.
           baseline=$(git rev-parse HEAD^1)
           spec_changes=$(git diff --name-only "$baseline" HEAD -- docs/openapi/openapi.json)
           validator_changes=$(git diff --name-only "$baseline" HEAD -- \
@@ -89,7 +89,7 @@ jobs:
           python3 -m pytest .github/workflows/python
 
       # A local run with cold images took 33 s to pull, 9 s to start, 23 s to check, and 8 s to save logs and clean up.
-      # Pull, startup, and validation have 540 s combined. Log collection and teardown have 40 s combined.
+      # Pull, startup, and validation have 545 s combined. Log collection and teardown have 40 s combined.
       # Each timeout allows 2 s for the command to exit before sending SIGKILL. The step limit covers all five commands.
       - name: Run APIHUB lint and compatibility checks
         timeout-minutes: 10
@@ -118,10 +118,11 @@ jobs:
                 fi
                 timeout --kill-after=2 30 "${compose[@]}" down --volumes
                 exit $status' EXIT
-          timeout --verbose --kill-after=2 120 "${compose[@]}" up --detach --wait --wait-timeout 120 || {
+          # Reserve 5 s beyond the readiness wait for the rest of the startup command.
+          timeout --verbose --kill-after=2 125 "${compose[@]}" up --detach --wait --wait-timeout 120 || {
             status=$?
             if [[ $status == 124 ]]; then
-              echo "APIHUB did not start within 120 s." >&2
+              echo "The APIHUB startup command did not finish within 125 s." >&2
             fi
             exit $status
           }

@@ -63,12 +63,10 @@ def test_each_linter_ruleset_and_finding_field_must_match(tmp_path, scope_change
         Counter({finding["severity"]: 1}), Counter(),
     )
     assert "exceptionReason" not in finding
-    groups = load_exception_groups(proposal)
-    preserved = next(group for group in groups if all(group[field] == value for field, value in SCOPE.items()))
-    assert approvals[0]["issues"][0] in preserved["issues"]
-    proposed = next(group for group in groups if all(group[field] == value for field, value in scope.items()))
-    suggested, = (issue for issue in proposed["issues"] if issue["reason"] != REASON)
-    assert {field: suggested[field] for field in finding} == finding
+    assert load_exception_groups(proposal) == [
+        *(approvals if scope_change else []),
+        {**scope, "issues": [{**finding, "reason": REASON_PLACEHOLDER}]},
+    ]
 
 
 def test_unused_approvals_are_listed_only_for_the_linter_and_ruleset_of_the_result():
@@ -83,18 +81,27 @@ def test_unused_approvals_are_listed_only_for_the_linter_and_ruleset_of_the_resu
     assert unused_lint_exceptions(approvals, result) == [{**SCOPE, **unused}]
 
 
-def test_an_approval_applies_to_a_later_nifi_version_that_proposes_only_its_new_findings(tmp_path):
+def test_upgrade_proposal_keeps_matching_approvals_and_removes_stale_ones(tmp_path):
     new_finding = {**FINDING, "code": "another-rule"}
     result = {
         "linter": "spectral", "ruleset": {"name": SCOPE["ruleset"]}, "issues": [dict(FINDING), dict(new_finding)],
     }
-    approvals = [{**SCOPE, "issues": [{**FINDING, "reason": REASON}]}]
+    matching = {**FINDING, "reason": REASON}
+    stale = {**matching, "path": ["obsolete"]}
+    other_ruleset = {**SCOPE, "ruleset": "custom-openapi", "issues": [stale]}
+    approvals = [
+        {**SCOPE, "nifiVersion": "2.11.0", "issues": [{**matching, "code": "obsolete-rule"}]},
+        {**SCOPE, "issues": [matching, stale]},
+        other_ruleset,
+    ]
     proposal = tmp_path / "proposal.yml"
 
     assert apply_lint_exceptions(approvals, "2.13.0", result, proposal) == (Counter(warning=1), Counter(warning=1))
     assert [issue.get("exceptionReason") for issue in result["issues"]] == [REASON, None]
     assert load_exception_groups(proposal) == [
-        *approvals, {**SCOPE, "nifiVersion": "2.13.0", "issues": [{**new_finding, "reason": REASON_PLACEHOLDER}]},
+        {**SCOPE, "issues": [matching]},
+        other_ruleset,
+        {**SCOPE, "nifiVersion": "2.13.0", "issues": [{**new_finding, "reason": REASON_PLACEHOLDER}]},
     ]
 
 

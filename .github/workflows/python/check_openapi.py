@@ -38,9 +38,10 @@ PAGE_SIZE = 100
 LINT_PROPOSAL = "proposed-openapi-lint-exceptions.yml"
 COMPATIBILITY_PROPOSAL = "proposed-openapi-compatibility-exceptions.yml"
 FOLLOWUP_COMPATIBILITY_PROPOSAL = "next-openapi-compatibility-exceptions.yml"
+UNUSED_COMPATIBILITY_EXCEPTIONS = "unused-compatibility-exceptions"
 GENERATED_REPORTS = (
     "lint-summary.json", "lint-issues.json", "unused-lint-exceptions.json",
-    "compatibility-summary.json", "compatibility-issues.json",
+    "compatibility-summary.json", "compatibility-issues.json", f"{UNUSED_COMPATIBILITY_EXCEPTIONS}.json",
     "spec-versions.json", "check-failures.json", LINT_PROPOSAL, COMPATIBILITY_PROPOSAL, FOLLOWUP_COMPATIBILITY_PROPOSAL,
 )
 
@@ -253,24 +254,7 @@ def breaking_operations(client, package, reports, expected_count, deadline):
     return operations
 
 
-def compare(client, package, reports, versions, exceptions_path, deadline):
-    endpoint = f"/api/v2/packages/{package}/versions/{CANDIDATE}"
-    query = urlencode({"previousVersion": BASELINE, "previousVersionPackageId": package})
-    summary = client.get(f"{endpoint}/changes/summary?{query}", deadline=deadline)
-    write_report(reports, "compatibility-summary", summary)
-    if summary.get("noContent") or summary["hasErrors"]:
-        raise RuntimeError("APIHUB did not produce a complete comparison")
-
-    breaking_count = sum(api["changesSummary"]["breaking"] for api in summary["operationTypes"])
-    if not breaking_count:
-        load_exceptions(exceptions_path)
-        return 0, 0
-
-    affected_count = sum(api["numberOfImpactedOperations"]["breaking"] for api in summary["operationTypes"])
-    if affected_count == 0:
-        raise RuntimeError(f"APIHUB reported {breaking_count} breaking changes affecting 0 operations")
-    operations = breaking_operations(client, package, reports, affected_count, deadline)
-    query += "&severity=breaking"
+def read_breaking_details(client, endpoint, query, operations, deadline):
     incomplete_operations = 0
     details_timeout = None
     for operation in operations:
@@ -299,23 +283,46 @@ def compare(client, package, reports, versions, exceptions_path, deadline):
                 details_timeout = error
                 break
 
-    proposal = reports / COMPATIBILITY_PROPOSAL
-    if proposal.resolve() == exceptions_path.resolve():
-        # A local rerun can use the earlier proposal as its approved exceptions file.
-        proposal = reports / FOLLOWUP_COMPATIBILITY_PROPOSAL
-        if proposal.resolve() == exceptions_path.resolve():
-            raise ValueError("Both compatibility proposal paths point to the approved exceptions file")
-    try:
-        counts = apply_exceptions(
-            load_exceptions(exceptions_path), versions, operations, proposal, header=read_exception_header(exceptions_path),
-        )
-    finally:
-        write_report(reports, "compatibility-issues", operations)
     if details_timeout is not None:
         raise TimeoutError(deadline.message) from details_timeout
     if incomplete_operations:
         raise RuntimeError(f"APIHUB returned incomplete breaking issue details for {incomplete_operations} operations")
-    return counts
+
+
+def compare(client, package, reports, versions, exceptions_path, deadline):
+    endpoint = f"/api/v2/packages/{package}/versions/{CANDIDATE}"
+    query = urlencode({"previousVersion": BASELINE, "previousVersionPackageId": package})
+    summary = client.get(f"{endpoint}/changes/summary?{query}", deadline=deadline)
+    write_report(reports, "compatibility-summary", summary)
+    if summary.get("noContent") or summary["hasErrors"]:
+        raise RuntimeError("APIHUB did not produce a complete comparison")
+
+    operations = []
+    breaking_count = sum(api["changesSummary"]["breaking"] for api in summary["operationTypes"])
+    if breaking_count:
+        affected_count = sum(api["numberOfImpactedOperations"]["breaking"] for api in summary["operationTypes"])
+        if affected_count == 0:
+            raise RuntimeError(f"APIHUB reported {breaking_count} breaking changes affecting 0 operations")
+        operations = breaking_operations(client, package, reports, affected_count, deadline)
+
+    try:
+        proposal = reports / COMPATIBILITY_PROPOSAL
+        if operations:
+            read_breaking_details(client, endpoint, query + "&severity=breaking", operations, deadline)
+            if proposal.resolve() == exceptions_path.resolve():
+                # A local rerun can use the earlier proposal as its approved exceptions file.
+                proposal = reports / FOLLOWUP_COMPATIBILITY_PROPOSAL
+                if proposal.resolve() == exceptions_path.resolve():
+                    raise ValueError("Both compatibility proposal paths point to the approved exceptions file")
+        unmatched, matched, unused = apply_exceptions(
+            load_exceptions(exceptions_path), versions, operations, proposal, header=read_exception_header(exceptions_path),
+        )
+    finally:
+        if operations:
+            write_report(reports, "compatibility-issues", operations)
+    if unused:
+        write_report(reports, UNUSED_COMPATIBILITY_EXCEPTIONS, unused)
+    return unmatched, matched, len(unused)
 
 
 def spec_version(spec):
@@ -347,8 +354,10 @@ def check_candidate(client, package, reports, versions, exceptions_path, baselin
 
     if baseline is not None:
         try:
-            unmatched, matched = compare(client, package, reports, versions, exceptions_path, comparison_deadline)
+            unmatched, matched, unused = compare(client, package, reports, versions, exceptions_path, comparison_deadline)
             messages.append(f"Breaking API findings without an exception ({unmatched}). Approved exceptions ({matched}).")
+            if unused:
+                messages.append(f"Unused compatibility exceptions ({unused}). See {UNUSED_COMPATIBILITY_EXCEPTIONS}.json.")
             if unmatched:
                 messages.append("Review the proposed exceptions YAML in the openapi-reports artifact.")
                 failures["compatibility"] = f"Unapproved breaking finding count = {unmatched}"
@@ -357,6 +366,12 @@ def check_candidate(client, package, reports, versions, exceptions_path, baselin
             failures["compatibility"] = repr(error)
     elif "compatibility" not in failures:
         messages.append("Compatibility check skipped because this commit adds the spec.")
+
+
+def write_summary(messages):
+    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with Path(summary).open("a", encoding="utf-8") as output:
+            output.write("## OpenAPI checks\n\n" + "".join(f"- {line}\n" for line in messages))
 
 
 def run(work_dir, reports, exceptions_path):
@@ -398,9 +413,7 @@ def run(work_dir, reports, exceptions_path):
 
     for line in messages:
         print(line)
-    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
-        with Path(summary).open("a", encoding="utf-8") as output:
-            output.write("## OpenAPI checks\n\n" + "".join(f"- {line}\n" for line in messages))
+    write_summary(messages)
     if failures:
         write_report(reports, "check-failures", failures)
         for check, failure in failures.items():
@@ -434,6 +447,8 @@ def main():
     except Exception as error:
         write_report(reports, "check-failures", {"setup": repr(error)})
         print(f"OpenAPI check setup failed: {error!r}", file=sys.stderr)
+        with suppress(OSError):
+            write_summary(["OpenAPI check setup failed. See check-failures.json in the openapi-reports artifact."])
         return 1
 
 
