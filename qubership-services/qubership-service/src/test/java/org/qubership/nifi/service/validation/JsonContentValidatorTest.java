@@ -16,7 +16,7 @@
 
 package org.qubership.nifi.service.validation;
 
-import com.networknt.schema.JsonSchemaException;
+import com.networknt.schema.InvalidSchemaException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -104,18 +104,27 @@ public class JsonContentValidatorTest {
     }
 
     @Test
-    public void schemaDeclaringDraft07FailsToEnable() throws InitializationException {
+    public void schemaDeclaringDraft07IsReadAsDraft07() throws Exception {
+        assertEquals(false, validate("""
+                {"$schema": "http://json-schema.org/draft-07/schema#",
+                 "properties": {"count": {"maximum": 10, "exclusiveMaximum": 10}}}""", """
+                {"count": 10}"""),
+                "count 10 against a numeric exclusiveMaximum of 10, which is draft 6 and later syntax");
+    }
+
+    @Test
+    public void schemaDeclaringDraft03FailsToEnable() throws InitializationException {
         JsonContentValidator validator = new JsonContentValidator();
         testRunner.addControllerService("validator", validator);
         testRunner.setProperty(validator, JsonContentValidator.SCHEMA, """
-                {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object"}""");
+                {"$schema": "http://json-schema.org/draft-03/schema#", "type": "object"}""");
 
         AssertionError error = assertThrows(AssertionError.class,
-                () -> testRunner.enableControllerService(validator), "enabling with a draft-07 schema");
+                () -> testRunner.enableControllerService(validator), "enabling with a draft-03 schema");
 
         // The test runner reports an exception from the @OnEnabled method only in the message of its AssertionError.
-        String expectedReason = JsonSchemaException.class.getName()
-                + ": Unknown MetaSchema: https://json-schema.org/draft-07/schema";
+        String expectedReason = InvalidSchemaException.class.getName()
+                + ": Failed to load meta-schema 'http://json-schema.org/draft-03/schema#'";
         assertTrue(error.getMessage().contains(expectedReason),
                 () -> "expected enable failure to contain <%s>, but was <%s>"
                         .formatted(expectedReason, error.getMessage()));

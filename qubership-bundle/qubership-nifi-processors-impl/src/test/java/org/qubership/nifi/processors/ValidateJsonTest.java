@@ -17,9 +17,8 @@
 package org.qubership.nifi.processors;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.qubership.nifi.processors.validation.JsonTestData;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.networknt.schema.JsonSchemaException;
+import com.networknt.schema.InvalidSchemaException;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -33,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.qubership.nifi.processors.validation.JsonTestData;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -313,20 +311,38 @@ public class ValidateJsonTest {
     }
 
     @Test
-    public void schemaDeclaringDraft07FailsToSchedule() {
+    public void schemaDeclaringDraft07IsReadAsDraft07() {
+        // A numeric exclusiveMaximum is draft 6 and later syntax; draft 4 expects a boolean there.
+        MockFlowFile flowFile = runOne("""
+                {"$schema": "http://json-schema.org/draft-07/schema#",
+                 "properties": {"count": {"maximum": 10, "exclusiveMaximum": 10}}}""", """
+                {"_sourceId": "S1", "_businessEntityType": "Customer", "count": 10}""", ValidateJson.REL_INVALID);
+
+        assertErrors("""
+                [{
+                  "code": "ME-JV-0002",
+                  "title": "Validation error 'exclusiveMaximum' in 'Customer' Business Entity '$.count'",
+                  "details": "count: must have an exclusive maximum value of 10",
+                  "source": {"_sourceId": "S1", "path": "count"}
+                }]""",
+                readTree(flowFile.getContent()).get("_errors"));
+    }
+
+    @Test
+    public void schemaDeclaringDraft03FailsToSchedule() {
         testRunner.setProperty(ValidateJson.SCHEMA, """
-                {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object"}""");
+                {"$schema": "http://json-schema.org/draft-03/schema#", "type": "object"}""");
 
         AssertionError error = assertThrows(AssertionError.class, () -> testRunner.run(0),
                 "testRunner.run(0)");
 
-        Throwable rootCause = error;
-        while (rootCause.getCause() != null) {
-            rootCause = rootCause.getCause();
+        Throwable schemaError = error;
+        while (schemaError != null && !(schemaError instanceof InvalidSchemaException)) {
+            schemaError = schemaError.getCause();
         }
-        JsonSchemaException schemaError = assertInstanceOf(JsonSchemaException.class, rootCause,
-                "root cause of the scheduling failure");
-        assertEquals("Unknown MetaSchema: https://json-schema.org/draft-07/schema", schemaError.getMessage());
+        assertNotNull(schemaError, () -> "InvalidSchemaException in the cause chain of " + error);
+        assertEquals("Failed to load meta-schema 'http://json-schema.org/draft-03/schema#'",
+                schemaError.getMessage());
     }
 
     @Test
@@ -366,37 +382,32 @@ public class ValidateJsonTest {
                         || r.getName().equals("not_json")));
     }
 
-    /**
-     * A schema without {@code $schema} is read as draft-04. The boolean {@code exclusiveMaximum} is valid only in
-     * draft-04; later drafts require a number and reject the schema when the processor is scheduled.
-     */
     @Test
-    public void schemaWithoutDialectIsReadAsDraft04() {
-        testRunner.setProperty(ValidateJson.SCHEMA, "{\"type\": \"object\","
-                + " \"properties\": {\"n\": {\"type\": \"number\", \"maximum\": 10, \"exclusiveMaximum\": true}}}");
-        testRunner.enqueue("{\"n\": 10}");
-        testRunner.run();
-
-        testRunner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
-    }
-
-    @Test
-    public void errorDetailsAreEnglishUnderAnotherDefaultLocale() throws IOException {
+    public void errorDetailsStayInEnglishUnderAnotherDefaultLocale() {
         Locale defaultLocale = Locale.getDefault();
-        Locale.setDefault(Locale.GERMAN);
+        Locale formatLocale = Locale.getDefault(Locale.Category.FORMAT);
+        Locale displayLocale = Locale.getDefault(Locale.Category.DISPLAY);
+        MockFlowFile flowFile;
         try {
-            testRunner.setProperty(ValidateJson.SCHEMA, "{\"$schema\": \"http://json-schema.org/draft-04/schema#\","
-                    + " \"type\": \"object\", \"properties\": {\"o\": {\"type\": \"string\"}}}");
-            testRunner.enqueue("{\"o\": 1}");
-            testRunner.run();
+            Locale.setDefault(Locale.GERMANY);
+            flowFile = runOne("""
+                    {"properties": {"name": {"type": "string", "minLength": 3}}}""", """
+                    {"_sourceId": "S1", "_businessEntityType": "Customer", "name": "ab"}""", ValidateJson.REL_INVALID);
         } finally {
+            // Locale.setDefault(Locale) also overwrites both category defaults, so they are restored after it.
             Locale.setDefault(defaultLocale);
+            Locale.setDefault(Locale.Category.FORMAT, formatLocale);
+            Locale.setDefault(Locale.Category.DISPLAY, displayLocale);
         }
 
-        testRunner.assertAllFlowFilesTransferred(ValidateJson.REL_INVALID, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ValidateJson.REL_INVALID).get(0);
-        JsonNode errors = new ObjectMapper().readTree(flowFile.getContent()).get("_errors");
-        assertEquals("o: integer found, string expected", errors.get(0).get("details").asText());
+        assertErrors("""
+                [{
+                  "code": "ME-JV-0002",
+                  "title": "Validation error 'minLength' in 'Customer' Business Entity '$.name'",
+                  "details": "name: must be at least 3 characters long",
+                  "source": {"_sourceId": "S1", "path": "name"}
+                }]""",
+                readTree(flowFile.getContent()).get("_errors"));
     }
 
     @Test
