@@ -206,7 +206,7 @@ property. A property that NiFi converts into a new property on import must stay 
    - every entry in `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` and
      `procRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`, which removes the descriptor when the property has no value.
 
-   Entries that rename a property need no question.
+   Entries that rename a property need no question. If no entry removes a property, ask nothing.
 2. Copy all four files from `./upgrade-temp-data/nifi-property-comparison` to `dev/update-scripts-flow-2.x`, without
    the entries the user declined. Copy a file even when it holds only `{}`, and end every file with a newline:
    - `csPropConfig_2_<TARGET_MINOR>.json`
@@ -227,7 +227,7 @@ only when the target version renamed or removed a controller service or reportin
    user approves. Take both files from `./upgrade-temp-data/nifi-property-comparison`, with the entries declined for
    the flow script still in them: the controller service import decides its removals separately. Show the user, in
    one message, the list of every `csRemoveWhenEmptyConfig` entry, grouped by component, and ask once which of them
-   the controller service import must remove.
+   the controller service import must remove. If the file holds no entries, ask nothing.
    In this script a `null` value removes the property even when it carries a value.
 2. If the merged mapping is `{}`, skip the rest of this section, README included, and say so in the final report.
    The README version range ends at the latest version that has an `upgradeConfig` file.
