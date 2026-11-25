@@ -7,6 +7,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.qubership.cloud.nifi.quarkus.config.ConsulTestResource;
 import org.qubership.cloud.nifi.quarkus.config.InjectConsulContainer;
@@ -19,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
+@Tag("DockerBased")
 @QuarkusMainTest
 @QuarkusTestResource(ConsulTestResource.class)
 class NifiPropertiesApplicationTest {

@@ -50,7 +50,7 @@
         <quarkus.platform.version>3.33.3.3</quarkus.platform.version>
         <quarkus-plugin.version>3.33.3.3</quarkus-plugin.version>
         <core-quarkus-external-bom.version>1.0.9</core-quarkus-external-bom.version>
-        <netty.version>4.1.140.Final</netty.version>
+        <netty.version>4.1.141.Final</netty.version>
         <jackson.version>2.23.0</jackson.version>
         <!--test libraries versions-->
         <junit.jupiter.version>5.14.4</junit.jupiter.version>
@@ -97,6 +97,18 @@
     </dependencyManagement>
 
     <profiles>
+        <profile>
+            <id>skip-docker-tests</id>
+            <activation>
+                <property>
+                    <name>skipDockerTests</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <excludedGroups>DockerBased</excludedGroups>
+            </properties>
+        </profile>
         <profile>
             <id>default</id>
             <activation>
@@ -357,7 +369,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>versions-maven-plugin</artifactId>
-                <version>2.25.1</version>
+                <version>2.25.2</version>
             </plugin>
         </plugins>
     </build>

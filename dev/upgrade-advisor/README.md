@@ -101,7 +101,7 @@ mvn verify -pl dev-tools-integration-tests -P upgrade-advisor-tests -DskipITs=fa
 
 Each class fails when its prerequisites are missing: `UpgradeAdvisorBashIT` when `bash` or `jq` is unavailable, `UpgradeAdvisorDockerIT` when no Docker daemon is reachable. Neither skips itself - a skipped suite leaves the build green with nothing asserted, which looks exactly like a passing run.
 
-If your machine cannot satisfy the prerequisites, leave the ITs out by not passing `-DskipITs=false`, rather than running them and reading past the failures.
+To run `UpgradeAdvisorBashIT` without Docker, add `-DskipDockerTests` to the Maven command and skip the image build.
 
 A class-level failure cannot catch a class that was never selected, so the `upgrade-advisor-test` workflow also checks the failsafe reports afterwards, confirming that both classes ran and that nothing was skipped.
 
