@@ -92,7 +92,7 @@ public class JsonContentValidatorTest {
     public void invalidDateTimeIsInvalid() throws Exception {
         assertEquals(false, validate(ENTITY_SCHEMA, """
                 {"id": 1, "updated": "2018-02-31T11:27:38.795Z"}"""),
-                "2018-02-31 against format date-time, which json-schema-validator 1.0.43 asserts");
+                "2018-02-31 against format date-time, which json-schema-validator asserts");
     }
 
     @Test
