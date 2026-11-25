@@ -110,8 +110,11 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
                --targetDir ./upgrade-temp-data/nifi-property-exports/<TARGET> \
-               --outputPath ./upgrade-temp-data/nifi-property-comparison"
+               --outputPath ./upgrade-temp-data/nifi-property-comparison \
+               --version <TARGET>"
 ```
+
+`--version` adds the `_2_<MINOR>` suffix to the names of the mapping files that step 13 copies into the dev scripts.
 
 ## 12. Resolve display-name renames
 
@@ -161,21 +164,43 @@ comparator results of steps 11-12.
 `<TARGET_MINOR>` is the minor part of `<TARGET>` (`12` for `2.12.0`). Create files and steps only for `<TARGET>`,
 never for the versions skipped between `<CURRENT>` and `<TARGET>`: an upgrade from 2.10.0 to 2.12.0 adds step `12`
 and nothing for 2.11. The scripts apply a step to every export older than the step, so the one step covers the whole
-range.
+range. Leave the files and steps that already exist for other versions unchanged, even for a version between
+`<CURRENT>` and `<TARGET>`.
 
-The comparator writes the mapping files with the `_2_<TARGET_MINOR>` suffix only when it runs with `--version`. If
-`./upgrade-temp-data/nifi-property-comparison` has no `*_2_<TARGET_MINOR>.json` files, re-run the comparator from
-step 11 with `--version <TARGET>`, and with `--dictionaryPath` if step 12 created a dictionary.
+### Patch upgrade
+
+The scripts choose steps by the minor version alone, so all patch versions of a minor version share one set of
+`_2_<MINOR>` files, with the mappings up to the latest patch version upgraded to. A target of an earlier patch version
+gets those mappings too. If `<CURRENT>` and `<TARGET>` have the same major and minor parts, as in 2.7.0 to 2.7.2:
+
+- If all four `*_2_<TARGET_MINOR>.json` files in `./upgrade-temp-data/nifi-property-comparison` hold only `{}`, the
+  patch version renamed and removed nothing: change nothing in `dev/` and say so in the final report.
+- Otherwise, follow the rest of this step, with two differences:
+  - Where a `_2_<TARGET_MINOR>` file already exists in `dev/`, add the new entries to it under their components and
+    keep its existing entries, instead of replacing the file. A step renames each property once, so chain the
+    entries where an existing entry renames `A` to `B` and a new entry changes `B`, and keep the new entry as well:
+    - a new `B` to `C` rename in the same file: change the existing entry to rename `A` to `C`;
+    - a new `null` for `B` in the same file: change the existing entry to `null` for `A`. In
+      `upgradeConfig_2_<TARGET_MINOR>.json` this covers the approved `csRemoveWhenEmptyConfig` entries too, which
+      that file holds as `null`;
+    - a new `B` in a `RemoveWhenEmptyConfig` file: leave the flow script entry as it is, because the flow script
+      renames before it removes empty descriptors.
+
+    List every entry changed this way in the final report.
+  - Do not add the `steps` entry, the script blocks, or the README rows again where they already exist for
+    `<TARGET_MINOR>`.
+
+  In the final report, say that the new entries do not reach exports made on an earlier patch version of the same minor
+  version: an export made on 2.7.0 is not older than step `7`, so the scripts skip that step for it.
 
 ### Flow exports script
 
 A flow script entry that removes a property runs before the import, so NiFi's own migration never sees that
-property. Some properties must stay in the flow for NiFi to migrate them. For example, the flow script has no
-2.11 step, so it keeps `Validate Field Names` of `AvroSchemaRegistry`, and NiFi 2.11 converts the value `false` to
-`Validation Strategy` `NONE` on import.
+property. A property that NiFi converts into a new property on import must stay in the flow, or its value is lost.
 
-1. Show the user every entry that removes a property, and ask whether the flow script must remove it or leave it for
-   NiFi to migrate:
+1. Show the user, in one message, the list of every entry that removes a property, grouped by component, and ask
+   once which of them the flow script must leave for NiFi to migrate. Do not ask a separate question for each entry.
+   The list covers:
    - every `null` value in `csPropConfig_2_<TARGET_MINOR>.json` and `procPropConfig_2_<TARGET_MINOR>.json`, which
      removes the property even when it carries a value;
    - every entry in `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` and
@@ -195,14 +220,15 @@ property. Some properties must stay in the flow for NiFi to migrate them. For ex
 
 ### Controller services script
 
-`upgradeConfig_2_<TARGET_MINOR>.json` holds controller service mappings only, and the file exists only when the
-target version renamed or removed a controller service property.
+`upgradeConfig_2_<TARGET_MINOR>.json` holds controller service and reporting task mappings only, and the file exists
+only when the target version renamed or removed a controller service or reporting task property.
 
 1. Merge `csPropConfig_2_<TARGET_MINOR>.json` with the `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` entries the
    user approves. Take both files from `./upgrade-temp-data/nifi-property-comparison`, with the entries declined for
-   the flow script still in them: `upgradeConfig_2_11.json` removes `Validate Field Names`, which the flow script
-   keeps. Show the user every `csRemoveWhenEmptyConfig` entry and ask whether the controller service import must
-   remove that property. In this script a `null` value removes the property even when it carries a value.
+   the flow script still in them: the controller service import decides its removals separately. Show the user, in
+   one message, the list of every `csRemoveWhenEmptyConfig` entry, grouped by component, and ask once which of them
+   the controller service import must remove.
+   In this script a `null` value removes the property even when it carries a value.
 2. If the merged mapping is `{}`, skip the rest of this section, README included, and say so in the final report.
    The README version range ends at the latest version that has an `upgradeConfig` file.
 3. Write the merged mapping to `dev/update-scripts-prop-2.x/upgradeConfig_2_<TARGET_MINOR>.json`, ending the file
