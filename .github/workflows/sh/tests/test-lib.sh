@@ -71,10 +71,10 @@ run_tests() {
     for test_name in $(declare -F | awk '$3 ~ /^test_/ { print $3 }'); do
         total=$((total + 1))
         test_dir=$(mktemp -d)
+        TEST_DIR="$test_dir"
         set +e
         (
             set -euo pipefail
-            TEST_DIR="$test_dir"
             cd "$test_dir"
             mkdir -p bin
             PATH="$test_dir/bin:$PATH"

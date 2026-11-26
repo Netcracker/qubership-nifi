@@ -90,6 +90,7 @@ test_a_set_qubership_nifi_version_is_kept() {
 
 test_an_unreadable_project_version_fails_before_the_agent_runs() {
     setup_run
+    # shellcheck disable=SC2016
     echo '${revision}' >project-version
     run_agent 2.7.3
     assert_eq 1 "$STATUS" "exit status"

@@ -4,7 +4,7 @@
 # shellcheck source=test-lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/test-lib.sh"
 
-KEY="sk-test-0123456789abcdef"
+KEY="test-key-test-key-test-key"
 
 init_repo() {
     git init -q repo
