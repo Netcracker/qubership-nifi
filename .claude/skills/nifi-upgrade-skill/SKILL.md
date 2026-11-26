@@ -5,10 +5,6 @@ description: Upgrades Apache NiFi to a target version. Updates scripts, configs,
 
 # NiFi Upgrade Skill
 
-Run every `mvn` command in this skill with `--batch-mode --no-transfer-progress -Dgpg.skip=true`. The build signs
-artifacts with GPG in the verify phase, so `mvn install` fails on a machine without a GPG key unless
-`-Dgpg.skip=true` is set.
-
 ## 1. Get versions
 
 - Take the **target NiFi version** and its **SHA256 hash** from the `NIFI_VERSION` and `NIFI_DIGEST` environment
@@ -26,6 +22,10 @@ sed -n "s/.*NIFI_VERSION='\([0-9.]*\)'.*/\1/p" ./Dockerfile | head -1
 ```
 
 ## 2. Fetch reference files
+
+When `CI` is `true`, the workflow has already fetched these files into `upgrade-temp-data/nifi-files-to-compare/`,
+and Docker is not available. Check that the `scripts/` and `config/` directories of both versions exist there, and
+don't run the script.
 
 ```bash
 bash .claude/skills/nifi-upgrade-skill/scripts/getFilesFromDocker.sh <CURRENT> <TARGET>
@@ -98,13 +98,24 @@ grep -rn '<term>' \
 ## 10. Build and test
 
 ```bash
-mvn clean install -DskipUnitTests=true -Dgpg.skip=true -q
+mvn clean install --batch-mode --no-transfer-progress -DskipUnitTests=true -Dgpg.skip=true -q
 mvn clean install --batch-mode --no-transfer-progress -Dgpg.skip=true 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
 ```
 
+When `CI` is `true`, Docker is not available. Run one build with the tests, but without the tests that need Docker:
+
+```bash
+mvn clean install --batch-mode --no-transfer-progress -Dgpg.skip=true -DexcludedGroups=DockerBased 2>&1 | grep -E "BUILD|ERROR|FAIL|Tests run" | tail -20
+```
+
+The tests tagged `DockerBased` run in the CI of the pull request. Under "Tasks for the reviewer", say that this run
+did not run them.
+
 ## 11. Export & compare nifi component properties
 
-Export both versions:
+Export both versions. When `CI` is `true`, the workflow has already exported them into
+`upgrade-temp-data/nifi-property-exports/<VERSION>`, and Docker is not available: check that both directories exist,
+skip the export, and run the comparison.
 
 ```bash
 mvn exec:java --batch-mode --no-transfer-progress -q -f <PROJECT_ROOT>/pom.xml \

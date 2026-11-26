@@ -7,16 +7,16 @@
 # major version, is newer than the current version, and is old enough: pushed at least
 # MIN_AGE_DAYS_PATCH ago when only the patch version differs from the current one, and at
 # least MIN_AGE_DAYS_MINOR ago when the minor version differs. The highest qualifying
-# version is chosen. It is skipped when its branch, feat/upgrade-nifi-to-<version>, exists;
-# pull requests from a deleted branch are ignored, so deleting the branch lets the version
-# be upgraded to again.
+# version is chosen.
 #
 # When TARGET_VERSION is set, that version is used instead of the newest qualifying one.
 # It must be X.Y.Z with the current major version, be newer than the current version, and
 # have a tag on Docker Hub; otherwise the script fails. The minimum ages do not apply to it.
-# When its branch exists and a pull request from the branch exists in any state, the script
-# fails and asks to close the pull request and delete the branch, so that a manual run can
-# redo an upgrade.
+#
+# When the branch of the chosen version, feat/upgrade-nifi-to-<version>, exists, a scheduled
+# run skips the version, and any other run, such as a manual one, fails and asks to delete the
+# branch, and to close the pull requests from it when there are any. Pull requests from a
+# deleted branch are ignored, so deleting the branch lets the version be upgraded to again.
 #
 # Environment:
 #   TARGET_VERSION     version to upgrade to; the newest qualifying version when unset or empty
@@ -27,6 +27,8 @@
 #                      from the same URL without the query, followed by /<version>
 #   GH_TOKEN           token for the GitHub CLI
 #   GITHUB_REPOSITORY  owner/name of the repository; gh uses the git remote when unset
+#   GITHUB_EVENT_NAME  event that started the workflow run, set by GitHub Actions; schedule skips an existing
+#                      branch, and any other value, or none, fails on it
 #   GITHUB_OUTPUT      file for the step outputs; set by GitHub Actions
 
 set -euo pipefail
@@ -178,19 +180,23 @@ main() {
     branch="feat/upgrade-nifi-to-$version"
     existing=$(find_branch "$branch")
     if [ -n "$existing" ]; then
-        if [ -n "${TARGET_VERSION:-}" ]; then
-            prs=$(find_pull_requests "$branch")
-            if [ -n "$prs" ]; then
-                echo "::error::Branch $branch and pull requests from it already exist:" \
-                    "$(echo "$prs" | paste -sd ' ' -). To upgrade to Apache NiFi $version again," \
-                    "close the pull requests, delete the branch, and run the workflow again." >&2
-                return 1
-            fi
+        # A scheduled run finds the same version every week until it is upgraded to, so it skips the version.
+        if [ "${GITHUB_EVENT_NAME:-}" = schedule ]; then
+            echo "Branch $branch already exists, skipping the update." \
+                "Delete the branch to upgrade to Apache NiFi $version again."
+            write_output "" "" ""
+            return 0
         fi
-        echo "Branch $branch already exists, skipping the update." \
-            "Delete the branch to upgrade to Apache NiFi $version again."
-        write_output "" "" ""
-        return 0
+        prs=$(find_pull_requests "$branch")
+        if [ -n "$prs" ]; then
+            echo "::error::Branch $branch and pull requests from it already exist:" \
+                "$(echo "$prs" | paste -sd ' ' -). To upgrade to Apache NiFi $version again," \
+                "close the pull requests, delete the branch, and run the workflow again." >&2
+        else
+            echo "::error::Branch $branch already exists. To upgrade to Apache NiFi $version again," \
+                "delete the branch and run the workflow again." >&2
+        fi
+        return 1
     fi
 
     write_output "$version" "$digest" "$branch"

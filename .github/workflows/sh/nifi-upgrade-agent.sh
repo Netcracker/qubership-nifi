@@ -59,7 +59,7 @@ write_signature() {
             if . == 0 then "0"
             else ((log10 | floor) - 1) as $n
                 | if $n >= 0 then (. / pow(10; $n) | round) * pow(10; $n)
-                  else (. * pow(10; -$n) | round) / pow(10; -$n) end
+                    else (. * pow(10; -$n) | round) / pow(10; -$n) end
                 | tostring
             end;
         ($main[0] // empty) as $m
@@ -118,12 +118,14 @@ This run is non-interactive in GitHub Actions, and nobody can answer questions. 
 - Do not ask questions. Where the skill tells you to ask the user, make no change and record the item in the report.
 - In the "Generate releases notes" step, use ${QUBERSHIP_NIFI_VERSION} as the planned qubership-nifi release version.
 - Do not run git commit or git push, and do not create branches or pull requests. Leave the changes in the working tree.
-- Do not change your own instructions and tools, the CI that runs you, or the build tooling and repository
-    configuration: .github/, .codex/, .cursor/, .opencode/, .qubership/, .mvn/, agent-packages/, opencode.json,
-    opencode.jsonc, mvnw, mvnw.cmd, renovate.json, .gitattributes, .gitmodules, apm.yml, apm.lock.yaml, a .agents/
-    or .claude/ directory anywhere, and any AGENTS.md or CLAUDE.md, including variants such as AGENTS.override.md
-    and CLAUDE.local.md. The workflow rejects a change to any of them. Where the upgrade seems to need one,
-    record it under "Tasks for the reviewer" instead.
+- Docker is not available in this run. Do not run docker: the skill says what replaces each step that uses it.
+- Do not change your own instructions and tools, the CI that runs you, the build tooling, the configuration of
+    the security scanners and linters, or the repository configuration: .github/, .codex/, .opencode/, .qubership/,
+    .mvn/, agent-packages/, opencode.json, opencode.jsonc, mvnw, mvnw.cmd, renovate.json, .gitmodules, apm.yml,
+    apm.lock.yaml, .gitignore, .editorconfig, .trivyignore, .gitleaksignore, .prettierignore, a .agents/, .claude/,
+    or .cursor/ directory anywhere, a .gitattributes file anywhere, and any AGENTS.md or CLAUDE.md, including
+    variants such as AGENTS.override.md and CLAUDE.local.md. The workflow rejects a change to any of them. Where the
+    upgrade seems to need one, record it under "Tasks for the reviewer" instead.
 
 When you finish, write the final report in GitHub-flavored Markdown to ${REPORT_FILE}.
 The report becomes the pull request description. Start it with a one-paragraph summary, then include:

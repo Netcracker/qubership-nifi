@@ -12,14 +12,6 @@ on:
 
 permissions: {}
 
-env:
-  # The agent's own instructions and tools, the CI that runs it, and the build tooling and repository configuration
-  # rather than the product. A change to them would steer the next run of the agent, so a person makes such a change;
-  # the upgrade fails when its change touches one of these paths. .agents/ and .claude/ are matched in any directory,
-  # and AGENTS.md and CLAUDE.md in any directory and with any suffix, such as AGENTS.override.md or CLAUDE.local.md.
-  PROTECTED_PATHS: >-
-    ^(\.github|\.codex|\.cursor|\.opencode|\.qubership|\.mvn|agent-packages)/|(^|/)\.(agents|claude)/|^(opencode\.jsonc?|mvnw(\.cmd)?|renovate\.json|\.gitattributes|\.gitmodules|apm(\.lock)?\.ya?ml)$|(^|/)(AGENTS|CLAUDE)(\.[^/]*)?\.md$
-
 concurrency:
   group: maintenance-${{ github.workflow }}
   cancel-in-progress: false
@@ -67,6 +59,7 @@ jobs:
       NIFI_VERSION: ${{ needs.check.outputs.version }}
       NIFI_DIGEST: ${{ needs.check.outputs.digest }}
       BRANCH: ${{ needs.check.outputs.branch }}
+      REPORT_FILE: upgrade-temp-data/pr-body.md
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,6 +68,15 @@ jobs:
 
       - name: Create branch
         run: git switch -c "$BRANCH"
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-it-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-it-
+            ${{ runner.os }}-maven-
 
       - name: Set up JDK
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
@@ -88,17 +90,50 @@ jobs:
       - name: Install opencode
         run: npm install --global "opencode-ai@${OPENCODE_VERSION}"
 
+      - name: Prepare reference data with Docker
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash .github/workflows/sh/nifi-upgrade-prepare.sh
+
+      # The agent runs as nifi-agent, without sudo rights and outside the docker group.
+      - name: Set up an unprivileged agent user
+        run: bash .github/workflows/sh/nifi-upgrade-setup-agent-user.sh
+
+      - name: Check the isolation of the agent user
+        run: bash .github/workflows/sh/nifi-upgrade-check-isolation.sh
+
       - name: Run nifi-upgrade-skill
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ github.token }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          REPORT_FILE: upgrade-temp-data/pr-body.md
-        run: bash .github/workflows/sh/nifi-upgrade-agent.sh
+        run: bash .github/workflows/sh/nifi-upgrade-run-agent.sh
 
-      # Runs even when the agent fails, because those are the runs the files help to debug.
-      - name: Upload upgrade-temp-data
+      # The agent changed only its own copy of the repository, because the setup step closed the runner home to other
+      # users, so the scripts in the workspace are still those of the commit of this run.
+      - name: Copy the changes of the agent back
         if: ${{ always() }}
+        run: bash .github/workflows/sh/nifi-upgrade-copy-back.sh
+
+      # Runs before any upload, and even when the agent fails, so that the key leaves the job in neither an
+      # artifact nor the patch. The agent could have changed the script in the working tree, so it runs as of the
+      # commit of this run.
+      - name: Check that the changes do not contain OPENCODE_API_KEY
+        id: secret-check
+        if: ${{ always() }}
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          set -euo pipefail
+          SCRIPT="$RUNNER_TEMP/nifi-upgrade-check-secret.sh"
+          git show "$GITHUB_SHA:.github/workflows/sh/nifi-upgrade-check-secret.sh" > "$SCRIPT"
+          bash "$SCRIPT"
+
+      # Runs even when the agent fails, because those are the runs the files help to debug, but not when the files
+      # contain OPENCODE_API_KEY.
+      - name: Upload upgrade-temp-data
+        if: ${{ always() && steps.secret-check.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: upgrade-temp-data
@@ -111,7 +146,7 @@ jobs:
           retention-days: 14
 
       - name: Upload release notes
-        if: ${{ always() }}
+        if: ${{ always() && steps.secret-check.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-notes
@@ -119,50 +154,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      # The agent could have changed the scripts in the working tree, so they run as of the commit of this run.
       - name: Save changes as a patch
+        env:
+          OUT_DIR: ${{ runner.temp }}/nifi-upgrade
         run: |
           set -euo pipefail
-          OUT_DIR="$RUNNER_TEMP/nifi-upgrade"
-          mkdir -p "$OUT_DIR"
-          git add --all
-          if git diff --cached --quiet; then
-            echo "::error::The agent made no changes for Apache NiFi $NIFI_VERSION."
-            exit 1
-          fi
-          # The upgrade changes only text files, so a binary file in the change is rejected.
-          # git diff --numstat prints "-" instead of line counts for a binary file.
-          BINARY_FILES=$(git diff --cached --numstat | awk -F '\t' '$1 == "-" || $2 == "-" { print $3 }')
-          if [ -n "$BINARY_FILES" ]; then
-            echo "::error::The agent changed binary files, which the upgrade does not allow:"
-            echo "$BINARY_FILES"
-            exit 1
-          fi
-          # --no-renames lists both paths of a rename, so a file moved out of a protected path is caught too.
-          # -z prints raw NUL-terminated paths: without it, git quotes a path with non-ASCII characters, such as
-          # ".claude/skills/\303\251/SKILL.md", and the quoted path does not match PROTECTED_PATHS.
-          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames -z \
-            | grep -zE "$PROTECTED_PATHS" | tr '\0' '\n' || true)
-          if [ -n "$CHANGED_PROTECTED" ]; then
-            echo "::error::The agent changed protected files, which only a person may change:"
-            echo "$CHANGED_PROTECTED"
-            exit 1
-          fi
-          # A symlink can point outside the repository and a submodule pulls in another repository, so the change
-          # may not add, remove, or switch to either. git diff --summary prints their modes, 120000 and 160000.
-          SPECIAL_ENTRIES=$(git diff --cached --summary --no-renames | grep -E ' (120000|160000)( |$)' || true)
-          if [ -n "$SPECIAL_ENTRIES" ]; then
-            echo "::error::The agent changed symlinks or submodules, which the upgrade does not allow:"
-            echo "$SPECIAL_ENTRIES"
-            exit 1
-          fi
-          git diff --cached --stat
-          git diff --cached --no-renames > "$OUT_DIR/changes.patch"
-          if [ -s upgrade-temp-data/pr-body.md ]; then
-            cp upgrade-temp-data/pr-body.md "$OUT_DIR/pr-body.md"
-          fi
-          if [ -s upgrade-temp-data/agent-signature.md ]; then
-            cp upgrade-temp-data/agent-signature.md "$OUT_DIR/agent-signature.md"
-          fi
+          SCRIPTS_DIR="$RUNNER_TEMP/nifi-upgrade-scripts"
+          mkdir -p "$SCRIPTS_DIR"
+          for script in nifi-upgrade-checks.sh nifi-upgrade-save-patch.sh; do
+            git show "$GITHUB_SHA:.github/workflows/sh/$script" > "$SCRIPTS_DIR/$script"
+          done
+          bash "$SCRIPTS_DIR/nifi-upgrade-save-patch.sh"
 
       - name: Upload patch
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -197,52 +200,9 @@ jobs:
 
       - name: Apply patch
         id: prepare
-        run: |
-          set -euo pipefail
-          PATCH_FILE="$RUNNER_TEMP/nifi-upgrade/changes.patch"
-          # This job can push, so it checks the patch again rather than trusting the update job.
-          # git apply --numstat prints "-" instead of line counts for a binary file.
-          BINARY_FILES=$(git apply --numstat "$PATCH_FILE" | awk -F '\t' '$1 == "-" || $2 == "-" { print $3 }')
-          if [ -n "$BINARY_FILES" ]; then
-            echo "::error::The patch changes binary files, which the upgrade does not allow:"
-            echo "$BINARY_FILES"
-            exit 1
-          fi
-          # git apply --summary prints the modes of symlinks, 120000, and submodules, 160000.
-          SPECIAL_ENTRIES=$(git apply --summary "$PATCH_FILE" | grep -E ' (120000|160000)( |$)' || true)
-          if [ -n "$SPECIAL_ENTRIES" ]; then
-            echo "::error::The patch changes symlinks or submodules, which the upgrade does not allow:"
-            echo "$SPECIAL_ENTRIES"
-            exit 1
-          fi
-          git apply "$PATCH_FILE"
-          # The check runs on the files the patch actually changed, so no form of the patch can hide a path.
-          git add --all
-          # -z prints raw NUL-terminated paths, because git quotes a path with non-ASCII characters otherwise.
-          CHANGED_PROTECTED=$(git diff --cached --name-only --no-renames -z \
-            | grep -zE "$PROTECTED_PATHS" | tr '\0' '\n' || true)
-          if [ -n "$CHANGED_PROTECTED" ]; then
-            echo "::error::The patch changes protected files, which only a person may change:"
-            echo "$CHANGED_PROTECTED"
-            exit 1
-          fi
-          BODY_FILE="$RUNNER_TEMP/nifi-upgrade/pr-body.md"
-          # Without the report the agent may have stopped partway, so the pull request opens as a draft.
-          DRAFT=false
-          if [ ! -s "$BODY_FILE" ]; then
-            echo "The agent did not write a report. Review the changes against nifi-upgrade-skill manually." > "$BODY_FILE"
-            DRAFT=true
-          fi
-          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          printf '\n---\n\nThe release notes are in the release-notes artifact, and the other files of this run in the upgrade-temp-data artifact, of [workflow run %s](%s).\n' \
-            "$GITHUB_RUN_ID" "$RUN_URL" >> "$BODY_FILE"
-          SIGNATURE_FILE="$RUNNER_TEMP/nifi-upgrade/agent-signature.md"
-          if [ -s "$SIGNATURE_FILE" ]; then
-            printf '\n' >> "$BODY_FILE"
-            cat "$SIGNATURE_FILE" >> "$BODY_FILE"
-          fi
-          echo "draft=$DRAFT" >> "$GITHUB_OUTPUT"
-          echo "model=$(jq -r '.model' .github/opencode.json)" >> "$GITHUB_OUTPUT"
+        env:
+          PATCH_DIR: ${{ runner.temp }}/nifi-upgrade
+        run: bash .github/workflows/sh/nifi-upgrade-apply-patch.sh
 
       # token, author, and committer keep the defaults of the action:
       # - token is GITHUB_TOKEN. Events from it start no workflow runs on their own, so the CI workflows of the
