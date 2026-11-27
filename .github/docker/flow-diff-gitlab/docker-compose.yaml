@@ -37,7 +37,7 @@ services:
       retries: 60
       start_period: 120s
   gitlab-runner:
-    image: gitlab/gitlab-runner:v19.5.3@sha256:ffe21f021468d4aa1e56f05316d88597c23bf4818840e8edaa858131fabd7991
+    image: gitlab/gitlab-runner:v19.6.0@sha256:fb454a097fd26ea329b0234d6d82b53ae25f672bd625c278eaaee683a00f2507
     container_name: flow-diff-gitlab-runner
     depends_on:
       gitlab:
