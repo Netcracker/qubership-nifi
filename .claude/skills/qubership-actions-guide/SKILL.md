@@ -22,10 +22,11 @@ the relevant supporting document:
 | Maven build, SNAPSHOT deploy, release | `maven.md` |
 | npm, Python publish | catalog below — no guide file needed |
 | Cleanup (container images, Maven packages) | `cleanup.md` |
-| APM packages update | `utilities.md` |
+| Sync/copy files across paths and open a PR with the changes | `utilities.md` |
 | Utilities (wait-for-workflow, custom-event, store-input-params) | `utilities.md` |
 | Repository config file resolution without Docker (workflow policy, custom JSON configs) | `utilities.md` |
 | JSON Schema validation (validate a JSON file against a schema, fail the pipeline on violations) | `utilities.md` |
+| Renovate configuration validation, dependency lookup, and health issue lifecycle | `utilities.md` |
 
 Each guide contains: clarifying questions for the user, config file schemas,
 and pipeline patterns for that domain. Read it before picking actions or
@@ -107,16 +108,20 @@ Ask only what is missing after inferring from context:
 | Action | Purpose |
 | --- | --- |
 | `config-resolver` | Resolve any JSON config file to flat JSON (also listed under Docker) — generic mode for non-Docker configs, e.g. workflow policy |
-| `apm-packages-update` | Run `apm update --yes` and open a PR with the changes in the current repo |
+| `sync-files-action` | Copy files/directories per a JSON from/to mapping and open a PR with the changes |
 | `ghcr-discover-repo-packages` | Discover all GHCR packages for a repo — feeds security scan, cleanup, or any step needing the image list |
 | `custom-event` | Emit `repository_dispatch` event with JSON payload |
+| `renovate-validate` | Validate `renovate.json` and resolve inherited presets |
+| `renovate-lookup` | Check dependency lookups and retry soft failures once |
+| `renovate-monitor` | Combine complete job results with the Dependency Dashboard and manage a health issue |
 | `smart-download` | Download workflow artifacts by name, IDs, or glob pattern |
 | `store-input-params` | Persist `workflow_dispatch` inputs as artifact |
 | `wait-for-workflow` | Wait for a specific GitHub Actions workflow run to complete |
 | `verify-json` | Validate a JSON file against a JSON Schema |
 | `assets-action` | Upload files/dirs to a GitHub release, auto-archives directories |
 
-Deprecated (do not use): `commit-and-push`, `pom-updater`, `tag-checker`, `archive-and-upload-assets`.
+Deprecated (do not use): `apm-packages-update` (use Renovate to update APM packages),
+`commit-and-push`, `pom-updater`, `tag-checker`, `archive-and-upload-assets`.
 
 ## Pin table
 

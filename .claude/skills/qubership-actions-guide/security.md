@@ -53,6 +53,31 @@ discovers all repo packages      scans each image
 `ghcr-discover-repo-packages` output `packages` can also feed
 `container-package-cleanup` or any other step that needs the image list.
 
+### SARIF categories
+
+Docker image scans use a separate category for each tag and platform, for example
+`image:main@linux/amd64` and `image:main@linux/arm64`. An image without a tag uses
+`latest`; source scans use `source`, and digest categories append the platform to their
+previous base category. Grype and Trivy remain separate tools. The platform is detected
+from the Docker server and passed to both scanners.
+No platform input is required; select the architecture through the existing `runner` input.
+The image name is the final path component; registry and namespace are not part of the category.
+Images with an identical final name and tag still share that category across registries/namespaces.
+Do not merge reports from different tags or rewrite SARIF to compensate for the old category.
+Read `docs/reusable/re-security-scan.md` at the pinned revision for upgrade behavior.
+The same scan workflow automatically checks its previous image-only category after successful
+Docker scans and uploads. It confirms processing of the new analyses, then uploads empty reports
+only if the old category still has results. History is retained and new categories are untouched.
+Do not generate a separate migration workflow, migration input, or generic cleanup of empty or
+unrelated categories. Source scans do not require migration. The unreleased tag-only format
+does not require a separate migration.
+The cleanup job coordinates scanners within one invocation, not other tags/platforms in the caller's matrix;
+ensure required tags and platforms receive new analyses when rolling out the change. Already empty legacy
+categories are checked but receive no additional empty uploads.
+No custom token secret is required: the reusable uses the automatically provided `GITHUB_TOKEN`.
+For Docker scans on a custom `runner`, ensure Bash, Docker, `jq`, and `gh` are available. Pin a revision containing
+the category fix and cleanup; older releases do not acquire the changes automatically.
+
 ## Kubernetes hardening scan (`k8s-hardening-scan`)
 
 Scans **running workloads** in a Kubernetes cluster using Kubescape + Trivy.
