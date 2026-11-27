@@ -73,6 +73,16 @@ Controller services follow the same pattern with interface and implementation sp
 - The `docs/user-guide.md` is generated: edit `docs/template/user-guide-template.md` or
   `qubership-nifi-tools/qubership-nifi-docs-generator`.
 - The `docs/openapi/openapi.json` is generated: edit `qubership-nifi-tools/qubership-nifi-openapi-enricher` to change.
+- The `openapi-spec-check` workflow lints `docs/openapi/openapi.json` with APIHUB and compares it with the previous
+  version. The `openapi-reports` artifact contains the results and reports unused lint and compatibility exceptions.
+  Review `unused-compatibility-exceptions.json` when present to remove obsolete approvals for the compared NiFi versions.
+  Unapproved lint findings produce `proposed-openapi-lint-exceptions.yml`. The proposal drops unused approvals for the
+  linter and ruleset that ran. Unapproved breaking changes produce `proposed-openapi-compatibility-exceptions.yml`
+  after a complete comparison. To diagnose an incomplete comparison, read `check-failures.json` and any available
+  `compatibility-summary.json` or `compatibility-issues.json`. In each proposal you accept, replace every placeholder
+  reason and commit the file in place of `docs/openapi/openapi-lint-exceptions.yml` or
+  `docs/openapi/openapi-compatibility-exceptions.yml` respectively.
+  A compatibility exception applies only to its exact pair of NiFi versions.
 - Use ASCII characters only in source code and documentation. Avoid Unicode punctuation such as em-dashes,
   smart quotes, and arrows; use the ASCII equivalents (`-`, `->`, straight quotes) instead.
 - Prefer a JDK standard-library API over a hand-rolled equivalent. The baseline is Java 21, and the root pom

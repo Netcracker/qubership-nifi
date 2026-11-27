@@ -1,0 +1,112 @@
+name: nifi-apihub-headless
+
+services:
+  postgres:
+    image: docker.io/library/postgres:16.8@sha256:301bcb60b8a3ee4ab7e147932723e3abd1cef53516ce5210b39fd9fe5e3602ae
+    environment:
+      POSTGRES_DB: apihub
+      POSTGRES_USER: apihub
+      POSTGRES_PASSWORD: ${APIHUB_DB_PASSWORD:?Set APIHUB_DB_PASSWORD}
+    configs:
+      - source: postgres-init
+        target: /docker-entrypoint-initdb.d/10-linter.sql
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "apihub", "-d", "api_linter"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  apihub:
+    image: ghcr.io/netcracker/qubership-apihub-backend:1.23.0@sha256:00cd2eebea223a0a547a53c725b6485cc776af70492ef74bdf0d23e7696a267f
+    environment:
+      APIHUB_CONFIG_FOLDER: /app/qubership-apihub-service
+    configs:
+      - source: apihub-config
+        target: /app/qubership-apihub-service/config.yaml
+    ports:
+      - "127.0.0.1:${APIHUB_PORT:-18090}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 45
+
+  builder:
+    image: ghcr.io/netcracker/qubership-apihub-build-task-consumer:3.6.0@sha256:f4fcb76888384923216c58859fffdbefb41f5234d7ed100b9433b5ff5bbd599c
+    environment:
+      APIHUB_BACKEND_ADDRESS: apihub:8080
+      APIHUB_API_KEY: ${APIHUB_ACCESS_TOKEN:?Set APIHUB_ACCESS_TOKEN}
+    depends_on:
+      apihub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/live"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  linter:
+    image: ghcr.io/netcracker/qubership-api-linter-service:1.5.0@sha256:d328aa537dd090e18fae04c2b3dff359eb54c8338b330979719aff84876ee7b9
+    environment:
+      LINTER_CONFIG_FOLDER: /app/qubership-api-linter-service
+    configs:
+      - source: linter-config
+        target: /app/qubership-api-linter-service/config.yaml
+    ports:
+      - "127.0.0.1:${APIHUB_LINTER_PORT:-18091}:8080"
+    depends_on:
+      apihub:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/ready"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+configs:
+  postgres-init:
+    content: |
+      CREATE DATABASE api_linter OWNER apihub;
+  apihub-config:
+    content: |
+      database:
+        host: postgres
+        name: apihub
+        username: apihub
+        password: "${APIHUB_DB_PASSWORD:?Set APIHUB_DB_PASSWORD}"
+      security:
+        productionMode: false
+        jwt:
+          privateKey: "${APIHUB_JWT_PRIVATE_KEY:?Set APIHUB_JWT_PRIVATE_KEY}"
+        apihubExternalUrl: "http://127.0.0.1:${APIHUB_PORT:-18090}"
+      zeroDayConfiguration:
+        accessToken: "${APIHUB_ACCESS_TOKEN:?Set APIHUB_ACCESS_TOKEN}"
+        adminEmail: "${APIHUB_ADMIN_EMAIL:-apihub-test-user@example.com}"
+        adminPassword: "${APIHUB_ADMIN_PASSWORD:?Set APIHUB_ADMIN_PASSWORD}"
+      olric:
+        discoveryMode: local
+        bindPort: 47375
+        memberlistPort: 47376
+  linter-config:
+    content: |
+      database:
+        host: postgres
+        name: api_linter
+        username: apihub
+        password: "${APIHUB_DB_PASSWORD:?Set APIHUB_DB_PASSWORD}"
+      technicalParameters:
+        apihub:
+          url: http://apihub:8080
+          accessToken: "${APIHUB_ACCESS_TOKEN:?Set APIHUB_ACCESS_TOKEN}"
+      linters:
+        spectral:
+          binPath: ./resources/spectral/linux/spectral
+        ai:
+          enabled: false
+      olric:
+        discoveryMode: local
