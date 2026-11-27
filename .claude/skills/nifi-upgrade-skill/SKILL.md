@@ -110,8 +110,12 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
   -Dorg.slf4j.simpleLogger.defaultLogLevel=ERROR \
   -Dexec.args="--sourceDir ./upgrade-temp-data/nifi-property-exports/<CURRENT> \
                --targetDir ./upgrade-temp-data/nifi-property-exports/<TARGET> \
-               --outputPath ./upgrade-temp-data/nifi-property-comparison"
+               --outputPath ./upgrade-temp-data/nifi-property-comparison \
+               --version <TARGET>"
 ```
+
+`<TARGET_MINOR>` is the minor part of `<TARGET>` (`12` for `2.12.0`). `--version` adds the `_2_<TARGET_MINOR>` suffix
+to the names of the mapping files that step 13 copies into the dev scripts.
 
 ## 12. Resolve display-name renames
 
@@ -152,14 +156,113 @@ where `<TARGET_VER_WITH_UNDERSCORE>` is `<TARGET>` version, where `.` is replace
 Then re-run the comparator with `--dictionaryPath qubership-nifi-tools/qubership-nifi-component-comparator-tool/dictionaries/<TARGET_VER_WITH_UNDERSCORE>/dictionary.yaml \
 --version <TARGET>`.
 
-## 13. Update OpenAPI specification
+## 13. Update dev scripts
+
+The scripts in `dev/update-scripts-flow-2.x` and `dev/update-scripts-prop-2.x` rename and remove properties in
+exports made on older NiFi versions. Each upgrade adds one mapping step for the target version, built from the
+comparator results of steps 11-12.
+
+Create files and steps only for `<TARGET>`, never for the versions skipped between `<CURRENT>` and `<TARGET>`: an
+upgrade from 2.10.0 to 2.12.0 adds step `12` and nothing for 2.11. The scripts apply a step to every export older than
+the step, so the one step covers the whole range. Leave the files and steps that already exist for other versions
+unchanged, even for a version between `<CURRENT>` and `<TARGET>`.
+
+### Patch upgrade
+
+The scripts choose steps by the minor version alone, so all patch versions of a minor version share one set of
+`_2_<TARGET_MINOR>` files, with the mappings up to the latest patch version upgraded to. A target of an earlier patch
+version gets those mappings too. If `<CURRENT>` and `<TARGET>` have the same major and minor parts, as in 2.7.0 to
+2.7.2:
+
+- If all four `*_2_<TARGET_MINOR>.json` files in `./upgrade-temp-data/nifi-property-comparison` hold only `{}`, the
+  patch version renamed and removed nothing: change nothing in `dev/` and say so in the final report.
+- Otherwise, follow the rest of this step, with two differences:
+  - Where a `_2_<TARGET_MINOR>` file already exists in `dev/`, add the new entries to it under their components and
+    keep its existing entries, instead of replacing the file. A step renames each property once, so chain the
+    entries where an existing entry renames `A` to `B` and a new entry changes `B`, and keep the new entry as well:
+    - a new `B` to `C` rename in the same file: change the existing entry to rename `A` to `C`;
+    - a new `null` for `B` in the same file: change the existing entry to `null` for `A`. In
+      `upgradeConfig_2_<TARGET_MINOR>.json` this covers the approved `csRemoveWhenEmptyConfig` entries too, which
+      that file holds as `null`;
+    - a new `B` in a `RemoveWhenEmptyConfig` file: leave the flow script entry as it is, because the flow script
+      renames before it removes empty descriptors.
+
+    List every entry changed this way in the final report.
+  - Do not add the `steps` entry, the script blocks, or the README rows again where they already exist for
+    `<TARGET_MINOR>`.
+
+  In the final report, say that the new entries do not reach exports made on an earlier patch version of the same minor
+  version: an export made on 2.7.0 is not older than step `7`, so the scripts skip that step for it.
+
+### Flow exports script
+
+A flow script entry that removes a property runs before the import, so NiFi's own migration never sees that
+property. A property that NiFi converts into a new property on import must stay in the flow, or its value is lost.
+
+1. Show the user, in one message, the list of every entry that removes a property, grouped by component, and ask
+   once which of them the flow script must leave for NiFi to migrate. Do not ask a separate question for each entry.
+   The list covers:
+   - every `null` value in `csPropConfig_2_<TARGET_MINOR>.json` and `procPropConfig_2_<TARGET_MINOR>.json`, which
+     removes the property even when it carries a value;
+   - every entry in `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` and
+     `procRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`, which removes the descriptor when the property has no value.
+
+   Entries that rename a property need no question. If no entry removes a property, ask nothing.
+2. Copy all four files from `./upgrade-temp-data/nifi-property-comparison` to `dev/update-scripts-flow-2.x`, without
+   the entries the user declined. Copy a file even when it holds only `{}`, and end every file with a newline:
+   - `csPropConfig_2_<TARGET_MINOR>.json`
+   - `procPropConfig_2_<TARGET_MINOR>.json`
+   - `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`
+   - `procRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json`
+
+   `updateFlowExports.sh` fails on a step whose `csPropConfig` or `procPropConfig` file is missing.
+3. Append `<TARGET_MINOR>` to `local steps=(...)` in `update_properties()` of `updateFlowExports.sh`.
+4. Add a `<TARGET>` row to both mapping tables in `dev/update-scripts-flow-2.x/README.md`.
+
+### Controller services script
+
+`upgradeConfig_2_<TARGET_MINOR>.json` holds controller service and reporting task mappings only, and the file exists
+only when the target version renamed or removed a controller service or reporting task property.
+
+1. Merge `csPropConfig_2_<TARGET_MINOR>.json` with the `csRemoveWhenEmptyConfig_2_<TARGET_MINOR>.json` entries the
+   user approves. Take both files from `./upgrade-temp-data/nifi-property-comparison`, with the entries declined for
+   the flow script still in them: the controller service import decides its removals separately. Show the user, in
+   one message, the list of every `csRemoveWhenEmptyConfig` entry, grouped by component, and ask once which of them
+   the controller service import must remove. If the file holds no entries, ask nothing.
+   In this script a `null` value removes the property even when it carries a value.
+2. If the merged mapping is `{}`, skip the rest of this section, README included, and say so in the final report.
+   The README version range ends at the latest version that has an `upgradeConfig` file.
+3. Write the merged mapping to `dev/update-scripts-prop-2.x/upgradeConfig_2_<TARGET_MINOR>.json`, ending the file
+   with a newline.
+4. In `analyzeAndUpdateNiFiExports.sh`, copy the blocks of the latest existing version and change them to
+   `<TARGET_MINOR>`:
+   - the `declare -a listForUpdate_2_<TARGET_MINOR>` line;
+   - the export version check that fills `listForUpdate_2_<TARGET_MINOR>`;
+   - the `echo "Flow for update 2.<TARGET_MINOR>: "` line;
+   - the block that runs `upgradeExports_2_x.sh` with `upgradeConfig_2_<TARGET_MINOR>.json`.
+5. In `dev/update-scripts-prop-2.x/README.md`, update the supported version range in the opening sentence and the
+   list of mapping files under "Mapping configuration".
+
+### Check the scripts
+
+```bash
+bash -n dev/update-scripts-flow-2.x/updateFlowExports.sh
+bash -n dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
+shellcheck -x -P SCRIPTDIR dev/update-scripts-flow-2.x/updateFlowExports.sh \
+  dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
+```
+
+In the final report, list the files added and changed in both directories, and the removal entries the user
+approved or declined, separately for the flow script and for `upgradeConfig_2_<TARGET_MINOR>.json`.
+
+## 14. Update OpenAPI specification
 
 ```bash
 mvn exec:java \
   -pl qubership-nifi-tools/qubership-nifi-openapi-enricher
 ```
 
-## 14. Known issues analysis
+## 15. Known issues analysis
 
 Find bugs in the target version that are related to the keywords in
 `.claude/skills/nifi-upgrade-skill/conf/known-issues-keywords.txt`, and classify them. The file lists one keyword per
@@ -225,7 +328,7 @@ In the final report, give the path to `known-issues-<TARGET>.md` and ask the use
 upgrade. This step writes no files other than `jira-issues-<TARGET>.json`, `classification-<TARGET>.json`, and
 `known-issues-<TARGET>.md`, and runs no commands other than the two scripts.
 
-## 15. Generate releases notes
+## 16. Generate releases notes
 
 Fill in the wiki templates from `docs/template/wiki/` with the versions used in
 this upgrade and write the results to `upgrade-temp-data/releases-notes/`.
