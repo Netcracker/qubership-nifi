@@ -19,7 +19,7 @@ services:
       retries: 30
 
   apihub:
-    image: ghcr.io/netcracker/qubership-apihub-backend:1.23.0@sha256:00cd2eebea223a0a547a53c725b6485cc776af70492ef74bdf0d23e7696a267f
+    image: ghcr.io/netcracker/qubership-apihub-backend:1.24.0@sha256:2f96f95d07797bc84fd7b25731b7fd43cc93c22bbde7e6f0bba0b8095036f35a
     environment:
       APIHUB_CONFIG_FOLDER: /app/qubership-apihub-service
     configs:
@@ -37,7 +37,7 @@ services:
       retries: 45
 
   builder:
-    image: ghcr.io/netcracker/qubership-apihub-build-task-consumer:3.6.0@sha256:f4fcb76888384923216c58859fffdbefb41f5234d7ed100b9433b5ff5bbd599c
+    image: ghcr.io/netcracker/qubership-apihub-build-task-consumer:3.6.1@sha256:f29267e59762fb81ad460cb4355ffe8526f0cfa90e798c8ccdb32242d23b0d5d
     environment:
       APIHUB_BACKEND_ADDRESS: apihub:8080
       APIHUB_API_KEY: ${APIHUB_ACCESS_TOKEN:?Set APIHUB_ACCESS_TOKEN}
