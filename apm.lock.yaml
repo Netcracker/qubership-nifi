@@ -1,5 +1,5 @@
 lockfile_version: '1'
-generated_at: '2026-11-12T01:07:17.077879+00:00'
+generated_at: '2026-11-27T20:50:35.658887+00:00'
 apm_version: 0.35.0
 dependencies:
 - repo_url: _local/nifi-development-kit
@@ -185,8 +185,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: final-review
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.3.0
   virtual_path: agent-packages/final-review
   is_virtual: true
@@ -212,8 +212,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: javadoc-authoring
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.5.0
   virtual_path: agent-packages/javadoc-authoring
   is_virtual: true
@@ -235,8 +235,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: qubership-repo-essentials
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.4.0
   virtual_path: agent-packages/qubership-repo-essentials
   is_virtual: true
@@ -247,13 +247,13 @@ dependencies:
   deployed_file_hashes:
     .claude/rules/qubership-repo-essentials.md: sha256:bc99c3336458e72fc25786fc2d56588a98c351465e456c6b0507e703bcb3ea79
     .cursor/rules/qubership-repo-essentials.mdc: sha256:20375c858fa8bd188d986a139f7a4ce980237add61871864d737e3c582b6faa0
-  content_hash: sha256:75e779479a8c6b43d1c7179f99116050e6deced7a89bb365ab37fb4032b60c04
+  content_hash: sha256:e29bcb424822f5dd1008a9da02699d99e31f5318e83b83c1a0f3af0e9e91e878
 - repo_url: netcracker/qubership-ai-packages
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: test-authoring
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.3.0
   virtual_path: agent-packages/test-authoring
   is_virtual: true
@@ -347,8 +347,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: apm-authoring
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.2.1
   virtual_path: agent-packages/apm-authoring
   is_virtual: true
@@ -372,8 +372,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: change-description-authoring
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.9.0
   virtual_path: agent-packages/change-description-authoring
   is_virtual: true
@@ -401,8 +401,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: docs-page-authoring
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.1.0
   virtual_path: agent-packages/docs-page-authoring
   is_virtual: true
@@ -426,8 +426,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: english-us-developer-style
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 2.2.0
   virtual_path: agent-packages/english-us-developer-style
   is_virtual: true
@@ -451,8 +451,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-ai-packages
   name: markdown-line-length-120
   host: github.com
-  resolved_commit: 9a65906821d195690bd148a2cd476b9bcd949042
-  resolved_ref: 9a65906821d195690bd148a2cd476b9bcd949042
+  resolved_commit: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
+  resolved_ref: 5db2bed23ca67fb3df59a3a47ba06ddc6e7ea829
   version: 1.0.1
   virtual_path: agent-packages/markdown-line-length-120
   is_virtual: true
@@ -476,8 +476,8 @@ dependencies:
   materialization_repo_url: Netcracker/qubership-workflow-hub
   name: qubership-workflow-hub-usage
   host: github.com
-  resolved_commit: 3511065e91edef101ca84ed1c88cfef7120dface
-  resolved_ref: 3511065e91edef101ca84ed1c88cfef7120dface
+  resolved_commit: e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1
+  resolved_ref: e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1
   version: 1.0.0
   virtual_path: agent-packages/qubership-workflow-hub-usage
   is_virtual: true
@@ -528,7 +528,7 @@ dependencies:
   - .claude/skills/qubership-workflow-conventions/zizmor-rules.md
   - .cursor/rules/qubership-workflow-hub-usage.mdc
   deployed_file_hashes:
-    .agents/skills/qubership-actions-guide/SKILL.md: sha256:209a8bf5a0099b9298013616bfd74f169fb3d46237d80914a782b3ba90cdb130
+    .agents/skills/qubership-actions-guide/SKILL.md: sha256:47b22501e9f19a38bdb2918ca9cf0c26a8d8b30d746b975f1933006cd93f29ff
     .agents/skills/qubership-actions-guide/cla.md: sha256:245533ccd1f9c6413e0a1b83cdb2d9f7d8e065a9fdb2d5a0fe9694b8b59b57f1
     .agents/skills/qubership-actions-guide/cleanup.md: sha256:05b82bb4f1933c39981600ac53f916c510741eb25d3636b8b99bc31a600f7560
     .agents/skills/qubership-actions-guide/docker.md: sha256:50859ac4df9bc845d383cf47cb3dcf8a8846fae4b9d3bbbbd42e265338bcb65b
@@ -537,8 +537,8 @@ dependencies:
     .agents/skills/qubership-actions-guide/notifications.md: sha256:924424eb5dcdc17fdcb155a090af714a09e906e0808a520262dc7c2b0a4c5f5c
     .agents/skills/qubership-actions-guide/pr.md: sha256:b584affbec960cac32d107806ebf7fe10394609788941579c42c1b38c478f1f9
     .agents/skills/qubership-actions-guide/release.md: sha256:d26279c090f6e75733683c93e2c9f75413dd4293004d83960d784a2ee24303c8
-    .agents/skills/qubership-actions-guide/security.md: sha256:1c9ccbc41dd3524783efa0891036ea6c5680f4aacf74452ee65716a5a9f825aa
-    .agents/skills/qubership-actions-guide/utilities.md: sha256:48d8766f47b1831682f4701ab323855bbc04e6689feda7eb2f8892a47a37cdcf
+    .agents/skills/qubership-actions-guide/security.md: sha256:0eaee43ba8f688eb81463290636ddd162e42c665af4027a238e79ad12f92592f
+    .agents/skills/qubership-actions-guide/utilities.md: sha256:6eb806bfe16d08fc0978d7df23422579a38c27829cb089666bad7ff46b1c2051
     .agents/skills/qubership-templates-guide/SKILL.md: sha256:1b8c37cfd3e230a3b145118957d7545baa73eee1d47a25d9186ae680e051fc44
     .agents/skills/qubership-workflow-conventions/SKILL.md: sha256:4e73031615cf16fa3ed72ff1bd66c2a2e1ddf4e44c9cf34cd931ce0e105aa1bf
     .agents/skills/qubership-workflow-conventions/debugging-playbook.md: sha256:4609eff134db5534ed21be6772e0595369c32525aecd25c9b9d8b0ffcbeabcfa
@@ -546,7 +546,7 @@ dependencies:
     .agents/skills/qubership-workflow-conventions/workflow-patterns.md: sha256:5e3162d18c8d8a205dd5a42a30e7d20447135de535786fb43ce384f184707b25
     .agents/skills/qubership-workflow-conventions/zizmor-rules.md: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
     .claude/rules/qubership-workflow-hub-usage.md: sha256:3b936301f81645936d916eb4b21578b8721dc373b521062860d7ed7731681636
-    .claude/skills/qubership-actions-guide/SKILL.md: sha256:209a8bf5a0099b9298013616bfd74f169fb3d46237d80914a782b3ba90cdb130
+    .claude/skills/qubership-actions-guide/SKILL.md: sha256:47b22501e9f19a38bdb2918ca9cf0c26a8d8b30d746b975f1933006cd93f29ff
     .claude/skills/qubership-actions-guide/cla.md: sha256:245533ccd1f9c6413e0a1b83cdb2d9f7d8e065a9fdb2d5a0fe9694b8b59b57f1
     .claude/skills/qubership-actions-guide/cleanup.md: sha256:05b82bb4f1933c39981600ac53f916c510741eb25d3636b8b99bc31a600f7560
     .claude/skills/qubership-actions-guide/docker.md: sha256:50859ac4df9bc845d383cf47cb3dcf8a8846fae4b9d3bbbbd42e265338bcb65b
@@ -555,8 +555,8 @@ dependencies:
     .claude/skills/qubership-actions-guide/notifications.md: sha256:924424eb5dcdc17fdcb155a090af714a09e906e0808a520262dc7c2b0a4c5f5c
     .claude/skills/qubership-actions-guide/pr.md: sha256:b584affbec960cac32d107806ebf7fe10394609788941579c42c1b38c478f1f9
     .claude/skills/qubership-actions-guide/release.md: sha256:d26279c090f6e75733683c93e2c9f75413dd4293004d83960d784a2ee24303c8
-    .claude/skills/qubership-actions-guide/security.md: sha256:1c9ccbc41dd3524783efa0891036ea6c5680f4aacf74452ee65716a5a9f825aa
-    .claude/skills/qubership-actions-guide/utilities.md: sha256:48d8766f47b1831682f4701ab323855bbc04e6689feda7eb2f8892a47a37cdcf
+    .claude/skills/qubership-actions-guide/security.md: sha256:0eaee43ba8f688eb81463290636ddd162e42c665af4027a238e79ad12f92592f
+    .claude/skills/qubership-actions-guide/utilities.md: sha256:6eb806bfe16d08fc0978d7df23422579a38c27829cb089666bad7ff46b1c2051
     .claude/skills/qubership-templates-guide/SKILL.md: sha256:1b8c37cfd3e230a3b145118957d7545baa73eee1d47a25d9186ae680e051fc44
     .claude/skills/qubership-workflow-conventions/SKILL.md: sha256:4e73031615cf16fa3ed72ff1bd66c2a2e1ddf4e44c9cf34cd931ce0e105aa1bf
     .claude/skills/qubership-workflow-conventions/debugging-playbook.md: sha256:4609eff134db5534ed21be6772e0595369c32525aecd25c9b9d8b0ffcbeabcfa
@@ -564,7 +564,7 @@ dependencies:
     .claude/skills/qubership-workflow-conventions/workflow-patterns.md: sha256:5e3162d18c8d8a205dd5a42a30e7d20447135de535786fb43ce384f184707b25
     .claude/skills/qubership-workflow-conventions/zizmor-rules.md: sha256:f0b1e9aa4def06f87e0bb8fff6ef23cdcfbd0565891cd64b274460e8029034dc
     .cursor/rules/qubership-workflow-hub-usage.mdc: sha256:4370214b5f0aa197a566188742fcb9f3403ceab32f5703aaab8f7d6926f238b2
-  content_hash: sha256:ccf846dd161c6ab1ccc0413225895998420ed2ece2b1a36ff37b8d99c08d10b5
+  content_hash: sha256:2dc1f71627197baa20e9e90909367fad17aec18d652cef85ce92d993a188a860
 deployments:
 - kind: project-relative
   target: claude
@@ -1078,7 +1078,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:209a8bf5a0099b9298013616bfd74f169fb3d46237d80914a782b3ba90cdb130
+  content_hash: sha256:47b22501e9f19a38bdb2918ca9cf0c26a8d8b30d746b975f1933006cd93f29ff
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-actions-guide/cla.md
@@ -1159,7 +1159,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:1c9ccbc41dd3524783efa0891036ea6c5680f4aacf74452ee65716a5a9f825aa
+  content_hash: sha256:0eaee43ba8f688eb81463290636ddd162e42c665af4027a238e79ad12f92592f
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-actions-guide/utilities.md
@@ -1168,7 +1168,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:48d8766f47b1831682f4701ab323855bbc04e6689feda7eb2f8892a47a37cdcf
+  content_hash: sha256:6eb806bfe16d08fc0978d7df23422579a38c27829cb089666bad7ff46b1c2051
 - kind: project-relative
   target: claude
   value: .claude/skills/qubership-templates-guide
@@ -1807,7 +1807,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:209a8bf5a0099b9298013616bfd74f169fb3d46237d80914a782b3ba90cdb130
+  content_hash: sha256:47b22501e9f19a38bdb2918ca9cf0c26a8d8b30d746b975f1933006cd93f29ff
 - kind: project-relative
   target: codex
   value: .agents/skills/qubership-actions-guide/cla.md
@@ -1888,7 +1888,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:1c9ccbc41dd3524783efa0891036ea6c5680f4aacf74452ee65716a5a9f825aa
+  content_hash: sha256:0eaee43ba8f688eb81463290636ddd162e42c665af4027a238e79ad12f92592f
 - kind: project-relative
   target: codex
   value: .agents/skills/qubership-actions-guide/utilities.md
@@ -1897,7 +1897,7 @@ deployments:
   owners:
   - netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
   active_owner: netcracker/qubership-workflow-hub/agent-packages/qubership-workflow-hub-usage
-  content_hash: sha256:48d8766f47b1831682f4701ab323855bbc04e6689feda7eb2f8892a47a37cdcf
+  content_hash: sha256:6eb806bfe16d08fc0978d7df23422579a38c27829cb089666bad7ff46b1c2051
 - kind: project-relative
   target: codex
   value: .agents/skills/qubership-templates-guide

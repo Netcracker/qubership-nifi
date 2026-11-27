@@ -1,4 +1,7 @@
-# Utilities — config-resolver, apm-packages-update, wait-for-workflow, custom-event, verify-json
+# Utilities
+
+Covers: config-resolver, sync-files-action, wait-for-workflow,
+custom-event, store-input-params, verify-json.
 
 ## config-resolver (generic configuration files)
 
@@ -89,61 +92,84 @@ a bot-authored pull request.
 
 ---
 
-## apm-packages-update
+## sync-files-action
 
-Runs `apm update --yes` in the current repository and opens a pull request with the
-resulting changes. Designed to be placed in each consumer repository and triggered on a
-schedule or manually.
+Copies files/directories inside the checked-out workspace per a JSON `from`/`to` mapping and
+opens a pull request with the resulting changes. A run that produces no changes is a no-op —
+no empty PR is created.
 
 ### When to use
 
-- A repository uses APM-managed skill packages and needs periodic updates.
-- You want to automate APM package bumps without touching the repository manually.
+- Distributing a file (docs, config, troubleshooting reference) from one path in a repo to
+  another and opening a PR automatically — e.g. syncing `docs/troubleshooting.md` into an
+  APM skill's `references/` folder.
+- Any "copy files, then PR the result" step that doesn't need a full custom script.
 
 ### Prerequisites
 
-- `apm.yml` must exist at the repository root.
-- The specified `target` must be configured in `apm.yml` (the action adds it automatically
-  if missing).
+- Workspace-scoped only: every `from`/`to` is resolved against `GITHUB_WORKSPACE`; paths that
+  escape it (e.g. via `../`) are rejected. This action does not fetch files from other repos —
+  checkout whatever source the mapping needs before calling it.
+- Enabling `auto-merge` requires the repository setting "Allow auto-merge" to be turned on.
 
 ### Permissions
 
 ```yaml
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 ```
-
-The `token` input must have permission to push branches and open pull requests.
-Use the org-level secret `APM_UPDATE_TOKEN`.
 
 ### Inputs
 
 | Input | Required | Default | Notes |
 | --- | --- | --- | --- |
-| `branch` | No | `main` | Target branch to update |
-| `target` | No | `claude` | APM target name in `apm.yml` |
-| `token` | Yes | — | Use `secrets.APM_UPDATE_TOKEN` |
+| `files` | Yes | — | JSON array of `{ "from": string, "to": string, "overwrite"?: boolean }`; `overwrite` defaults to `true` per mapping |
+| `branch` | No | `main` | Base branch for the pull request |
+| `pr-branch` | No | `chore/sync-files` | Branch to create/update with the synced files |
+| `title` | No | `chore: sync files` | Pull request title |
+| `commit-message` | No | `chore: sync files` | Commit message for the synced files |
+| `create-pr` | No | `true` | Open a pull request with the synced changes; set to `false` to only copy files |
+| `auto-merge` | No | `false` | Enable GitHub auto-merge on the created PR; has no effect when `create-pr` is `false` or when no PR is opened |
+| `merge-method` | No | `squash` | `merge`, `squash`, or `rebase`; used only when `auto-merge` is `true` |
+| `delete-branch` | No | `true` | Delete `pr-branch` after the PR is merged |
+| `sign-off` | No | `false` | Sign off commits on the created PR |
+| `reviewers` | No | `""` | Comma-separated GitHub usernames to request review from |
+| `team-reviewers` | No | `""` | Comma-separated GitHub team slugs to request review from |
+| `token` | No | `""` | Required when `create-pr` is `true`; not needed when `create-pr` is `false`. Needs push + PR-create permission in the target repo |
 
 ### Usage pattern
 
 ```yaml
-name: Update APM packages
+name: Sync documentation into APM skill
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * 1"
+  push:
+    branches: [main]
+    paths:
+      - "docs/troubleshooting.md"
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  update:
+  sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - name: Update APM packages
-        uses: netcracker/qubership-workflow-hub/actions/apm-packages-update@<resolved-sha>  # <resolved-tag>
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
-          token: ${{ secrets.APM_UPDATE_TOKEN }}
+          persist-credentials: false
+
+      - name: Sync documentation into skill
+        uses: netcracker/qubership-workflow-hub/actions/sync-files-action@<resolved-sha>  # <resolved-tag>
+        with:
+          files: |
+            [
+              { "from": "docs/troubleshooting.md", "to": "agent-packages/my-skill/.apm/skills/my-skill/references/troubleshooting.md" }
+            ]
+          auto-merge: "true"
+          token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ---
@@ -366,6 +392,36 @@ Download in a downstream job:
       - name: Read params
         run: cat input_params.json
 ```
+
+---
+
+## Renovate health actions
+
+Use `renovate-validate`, `renovate-lookup`, and `renovate-monitor` together in a
+repository-owned workflow. These actions do not provide checkout, a Renovate container,
+permissions, scheduling, or job orchestration.
+
+### When to use
+
+- A repository validates `renovate.json` on changes and on a schedule.
+- A scheduled or manual run must check dependency lookup behavior and the hosted Renovate
+  Dependency Dashboard.
+- Renovate failures should create or update one health issue and close it after recovery.
+
+### Pipeline pattern
+
+Keep validation and lookup in separate jobs. Pass each complete job result and its optional
+`reason` output to monitor. This allows repository-specific validation steps to fail the
+health check even after the shared validation action succeeds.
+
+The caller must keep its own cron, Renovate image, branch filters, and local policy tests.
+Set `RENOVATE_HEALTH_CHECK=false` to skip lookup and monitor while leaving validation active.
+
+Read the action readmes before writing the caller:
+
+- [renovate-validate](../../../../../actions/renovate-validate/README.md)
+- [renovate-lookup](../../../../../actions/renovate-lookup/README.md)
+- [renovate-monitor](../../../../../actions/renovate-monitor/README.md)
 
 ---
 
