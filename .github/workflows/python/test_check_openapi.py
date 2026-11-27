@@ -586,7 +586,9 @@ def test_lint_fallback_reports_an_http_conflict_as_a_failure(apihub, work_dir):
     linter.respond("GET", f"{LINT}/summary", *[Response(404)] * 11)
     linter.respond("POST", START_LINT, Response(409))
 
-    assert check_openapi.main() == 1
+    assert check_openapi.main() == 1, (
+        "The linter's POST validation endpoint always queues a new task and returns 202, so any other status fails"
+    )
     assert "HTTP 409" in read_report(work_dir, "check-failures")["lint"]
     assert [(request.method, request.target) for request in linter.requests if request.method == "POST"] == [
         ("POST", START_LINT),
