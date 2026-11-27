@@ -114,7 +114,8 @@ mvn exec:java -q -f <PROJECT_ROOT>/pom.xml \
                --version <TARGET>"
 ```
 
-`--version` adds the `_2_<MINOR>` suffix to the names of the mapping files that step 13 copies into the dev scripts.
+`<TARGET_MINOR>` is the minor part of `<TARGET>` (`12` for `2.12.0`). `--version` adds the `_2_<TARGET_MINOR>` suffix
+to the names of the mapping files that step 13 copies into the dev scripts.
 
 ## 12. Resolve display-name renames
 
@@ -161,17 +162,17 @@ The scripts in `dev/update-scripts-flow-2.x` and `dev/update-scripts-prop-2.x` r
 exports made on older NiFi versions. Each upgrade adds one mapping step for the target version, built from the
 comparator results of steps 11-12.
 
-`<TARGET_MINOR>` is the minor part of `<TARGET>` (`12` for `2.12.0`). Create files and steps only for `<TARGET>`,
-never for the versions skipped between `<CURRENT>` and `<TARGET>`: an upgrade from 2.10.0 to 2.12.0 adds step `12`
-and nothing for 2.11. The scripts apply a step to every export older than the step, so the one step covers the whole
-range. Leave the files and steps that already exist for other versions unchanged, even for a version between
-`<CURRENT>` and `<TARGET>`.
+Create files and steps only for `<TARGET>`, never for the versions skipped between `<CURRENT>` and `<TARGET>`: an
+upgrade from 2.10.0 to 2.12.0 adds step `12` and nothing for 2.11. The scripts apply a step to every export older than
+the step, so the one step covers the whole range. Leave the files and steps that already exist for other versions
+unchanged, even for a version between `<CURRENT>` and `<TARGET>`.
 
 ### Patch upgrade
 
 The scripts choose steps by the minor version alone, so all patch versions of a minor version share one set of
-`_2_<MINOR>` files, with the mappings up to the latest patch version upgraded to. A target of an earlier patch version
-gets those mappings too. If `<CURRENT>` and `<TARGET>` have the same major and minor parts, as in 2.7.0 to 2.7.2:
+`_2_<TARGET_MINOR>` files, with the mappings up to the latest patch version upgraded to. A target of an earlier patch
+version gets those mappings too. If `<CURRENT>` and `<TARGET>` have the same major and minor parts, as in 2.7.0 to
+2.7.2:
 
 - If all four `*_2_<TARGET_MINOR>.json` files in `./upgrade-temp-data/nifi-property-comparison` hold only `{}`, the
   patch version renamed and removed nothing: change nothing in `dev/` and say so in the final report.
@@ -235,10 +236,10 @@ only when the target version renamed or removed a controller service or reportin
    with a newline.
 4. In `analyzeAndUpdateNiFiExports.sh`, copy the blocks of the latest existing version and change them to
    `<TARGET_MINOR>`:
-   - the `declare -a listForUpdate_2_<MINOR>` line;
-   - the export version check that fills `listForUpdate_2_<MINOR>`;
-   - the `echo "Flow for update 2.<MINOR>: "` line;
-   - the block that runs `upgradeExports_2_x.sh` with `upgradeConfig_2_<MINOR>.json`.
+   - the `declare -a listForUpdate_2_<TARGET_MINOR>` line;
+   - the export version check that fills `listForUpdate_2_<TARGET_MINOR>`;
+   - the `echo "Flow for update 2.<TARGET_MINOR>: "` line;
+   - the block that runs `upgradeExports_2_x.sh` with `upgradeConfig_2_<TARGET_MINOR>.json`.
 5. In `dev/update-scripts-prop-2.x/README.md`, update the supported version range in the opening sentence and the
    list of mapping files under "Mapping configuration".
 
@@ -247,7 +248,8 @@ only when the target version renamed or removed a controller service or reportin
 ```bash
 bash -n dev/update-scripts-flow-2.x/updateFlowExports.sh
 bash -n dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
-shellcheck dev/update-scripts-flow-2.x/updateFlowExports.sh dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
+shellcheck -x -P SCRIPTDIR dev/update-scripts-flow-2.x/updateFlowExports.sh \
+  dev/update-scripts-prop-2.x/analyzeAndUpdateNiFiExports.sh
 ```
 
 In the final report, list the files added and changed in both directories, and the removal entries the user
