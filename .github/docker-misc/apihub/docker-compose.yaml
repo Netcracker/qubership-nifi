@@ -2,7 +2,7 @@ name: nifi-apihub-headless
 
 services:
   postgres:
-    image: docker.io/library/postgres:16.8@sha256:301bcb60b8a3ee4ab7e147932723e3abd1cef53516ce5210b39fd9fe5e3602ae
+    image: docker.io/library/postgres:16.15@sha256:f9a7b9ebf6f56201f949db745e47bc423c0f0f8294bafe991cc10bf74b029657
     environment:
       POSTGRES_DB: apihub
       POSTGRES_USER: apihub
