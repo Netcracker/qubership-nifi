@@ -1,0 +1,45 @@
+---
+name: nifi-version-update-test
+
+# Runs the tests of the scripts behind nifi-version-update.yml, in .github/workflows/sh/tests. The tests replace
+# Docker Hub, the GitHub CLI, opencode, Maven, and sudo with stubs, so they need no secret and no network.
+on:
+  push:
+    paths:
+      - '.github/workflows/sh/nifi-version-check.sh'
+      - '.github/workflows/sh/nifi-upgrade-*.sh'
+      - '.github/workflows/sh/tests/**'
+      - '.github/workflows/nifi-version-update.yml'
+      - '.github/workflows/nifi-version-update-test.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/sh/nifi-version-check.sh'
+      - '.github/workflows/sh/nifi-upgrade-*.sh'
+      - '.github/workflows/sh/tests/**'
+      - '.github/workflows/nifi-version-update.yml'
+      - '.github/workflows/nifi-version-update-test.yml'
+  workflow_dispatch: null
+
+permissions:
+  contents: read
+
+jobs:
+  nifi-version-update-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Every test file runs, even after one fails, so that a single run reports all the failures.
+      - name: Run tests
+        run: |
+          status=0
+          for test_file in .github/workflows/sh/tests/*-test.sh; do
+            echo "::group::$test_file"
+            bash "$test_file" || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
